@@ -36,16 +36,16 @@ export const ITEM_NAMES_FOLLOW_LANG_KEY = 'aadhat.itemNamesFollowLang';
 /** '1' once this phone was offered to share its own printed-bill choices with every phone (#107). */
 export const RECEIPT_SHARE_ASKED_KEY = 'receiptShareAsked';
 
-/** Bill-check limits in Settings › Aadhat (keys of DEFAULT_THRESHOLDS); moved from Admin › Configure. */
+/** Bill-check limits in Settings › Aadhat (keys of DEFAULT_THRESHOLDS, label, unit beside the box); moved from Admin › Configure. */
 export const CHECK_THRESHOLD_FIELDS = [
-    ['oversellBlockKg', 'ui.checks.oversell_block'],
+    ['oversellBlockKg', 'ui.checks.oversell_block', 'kg'],
     ['rateMultiple', 'ui.checks.rate_multiple'],
     ['duplicateWindowSec', 'ui.checks.duplicate_window'],
     ['maxFutureMin', 'ui.checks.max_future'],
     ['backdateDays', 'ui.checks.backdate_days'],
-    ['cashOkRs', 'ui.checks.cash_ok'],
-    ['cashHighRs', 'ui.checks.cash_high'],
-    ['stockAdjustFlagKg', 'ui.checks.stock_adjust_flag'],
+    ['cashOkRs', 'ui.checks.cash_ok', '₹'],
+    ['cashHighRs', 'ui.checks.cash_high', '₹'],
+    ['stockAdjustFlagKg', 'ui.checks.stock_adjust_flag', 'kg'],
     ['deniedCount', 'ui.checks.denied_count'],
     ['deniedWindowMin', 'ui.checks.denied_window']
 ];
@@ -556,13 +556,18 @@ export class SettingsManager {
         if (!box) return;
         const e = Helpers.escapeHtml;
         const vals = normalizeThresholds(AppState.settings?.checkThresholds);
-        box.innerHTML = CHECK_THRESHOLD_FIELDS.map(([key, label]) => `
+        box.innerHTML = CHECK_THRESHOLD_FIELDS.map(([key, label, unit]) => {
+            const input = `<input type="number" class="input" inputmode="decimal" min="0" step="any" id="settingCheck_${key}"
+                       placeholder="${e(DEFAULT_THRESHOLDS[key])}" value="${e(vals[key])}"${editable ? '' : ' disabled'}
+                       data-onchange="settings.saveCheckThresholds()" />`;
+            const field = unit === '₹' ? `<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>${input}</div>`
+                : unit ? `<div class="adorn">${input}<span class="adorn-post" aria-hidden="true">${e(unit)}</span></div>` : input;
+            return `
                 <div class="field">
                 <label for="settingCheck_${key}">${e(t(label))}</label>
-                <input type="number" class="input" inputmode="decimal" min="0" step="any" id="settingCheck_${key}"
-                       placeholder="${e(DEFAULT_THRESHOLDS[key])}" value="${e(vals[key])}"${editable ? '' : ' disabled'}
-                       data-onchange="settings.saveCheckThresholds()" />
-                </div>`).join('');
+                ${field}
+                </div>`;
+        }).join('');
     }
 
     /**

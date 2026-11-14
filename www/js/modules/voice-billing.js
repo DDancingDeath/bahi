@@ -492,13 +492,15 @@ export const VoiceBilling = {
             if (!it || (isArchivedItem(it) && k !== line.itemIndex)) return;
             options.push(`<option value="${esc(k)}"${k === line.itemIndex ? ' selected' : ''}>${esc(itemLabel(it))}</option>`);
         });
-        const num = (field, label, v) => `<label class="field voice-edit-field"><span>${esc(label)}</span>`
-            + `<input class="input" type="number" inputmode="decimal" min="0" step="any" data-voice-field="${esc(field)}" value="${v !== null ? esc(v) : ''}" data-oninput="voice.lineChanged(${esc(i)})"></label>`;
+        const num = (field, label, v, pre, post) => `<label class="field voice-edit-field"><span>${esc(label)}</span><span class="adorn">`
+            + (pre ? `<span class="adorn-pre" aria-hidden="true">${esc(pre)}</span>` : '')
+            + `<input class="input" type="number" inputmode="decimal" min="0" step="any" data-voice-field="${esc(field)}" value="${v !== null ? esc(v) : ''}" data-oninput="voice.lineChanged(${esc(i)})">`
+            + `<span class="adorn-post" aria-hidden="true">${esc(post)}</span></span></label>`;
         return `<div class="voice-edit" id="voiceEdit${esc(i)}" data-voice-edit="${esc(i)}" hidden>`
             + `<label class="field voice-edit-field"><span>${esc(head('ui.common.item'))}</span>`
             + `<select class="input" data-voice-field="item" data-onchange="voice.lineChanged(${esc(i)})">${options.join('')}</select></label>`
-            + num('weight', head('ui.billing.weight_kg'), line.weight)
-            + num('rate', head('ui.billing.rate'), line.rate)
+            + num('weight', head('ui.billing.weight_label'), line.weight, '', 'kg')
+            + num('rate', head('ui.common.rate'), line.rate, '₹', '/kg')
             + '</div>';
     },
 

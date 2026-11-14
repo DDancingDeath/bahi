@@ -51,6 +51,8 @@ const META_TTL_MS = 5 * 60 * 1000;
 const COLORS = { purchase: '#2563eb', retail: '#059669', wholesale: '#d97706', bought: '#93c5fd', sold: '#6ee7b7' };
 const YEAR_COLORS = ['#dc2626', '#2563eb', '#059669', '#7c3aed', '#d97706'];
 const DASH = [5, 4];
+/** Grid, axis text and marker greys come from the theme tokens, read at draw time (light: the same greys as before). */
+const token = (name) => (typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : '');
 const STOP_KEYS = { quota: 'ui.trends.stop_quota', budget: 'ui.trends.stop_budget', error: 'ui.trends.stop_error', save: 'ui.trends.stop_save' };
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
@@ -693,6 +695,14 @@ export const RateTrendsManager = {
         return { periods, bills, items, cut, rows };
     },
 
+    /** Theme or light / dark changed: redraw the open charts in the new colours (no reads). */
+    redrawCharts() {
+        if (!canSee() || this.view !== 'chart' || !document.getElementById('rtRateChart')?.offsetParent) return;
+        this.drawRateChart();
+        this.drawVolumeChart();
+        this.drawYearChart();
+    },
+
     render() {
         const chart = document.getElementById('rtChartView');
         const table = document.getElementById('rtTableView');
@@ -826,7 +836,7 @@ export const RateTrendsManager = {
 
     noData(c) {
         c.ctx.font = '14px Arial';
-        c.ctx.fillStyle = '#666';
+        c.ctx.fillStyle = token('--ink-3');
         c.ctx.textAlign = 'center';
         c.ctx.fillText(t('ui.trends.no_data'), c.canvas.width / 2, c.canvas.height / 2);
     },
@@ -856,9 +866,10 @@ export const RateTrendsManager = {
         const yAt = (v) => top + h - ((v - lo) / (hi - lo)) * h;
         const setDash = (d) => { if (ctx.setLineDash) ctx.setLineDash(d); };
 
-        ctx.strokeStyle = '#e5e7eb';
+        const axis = token('--ink-2');
+        ctx.strokeStyle = token('--line');
         ctx.lineWidth = 1;
-        ctx.fillStyle = '#4b5563';
+        ctx.fillStyle = axis;
         ctx.font = '10px Arial';
         ctx.textAlign = 'right';
         for (let g = 0; g <= 4; g++) {
@@ -881,7 +892,7 @@ export const RateTrendsManager = {
 
         if (marker && marker.index >= 0 && marker.index < labels.length) {
             const x = xAt(marker.index);
-            ctx.strokeStyle = '#4b5563';
+            ctx.strokeStyle = axis;
             ctx.lineWidth = 1.5;
             setDash([2, 3]);
             ctx.beginPath();
@@ -889,7 +900,7 @@ export const RateTrendsManager = {
             ctx.lineTo(x, top + h);
             ctx.stroke();
             setDash([]);
-            ctx.fillStyle = '#374151';
+            ctx.fillStyle = axis;
             ctx.textAlign = x > canvas.width - 90 ? 'right' : 'left';
             ctx.fillText(marker.label, x + (ctx.textAlign === 'right' ? -4 : 4), top + 2);
         }
@@ -955,7 +966,7 @@ export const RateTrendsManager = {
         const h = canvas.height - bottom - 8;
         const slot = (canvas.width - left - 12) / periods.length;
         const barW = Math.max(1, Math.min(14, slot / 2 - 1));
-        ctx.fillStyle = '#4b5563';
+        ctx.fillStyle = token('--ink-2');
         ctx.font = '10px Arial';
         ctx.textAlign = 'right';
         ctx.fillText(kgText(max), left - 4, 14);
@@ -1205,3 +1216,5 @@ export const RateTrendsManager = {
             ${dayRows}</tbody></table>`;
     }
 };
+
+if (typeof window !== 'undefined') window.addEventListener('aadhat:themechange', () => RateTrendsManager.redrawCharts());

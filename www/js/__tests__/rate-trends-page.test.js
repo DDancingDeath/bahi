@@ -114,3 +114,30 @@ test('Hindi: no English sentences from the catalogue on the page', async () => {
     expect(fresh).not.toMatch(/Build history|Reads per day|free limit/);
     expect(fresh).toMatch(/सभी बिलों से इतिहास बनाएँ/);
 });
+
+test('chart greys come from the theme tokens and are redrawn when the theme or mode changes', async () => {
+    await renderPage('en', built());
+    await RateTrendsManager.setSection('rates');
+    await RateTrendsManager.setView('chart');
+    const styles = [];
+    const ctx = new Proxy({}, {
+        get: (o, k) => (k in o ? o[k] : () => {}),
+        set: (o, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle') styles.push(v); o[k] = v; return true; }
+    });
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = () => ctx;
+    const offsetParent = jest.spyOn(HTMLElement.prototype, 'offsetParent', 'get').mockReturnValue(document.body);
+    const root = document.documentElement.style;
+    root.setProperty('--ink-2', '#a8a8b5');
+    root.setProperty('--line', 'rgba(255, 255, 255, 0.07)');
+    try {
+        window.dispatchEvent(new CustomEvent('aadhat:themechange', { detail: { mode: 'dark' } }));
+        expect(styles).toEqual(expect.arrayContaining(['#a8a8b5', 'rgba(255, 255, 255, 0.07)']));
+        expect(styles).not.toEqual(expect.arrayContaining(['#4b5563']));
+    } finally {
+        HTMLCanvasElement.prototype.getContext = getContext;
+        offsetParent.mockRestore();
+        root.removeProperty('--ink-2');
+        root.removeProperty('--line');
+    }
+});

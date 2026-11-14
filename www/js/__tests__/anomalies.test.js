@@ -147,6 +147,16 @@ describe('bill rules', () => {
         expect(anomalyText({ type: 'cash-short', en: 'Short ₹12.00', hi: '' }).en).toBe('Short ₹12.00');
     });
 
+    test('a stored negative weight shows the minus sign on screen; the stored text keeps ASCII', () => {
+        const stored = { type: 'numcheck-ac8', en: 'No item below zero stock: expected 0 kg, found -25 kg', hi: 'होना था 0 kg, मिला -1,250.5 kg' };
+        expect(anomalyText(stored)).toEqual({ ...stored, en: 'No item below zero stock: expected 0 kg, found −25 kg', hi: 'होना था 0 kg, मिला −1,250.5 kg' });
+        expect(stored.en).toContain('-25 kg');
+        const other = { type: 'stock-adjust', en: 'Bags 10-25 kg; Stock changed by -3 kg (2-for-1)', hi: '' };
+        expect(anomalyText(other).en).toBe('Bags 10-25 kg; Stock changed by −3 kg (2-for-1)');
+        const plain = { type: 'cash-short', en: 'Short ₹-12', hi: '' };
+        expect(anomalyText(plain)).toBe(plain);
+    });
+
     test('old-bill edit and edit after payment are dated by the edit', () => {
         const old = bill({ timestamp: T(11, 0, 19), date: '19/10/2026, 11:00:00 am', editedAt: new Date(T(10)).toISOString(), editedBy: 'u2' });
         const list = run({ bills: { retail: [old] } });

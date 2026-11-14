@@ -40,7 +40,7 @@ const byId = (id) => document.getElementById(id);
 const fail = (key, p) => UIManager.showToast(t(key, p), 'error');
 /** Button calling window.app.rentals.<fn>(<args>), text = icon + t(key). */
 const btn = (cls, fn, args, key, icon = '', attrs = '') => `<button type="button" class="btn${cls}"${attrs} data-onclick="rentals.${fn}(${args})">${icon}${et(key)}</button>`;
-const lbl = (key, field) => `<label class="field rent-label">${et(key)}${field}</label>`;
+const lbl = (key, field, rupee = false) => `<label class="field rent-label">${et(key)}${rupee ? '<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>' : ''}${field}${rupee ? '</span>' : ''}</label>`;
 
 const state = {
     page: 'rent',
@@ -475,7 +475,7 @@ async function pay(leaseId, typed = null) {
     const name = snap.tenants.find(x => x.id === first.tenantId)?.name || first.tenantName || '';
     const html = `<h3>${et('ui.rent.record_payment')}${name ? ` · ${esc(name)}` : ''}</h3>
         ${lbl('ui.rent.amount', `
-            <input class="input" id="rentPayAmount" type="number" inputmode="decimal" min="0" step="1" value="${esc(v.amount)}" aria-describedby="rentPayErr" data-oninput="rentals.payHint()">`)}
+            <input class="input" id="rentPayAmount" type="number" inputmode="decimal" min="0" step="1" value="${esc(v.amount)}" aria-describedby="rentPayErr" data-oninput="rentals.payHint()">`, true)}
         <p id="rentPayErr" class="rent-field-error" role="alert"${v.error ? '' : ' hidden'}>${v.error ? et(v.error) : ''}</p>
         <div class="rent-chips">${chip('ui.rent.chip_oldest', chargeDue(first))}${dues.charges.length > 1 ? chip('ui.rent.chip_all', dues.total) : ''}</div>
         <div class="rent-label" id="rentPayModeL">${et('ui.rent.mode')}</div>

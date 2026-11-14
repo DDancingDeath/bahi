@@ -20,7 +20,7 @@
  */
 
 import { evaluateBill, evaluateCashCount, evaluateStockAdjustment, isEntryIssue, normalizeThresholds } from './bill-checks.js';
-import { activityBills, billTotal, isPersonalExpense, readLineItem, readPayment, round2, toMoney, formatKg, formatRupees, screenRateText } from './money.js';
+import { activityBills, billTotal, isPersonalExpense, readLineItem, readPayment, round2, toMoney, formatKg, formatRupees, screenKgText, screenRateText } from './money.js';
 import { formatTimeOfDay, parseAnyBillDate, toJsDate } from './dates.js';
 import { isNotCounted } from './cash-session.js';
 import { cleanText } from './due-reminder.js';
@@ -153,8 +153,8 @@ const RATE_TEXT_TYPES = new Set(['rate-confirmed', 'rate-high', 'rate-low', 'bel
 
 /**
  * An anomaly's text for the screen; the stored text is kept as saved. A night entry's "Entered at 00:11" is
- * rebuilt from `at` in the 12-hour IST time (DATE-TEXT `time`, "12:11 am"), and rates lose a ".00"
- * (MONEY-TEXT `rate`); other records are returned as they are.
+ * rebuilt from `at` in the 12-hour IST time (DATE-TEXT `time`, "12:11 am"), rates lose a ".00"
+ * (MONEY-TEXT `rate`) and a negative weight takes the minus sign ("−25 kg"); other records are returned as they are.
  * @param {*} a
  * @returns {*}
  */
@@ -168,9 +168,12 @@ export function anomalyText(a) {
             hi: `${formatTimeOfDay(wall, { lang: 'hi' })} पर एंट्री (दुकान के समय के बाहर)`
         };
     }
-    if (!RATE_TEXT_TYPES.has(a?.type)) return a;
-    const fix = (/** @type {*} */ s) => (s == null ? s : screenRateText(s));
-    return { ...a, en: fix(a.en), hi: fix(a.hi) };
+    const rates = RATE_TEXT_TYPES.has(a?.type);
+    const fix = (/** @type {*} */ s) => (s == null ? s : screenKgText(rates ? screenRateText(s) : s));
+    const en = fix(a?.en);
+    const hi = fix(a?.hi);
+    if (en === a?.en && hi === a?.hi) return a;
+    return { ...a, en, hi };
 }
 
 /**

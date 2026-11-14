@@ -191,6 +191,15 @@ export function screenRateText(text) {
 }
 
 /**
+ * A stored text's negative weights ("-25 kg") with the screen's minus sign ("−25 kg"). Share and export text keep ASCII.
+ * @param {*} text
+ * @returns {string}
+ */
+export function screenKgText(text) {
+    return String(text ?? '').replace(/(^|[\s(])-(?=\d[\d,]*(?:\.\d+)?\s?kg\b)/g, '$1−');
+}
+
+/**
  * The app's one weight format (KG-TEXT): kg with Indian grouping, at most 3
  * decimals, trailing zeros dropped ("1,250", "12.5", "0.125"); no unit.
  * @param {*} kg

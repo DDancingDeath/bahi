@@ -18,7 +18,7 @@ import {
 } from '../utils/history-window.js';
 import { filterHistoryBills, resolveHistoryRange, validateCustomRange, billTimeMs } from '../utils/history-filters.js';
 import { buildBillRow, buildOpeningGroup, addOpeningToggle, addVoidedToggle, billTableHtml, byNameHtml } from '../ui/bill-row.js';
-import { editsRowHtml, setBillActions, voidedBannerHtml } from '../ui/bill-status.js';
+import { editsRowHtml, payAmountHtml, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
 import { billPool, HistoryManager } from './history.js';
 import { todayLocalISO } from '../utils/dates.js';
 import { historyCutoff } from '../utils/role-access.js';
@@ -1208,17 +1208,17 @@ export class WholesaleSalesManager {
         
         const pay = readPayment(sale);
         const payment = { online: pay.online, cash: pay.cash, due: outstandingDue(sale) };
-        const payRow = (key, amount, tone) => `
+        const payRow = (key, amount, due = false) => `
                     <div class="row bill-view-row">
                         <span class="row-main">${L(key)}</span>
-                        <span class="tag ${Helpers.escapeHtml(tone)}">${moneyHtml(amount)}</span>
+                        ${payAmountHtml(sale, amount, due)}
                     </div>`;
         const paymentHTML = (payment.online > 0 || payment.cash > 0 || payment.due > 0) ? `
             <div class="panel bill-view-panel">
                 <h4 class="bill-view-title">${L('ui.history.payment_details')}</h4>
-                ${payment.online > 0 ? payRow('ui.history.online', payment.online, 'info') : ''}
-                ${payment.cash > 0 ? payRow('ui.history.cash', payment.cash, 'pos') : ''}
-                ${payment.due > 0 ? payRow('ui.history.due', payment.due, 'warn') : ''}
+                ${payment.online > 0 ? payRow('ui.history.online', payment.online) : ''}
+                ${payment.cash > 0 ? payRow('ui.history.cash', payment.cash) : ''}
+                ${payment.due > 0 ? payRow('ui.history.due', payment.due, true) : ''}
             </div>
         ` : '';
         
@@ -1296,6 +1296,7 @@ export class WholesaleSalesManager {
             </div>
         `;
                 document.getElementById('billDetailsContent').innerHTML = content;
+        setBillDetailsTitle(billNumber, sale.customerName);
         // Wholesale bills are not edited here; Void / Delete permanently as in History (#75)
         setBillActions(sale, { uid: AppState.currentUser?.uid, role: AppState.userRole, raw: AppState.settings?.roleAccess }, { editable: false });
         HistoryManager.renderPrintStatus();

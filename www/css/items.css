@@ -144,6 +144,12 @@
   color: var(--negative);
 }
 
+/* The rate's unit inside the chip (₹ before, /kg after), as a field's .adorn */
+.rate-group > .rate-unit {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
 /* Item name suggested from the other language (#134), until the user takes it */
 .autofill-suggest {
   color: var(--ink-3);

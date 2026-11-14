@@ -61,3 +61,15 @@ test('a voided bill still shows what was paid', async () => {
     await HistoryManager.viewBill('id:w1', 'wholesale');
     expect(lines()).toEqual(['Online ₹500', 'Cash ₹4,500']);
 });
+
+test('the dialog is titled with the bill number and party; amounts are in ink, an old due is a toned tag', async () => {
+    const old = NOW - 45 * 86400000;
+    AppState.salesHistory = [sale({ date: new Date(old).toISOString(), createdAt: old, timestamp: old, payment: { cash: 3000, online: 0, due: 2000, total: 5000 } })];
+    await HistoryManager.viewBill('id:w1', 'wholesale');
+    expect(document.getElementById('billDetailsTitle').textContent).toBe('Bill #W-1');
+    expect(document.getElementById('billDetailsParty').textContent).toBe('Trader');
+    expect(document.getElementById('billDetailsParty').hidden).toBe(false);
+    const panel = [...document.querySelectorAll('#billDetailsContent h4')].find(h => h.textContent === 'Payment details').parentElement;
+    expect([...panel.querySelectorAll('.tag')].map(t => [t.className, t.textContent])).toEqual([['tag warn', '₹2,000']]);
+    expect(panel.querySelector('.row-amt').textContent).toBe('₹3,000');
+});

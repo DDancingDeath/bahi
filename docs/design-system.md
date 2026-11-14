@@ -123,8 +123,10 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   look (C2): Billing and Wholesale use Save `-primary`, Print and Share (`-icon`) the default, Add to bill and
   Rest → due `-tonal`, the draft toolbar and the contact picker `-ghost`; inside `.bill-sale` (Retail sale) and
   `.ws-entry` (Wholesale) the primary and tonal buttons take the mode's colour. `[data-add-line]` and
-  `[data-add-weight]` are the E2E hooks. Bill details' footer: Close (ghost, left), Void and
-  Delete permanently (danger), Reprint and Share (tonal), Edit (the one primary, right). Small × and + inside a row
+  `[data-add-weight]` are the E2E hooks. Bill details: the `.dialog-head` title "Bill #P…" with the party under it
+  and the × (Close, `[data-dismiss]`); the footer has Void and Delete permanently (`-danger-outline`, left), Reprint and Share
+  (tonal) and Edit (the one primary, right); on the phone sheet the others are one compact row with Edit full width under them.
+  Its payment amounts are in ink (a due older than 30 / 90 days is a `.tag` toned by `dueTone`). Small × and + inside a row
   (weight chips, bill lines, rate chips) are `-ghost -icon` / `-tonal -icon` with the sprite icon; period steppers are `-icon`.
   Inline text links inside a sentence (`.due-bill-link`, `.bill-edits__view`) stay links.
 - **Fields** `.field > label + .input`, label above, `₹` / `kg` in `.adorn`; native `<select>`
@@ -201,7 +203,9 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   `.set-toggle` lines with a `.switch` on the right, `.set-kv` label | value lines and `.set-actions` button rows stacked
   with one gap); Language, Appearance (Light / Dark / System with the sun, moon and auto icons) and the Usage range are
   `.seg`s; the theme gallery's tiles show the preview flush on top and a check on the chosen theme ("Always dark" is a
-  `.tag`). Units are `.adorn`s (labour kg and ₹, the Rentals electricity rate). `.settings-card` and `.danger-btn` are
+  `.tag`). Units are `.adorn`s, never "(₹)" / "(kg)" in a field label (labour kg and ₹, the bill-check limits, the Rentals
+  rent, deposit, amount and electricity rate, Workers and Recurring bills amounts, the low-stock alert, voice Correct boxes); a rate
+  chip on Rates and in the Item dialog shows ₹ … /kg inside the chip (`.rate-unit`). `.settings-card` and `.danger-btn` are
   deleted (Admin no longer uses them). The card hooks `#notifSettingsCard`, `#installAppCard`, `#roleAccessCard`, the printer buttons and the
   native share button start `hidden`; their scripts set `hidden` with `style.display`. App health: sections are panels,
   tables `.table`, pass rates tinted cells, and Today's below-target banner a `.notice.neg`. Anomalies: filters are
