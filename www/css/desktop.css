@@ -548,10 +548,6 @@
     min-width: 120px;
   }
 
-  .bill-details-footer > [data-dismiss] {
-    margin-right: auto;
-  }
-
   /* ---------- Android update banner: keep clear of the permanent sidebar ---------- */
   .app-update {
     left: calc(var(--desktop-nav-width) + 16px);

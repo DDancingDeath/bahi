@@ -506,7 +506,7 @@ export class ExpensesManager {
                     ${payment.personName ? `<div class="row-title">${Helpers.escapeHtml(payment.personName)}</div>` : ''}
                     <div class="exp-row-type">${Helpers.escapeHtml(payment.type)}${voided ? ` <span class="tag">${tx('ui.void.chip')}</span>` : ''} ${SyncStatus.chipHtml(payment.id)}</div>
                     ${payment.remarks ? `<div class="row-meta exp-row-note">${icon('file', 'i-sm')} ${Helpers.escapeHtml(payment.remarks)}</div>` : ''}
-                    <div class="row-meta">${icon('calendar', 'i-sm')} ${Helpers.escapeHtml(formatDate(payment.date, 'datetime') || payment.date)} • ${modeLabel(payment)}${payment.createdByName ? ` • ${tx('ui.stock.by', { name: payment.createdByName })}` : ''}</div>
+                    <div class="row-meta">${icon('calendar', 'i-sm')} ${Helpers.escapeHtml(formatDate(payment.date, 'datetime') || payment.date)} • ${modeLabel(payment)}${payment.createdByName ? ` • ${tx('ui.outstanding.by_name', { name: payment.createdByName })}` : ''}</div>
                 </div>
                 <div class="row-trail row-amt exp-row-amt">${moneyHtml(payment.amount, { exact: true })}</div>
             </div>`;

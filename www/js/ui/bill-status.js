@@ -12,6 +12,9 @@ import { isActiveBill } from '../utils/money.js';
 import { cleanReason, describeEdit, editCountOf, editHeading, REASON_MAX } from '../utils/bill-edits.js';
 import { formatDayTime } from '../utils/dates.js';
 import { accessFor, canDeleteBillWith, canEditBillWith, canVoidBillWith } from '../utils/role-access.js';
+import { billDateOf } from '../utils/history-filters.js';
+import { ageInDays, dueTone } from '../utils/aging.js';
+import { moneyHtml } from './components.js';
 import { UIManager } from './ui-manager.js';
 
 const L = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -90,6 +93,35 @@ export async function askReason({ titleKey, explainKey, labelKey, confirmKey, da
         return null;
     }
     return reason;
+}
+
+/**
+ * A payment amount in the bill details: in ink; a due older than 30 / 90 days is a toned tag (dueTone, as History's Due tag).
+ * @param {Object} bill
+ * @param {number} amount
+ * @param {boolean} [due]
+ * @returns {string} HTML
+ */
+export function payAmountHtml(bill, amount, due = false) {
+    const date = due ? billDateOf(bill) : null;
+    const tone = due ? dueTone(date ? ageInDays(date) : null, amount) : '';
+    return tone ? `<span class="tag ${Helpers.escapeHtml(tone)}">${moneyHtml(amount)}</span>` : `<span class="row-amt">${moneyHtml(amount)}</span>`;
+}
+
+/**
+ * The bill details title, "Bill #P…", with the party under it.
+ * @param {*} billNumber
+ * @param {*} party
+ */
+export function setBillDetailsTitle(billNumber, party) {
+    const title = document.getElementById('billDetailsTitle');
+    const sub = document.getElementById('billDetailsParty');
+    if (title) title.textContent = t('ui.outstanding.bill_no', { billNumber: String(billNumber ?? '') });
+    if (sub) {
+        const name = String(party ?? '').trim();
+        sub.textContent = name;
+        sub.hidden = !name;
+    }
 }
 
 /**

@@ -28,7 +28,7 @@ const et = (key, p) => esc(t(key, p));
 const byId = (id) => document.getElementById(id);
 const fail = (key, p) => UIManager.showToast(t(key, p), 'error');
 const btn = (cls, fn, args, key, icon = '', attrs = '') => `<button type="button" class="btn${cls}"${attrs} data-onclick="rentals.${fn}(${args})">${icon}${et(key)}</button>`;
-const lbl = (key, field) => `<label class="field rent-label">${et(key)}${field}</label>`;
+const lbl = (key, field, rupee = false) => `<label class="field rent-label">${et(key)}${rupee ? '<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>' : ''}${field}${rupee ? '</span>' : ''}</label>`;
 const val = (id) => (byId(id)?.value ?? '').trim();
 
 const kindLabel = (k) => t(`ui.rent.kind_${PROPERTY_KINDS.includes(k) ? k : 'other'}`);
@@ -90,9 +90,9 @@ function tenantSectionHtml({ toggle = false, rent = 0, fixedTenant = null, newUn
     const box = `<div id="rentTBox" class="rent-tenant-section"${toggle ? ' hidden' : ''}>
         <h4 class="rent-group-title">${et('ui.rent.tenant_if_occupied')}</h4>
         ${who}
-        ${lbl('ui.rent.monthly_rent', `<input class="input" id="rentTRent" type="number" inputmode="decimal" min="0" step="1" value="${esc(rent || 0)}">`)}
+        ${lbl('ui.rent.monthly_rent', `<input class="input" id="rentTRent" type="number" inputmode="decimal" min="0" step="1" value="${esc(rent || 0)}">`, true)}
         ${lbl('ui.rent.start_date', `<input class="input" id="rentTDate" type="date" value="${esc(todayLocalISO())}">`)}
-        ${lbl('ui.rent.deposit', `<input class="input" id="rentTDeposit" type="number" inputmode="decimal" min="0" step="1" value="${esc(deposit)}">`)}
+        ${lbl('ui.rent.deposit', `<input class="input" id="rentTDeposit" type="number" inputmode="decimal" min="0" step="1" value="${esc(deposit)}">`, true)}
         <p class="rent-help">${et('ui.rent.deposit_note')}</p>
         <details class="rent-more" id="rentTMore"><summary>${et('ui.rent.more_tenancy')}</summary>
         ${phone2}
@@ -102,7 +102,7 @@ function tenantSectionHtml({ toggle = false, rent = 0, fixedTenant = null, newUn
         ${elecFieldsHtml(mode)}
         ${newUnit ? `<div id="rentTMeterBox"${mode === 'meter' ? '' : ' hidden'}>
             ${lbl('ui.rent.opening_reading', `<input class="input" id="rentTOpen" type="number" inputmode="decimal" min="0" step="0.01">`)}
-            ${lbl('ui.rent.meter_rate', `<input class="input" id="rentTRate" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(rate)}">`)}
+            ${lbl('ui.rent.meter_rate', `<input class="input" id="rentTRate" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(rate)}">`, true)}
         </div>` : ''}
         </details>
         <p id="rentTError" class="rent-field-error" role="alert" hidden></p>
@@ -350,7 +350,7 @@ async function unitDialog(title, unit, { withTenant = false, defs = null } = {})
     const ok = await c.dialog(`<h3>${esc(title)}</h3>
         ${lbl('ui.rent.unit_label', `<input class="input" id="rentUnitLabel" type="text" maxlength="60" value="${esc(unit?.label || '')}">`)}
         ${lbl('ui.rent.unit_type', `<select class="input" id="rentUnitType">${UNIT_TYPES.map(k => `<option value="${k}"${k === unitType(unit) ? ' selected' : ''}>${esc(c.typeLabel(k))}</option>`).join('')}</select>`)}
-        ${lbl('ui.rent.monthly_rent', `<input class="input" id="rentUnitRent" type="number" inputmode="decimal" min="0" step="1" value="${esc(unit?.rent ?? 0)}">`)}
+        ${lbl('ui.rent.monthly_rent', `<input class="input" id="rentUnitRent" type="number" inputmode="decimal" min="0" step="1" value="${esc(unit?.rent ?? 0)}">`, true)}
         <details class="rent-more"${unit?.floor || Number.isFinite(unit?.area) ? ' open' : ''}><summary>${et('ui.rent.more_unit')}</summary>
         ${lbl('ui.rent.unit_area', `<input class="input" id="rentUnitArea" type="number" inputmode="decimal" min="0" step="1" value="${esc(unit?.area ?? '')}">`)}
         ${lbl('ui.rent.unit_floor', `<input class="input" id="rentUnitFloor" type="text" maxlength="20" value="${esc(unit?.floor || '')}">`)}</details>

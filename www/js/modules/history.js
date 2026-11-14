@@ -27,7 +27,7 @@ import { buildBillRow, buildOpeningGroup, addOpeningToggle, addVoidedToggle, bil
 import { printStatusOf, recordPrint } from '../utils/print-status.js';
 import { STORAGE_FULL_KEY } from '../utils/storage-full.js';
 import { accessFor, canDeleteBillWith, canOpenPage, canVoidBillWith, historyCutoff, withinBillEditWindow } from '../utils/role-access.js';
-import { askReason, editsRowHtml, renderEditsList, setBillActions, voidedBannerHtml } from '../ui/bill-status.js';
+import { askReason, editsRowHtml, payAmountHtml, renderEditsList, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
 import { voidBlocker } from '../utils/bill-edits.js';
 import { buildReprintPayload, buildBillShareText } from '../utils/bill-share.js';
 import { billTimes, refusedForClock } from '../utils/clock-skew.js';
@@ -545,22 +545,22 @@ export class HistoryManager {
             ? { atSave: { cash: voidPay.cash, online: voidPay.online }, later: { cash: 0, online: 0, total: 0 }, writtenOff: 0, due: 0 }
             : paymentBreakdown(bill);
         const afterSave = parts.later.total > 0 || parts.writtenOff > 0;
-        const payRow = (key, value, tone, split = false) => `
+        const payRow = (key, value, split = false, due = false) => `
                     <div class="row bill-view-row">
                         <div class="row-main">
                             <div>${L(key)}</div>
                             ${split ? `<div class="row-meta">${moneyInText(t('ui.history.paid_later_split', { cash: formatRupees(parts.later.cash), online: formatRupees(parts.later.online) }), [parts.later.cash, parts.later.online])}</div>` : ''}
                         </div>
-                        <span class="tag ${Helpers.escapeHtml(tone)}">${moneyHtml(value)}</span>
+                        ${payAmountHtml(bill, value, due)}
                     </div>`;
         const paymentHTML = (parts.atSave.online > 0 || parts.atSave.cash > 0 || afterSave || parts.due > 0) ? `
             <div class="panel bill-view-panel">
                 <h4 class="bill-view-title">${L('ui.history.payment_details')}</h4>
-                ${parts.atSave.online > 0 ? payRow(afterSave ? 'ui.history.online_at_save' : 'ui.history.online', parts.atSave.online, 'info') : ''}
-                ${parts.atSave.cash > 0 ? payRow(afterSave ? 'ui.history.cash_at_save' : 'ui.history.cash', parts.atSave.cash, 'pos') : ''}
-                ${parts.later.total > 0 ? payRow('ui.history.paid_later', parts.later.total, 'info', true) : ''}
-                ${parts.writtenOff > 0 ? payRow('ui.history.written_off', parts.writtenOff, '') : ''}
-                ${parts.due > 0 ? payRow('ui.history.due', parts.due, 'warn') : ''}
+                ${parts.atSave.online > 0 ? payRow(afterSave ? 'ui.history.online_at_save' : 'ui.history.online', parts.atSave.online) : ''}
+                ${parts.atSave.cash > 0 ? payRow(afterSave ? 'ui.history.cash_at_save' : 'ui.history.cash', parts.atSave.cash) : ''}
+                ${parts.later.total > 0 ? payRow('ui.history.paid_later', parts.later.total, true) : ''}
+                ${parts.writtenOff > 0 ? payRow('ui.history.written_off', parts.writtenOff) : ''}
+                ${parts.due > 0 ? payRow('ui.history.due', parts.due, false, true) : ''}
             </div>
         ` : '';
         const billNumber = bill.billNumber || (typeof bill.id === 'string' ? bill.id.substring(0, 8) : bill.id);
@@ -665,6 +665,7 @@ export class HistoryManager {
         `;
         
         document.getElementById('billDetailsContent').innerHTML = content;
+        setBillDetailsTitle(billNumber, bill.customerName);
         
         // Edit / Void only while this user may still change the bill (#87 edit window, #84, #75)
         const who = { uid: AppState.currentUser?.uid, role: AppState.userRole, raw: AppState.settings?.roleAccess };

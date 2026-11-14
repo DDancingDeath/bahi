@@ -266,7 +266,10 @@ export class StockManager {
         const own = typeof item.lowStockKg === 'number' ? item.lowStockKg : '';
         const html = `<div class="field">
             <label for="lowStockInput">${tx('ui.stock.set_alert_label', { def: DEFAULT_LOW_STOCK_KG })}</label>
-            <input type="number" inputmode="decimal" min="0" id="lowStockInput" class="input" value="${Helpers.escapeHtml(own)}">
+            <div class="adorn">
+                <input type="number" inputmode="decimal" min="0" id="lowStockInput" class="input" value="${Helpers.escapeHtml(own)}">
+                <span class="adorn-post" aria-hidden="true">kg</span>
+            </div>
         </div>`;
         const ok = await UIManager.showModalWithHtml(html, t('ui.stock.set_alert_title', { item: name }), true);
         if (!ok) return;
@@ -923,7 +926,7 @@ export class StockManager {
                             ${Helpers.escapeHtml(typeLabel)} ${quantity !== 'Unknown' ? `${formatKg(quantity)} kg` : ''}
                         </span>
                     </div>
-                    <div class="history-date">${Helpers.escapeHtml(formatDate(adj.date, 'datetime') || adj.date || t('ui.stock.unknown_date'))}${adj.createdByName ? ` • ${tx('ui.stock.by', { name: adj.createdByName })}` : ''}</div>
+                    <div class="history-date">${Helpers.escapeHtml(formatDate(adj.date, 'datetime') || adj.date || t('ui.stock.unknown_date'))}${adj.createdByName ? ` • ${tx('ui.outstanding.by_name', { name: adj.createdByName })}` : ''}</div>
                     <div class="stock-adj-body">
                         ${displayRate > 0 ? `<div>${txMoney('ui.stock.rate_per_kg', { rate: formatAmount(displayRate, 'rate') }, displayRate, 'rate')}${valueImpact ? ` • ${txMoney('ui.stock.value', { amount: formatAmount(valueShown) }, valueShown)}` : ''}</div>` : ''}
                         <div>

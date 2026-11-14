@@ -115,7 +115,7 @@ function renderAddForm() {
     return `<div class="panel panel-pad wp-form" id="wpAddForm">
             <h3>${et('ui.workers.add')}</h3>
             <div class="field">${label('wpName', 'ui.workers.name')}<input class="input" id="wpName" maxlength="${esc(MAX_NAME)}" autocomplete="off"></div>
-            <div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1"></div>
+            <div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1"></div></div>
             <div class="field">${label('wpStart', 'ui.workers.start_month')}<input class="input" id="wpStart" type="month" value="${esc(thisMonth())}"></div>
             ${formActions('saveWorker')}
         </div>`;
@@ -125,7 +125,7 @@ function renderPayForm(worker) {
     const month = state.month;
     return `<div class="panel panel-pad wp-form" id="wpPayForm">
             <h3>${et('ui.workers.record', { name: worker.name })}</h3>
-            <div class="field">${label('wpAmount', 'ui.workers.amount')}<input class="input" id="wpAmount" inputmode="numeric" type="number" min="1" step="1"></div>
+            <div class="field">${label('wpAmount', 'ui.workers.amount')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="wpAmount" inputmode="numeric" type="number" min="1" step="1"></div></div>
             <div class="field">${label('wpKind', 'ui.workers.kind')}<select class="input" id="wpKind">${options(KIND_KEYS, 'pay')}</select></div>
             <div class="field">${label('wpForMonth', 'ui.workers.for_month')}<input class="input" id="wpForMonth" type="month" value="${esc(month)}" max="${esc(thisMonth())}"></div>
             <div class="field">${label('wpDate', 'ui.workers.date')}<input class="input" id="wpDate" type="date" value="${esc(todayLocalISO())}"></div>
@@ -140,7 +140,7 @@ function renderEditForm(worker) {
     const hidePay = worker.active === false && !state.rejoining;
     const stop = hidePay ? leftFrom(worker.pays) : null;
     const startMax = stop ? `max="${esc(addMonthKey(stop, -1))}"` : '';
-    const payFields = hidePay ? '' : `<div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1" value="${esc(pay || '')}"></div>
+    const payFields = hidePay ? '' : `<div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1" value="${esc(pay || '')}"></div></div>
             <div class="field">${label('wpPayFrom', 'ui.workers.pay_from')}<input class="input" id="wpPayFrom" type="month" value="${esc(thisMonth())}"></div>
             <p class="tone-muted">${et('ui.workers.pay_from_help')}</p>`;
     return `<div class="panel panel-pad wp-form" id="wpEditForm">

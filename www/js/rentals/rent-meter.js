@@ -34,10 +34,13 @@ function pendingRows(c, d, defs) {
     }).filter(Boolean);
 }
 
-const num = (c, id, value, locked, label) => `<label class="field rent-label">${c.esc(t(label))}<input class="input" id="${id}" type="number" inputmode="decimal" min="0" step="0.01" value="${c.esc(value)}"${locked ? ' readonly' : ''} data-oninput="rentals.meterPreview()"></label>`;
+const num = (c, id, value, locked, label, rupee = false) => {
+    const input = `<input class="input" id="${id}" type="number" inputmode="decimal" min="0" step="0.01" value="${c.esc(value)}"${locked ? ' readonly' : ''} data-oninput="rentals.meterPreview()">`;
+    return `<label class="field rent-label">${c.esc(t(label))}${rupee ? `<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>${input}</span>` : input}</label>`;
+};
 
 function rowHtml(c, r, i) {
-    const rate = num(c, `rentMR${i}`, r.rate, r.rateLocked, 'ui.rent.meter_rate');
+    const rate = num(c, `rentMR${i}`, r.rate, r.rateLocked, 'ui.rent.meter_rate', true);
     return `<div class="row rent-entry" data-meter-row="${i}">
         <div class="row-title">${c.esc([r.place, r.name].filter(Boolean).join(' · '))}</div>
         ${r.prevLocked ? `<div class="rent-sub">${c.esc(t('ui.rent.meter_prev_value', { value: r.prev }))}</div><input id="rentMP${i}" type="hidden" value="${c.esc(r.prev)}">`

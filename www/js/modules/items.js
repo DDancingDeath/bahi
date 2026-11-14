@@ -149,11 +149,11 @@ const ItemsManager = {
             // Build purchase rates HTML
             const purchaseRatesHTML = item.rates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <input type="number" class="rate-input purchase" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitRate(${id}, ${rateIndex})"
-                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
+                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
                     <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
@@ -161,11 +161,11 @@ const ItemsManager = {
             // Build sale rates HTML
             const saleRatesHTML = item.saleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <input type="number" class="rate-input sale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateSaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitSaleRate(${id}, ${rateIndex})"
-                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
+                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
                     <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteSaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
@@ -173,11 +173,11 @@ const ItemsManager = {
             // Build wholesale rates HTML
             const wholesaleRatesHTML = item.wholesaleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <input type="number" class="rate-input wholesale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateWholesaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitWholesaleRate(${id}, ${rateIndex})"
-                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
+                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
                     <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteWholesaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
@@ -953,10 +953,10 @@ const ItemsManager = {
         const purchaseContainer = document.getElementById('itemModalPurchaseRates');
         purchaseContainer.innerHTML = this.modalRates.purchase.map((rate, idx) => `
             <div class="rate-group">
-                <input type="number" class="rate-input purchase" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('purchase', ${idx}, this.value)"
-                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
+                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
                 <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('purchase', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
@@ -965,10 +965,10 @@ const ItemsManager = {
         const wholesaleContainer = document.getElementById('itemModalWholesaleRates');
         wholesaleContainer.innerHTML = this.modalRates.wholesale.map((rate, idx) => `
             <div class="rate-group">
-                <input type="number" class="rate-input wholesale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('wholesale', ${idx}, this.value)"
-                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
+                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
                 <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('wholesale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
@@ -977,10 +977,10 @@ const ItemsManager = {
         const saleContainer = document.getElementById('itemModalSaleRates');
         saleContainer.innerHTML = this.modalRates.sale.map((rate, idx) => `
             <div class="rate-group">
-                <input type="number" class="rate-input sale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('sale', ${idx}, this.value)"
-                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
+                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
                 <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('sale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');

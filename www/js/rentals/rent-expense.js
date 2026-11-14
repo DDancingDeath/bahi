@@ -21,7 +21,7 @@ import { formatRupees } from '../utils/money.js';
 
 const auditWarn = (e) => console.warn('Rentals audit entry not written:', e?.code || e);
 const fail = (key) => UIManager.showToast(t(key), 'error');
-const lbl = (c, key, field) => `<label class="field rent-label">${c.esc(t(key))}${field}</label>`;
+const lbl = (c, key, field, rupee = false) => `<label class="field rent-label">${c.esc(t(key))}${rupee ? '<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>' : ''}${field}${rupee ? '</span>' : ''}</label>`;
 const opts = (c, list, cur, label) => list.map(v => `<option value="${c.esc(v)}"${v === cur ? ' selected' : ''}>${c.esc(label(v))}</option>`).join('');
 const act = (c, action, pid, key, cls = '', id = '') => `<button type="button" class="btn${cls}" data-rent-exp data-onclick="rentals.expenseAction('${action}', '${c.js(pid)}', '${c.js(id)}')">${c.esc(t(key))}</button>`;
 
@@ -75,7 +75,7 @@ export async function action(c, kind, pid, id) {
     const ok = await c.dialog(`<h3>${c.esc(t(old ? 'ui.rent.edit' : 'ui.rent.exp_add'))}: ${c.esc(property.name)}</h3>
         ${lbl(c, 'ui.rent.exp_category', `<select class="input" id="rentExpCat">${opts(c, EXPENSE_CATEGORIES, v.category, k => t(`ui.rent.exp_cat_${k}`))}</select>`)}
         ${lbl(c, 'ui.rent.exp_unit', `<select class="input" id="rentExpUnit"><option value="">${c.esc(t('ui.rent.exp_unit_all'))}</option>${gone ? `<option value="${c.esc(gone)}" selected>${c.esc(t('ui.rent.exp_unit_removed'))}</option>` : ''}${units.map(u => `<option value="${c.esc(u.id)}"${u.id === v.unitId ? ' selected' : ''}>${c.esc(u.label)}</option>`).join('')}</select>`)}
-        ${lbl(c, 'ui.rent.amount', `<input class="input" id="rentExpAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(v.amount)}">`)}
+        ${lbl(c, 'ui.rent.amount', `<input class="input" id="rentExpAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(v.amount)}">`, true)}
         ${lbl(c, 'ui.rent.date', `<input class="input" id="rentExpDate" type="date" value="${c.esc(v.date)}">`)}
         ${lbl(c, 'ui.rent.mode', `<select class="input" id="rentExpMode">${opts(c, PAYMENT_MODES, v.mode, m => t(`ui.rent.mode_${m}`))}</select>`)}
         ${lbl(c, 'ui.rent.notes', `<input class="input" id="rentExpNote" type="text" maxlength="200" value="${c.esc(v.note || '')}">`)}

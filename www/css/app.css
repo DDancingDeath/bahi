@@ -3494,6 +3494,12 @@ body.typing .bottom-nav {
   color: var(--negative);
 }
 
+/* The rate's unit inside the chip (₹ before, /kg after), as a field's .adorn */
+.rate-group > .rate-unit {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
 /* Item name suggested from the other language (#134), until the user takes it */
 .autofill-suggest {
   color: var(--ink-3);
@@ -6914,11 +6920,31 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   min-width: 0;
 }
 
-/* Close (ghost) on the left, Void (danger), Reprint and Share (tonal), Edit (the one primary) on the right */
+.bill-details-party {
+  margin-top: var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+/* Bill details: Close is the head's ×; Void / Delete (danger outline) on the left, Reprint and Share (tonal), Edit (the one primary) on the right */
 .bill-details-footer > .btn {
   flex: 1;
   min-width: 0;
   padding: 0 var(--sp-3);
+}
+
+.bill-details-footer > .btn-danger-outline + .btn-tonal {
+  margin-left: auto;
+}
+
+/* Phone sheet: the other actions in one compact row, Edit full width under them */
+.app-dialog.sheet .bill-details-footer > .btn-danger-outline + .btn-tonal {
+  margin-left: 0;
+}
+
+.app-dialog.sheet .bill-details-footer > .btn-primary {
+  flex-basis: 100%;
+  order: 1;
 }
 
 .item-modal-body {
@@ -9576,10 +9602,6 @@ div.ins-wide,
   .bill-details-footer > .btn {
     flex: 0 0 auto;
     min-width: 120px;
-  }
-
-  .bill-details-footer > [data-dismiss] {
-    margin-right: auto;
   }
 
   /* ---------- Android update banner: keep clear of the permanent sidebar ---------- */

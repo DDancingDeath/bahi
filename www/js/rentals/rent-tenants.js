@@ -27,7 +27,7 @@ const et = (key, p) => esc(t(key, p));
 const byId = (id) => document.getElementById(id);
 const fail = (key, p) => UIManager.showToast(t(key, p), 'error');
 const btn = (cls, fn, args, key, icon = '', attrs = '') => `<button type="button" class="btn${cls}"${attrs} data-onclick="rentals.${fn}(${args})">${icon}${et(key)}</button>`;
-const lbl = (key, field) => `<label class="field rent-label">${et(key)}${field}</label>`;
+const lbl = (key, field, rupee = false) => `<label class="field rent-label">${et(key)}${rupee ? '<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>' : ''}${field}${rupee ? '</span>' : ''}</label>`;
 const phones = (tn) => `${icon('phone', 'i-sm')}${esc(tn.phone)}${tn.phone2 ? `, ${esc(tn.phone2)}` : ''}`;
 const val = (id) => (byId(id)?.value ?? '').trim();
 
@@ -258,7 +258,7 @@ async function meter(leaseId) {
     const ok = await c.dialog(`<h3>${et('ui.rent.meter_reading')}: ${esc(monthLabel(c.state.month, getLang()))}</h3>
         ${lbl('ui.rent.meter_prev', `<input class="input" id="rentMeterPrev" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(prev)}"${prevLocked ? ' readonly' : ''}>`)}
         ${lbl('ui.rent.meter_curr', `<input class="input" id="rentMeterCurr" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(e?.curr ?? '')}">`)}
-        ${lbl('ui.rent.meter_rate', `<input class="input" id="rentMeterRate" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(defaultRate)}"${rateLocked ? ' readonly' : ''}>`)}
+        ${lbl('ui.rent.meter_rate', `<input class="input" id="rentMeterRate" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(defaultRate)}"${rateLocked ? ' readonly' : ''}>`, true)}
         <p class="rent-help">${et('ui.rent.meter_help')}</p>`);
     if (!ok) return;
     let bill;
@@ -287,7 +287,7 @@ async function editLease(leaseId) {
     const inc = increaseDue(lease, c.state.month);
     const ok = await c.dialog(`<h3>${et('ui.rent.update_rent')}</h3>
         ${inc.due ? `<p class="notice info rent-increase">${icon('trend', 'i-sm')}<span class="grow">${moneyInText(t('ui.rent.increase_due', { pct: inc.pct, amount: formatRupees(inc.newRent) }), inc.newRent)}</span></p>` : ''}
-        ${lbl('ui.rent.monthly_rent', `<input class="input" id="rentEditRent" type="number" inputmode="decimal" min="0" step="1" value="${esc(inc.due ? inc.newRent : lease.rent)}">`)}
+        ${lbl('ui.rent.monthly_rent', `<input class="input" id="rentEditRent" type="number" inputmode="decimal" min="0" step="1" value="${esc(inc.due ? inc.newRent : lease.rent)}">`, true)}
         ${lbl('ui.rent.due_day', `<input class="input" id="rentEditDay" type="number" min="1" max="28" step="1" value="${esc(lease.dueDay)}">`)}
         ${lbl('ui.rent.increase_pct', `<input class="input" id="rentEditPct" type="number" min="0" max="100" step="0.5" value="${esc(inc.pct)}">`)}
         ${c.elecFieldsHtml(elecMode(lease), lease.meterNo || '')}

@@ -102,7 +102,7 @@ export async function advanceAction(c, chId) {
     setTimeout(() => showHeld(c), 300);
 }
 
-const lbl = (c, key, field) => `<label class="field rent-label">${c.esc(t(key))}${field}</label>`;
+const lbl = (c, key, field, rupee = false) => `<label class="field rent-label">${c.esc(t(key))}${rupee ? '<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>' : ''}${field}${rupee ? '</span>' : ''}</label>`;
 
 /** Received / adjust / refund form, or the owner's edit / remove of entry `i`. */
 export async function action(c, kind, tenantId, i) {
@@ -123,7 +123,7 @@ export async function action(c, kind, tenantId, i) {
     const ok = await c.dialog(`<h3>${c.esc(t(`ui.rent.dep_add_${kind}`))}</h3>
         <p class="rent-help">${c.esc(t('ui.rent.dep_held'))}: ${moneyHtml(held)}</p>
         ${months ? lbl(c, 'ui.rent.month', `<select class="input" id="rentDepCharge" data-onchange="rentals.fillDue(this)">${months}</select>`) : ''}
-        ${lbl(c, 'ui.rent.amount', `<input class="input" id="rentPayAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(fill)}">`)}
+        ${lbl(c, 'ui.rent.amount', `<input class="input" id="rentPayAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(fill)}">`, true)}
         ${kind === 'adjust' ? '' : lbl(c, 'ui.rent.mode', `<select class="input" id="rentDepMode">${PAYMENT_MODES.map(m => `<option value="${m}">${c.esc(t(`ui.rent.mode_${m}`))}</option>`).join('')}</select>`)}
         ${lbl(c, 'ui.rent.date', `<input class="input" id="rentDepDate" type="date" value="${c.esc(todayLocalISO())}">`)}
         ${lbl(c, 'ui.rent.notes', `<input class="input" id="rentDepNote" type="text" maxlength="200">`)}`);
@@ -155,7 +155,7 @@ async function ownerChange(c, kind, tenantId, lease, entries, i) {
         if (!await UIManager.showModal(t('msg.rent.confirm_remove'), t('ui.rent.remove'), true, { confirmLabel: t('ui.confirm.remove'), danger: true })) return;
     } else {
         const ok = await c.dialog(`<h3>${c.esc(t('ui.rent.edit'))}: ${c.esc(t(`ui.rent.dep_${e.kind}`))}</h3>
-            ${lbl(c, 'ui.rent.amount', `<input class="input" id="rentPayAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(e.amount)}">`)}
+            ${lbl(c, 'ui.rent.amount', `<input class="input" id="rentPayAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(e.amount)}">`, true)}
             ${lbl(c, 'ui.rent.date', `<input class="input" id="rentDepDate" type="date" value="${c.esc(e.date)}">`)}
             ${lbl(c, 'ui.rent.notes', `<input class="input" id="rentDepNote" type="text" maxlength="200" value="${c.esc(e.note || '')}">`)}`);
         if (!ok) return;

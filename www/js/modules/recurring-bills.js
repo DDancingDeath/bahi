@@ -137,7 +137,7 @@ function renderBillForm(v) {
     return `<div class="panel panel-pad rb-form" id="rbBillForm">
             <h3>${et('ui.rbills.enter_bill', { name: v.item.name })}</h3>
             <div class="field">${label('rbPeriod', 'ui.rbills.period')}<select class="input" id="rbPeriod">${periodOptions(v, state.unusual?.period || defaultPeriod(v, 'bill'))}</select></div>
-            <div class="field">${label('rbAmount', 'ui.rbills.bill_amount')}<input class="input" id="rbAmount" inputmode="numeric" type="number" min="0" step="1" value="${esc(state.unusual?.amount ?? '')}"></div>
+            <div class="field">${label('rbAmount', 'ui.rbills.bill_amount')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="rbAmount" inputmode="numeric" type="number" min="0" step="1" value="${esc(state.unusual?.amount ?? '')}"></div></div>
             <p class="tone-muted">${et('ui.rbills.bill_help')}</p>
             ${warn}
             ${formActions('saveBill')}
@@ -149,7 +149,7 @@ function renderPayForm(v) {
     const left = Math.max(0, v.balance);
     return `<div class="panel panel-pad rb-form" id="rbPayForm">
             <h3>${et('ui.rbills.record', { name: v.item.name })}</h3>
-            <div class="field">${label('rbAmount', 'ui.rbills.amount')}<input class="input" id="rbAmount" inputmode="numeric" type="number" min="1" step="1" value="${esc(left || '')}"></div>
+            <div class="field">${label('rbAmount', 'ui.rbills.amount')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="rbAmount" inputmode="numeric" type="number" min="1" step="1" value="${esc(left || '')}"></div></div>
             <div class="field">${label('rbPeriod', 'ui.rbills.period')}<select class="input" id="rbPeriod">${periodOptions(v, period)}</select></div>
             <div class="field">${label('rbDate', 'ui.rbills.date')}<input class="input" id="rbDate" type="date" value="${esc(today())}" max="${esc(today())}"></div>
             <div class="field">${label('rbMode', 'ui.rbills.mode')}<select class="input" id="rbMode">${options(Object.entries(MODE_KEYS).map(([k, key]) => [k, t(key)]), 'cash')}</select></div>

@@ -60,7 +60,7 @@
     {"metric":"colour","file":"www/css/rate-trends.css","count":7,"list":"canvas","reason":"five legend swatches keyed to the canvas chart colours, and the outlook up / down borders in the same fixed red / green"},
     {"metric":"colour","file":"www/js/main.js","count":4,"list":"standalone","reason":"DevTools console %c colours for the build stamp and the stock / item debug groups"},
     {"metric":"colour","file":"www/js/modules/anomalies.js","count":18,"list":"canvas","reason":"the anomaly chart's 16 type colours (data, not chrome), plus the printable day-report image's white background and black text"},
-    {"metric":"colour","file":"www/js/modules/rate-trends.js","count":16,"list":"canvas","reason":"rate, volume and year-overlay chart lines, grid and axis text drawn on canvas"},
+    {"metric":"colour","file":"www/js/modules/rate-trends.js","count":10,"list":"canvas","reason":"rate, volume and year-overlay chart lines drawn on canvas (grid and axis text read the --line / --ink-2 / --ink-3 tokens)"},
     {"metric":"colour","file":"www/js/services/exporter.js","count":5,"list":"standalone","reason":"text, border and header colours of the exported HTML file, which has no app.css"},
     {"metric":"colour","file":"www/js/ui/period-compare.js","count":2,"list":"print","reason":"summaryCanvas: the 58 mm (384 dot) slip for the thermal printer is black on white"},
     {"metric":"colour","file":"www/js/utils/quota-guard.js","count":4,"list":"standalone","reason":"the quota banner's amber background, border and text, set inline so it shows even if app.css failed"},
