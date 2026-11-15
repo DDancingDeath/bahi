@@ -133,6 +133,11 @@
   background: var(--surface-2);
 }
 
+/* Shown once an item is chosen (U-77) */
+.stock-now[hidden] {
+  display: none;
+}
+
 /* [data-history-item] is the hook (tests) */
 [data-history-item].stock-adj {
   margin-bottom: var(--sp-3);

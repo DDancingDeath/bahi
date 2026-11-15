@@ -212,6 +212,7 @@
             </label>
             <p class="setting-description" data-i18n="ui.settings.photo_weights_hint">Off unless the owner switches it on. Then everyone sees “Photo of weights” on Purchase billing: take a photo of the weight sheet, check the weights and add them to the bag weights. Nothing is saved until the bill is saved. The photo is sent to Google’s Gemini to be read and is not kept. Photograph only the weights, not names or phone numbers. Saved for everyone.</p>
             <p class="setting-description" id="photoWeightsOwnerOnly" hidden data-i18n="ui.settings.photo_weights_owner_only">Only the owner can change this.</p>
+            <p class="setting-description tone-warn" id="photoWeightsNeedsSetup" hidden data-i18n="ui.settings.photo_weights_needs_setup">Not working in this app yet: the app's security check (App Check) must be set up first. Until then the button stays hidden.</p>
         </div>
     </section>
 
@@ -387,6 +388,7 @@
         <div class="panel panel-pad set-panel">
             <h3 class="set-title" data-i18n="ui.settings.app_updates">App updates</h3>
             <div class="set-kv"><span data-i18n="ui.settings.version">Version</span> <span id="appVersionText">-</span></div>
+            <p class="setting-description tone-warn" id="appUpdateOffer" role="status" hidden></p>
             <div class="set-actions">
                 <button class="btn" type="button" data-onclick="updates.showWhatsNew()" data-i18n="ui.settings.what_s_new">What's new</button>
                 <button class="btn" type="button" data-onclick="updates.shareOnWhatsApp()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg><span data-i18n="ui.settings.share_on_whatsapp">Share on WhatsApp</span></button>

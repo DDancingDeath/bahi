@@ -11,6 +11,7 @@ import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { t, tn, getLang } from '../i18n/index.js';
 import { formatRupees, formatAmount, formatKg, moneyText, screenMinus } from '../utils/money.js';
+import { caveatKey } from '../utils/takeaways.js';
 import { formatMonth, formatDay, monthStart, latestMonthStart } from '../utils/dates.js';
 import { pickReplayBase } from '../utils/finance-calc.js';
 import { historyLoadedFrom, isFullHistoryLoaded, ensureHistoryFrom } from '../utils/history-window.js';
@@ -32,7 +33,7 @@ import { attachScrollCue } from '../ui/scroll-cue.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { STORAGE_FULL_KEY } from '../utils/storage-full.js';
 import {
-    compareBarHtml, writeBar, compareTarget, choosePreset, chooseCompare, applyDates, applySaved, saveCurrentRange,     removeCurrentRange, periodText, presetSelectValue, toggleCompareBar
+    compareBarHtml, writeBar, compareTarget, choosePreset, chooseCompare, applyDates, applySaved, saveCurrentRange,     removeCurrentRange, periodText, presetSelectValue, toggleCompareBar, bindCompactHead
 } from '../ui/period-compare.js';
 
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
@@ -65,6 +66,7 @@ export const InsightsManager = {
         if (view) this.seasonView = view;
         if (!this.mayOpen(this.section)) this.section = SECTIONS.find(s => this.mayOpen(s)) || 'actions';
         this.setupTaps();
+        bindCompactHead('insights');
         const sel = document.getElementById('insightsPreset');
         const { preset } = getInsightsContext();
         if (sel) sel.value = presetSelectValue(preset);
@@ -368,7 +370,7 @@ export const InsightsManager = {
         if (!profitKnown) tk += `<p>${esc(t('ui.tk.profit_unknown'))}</p>`;
         this.html('insightsItemsTakeaway', tk);
         const unc = m.caveats.find(c => c.key === 'uncosted');
-        this.html('insightsItemsCaveats', unc ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t('ui.money.caveat_uncosted', { qty: unc.qty, amount: formatAmount(unc.estimate) })))}</span></div>` : '');
+        this.html('insightsItemsCaveats', unc ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${caveatKey({ key: 'uncosted', estimate: unc.estimate })}`, { qty: unc.qty, amount: formatAmount(unc.estimate) })))}</span></div>` : '');
         const total = m.M1.total || 0;
         const pct = (v) => sharePct(v, total);
         this.html('insightsSplit', `<div class="row ins-line"><span class="row-main">${esc(t('ui.insights.retail'))}</span><span class="row-amt">${esc(formatRupees(m.M1.retail.total, TM))} · ${pct(m.M1.retail.total)}%</span></div>`

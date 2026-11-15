@@ -3,7 +3,7 @@
 import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
-import { t } from '../i18n/index.js';
+import { t, tn } from '../i18n/index.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { canOpenPage, hiddenPermissionClasses } from '../utils/role-access.js';
 import { shopRoleOf, rentRoleOf } from '../utils/settings-sections.js';
@@ -11,8 +11,12 @@ import { userProfile, createProfileIfMissing, workerEmailDomain } from '../fireb
 import { loginEmailFor } from '../utils/worker-accounts.js';
 import { afterLoginFailure, isStaleBackoff, loginWaitMs, waitParts } from '../utils/login-backoff.js';
 import { safeSetItem } from '../utils/storage-full.js';
+import { SyncStatus } from '../ui/sync-status.js';
+import { AuditService } from '../services/audit.js';
 
 const BACKOFF_KEY = 'happaLoginBackoff';
+/** How long Wait and sync waits for the server before saying it is still not sent (U-03). */
+const LOGOUT_SYNC_WAIT_MS = 60000;
 
 const clearBackoff = () => {
     try { localStorage.removeItem(BACKOFF_KEY); } catch (_) { /* nothing stored */ }
@@ -765,9 +769,55 @@ const AuthManager = {
         this.showAuthTab('login');
     },
 
+    /**
+     * Before sign-out (U-03): changes this phone has not sent stay queued under this login,
+     * so they reach the books only if the same person signs in here again. Returns whether
+     * to go on with the sign-out.
+     * @returns {Promise<boolean>}
+     */
+    async confirmLogoutWithUnsent() {
+        const unsent = await SyncStatus.unsentCount();
+        if (unsent === 0) {
+            return UIManager.showModal(t('msg.auth.are_sure_want_logout'), t('msg.auth.confirm_logout'), true, { confirmLabel: t('ui.settings.logout') });
+        }
+        const esc = Helpers.escapeHtml;
+        const title = unsent > 0 ? tn('msg.auth.unsent_title', unsent) : t('msg.auth.unsent_title_unknown');
+        for (;;) {
+            const choice = await UIManager.showCustomModal(
+                `<h3 class="dialog-title">${esc(title)}</h3><p>${esc(t('msg.auth.unsent_body'))}</p>`,
+                [
+                    { text: t('ui.modals.cancel'), value: null, class: 'btn btn-ghost' },
+                    { text: t('ui.auth.logout_anyway'), value: 'force', class: 'btn btn-danger-outline' },
+                    { text: t('ui.auth.wait_and_sync'), value: 'wait', class: 'btn btn-primary' }
+                ]);
+            if (choice === 'wait') {
+                if (!SyncStatus.isOnline()) {
+                    UIManager.showToast(t('msg.auth.no_internet_to_send'), 'warning');
+                    continue;
+                }
+                UIManager.showToast(t('msg.auth.waiting_to_send'));
+                UIManager.showLoading();
+                const sent = await SyncStatus.waitUntilSent(LOGOUT_SYNC_WAIT_MS);
+                UIManager.hideLoading();
+                if (sent) {
+                    UIManager.showToast(t('msg.auth.all_sent'));
+                    return true;
+                }
+                UIManager.showToast(t('msg.auth.still_not_sent'), 'warning');
+                continue;
+            }
+            if (choice !== 'force') return false;
+            const sure = await UIManager.showModal(t('msg.auth.logout_anyway_confirm'), title, true, { confirmLabel: t('ui.auth.logout_anyway'), danger: true });
+            if (!sure) continue;
+            AuditService.log(AuditService.ACTIONS.LOGOUT_WITH_UNSENT, { unsent: unsent > 0 ? unsent : null, online: SyncStatus.isOnline() })
+                .catch(e => console.warn('Audit entry not written:', e?.code || e));
+            return true;
+        }
+    },
+
     // Handle logout
     async handleLogout() {
-        const confirmed = await UIManager.showModal(t('msg.auth.are_sure_want_logout'), t('msg.auth.confirm_logout'), true, { confirmLabel: t('ui.settings.logout') });
+        const confirmed = await this.confirmLogoutWithUnsent();
         
         if (!confirmed) return;
         

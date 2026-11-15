@@ -15,6 +15,7 @@ import { SAVED_ON_PHONE_KEY } from '../utils/storage-full.js';
 import { formatAmount, formatRupees, formatRate, formatKg } from '../utils/money.js';
 import { parseAnyBillDate, formatDate } from '../utils/dates.js';
 import { stockRows, itemValue, stockValue, stockSummary, adjustItemStock, adjustmentValue, deadStockValue } from '../utils/calc/stock.js';
+import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import { isFullHistoryLoaded, historyLoadedFrom, formatWindowDate } from '../utils/history-window.js';
 import { planStockAdjustment, adjustReasonText, canReverseAdjustment, reversalPlan, stockCountPlan, adjustmentDelta, lastPurchaseRate, restockCost } from '../utils/stock-adjust.js';
@@ -124,7 +125,7 @@ export class StockManager {
             // Buckets keyed by a catalogue id or a legacy name collapse to one row per
             // item with a weighted average rate; buckets with no catalogue match stay
             // visible as "Unmatched" rows (utils/calc/stock.js stockRows, S1/S2).
-            const { rows: stockWithDetails, orphanKeys } = stockRows(stock, AppState.items);
+            const { rows: stockWithDetails, orphanKeys } = stockRows(stock, AppState.items, { includeBelowZero: true });
 
             if (orphanKeys.length > 0) {
                 console.warn(
@@ -143,9 +144,12 @@ export class StockManager {
         // What a role sees comes from Roles & access only (U-09): kg always, the ₹ value per stockValue
         const hideValue = !can(AppState.userRole, 'stockValue', AppState.settings?.roleAccess);
 
-        this.renderSummary(stockSummary(stockWithDetails), stockValue(stock), hideValue);
+        const belowZeroCount = stockWithDetails.filter(r => r.belowZero).length;
+        this.renderSummary(stockSummary(stockWithDetails), stockValue(stock), hideValue, belowZeroCount);
         const approxNote = stockApproxNoteHtml(AppState.stockApprox);
         if (approxNote) container.insertAdjacentHTML('beforeend', approxNote);
+        // A purchase at a 100× rate skews the stock rate and value (U-01)
+        if (this.canManageStock()) container.insertAdjacentHTML('beforeend', doubtfulRatesNoticeHtml(['purchase']));
         container.insertAdjacentHTML('beforeend', this.lowStockHtml(stock));
         const canSetAlerts = this.canManageStock();
         const list = document.createElement('div');
@@ -172,6 +176,27 @@ export class StockManager {
                         <div class="row-trail">
                             <div class="row-amt">${stockKg(item.quantity)} kg</div>
                             <div class="row-meta" data-perm="profit">${rateLine}</div>
+                        </div>
+                `;
+                list.appendChild(div);
+                return;
+            }
+
+            if (item.belowZero) {
+                // Sold before the purchase was entered: shown to everyone, at the top,
+                // with words (not only colour) so a stock count can fix it (U-12).
+                div.classList.add('stock-below-zero', 'tone-neg');
+                const fix = canSetAlerts
+                    ? `<button type="button" class="btn btn-ghost btn-sm" data-stock-adjust data-onclick="stock.openStockCount()">${tx('ui.stock.fix_with_count')}</button>`
+                    : '';
+                div.innerHTML = `
+                        <div class="row-main">
+                            <div class="row-title">${Helpers.escapeHtml(displayName)}</div>
+                            <div class="stock-orphan-note">${icon('triangle', 'i-sm')} ${tx('ui.stock.below_zero_note')}</div>${fix}
+                        </div>
+                        <div class="row-trail">
+                            <div class="row-amt">${stockKg(item.quantity)} kg</div>
+                            <div class="row-meta">${tx('ui.stock.below_zero_tag')}</div>
                         </div>
                 `;
                 list.appendChild(div);
@@ -213,14 +238,18 @@ export class StockManager {
      * @param {?{items: number, kg: number}} summary null hides the card
      * @param {number} [value] S4
      * @param {boolean} [hideValue]
+     * @param {number} [belowZero] items below zero (U-12), shown as their own figure
      */
-    static renderSummary(summary, value = 0, hideValue = false) {
+    static renderSummary(summary, value = 0, hideValue = false, belowZero = 0) {
         const box = document.getElementById('stockSummary');
         if (!box) return;
-        box.hidden = !summary || summary.items === 0;
+        box.hidden = !summary || (summary.items === 0 && !belowZero);
         if (box.hidden) return;
         const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
         set('stockSummaryItems', formatAmount(summary.items));
+        set('stockSummaryBelowZero', formatAmount(belowZero));
+        const bzCell = document.getElementById('stockSummaryBelowZeroCell');
+        if (bzCell) bzCell.hidden = !belowZero;
         set('stockSummaryKg', `${stockKg(summary.kg)} kg`);
         const valueEl = document.getElementById('stockSummaryValue');
         if (valueEl) valueEl.innerHTML = `≈ ${figHtml(value)}`;
@@ -665,13 +694,17 @@ export class StockManager {
         if (!select) return;
 
         select.innerHTML = `<option value="">${tx('ui.wholesale.select_item')}</option>`;
-        AppState.items.forEach(item => {
-            const option = document.createElement("option");
-            option.value = item.id;
-            const displayName = (AppState.settings.showHindi && item.hindiName) ? item.hindiName : item.name;
-            option.textContent = isArchivedItem(item) ? `${displayName} (${t('ui.items.archived_chip')})` : displayName;
-            select.appendChild(option);
-        });
+        const nameOf = (item) => String((AppState.settings.showHindi && item.hindiName) ? item.hindiName : item.name);
+        // A–Z; an archived item only while it still holds stock (U-77)
+        AppState.items
+            .filter(item => item && item.id && (!isArchivedItem(item) || Math.abs(Number(AppState.stock?.[item.id]?.quantity) || 0) > 0.001))
+            .sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
+            .forEach(item => {
+                const option = document.createElement("option");
+                option.value = item.id;
+                option.textContent = isArchivedItem(item) ? `${nameOf(item)} (${t('ui.items.archived_chip')})` : nameOf(item);
+                select.appendChild(option);
+            });
     }
 
     static loadAdjustItemStock() {
@@ -681,6 +714,8 @@ export class StockManager {
         const avgRateValue = document.getElementById("avgRateValue");
         
         if (!display) return;
+        const now = document.getElementById('adjustStockNow');
+        if (now) now.hidden = !itemId;
 
         if (!itemId) {
             display.textContent = "";
@@ -829,7 +864,7 @@ export class StockManager {
         if (quiet) return true;
         if (!reversesId) {
             document.getElementById("adjustQuantity").value = "";
-            document.getElementById("adjustRate").value = "0";
+            document.getElementById("adjustRate").value = "";
             document.getElementById("adjustReason").value = "";
             const reasonSelect = document.getElementById("adjustReasonCode");
             if (reasonSelect) reasonSelect.value = "";

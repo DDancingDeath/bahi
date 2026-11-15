@@ -26,6 +26,10 @@
                     <div class="metric-label" data-i18n="ui.stock.summary_items">Items in stock</div>
                     <div id="stockSummaryItems" class="metric-value">0</div>
                 </div>
+                <div class="metric tone-neg" id="stockSummaryBelowZeroCell" hidden>
+                    <div class="metric-label" data-i18n="ui.stock.summary_below_zero">Below zero</div>
+                    <div id="stockSummaryBelowZero" class="metric-value">0</div>
+                </div>
                 <div class="metric" id="stockSummaryKgCell">
                     <div class="metric-label" data-i18n="ui.stock.summary_kg">Total weight</div>
                     <div id="stockSummaryKg" class="metric-value">0 kg</div>
@@ -62,7 +66,7 @@
                     </select>
                 </div>
 
-                <div class="metrics stock-now">
+                <div class="metrics stock-now" id="adjustStockNow" hidden>
                     <div class="metric">
                         <div class="metric-label" data-i18n="ui.stock.current_stock">Current stock</div>
                         <div class="metric-value"><span id="currentStockDisplay">-</span> kg</div>
@@ -94,7 +98,7 @@
                     <label for="adjustRate" data-i18n="ui.stock.rate_kg_optional">Rate (optional)</label>
                     <div class="adorn">
                         <span class="adorn-pre">₹</span>
-                        <input type="number" inputmode="decimal" id="adjustRate" class="input" placeholder="0" value="0" />
+                        <input type="number" inputmode="decimal" id="adjustRate" class="input" placeholder="Average cost if empty" data-i18n-placeholder="ui.stock.rate_placeholder" />
                         <span class="adorn-post">/kg</span>
                     </div>
                 </div>

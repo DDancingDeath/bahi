@@ -7,6 +7,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { icon } from './icons.js';
 import { dailyClockSkew, isClockWrong, skewMinutes } from '../utils/clock-skew.js';
 
 export const CLOCK_BANNER_ID = 'clockSkewBanner';
@@ -43,7 +44,7 @@ export function renderClockBanner(skewMs, { doc = document, onRecheck } = {}) {
     close.type = 'button';
     close.className = 'btn btn-sm btn-ghost btn-icon clock-notice__close';
     close.setAttribute('aria-label', t('ui.common.close'));
-    close.textContent = '×';
+    close.innerHTML = icon('x');
     close.addEventListener('click', () => banner.remove());
     banner.append(text, again, close);
     return banner;

@@ -21,7 +21,7 @@ export const STOCK_SPEC = Object.freeze({
     stockSummary: 'S7'
 });
 
-/** @typedef {{itemId: string, name: string, hindiName: string, quantity: number, rate: number, isOrphan?: boolean}} StockRow */
+/** @typedef {{itemId: string, name: string, hindiName: string, quantity: number, rate: number, isOrphan?: boolean, belowZero?: boolean}} StockRow */
 
 const normalize = (/** @type {*} */ s) => (s == null ? '' : String(s).trim().toLowerCase());
 
@@ -32,12 +32,15 @@ const normalize = (/** @type {*} */ s) => (s == null ? '' : String(s).trim().toL
  * average rate of the merged buckets (AVG-COST). A bucket with no catalogue
  * match is its own "unmatched" row so the data stays visible. Rows: catalogue
  * items with quantity > 0 by name, then unmatched rows with any quantity
- * (|q| > 0.001, negative included).
+ * (|q| > 0.001, negative included). With `includeBelowZero` (the Stock page,
+ * U-12) catalogue items below zero come first, marked `belowZero`.
  * @param {Object<string, {quantity: number, rate: number}>} stock FirebaseService.getStock()
  * @param {Array<{id: string, name: string, hindiName?: string}>} items catalogue
+ * @param {{includeBelowZero?: boolean}} [opts]
  * @returns {{rows: StockRow[], orphanKeys: string[]}}
  */
-export function stockRows(stock, items) {
+export function stockRows(stock, items, opts = {}) {
+    const includeBelowZero = !!opts.includeBelowZero;
     const catalogue = items || [];
     // Index the catalogue once; a key resolves to the first item (in array
     // order) whose id equals the key or whose normalized name/hindiName equals
@@ -80,8 +83,17 @@ export function stockRows(stock, items) {
         delete row.totalValue;
         return row;
     })
-        .filter(item => item.isOrphan ? Math.abs(item.quantity) > 0.001 : item.quantity > 0)
+        .filter(item => {
+            if (item.isOrphan) return Math.abs(item.quantity) > 0.001;
+            if (item.quantity > 0) return true;
+            if (includeBelowZero && item.quantity < -0.001) {
+                item.belowZero = true;
+                return true;
+            }
+            return false;
+        })
         .sort((a, b) => {
+            if (!!a.belowZero !== !!b.belowZero) return a.belowZero ? -1 : 1;
             if (a.isOrphan !== b.isOrphan) return a.isOrphan ? 1 : -1;
             return a.name.localeCompare(b.name);
         });

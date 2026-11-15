@@ -26,6 +26,7 @@ import {
 } from '../utils/notification-format.js';
 import { formatRupees } from '../utils/money.js';
 import { getPendingJoins, writeOffsByOthers } from '../utils/owner-alerts.js';
+import { trapFocus } from '../utils/keyboard-shortcuts.js';
 
 const SYSTEM_PREF_KEY = 'aadhat.notifications.system';
 const CLEANUP_KEY = 'aadhat.notifications.cleanupAt';
@@ -53,6 +54,8 @@ const NotificationsManager = {
     initial: true,
     errorShown: false,
     panelOpen: false,
+    /** @type {?Element} the control that opened the inbox; focus goes back to it */
+    panelOpener: null,
     panelItems: [],
     cursor: null,
     hasMore: false,
@@ -246,9 +249,15 @@ const NotificationsManager = {
         const panel = document.getElementById('notifPanel');
         if (!panel || !this.uid) return;
         this.panelOpen = true;
+        if (panel.hidden) this.panelOpener = document.activeElement;
         panel.hidden = false;
         const backdrop = document.getElementById('notifBackdrop');
         if (backdrop) backdrop.hidden = false;
+        if (!panel.dataset.trap) {
+            panel.dataset.trap = '1';
+            panel.addEventListener('keydown', (e) => { if (e.key === 'Tab') trapFocus(e, panel); });
+        }
+        /** @type {HTMLElement|null} */ (panel.querySelector('.notif-close'))?.focus({ preventScroll: true });
         this.panelItems = prepareList(this.unread.slice());
         this.cursor = null;
         this.hasMore = false;
@@ -267,9 +276,16 @@ const NotificationsManager = {
     close() {
         this.panelOpen = false;
         const panel = document.getElementById('notifPanel');
+        const wasOpen = !!panel && !panel.hidden;
         if (panel) panel.hidden = true;
         const backdrop = document.getElementById('notifBackdrop');
         if (backdrop) backdrop.hidden = true;
+        const opener = this.panelOpener;
+        this.panelOpener = null;
+        if (wasOpen && opener && opener.isConnected && typeof opener.focus === 'function'
+            && (!document.activeElement || document.activeElement === document.body || panel.contains(document.activeElement))) {
+            opener.focus({ preventScroll: true });
+        }
     },
 
     async loadMore() {

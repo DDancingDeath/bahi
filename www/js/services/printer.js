@@ -1,7 +1,8 @@
 // -------------------- BLUETOOTH PRINTER MANAGER --------------------
 
 import { AppState } from '../utils/state.js';
-import { UIManager } from '../ui/ui-manager.js';
+import { UIManager, buildSheet, openSheet, closeSheet } from '../ui/ui-manager.js';
+import { icon } from '../ui/icons.js';
 import { getAndroidMajorVersion, Helpers } from '../utils/helpers.js';
 import { t, loadAllCatalogues } from '../i18n/index.js';
 import { PrinterLink } from './printer-link.js';
@@ -14,6 +15,7 @@ import {
     paperDots, rasterThreshold, receiptLang
 } from '../utils/printer-settings.js';
 import { safeSetItem } from '../utils/storage-full.js';
+import { shellMethod } from '../utils/native-shell.js';
 
 /** Dots darker than this (average of R,G,B) print black */
 const RASTER_THRESHOLD = 128;
@@ -26,6 +28,9 @@ const UNCERTAIN_TTL_MS = 24 * 60 * 60 * 1000;
 const STOPPED_KEY = 'printerDisconnected';
 const LOGO_KEY = 'receiptLogo';
 const SHARED_RECEIPT_KEY = 'receiptShared';
+/** Ids for the preview dialogs' titles */
+let previewSeq = 0;
+
 /** A bill whose print failed can be tried again from its preview, this many tries in all (#77, Q16). */
 export const BILL_PRINT_TRIES = 3;
 const CONNECT_PERMISSION = 'android.permission.BLUETOOTH_CONNECT';
@@ -168,63 +173,22 @@ class BluetoothPrinterManager {
             throw new Error(errorMsg);
         }
         
-        // Request Bluetooth runtime permissions. BLUETOOTH_SCAN/CONNECT only exist on
-        // Android 12+ (API 31); requesting them on Android 11 always reports "denied".
-        if (window.cordova && window.cordova.plugins && window.cordova.plugins.permissions) {
-            const permissions = window.cordova.plugins.permissions;
-            const permissionsToRequest = [];
-            if (getAndroidMajorVersion() >= 12) {
-                permissionsToRequest.push(
-                    permissions.BLUETOOTH_SCAN || 'android.permission.BLUETOOTH_SCAN',
-                    permissions.BLUETOOTH_CONNECT || 'android.permission.BLUETOOTH_CONNECT'
-                );
-            }
-            permissionsToRequest.push(
-                permissions.ACCESS_FINE_LOCATION || 'android.permission.ACCESS_FINE_LOCATION'
-            );
-            
-            try {
-                // Check each permission individually
-                for (const permission of permissionsToRequest) {
-                    await new Promise((resolve, reject) => {
-                        permissions.checkPermission(permission, (status) => {
-                            if (status.hasPermission) {
-                                resolve();
-                            } else {
-                                permissions.requestPermission(
-                                    permission,
-                                    (result) => {
-                                        if (result.hasPermission) {
-                                            resolve();
-                                        } else {
-                                            reject(new Error('Permission denied: ' + permission));
-                                        }
-                                    },
-                                    () => reject(new Error('Failed to request permission: ' + permission))
-                                );
-                            }
-                        }, () => {
-                            // Permission check failed, try to request anyway
-                            permissions.requestPermission(
-                                permission,
-                                (result) => {
-                                    if (result.hasPermission) {
-                                        resolve();
-                                    } else {
-                                        reject(new Error('Permission denied: ' + permission));
-                                    }
-                                },
-                                () => reject(new Error('Failed to request permission: ' + permission))
-                            );
-                        });
-                    });
+        // Listing paired printers needs only Nearby devices (BLUETOOTH_CONNECT) on Android 12+, and nothing
+        // before that: no location prompt (the scan permission is declared neverForLocation).
+        const permissions = window.cordova?.plugins?.permissions;
+        if (permissions && getAndroidMajorVersion() >= 12) {
+            const name = permissions.BLUETOOTH_CONNECT || CONNECT_PERMISSION;
+            const granted = await new Promise((resolve) => {
+                const ask = () => permissions.requestPermission(name, (r) => resolve(!!r?.hasPermission), () => resolve(false));
+                try {
+                    permissions.checkPermission(name, (st) => (st?.hasPermission ? resolve(true) : ask()), ask);
+                } catch {
+                    resolve(false);
                 }
-            } catch (permError) {
-                console.error('[SCAN] Permission error:', permError);
-                throw new Error('Bluetooth permissions required. Please grant all permissions when prompted, or enable them manually in app settings.');
-            }
+            });
+            if (!granted) throw Object.assign(new Error('Bluetooth permission denied'), { kind: 'permission' });
         }
-        
+
         await this.link.enableBluetooth();
         UIManager.showLoading();
         try {
@@ -259,6 +223,20 @@ class BluetoothPrinterManager {
 }
 
 let drawingLoading = null;
+
+const isNativeApp = () => !!window.Capacitor?.isNativePlatform?.();
+
+/**
+ * The Android app's WebView has no Web Share and drops downloads, so a preview's picture goes to
+ * Android's share sheet (save to Files, WhatsApp, …) through the exporter; the web keeps its own path.
+ * @returns {Promise<boolean>} true when handled here (the Android app)
+ */
+async function saveInApp(blob, filename, title) {
+    if (!isNativeApp()) return false;
+    const { Exporter } = await import('./exporter.js');
+    await Exporter.saveBlob(blob, filename, { title });
+    return true;
+}
 /**
  * Receipt drawing (services/receipt-drawing.js, #59): imported on the first print or preview
  * (main.js also starts it when the phone is idle after the first screen), with both language
@@ -283,7 +261,12 @@ const PrinterService = {
             return devices;
         } catch (error) {
             console.error('Printer scan error:', error);
-            UIManager.showToast(t('msg.printer.failed_scan_devices', { message: this.errorText(error) }));
+            if (error?.kind === 'permission') {
+                if (this._permissions()) this.setPermissionState('denied');
+                await this.offerAppSettings();
+            } else {
+                UIManager.showToast(t('msg.printer.failed_scan_devices', { message: this.errorText(error) }));
+            }
             throw error;
         }
     },
@@ -584,8 +567,24 @@ const PrinterService = {
             }
         });
         this.setPermissionState(granted ? 'granted' : 'denied');
-        if (!granted) UIManager.showToast(t('msg.printer.permission_in_settings'), 'warning');
+        if (!granted) await this.offerAppSettings();
         return granted;
+    },
+
+    /**
+     * Nearby devices was refused (maybe with "Don't ask again", when Android no longer asks): says how
+     * to allow it, with a button to this app's Android settings page when the app can open it.
+     * @returns {Promise<void>}
+     */
+    async offerAppSettings() {
+        const open = shellMethod('openAppSettings');
+        if (!open) {
+            UIManager.showToast(t('msg.printer.permission_in_settings'), 'warning');
+            return;
+        }
+        const go = await UIManager.showModal(t('msg.printer.permission_open_settings'), t('ui.printer.permission_title'), true,
+            { confirmLabel: t('ui.common.open_settings') });
+        if (go) await open().catch(() => UIManager.showToast(t('msg.printer.permission_in_settings'), 'warning'));
     },
 
     /** @param {'granted'|'denied'|'unknown'} state */
@@ -629,7 +628,7 @@ const PrinterService = {
         close.type = 'button';
         close.className = 'btn btn-sm btn-ghost btn-icon printer-perm-notice__close';
         close.setAttribute('aria-label', t('ui.common.close'));
-        close.textContent = '×';
+        close.innerHTML = icon('x');
         close.addEventListener('click', () => {
             this.permissionBannerClosed = true;
             this.renderPermissionBanner();
@@ -750,6 +749,19 @@ const PrinterService = {
     /** Bluetooth printing needs the Android app (cordova bluetoothSerial plugin). */
     isAvailable() {
         return this.manager.link.transport.available();
+    },
+
+    /**
+     * Save & print (U-26): in the Android app with no printer to print on (none saved, or
+     * Disconnect pressed), asks before the bill is saved: Save only, or Cancel (connect the
+     * printer first). In a browser Print shows the bill picture, so nothing is asked.
+     * @returns {Promise<'print'|'save'|'cancel'>}
+     */
+    async beforeSavePrint() {
+        if (!this.isAvailable() || this.canPrint()) return 'print';
+        const ok = await UIManager.showModal(t('msg.printer.not_ready_before_save'), t('ui.billing.printer_not_connected'), true,
+            { confirmLabel: t('ui.billing.save_only') });
+        return ok ? 'save' : 'cancel';
     },
 
     /** Connected in this app session (the link is not kept across restarts). */
@@ -911,57 +923,27 @@ const PrinterService = {
      */
     showImagePreview(canvas, filename, shareTitle = t('ui.bill.bill_no'), { onPrint } = {}) {
         try {
-            // Convert canvas to data URL
             const dataUrl = canvas.toDataURL('image/png');
-            
-            // Show in a modal or preview element
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.9);
-                z-index: 10000;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            `;
-            
+            // A standard app dialog (U-66): titled, takes focus, keeps Tab inside, Esc / Back / scrim close it, focus goes back
+            const { overlay: modal, box, body, footer } = buildSheet({ labelId: `printPreviewTitle${++previewSeq}`, title: t('ui.print.preview_title'), className: 'print-preview' });
+            box.classList.add('dialog-wide');
             const img = document.createElement('img');
             img.src = dataUrl;
-            img.style.cssText = `
-                max-width: 90%;
-                max-height: 80vh;
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            `;
-            
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = `
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: center;
-            `;
-            
+            img.alt = t('ui.print.preview_alt');
+            img.className = 'print-preview-img';
+            body.appendChild(img);
+            // No shop name yet (U-89): say where to add it, so the next slip says whose shop it is
+            if (!String(AppState.settings?.shopName || '').trim()) {
+                const hint = document.createElement('p');
+                hint.className = 'notice info print-preview-hint';
+                hint.textContent = t('ui.print.add_shop_name');
+                body.appendChild(hint);
+            }
+
             const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = t('ui.print.download');
-            downloadBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #15803d;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
+            downloadBtn.type = 'button';
+            downloadBtn.className = 'btn btn-tonal';
+            downloadBtn.textContent = t(isNativeApp() ? 'ui.print.share_save' : 'ui.print.download');
             downloadBtn.onclick = async () => {
                 // Create a new canvas with padding
                 const padding = 20;
@@ -981,6 +963,8 @@ const PrinterService = {
                         return;
                     }
                     
+                    if (await saveInApp(blob, filename, shareTitle)) return;
+
                     // Try Web Share API for mobile (allows saving to gallery)
                     if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
                         try {
@@ -1009,38 +993,28 @@ const PrinterService = {
                     URL.revokeObjectURL(url);
                 }, 'image/png');
             };
-            
+
             const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'btn btn-ghost';
+            closeBtn.setAttribute('data-dismiss', '');
             closeBtn.textContent = t('ui.common.close');
-            closeBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #0058b8;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
-            closeBtn.onclick = () => document.body.removeChild(modal);
-            
-            buttonContainer.appendChild(downloadBtn);
-            buttonContainer.appendChild(closeBtn);
-            
-            modal.appendChild(img);
-            modal.appendChild(buttonContainer);
+            const close = () => {
+                if (!modal.parentNode) return;
+                closeSheet(modal);
+                modal.remove();
+            };
+            closeBtn.onclick = close;
+            footer.append(closeBtn, downloadBtn);
 
             let result = true;
             if (typeof onPrint === 'function') {
                 const printBtn = document.createElement('button');
+                printBtn.type = 'button';
                 printBtn.textContent = t('ui.print.print');
-                printBtn.className = 'print-preview-print-btn';
-                printBtn.style.cssText = closeBtn.style.cssText;
-                printBtn.style.background = '#111827';
-                buttonContainer.style.flexWrap = 'wrap';
-                buttonContainer.insertBefore(printBtn, downloadBtn);
+                printBtn.className = 'btn btn-primary print-preview-print-btn';
+                footer.appendChild(printBtn);
                 result = new Promise((resolve) => {
-                    const close = () => { if (modal.parentNode) modal.parentNode.removeChild(modal); };
                     closeBtn.onclick = () => { close(); resolve(false); };
                     printBtn.onclick = async () => {
                         close();
@@ -1052,8 +1026,11 @@ const PrinterService = {
                         }
                     };
                 });
+            } else {
+                downloadBtn.classList.replace('btn-tonal', 'btn-primary');
             }
             document.body.appendChild(modal);
+            openSheet(modal, { focus: closeBtn });
             
             return result;
         } catch (error) {
@@ -1083,137 +1060,7 @@ const PrinterService = {
             // Generate canvas for expense
             const canvas = await this.manager.generateExpenseCanvas(expense);
             
-            // Convert canvas to data URL
-            const dataUrl = canvas.toDataURL('image/png');
-            
-            // Show in a modal
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.9);
-                z-index: 10000;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            `;
-            
-            const img = document.createElement('img');
-            img.src = dataUrl;
-            img.style.cssText = `
-                max-width: 90%;
-                max-height: 80vh;
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            `;
-            
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = `
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: center;
-            `;
-            
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = t('ui.print.download');
-            downloadBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #15803d;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
-            downloadBtn.onclick = async () => {
-                // Create a new canvas with padding
-                const padding = 20;
-                const paddedCanvas = document.createElement('canvas');
-                paddedCanvas.width = canvas.width + (padding * 2);
-                paddedCanvas.height = canvas.height + (padding * 2);
-                
-                const paddedCtx = paddedCanvas.getContext('2d');
-                paddedCtx.fillStyle = '#FFFFFF';
-                paddedCtx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-                paddedCtx.drawImage(canvas, padding, padding);
-                
-                const filename = `expense_${expense.id || Date.now()}.png`;
-                
-                // Convert canvas to blob for better mobile support
-                paddedCanvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        UIManager.showToast(t('msg.printer.failed_generate_image'), 'error');
-                        return;
-                    }
-                    
-                    // Try Web Share API for mobile (allows saving to gallery)
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
-                        try {
-                            const file = new File([blob], filename, { type: 'image/png' });
-                            await navigator.share({
-                                files: [file],
-                                title: t('ui.today.expense')
-                            });
-                            return;
-                        } catch (e) {
-                            // User cancelled or share failed, fall through to download
-                            if (e.name !== 'AbortError') {
-                                console.warn('Share failed, trying download:', e);
-                            }
-                        }
-                    }
-                    
-                    // Fallback: Create blob URL and download
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }, 'image/png');
-            };
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = t('ui.common.close');
-            closeBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #0058b8;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
-            closeBtn.onclick = () => document.body.removeChild(modal);
-            
-            buttonContainer.appendChild(downloadBtn);
-            buttonContainer.appendChild(closeBtn);
-            
-            modal.appendChild(img);
-            modal.appendChild(buttonContainer);
-            
-            document.body.appendChild(modal);
-            
-            // Close on background click
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            };
-            
-            return true;
+            return this.showImagePreview(canvas, `expense_${expense.id || Date.now()}.png`, t('ui.today.expense'));
         } catch (error) {
             console.error('Failed to show expense preview:', error);
             UIManager.showToast(t('msg.printer.failed_generate_preview_2', { message: error.message }));

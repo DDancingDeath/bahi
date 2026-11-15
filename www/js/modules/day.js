@@ -26,6 +26,7 @@ import { getPendingJoins, writeOffsByOthers } from '../utils/owner-alerts.js';
 import { firstRunSteps, showFirstRun, appLockOfferDue, FIRST_RUN_HIDDEN_KEY, FIRST_RUN_TEAM_KEY } from '../utils/first-run.js';
 import { normalizePrinterSettings } from '../utils/printer-settings.js';
 import { safeSetItem } from '../utils/storage-full.js';
+import { SyncStatus } from '../ui/sync-status.js';
 
 // Use helper functions
 const formatDate = (date) => Helpers.formatDate(date);
@@ -186,6 +187,13 @@ export const DayManager = {
         });
         const { labour } = s;
         this.renderReminders();
+        // Day details (labour, payment split, dues, by bill type, items) open for the owner and manager,
+        // folded for Members, who need the cash, today's bills and reminders (U-35)
+        const more = /** @type {?HTMLDetailsElement} */ (document.getElementById('todayMore'));
+        if (more && AppState.userRole && !more.dataset.roleSet) {
+            more.dataset.roleSet = '1';
+            more.open = AppState.userRole === 'owner' || AppState.userRole === 'manager';
+        }
 
         // Update UI - Main Stats
         this.updateElement('todayTotalPurchases', moneyText(s.purchases));
@@ -466,7 +474,7 @@ export const DayManager = {
                 const ref = Helpers.escapeJsAttr(`id:${bill.id}`);
                 return `<button type="button" class="today-bill-${type}" data-today-bill data-onclick="history.viewBill('${ref}', '${type}')" aria-label="${esc(t('ui.today.bill_open_aria', { bill: [t(BILL_KIND_KEYS[type]), no, party].filter(Boolean).join(' ') }))}">
                     <span class="today-bill-time">${esc(at ? Helpers.formatTime(new Date(at)) : '')}</span>
-                    <span class="today-bill-main"><span class="today-bill-party">${esc(party || no)}</span><span class="today-bill-kind">${esc([t(BILL_KIND_KEYS[type]), party ? no : ''].filter(Boolean).join(' · '))}</span></span>
+                    <span class="today-bill-main"><span class="today-bill-party">${esc(party || no)}</span><span class="today-bill-kind">${esc([t(BILL_KIND_KEYS[type]), party ? no : '']                    .filter(Boolean).join(' · '))}</span>${SyncStatus.chipHtml(bill.id)}</span>
                     <strong class="today-bill-total">${esc(moneyText(total))}</strong>
                 </button>`;
             }).join('');

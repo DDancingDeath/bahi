@@ -184,8 +184,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 .role-table input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .role-table input[type="number"] {

@@ -12,7 +12,8 @@ const { seed } = require('./support/seed');
 const { commit } = require('./support/emulator');
 
 const COMBOS = [
-    ['modern', 'light'], ['modern', 'dark'], ['nordic', 'light'], ['nordic', 'dark'],
+    ['modern', 'light'], ['modern', 'dark'], ['sunlight', 'light'], ['sunlight', 'dark'], ['sunlight', 'light', 'hi'],
+    ['nordic', 'light'], ['nordic', 'dark'],
     ['nature', 'light'], ['nature', 'dark'], ['dark', 'light'], ['midnight', 'system'],
     ['vintage', 'light'], ['vintage', 'dark'], ['classic', 'light'], ['classic', 'dark'],
     ['premium', 'light'], ['premium', 'dark'],
@@ -28,7 +29,7 @@ const THEME_WORKER = {
     name: 'Theme Worker', startMonth: MONTH, active: true, pays: [{ from: MONTH, amount: 9000 }],
     entries: [{ id: 'e2e-theme-entry', amount: 3000, kind: 'advance', month: MONTH, date: `${MONTH}-01`, mode: 'cash' }],
 };
-const PAGES = [['Billing', 'billing'], ['Today', 'day'], ['Outstanding', 'due'], ['Cash', 'cash-management'], ['Money', 'money'], ['Insights', 'insights'], ['Statements', 'statements']];
+const PAGES = [['Billing', 'billing'], ['Today', 'day'], ['Outstanding', 'due'], ['Cash', 'day-cash'], ['Money', 'money'], ['Insights', 'insights'], ['Statements', 'statements']];
 
 /** Billing with a line in the row list and the whole bill put in Cash with its "Fill" (3.5), so axe sees both. */
 async function billWithFill(page) {
@@ -114,7 +115,7 @@ for (const [theme, appearance, lang = 'en'] of COMBOS) {
             await showTab(page, route);
             expect(await settle(page), `${name} finished loading`).toBe(true);
             if (route === 'billing') await billWithFill(page);
-            if (route === 'cash-management') await openCashWithCount(page);
+            if (route === 'day-cash') await openCashWithCount(page);
             const result = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
             for (const v of result.violations) {
                 for (const n of v.nodes) found.push(`${name}: ${n.target.join(' ')} — ${(n.any[0]?.message || v.help).replace(/\s+/g, ' ')}`);
@@ -189,7 +190,7 @@ test('the gallery previews without saving; Cancel, leaving Settings and Apply be
     const bar = page.locator('#themePreviewBar');
 
     await showTab(page, 'settings-appearance');
-    await expect(page.locator('#themeGallery .theme-tile')).toHaveCount(12);
+    await expect(page.locator('#themeGallery .theme-tile')).toHaveCount(13);
     // Each card is a mini Billing in its own theme
     await expect(page.locator('[data-theme-choice="cyberpunk"] .tcp[data-theme="cyberpunk"][data-mode="dark"] .tcp-save')).toHaveText(/Save/);
     await expect(page.locator('[data-theme-choice="modern"]')).toHaveAttribute('aria-pressed', 'true');

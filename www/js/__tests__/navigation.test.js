@@ -74,9 +74,54 @@ describe('back button returns to the previous tab (F17)', () => {
         expect(app.exitApp).not.toHaveBeenCalled();
 
         NavigationManager.handlePopState({ state: { happaTab: 'billing' } });
+        NavigationManager.backPressedAt = 0;
+        NavigationManager.handleBackButton(app);
+        expect(app.exitApp).not.toHaveBeenCalled();
         NavigationManager.handleBackButton(app);
         expect(app.exitApp).toHaveBeenCalledTimes(1);
         back.mockRestore();
+    });
+
+    test('Android back on home minimises (warm return) after a second press within 2 s', () => {
+        const app = { exitApp: jest.fn(), minimizeApp: jest.fn() };
+        const now = jest.spyOn(Date, 'now').mockReturnValue(10_000);
+        NavigationManager.showTab('billing');
+        NavigationManager.backPressedAt = 0;
+        NavigationManager.handleBackButton(app);
+        now.mockReturnValue(13_000);
+        NavigationManager.handleBackButton(app);
+        expect(app.minimizeApp).not.toHaveBeenCalled();
+        now.mockReturnValue(14_000);
+        NavigationManager.handleBackButton(app);
+        expect(app.minimizeApp).toHaveBeenCalledTimes(1);
+        expect(app.exitApp).not.toHaveBeenCalled();
+        now.mockRestore();
+    });
+
+    test('Android back on home with a bill in progress asks before leaving', async () => {
+        const { UIManager } = await import('../ui/ui-manager.js');
+        const ask = jest.spyOn(UIManager, 'showModal').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+        const app = { minimizeApp: jest.fn() };
+        AppState.billItems = [{ item: 'Wheat' }];
+        NavigationManager.showTab('billing');
+        await NavigationManager.handleBackButton(app);
+        expect(ask).toHaveBeenCalledTimes(1);
+        expect(app.minimizeApp).not.toHaveBeenCalled();
+        await NavigationManager.handleBackButton(app);
+        expect(app.minimizeApp).toHaveBeenCalledTimes(1);
+        AppState.billItems = [];
+        ask.mockRestore();
+    });
+
+    test('Android back closes the open bill menu first', () => {
+        const app = { minimizeApp: jest.fn() };
+        document.getElementById('billing').innerHTML = '<details class="bill-menu" open><summary>More</summary></details>';
+        NavigationManager.showTab('billing');
+        NavigationManager.backPressedAt = 0;
+        NavigationManager.handleBackButton(app);
+        expect(document.querySelector('details.bill-menu').open).toBe(false);
+        expect(NavigationManager.backPressedAt).toBe(0);
+        expect(app.minimizeApp).not.toHaveBeenCalled();
     });
 
     test('Android back button with the menu open only closes the menu', () => {

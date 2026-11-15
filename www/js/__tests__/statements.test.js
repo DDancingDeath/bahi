@@ -243,6 +243,22 @@ describe('Statements: CSV language, dates and permissions', () => {
 describe('Statements page', () => {
     const num = (s) => Number(String(s).replace(/−/g, '-').replace(/[^\d.-]/g, ''));
 
+    test('U-94: the day book opens on yesterday when today has nothing yet; ‹ › step a day, never past today', () => {
+        jest.setSystemTime(new Date(NOW + 2 * 86400000));
+        StatementsManager.day = null;
+        StatementsManager.open('day');
+        const today = new Date(NOW + 2 * 86400000);
+        const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        expect(StatementsManager.day).toBe(iso(yesterday));
+        StatementsManager.stepDay(1);
+        expect(StatementsManager.day).toBe(iso(today));
+        StatementsManager.stepDay(1);
+        expect(StatementsManager.day).toBe(iso(today));
+        expect(document.querySelector('#statementsDoc .empty').textContent).toContain('Nothing was entered on this day');
+        StatementsManager.day = null;
+    });
+
     test('the list opens a statement and Back returns to the list', () => {
         StatementsManager.init();
         expect(document.getElementById('statementsList').hidden).toBe(false);

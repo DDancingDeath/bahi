@@ -18,7 +18,8 @@
 
 /* Simple: what came in this month */
 .rent-collect-line { font-size: var(--fs-lead); font-weight: var(--w-strong); }
-.rent-progress { width: 100%; height: var(--sp-2); margin: var(--sp-2) 0 var(--sp-1); accent-color: var(--mode-rentals); }
+.rent-bar { height: var(--sp-2); margin: var(--sp-2) 0 var(--sp-1); overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--r-full); background: var(--surface-2); }
+.rent-bar-fill { display: block; width: var(--w); height: 100%; background: var(--mode-rentals); }
 .rent-attn > .rent-section-title { margin: 0; padding: var(--sp-3) var(--sp-4) var(--sp-1); }
 .rent-attn-more { padding: 0 var(--sp-4) var(--sp-3); }
 .rent-vacant { margin-top: var(--sp-2); }

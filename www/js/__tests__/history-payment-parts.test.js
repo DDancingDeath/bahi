@@ -35,6 +35,20 @@ beforeEach(() => {
     AppState.settings = {};
 });
 
+test('U-67: money first (party, total, Paid / Due chips), bill no and times folded at the end, Void last', async () => {
+    AppState.salesHistory = [sale({
+        payment: { cash: 2500, online: 500, due: 2000, total: 5000 },
+        payments: [{ id: 'p1', cash: 1500, online: 500, at: NOW }]
+    })];
+    await HistoryManager.viewBill('id:w1', 'wholesale');
+    const head = document.querySelector('#billDetailsContent .bill-view-head');
+    expect(head.textContent.replace(/\s+/g, ' ')).toMatch(/Trader.*₹5,000.*Paid ₹3,000.*Due ₹2,000/);
+    expect(document.querySelector('#billDetailsContent .bill-view-more .bill-view-no').textContent).toBe('#W-1');
+    expect(document.querySelector('#billDetailsContent .bill-view-more').open).toBe(false);
+    const actions = [...document.querySelectorAll('.bill-details-footer button')].map(b => b.id);
+    expect(actions.indexOf('billVoidBtn')).toBeGreaterThan(actions.indexOf('billEditBtn'));
+});
+
 test('paid later: save-time cash/online, then the later payments, then the due', async () => {
     AppState.salesHistory = [sale({
         payment: { cash: 2500, online: 500, due: 2000, total: 5000 },

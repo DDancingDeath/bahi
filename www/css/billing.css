@@ -1,4 +1,12 @@
 /* ---------- Bill lines (#billTable, #saleTable, .bill-lines) ---------- */
+/* A line's bag / packet weights: one small line under the item (U-18) */
+.bill-line-weights {
+  display: block;
+  color: var(--ink-3);
+  font-family: var(--font-num);
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+}
 #billTable, :is(#saleTable, .bill-lines) {
   width: 100%;
   margin-top: var(--sp-4);
@@ -131,15 +139,18 @@
   #billTable tbody tr.bill-line > td:nth-child(1), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(1) {
     grid-column: 1 / 4;
     grid-row: 1;
+    color: var(--ink);
+    font-size: var(--fs-body);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  tr.bill-line .bill-line-name {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    color: var(--ink);
-    font-size: var(--fs-body);
-    line-height: 1.3;
-    overflow-wrap: anywhere;
   }
 
   #billTable tbody tr.bill-line > :is(td:nth-child(2), td:nth-child(3)),
@@ -456,6 +467,13 @@ input[type="number"] {
 
 .bill-menu-list > .bill-clear {
   color: var(--negative);
+}
+
+/* Clear is last, after a line, away from Save draft (U-06) */
+.bill-menu-sep {
+  margin: var(--sp-1) 0;
+  border: 0;
+  border-top: 1px solid var(--line);
 }
 
 .bill-count {
@@ -926,10 +944,23 @@ input[type="number"] {
   min-height: 48px;
 }
 
-/* Expenses and the live profit (WS-PROFIT) */
+/* Expenses and the live profit (WS-PROFIT): folded under "Expenses and profit" (U-36), so the margin is not on show at the counter */
 .ws-profit {
   margin-bottom: var(--sp-3);
   padding: var(--sp-1) var(--sp-4);
+}
+
+.ws-margin-toggle {
+  min-height: 44px;
+  padding: var(--sp-3) 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.ws-recent-title[hidden],
+.ws-more[hidden] {
+  display: none;
 }
 
 .ws-profit .pay-line > span {
@@ -1074,4 +1105,18 @@ input[type="number"] {
 
 .bill-line-remove:hover {
   color: var(--negative);
+}
+
+/* The name is needed once anything is in Due (U-34): the label says so */
+.bill-customer:not(.party-needed) .party-needed-note {
+  display: none;
+}
+
+.party-needed-note {
+  margin-left: var(--sp-1);
+  color: var(--warning);
+}
+
+.party-needed-note::before {
+  content: "· " / "";
 }

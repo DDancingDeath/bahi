@@ -198,7 +198,7 @@ describe('aligned bill row', () => {
         expect(old.querySelector('.bill-row__amount').textContent).toBe('₹2,500');
     });
 
-    test('the Due tag is ink, amber after 30 days and red after 90', () => {
+    test('the Due tag is amber (never plain like Cash, U-73), orange-amber after 30 days and red after 90', () => {
         const DAY = 86400000;
         const tone = (days) => {
             const el = document.createElement('div');
@@ -206,7 +206,7 @@ describe('aligned bill row', () => {
             const due = el.querySelector('.payment-due');
             return ['warn', 'neg'].find(c => due.classList.contains(c)) || 'ink';
         };
-        expect([tone(2), tone(45), tone(120)]).toEqual(['ink', 'warn', 'neg']);
+        expect([tone(2), tone(45), tone(120)]).toEqual(['warn', 'warn', 'neg']);
     });
 
     test('Wholesale › History uses the same row component and lists only wholesale bills', () => {

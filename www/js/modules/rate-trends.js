@@ -750,9 +750,16 @@ export const RateTrendsManager = {
             el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.no_history_item') });
             return;
         }
-        el.innerHTML = ITEM_RATE_KINDS.map(kind => {
+        const outlooks = ITEM_RATE_KINDS.map(kind => this.outlookFor(kind));
+        // None of the rates has enough history: one line instead of three identical cards (U-76)
+        if (outlooks.every(o => o.status !== 'ok')) {
+            el.innerHTML = `<div class="rt-outlook rt-outlook-none"><div class="rt-outlook-head">${esc(t('ui.trends.not_enough_all'))}</div>
+                <div class="rt-muted">${esc(explainOutlook(outlooks[0]))}</div></div>`;
+            return;
+        }
+        el.innerHTML = ITEM_RATE_KINDS.map((kind, i) => {
             const label = fieldLabel(kind);
-            const o = this.outlookFor(kind);
+            const o = outlooks[i];
             const why = explainOutlook(o);
             if (o.status !== 'ok') {
                 return `<div class="rt-outlook rt-outlook-none"><div class="rt-outlook-head">${esc(t('ui.trends.not_enough', { label }))}</div>
@@ -828,17 +835,21 @@ export const RateTrendsManager = {
         if (!canvas || !canvas.getContext) return null;
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
+        canvas.hidden = false;
+        canvas.parentElement?.querySelector(':scope > .rt-nodata')?.remove();
         canvas.width = Math.max(280, canvas.parentElement?.offsetWidth || 600);
         canvas.height = height;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         return { canvas, ctx };
     },
 
+    /** An empty chart is one short line, not an empty box (U-76). */
     noData(c) {
-        c.ctx.font = '14px Arial';
-        c.ctx.fillStyle = token('--ink-3');
-        c.ctx.textAlign = 'center';
-        c.ctx.fillText(t('ui.trends.no_data'), c.canvas.width / 2, c.canvas.height / 2);
+        c.canvas.hidden = true;
+        const note = document.createElement('p');
+        note.className = 'rt-nodata rt-muted';
+        note.textContent = t('ui.trends.no_data');
+        c.canvas.after(note);
     },
 
     /**
@@ -870,7 +881,7 @@ export const RateTrendsManager = {
         ctx.strokeStyle = token('--line');
         ctx.lineWidth = 1;
         ctx.fillStyle = axis;
-        ctx.font = '10px Arial';
+        ctx.font = '12px Arial';
         ctx.textAlign = 'right';
         for (let g = 0; g <= 4; g++) {
             const v = lo + ((hi - lo) * g) / 4;
@@ -967,7 +978,7 @@ export const RateTrendsManager = {
         const slot = (canvas.width - left - 12) / periods.length;
         const barW = Math.max(1, Math.min(14, slot / 2 - 1));
         ctx.fillStyle = token('--ink-2');
-        ctx.font = '10px Arial';
+        ctx.font = '12px Arial';
         ctx.textAlign = 'right';
         ctx.fillText(kgText(max), left - 4, 14);
         ctx.fillText('0', left - 4, canvas.height - bottom);

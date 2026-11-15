@@ -366,7 +366,8 @@ describe('Hindi mode: no English UI words', () => {
         grab();
 
         document.body.innerHTML = html('items.html');
-        ItemsManager.renderItemsTable('zzz');
+        // A search that matches nothing echoes what was typed (U-72): a Hindi search here
+        ItemsManager.renderItemsTable('क्षक्ष');
         grab();
 
         document.body.innerHTML = html('diagnostics.html');

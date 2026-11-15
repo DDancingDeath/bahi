@@ -13,9 +13,10 @@ import * as BillDrafts from '../firebase/repos/bill-drafts.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
 import { Helpers } from '../utils/helpers.js';
-import { prepareBillDate, renderBillDateLine, resetBillDate, revealBillDate } from '../ui/bill-date-input.js';
+import { backdatedText, prepareBillDate, renderBillDateLine, resetBillDate, revealBillDate } from '../ui/bill-date-input.js';
 import { addLocalDays, formatDate, toLocalISODate } from '../utils/dates.js';
 import { validatePaymentSplit } from '../utils/calc/billing.js';
+import { showLastSaved } from '../ui/last-saved.js';
 
 jest.mock('../firebase/repos/bill-drafts.js', () => ({
     getAutoSave: jest.fn(),
@@ -134,7 +135,10 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
         const yesterday = toLocalISODate(addLocalDays(new Date(), -1));
         $('billDate').value = yesterday;
         $('billDate').dispatchEvent(new Event('change'));
-        expect($('billDateText').textContent).toBe(formatDate(yesterday, 'full'));
+        expect($('billDateText').textContent).toBe(backdatedText(yesterday));
+
+        expect(backdatedText('2026-11-12', new Date(2026, 10, 15))).toBe('Back-dated: 12 Nov');
+        expect(backdatedText('2025-12-31', new Date(2026, 0, 2))).toBe('Back-dated: 31 Dec 2025');
 
         resetBillDate('billDate');
         expect(field('billDate').hidden).toBe(true);
@@ -154,7 +158,7 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
     test('an edited bill shows its own day; its date is locked, so no Change date even for the owner', () => {
         const day = addLocalDays(new Date(), -3);
         prepareBillDate('billDate', { timestamp: day.getTime() });
-        expect($('billDateText').textContent).toBe(formatDate(toLocalISODate(day), 'full'));
+        expect($('billDateText').textContent).toBe(backdatedText(toLocalISODate(day)));
         expect($('billDateChange').hidden).toBe(true);
         expect(field('billDate').hidden).toBe(true);
     });
@@ -169,7 +173,7 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
         renderBillDateLine('billDate');
         expect(field('billDate').hidden).toBe(true);
         expect($('billDate').value).toBe(yesterday);
-        expect($('billDateText').textContent).toBe(formatDate(yesterday, 'full'));
+        expect($('billDateText').textContent).toBe(backdatedText(yesterday));
     });
 });
 
@@ -220,21 +224,30 @@ describe('4. Drafts only with drafts; Save draft and Clear in the ⋯ menu', () 
         expect(menu.contains($('clearBillBtn'))).toBe(true);
     });
 
-    test('Clear asks first when the bill has lines; Cancel keeps the bill', async () => {
+    test('Clear says what goes and offers Keep as draft; Cancel keeps the bill; Clear can be undone (U-06)', async () => {
         PurchaseManager.setBillItems([rice()]);
-        const ask = jest.spyOn(UIManager, 'showModal').mockResolvedValueOnce(false);
-        await BillingManager.confirmClear();
-        expect(ask).toHaveBeenCalledTimes(1);
+        const answer = async (choice) => {
+            const asked = BillingManager.confirmClear();
+            await Promise.resolve();
+            const sheet = document.querySelector('.clear-bill-sheet');
+            expect(sheet.querySelector('#clearBillMessage').textContent).toMatch(/^1 line, ₹/);
+            expect(document.activeElement.dataset.choice).toBe('draft');
+            sheet.querySelector(`[data-choice="${choice}"]`).click();
+            await asked;
+        };
+        await answer('cancel');
         expect(PurchaseManager.getBillItems()).toHaveLength(1);
-        ask.mockResolvedValueOnce(true);
-        await BillingManager.confirmClear();
+        await answer('clear');
         expect(PurchaseManager.getBillItems()).toHaveLength(0);
+        const undo = document.querySelector('#undoBar .undo-bar-btn');
+        expect(document.getElementById('undoBar').classList.contains('show')).toBe(true);
+        undo.click();
+        expect(PurchaseManager.getBillItems()).toHaveLength(1);
     });
 
     test('an empty bill clears without asking', async () => {
-        const ask = jest.spyOn(UIManager, 'showModal');
         await BillingManager.confirmClear();
-        expect(ask).not.toHaveBeenCalled();
+        expect(document.querySelector('.clear-bill-sheet')).toBeNull();
     });
 });
 
@@ -299,5 +312,60 @@ describe('7. the next bill number hint is marked so the phone layout can leave i
         PurchaseManager.setPendingBill({ id: 'p1', billNumber: 'P20261115-007' });
         BillingManager.renderBillNumber();
         expect($('purchaseBillNo').dataset.kind).toBe('known');
+    });
+});
+
+describe('7. lighter, safer bill form (U-05, U-06, U-18)', () => {
+    test('removing a line offers Undo for a few seconds; Undo puts it back where it was', () => {
+        PurchaseManager.setBillItems([rice(10), rice(20)]);
+        PurchaseManager.renderBill();
+        PurchaseManager.deleteBillItem(0);
+        expect(PurchaseManager.getBillItems().map(l => l.qty)).toEqual([20]);
+        const bar = document.getElementById('undoBar');
+        expect(bar.classList.contains('show')).toBe(true);
+        expect(bar.textContent).toContain('Removed Rice 10 kg');
+        bar.querySelector('.undo-bar-btn').click();
+        expect(PurchaseManager.getBillItems().map(l => l.qty)).toEqual([10, 20]);
+        expect(bar.classList.contains('show')).toBe(false);
+    });
+
+    test('a removed weight comes back with Undo', () => {
+        PurchaseManager.setWeights([40, 50]);
+        PurchaseManager.renderWeights();
+        PurchaseManager.removeWeight(1);
+        expect(PurchaseManager.getWeights()).toEqual([40]);
+        document.querySelector('#undoBar .undo-bar-btn').click();
+        expect(PurchaseManager.getWeights()).toEqual([40, 50]);
+    });
+
+    test('the Last saved strip shows the bill number, party, total and due with Print, WhatsApp and Open', () => {
+        showLastSaved('purchase', { id: 'p1', billNumber: 'P20261115-003', customerName: 'Ramesh', grandTotal: 16191, payment: { cash: 3000, online: 0, due: 13191 } });
+        const strip = $('purchaseLastSaved');
+        expect(strip.hidden).toBe(false);
+        expect(strip.querySelector('.last-saved-head').textContent).toContain('Saved #P20261115-003');
+        expect(strip.querySelector('.last-saved-facts').textContent).toBe('Ramesh · ₹16,191 · Due ₹13,191');
+        expect([...strip.querySelectorAll('.last-saved-actions button')].map(b => b.textContent)).toEqual(['Print', 'WhatsApp', 'Open', '']);
+        strip.querySelector('.last-saved-close').click();
+        expect(strip.hidden).toBe(true);
+    });
+
+    test('a line shows once: its weights under the item, no separate breakdown', () => {
+        PurchaseManager.setBillItems([{ ...rice(101), weights: [52.5, 48.5] }]);
+        PurchaseManager.renderBill();
+        expect($('weightBreakdownSection').textContent.trim()).toBe('');
+        expect(document.querySelector('#billTable .bill-line-weights').textContent).toBe('2 packets: 52.5 · 48.5');
+    });
+
+    test('Total paid shows only when both Cash and Online have money', () => {
+        PurchaseManager.setBillItems([rice(10, 25)]);
+        PurchaseManager.renderBill();
+        const row = $('totalPayment').closest('.payment-total');
+        typeIn('cashPayment', 250);
+        PurchaseManager.updatePaymentTotal();
+        expect(row.hidden).toBe(true);
+        typeIn('cashPayment', 200);
+        typeIn('onlinePayment', 50);
+        PurchaseManager.updatePaymentTotal();
+        expect(row.hidden).toBe(false);
     });
 });

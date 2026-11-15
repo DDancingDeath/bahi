@@ -46,7 +46,9 @@ test('Save with a typed retail line asks; "Add this line and save" bills it (S-1
     await dialog.locator('[data-choice="add"]').click();
     // The line is on the bill now; the payment check still guards the new total (unchanged rule)
     await expect(page.locator('#saleTotal')).toHaveText('196');
-    await expectToast(page, /₹144 less than the bill total/);
+    // One message per problem (U-33): under the payment split, not a toast over the form
+    await expect(page.locator('#saleSection .bill-check-msg', { hasText: /₹144 less than the bill total/ })).toBeVisible();
+    await expect(page.locator('#saveSaleBtn')).toHaveText('Fix 1');
     expect((await listDocs('dev_retailSales')).find(d => d.customerName === customer)).toBeUndefined();
     await page.fill('#saleCashPayment', '196');
     await clickAfterTyping(page, '#saveSaleBtn');
@@ -144,10 +146,12 @@ test('WhatsApp on the bill form shares a draft marked "not saved" and saves noth
     await page.click('#saleSection [data-add-line]');
     await page.fill('#saleCustomerName', customer);
     const share = page.locator('[data-onclick="billing.shareSaleWhatsApp()"]');
-    await expect(share).toHaveText('Share draft (not saved)');
+    // A visible "Draft" under the icon (U-27); the name still says it is not saved
+    await expect(share.locator('.bill-share-tag')).toHaveText('Draft');
+    await expect(share).toHaveAccessibleName('Share draft (not saved)');
     await share.scrollIntoViewIfNeeded();
     await shot(page, testInfo, 'S10-share-draft-button');
-    await page.evaluate(() => { window.__opened = []; window.open = (url) => { window.__opened.push(url); return null; }; });
+    await page.evaluate(() => { window.__opened = []; window.open = (url) => { window.__opened.push(url); return {}; }; });
     await clickAfterTyping(page, '[data-onclick="billing.shareSaleWhatsApp()"]');
     const [url] = await page.evaluate(() => window.__opened);
     expect(decodeURIComponent(url)).toContain('*Sale bill* (DRAFT, not saved)');

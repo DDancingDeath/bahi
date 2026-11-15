@@ -174,6 +174,26 @@ export function toggleCompareBar(page) {
     return open;
 }
 
+const compactHeads = new Set();
+
+/**
+ * Phone (U-71): once the page scrolls under the sticky header, only its tabs stay (class ins-compact hides the
+ * period and Compare & share; scrolling back to the top brings them back). A mark before the header is watched.
+ * @param {'money'|'insights'} page
+ */
+export function bindCompactHead(page) {
+    if (typeof document === 'undefined' || typeof IntersectionObserver === 'undefined' || compactHeads.has(page)) return;
+    const head = document.querySelector(`#${page} > .ins-head`);
+    if (!head) return;
+    const mark = document.createElement('div');
+    mark.className = 'ins-head-mark';
+    mark.setAttribute('aria-hidden', 'true');
+    head.before(mark);
+    compactHeads.add(page);
+    new IntersectionObserver(([entry]) => {
+        head.classList.toggle('ins-compact', !entry.isIntersecting && !head.classList.contains('ins-cmp-open'));
+    }, { rootMargin: '-64px 0px 0px 0px' }).observe(mark);
+}
 /** Period select changed: 'custom' opens the two date boxes; anything else is the new period. */
 export function choosePreset(preset) {
     editing.a = preset === 'custom' ? getInsightsContext().preset : undefined;

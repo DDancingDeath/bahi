@@ -136,8 +136,16 @@ export class TemplateLoader {
         if (pageLoads.has(tab)) return pageLoads.get(tab);
         const root = document.documentElement;
         root.dataset.pageLoading = tab;
-        const run = this.loadTemplates(tab === 'insights' ? ['insights', 'rate-trends'] : [tab])
-            .then(templates => {
+        const run = Promise.all([
+            this.loadTemplates(tab === 'insights' ? ['insights', 'rate-trends'] : [tab]),
+            // The page's own code (U-38), imported with its template; a failed import keeps the page out
+            Promise.resolve().then(() => this.pageCode(tab)).then(() => true, e => {
+                console.error(`Code of page ${tab} not loaded:`, e);
+                return false;
+            })
+        ])
+            .then(([templates, codeOk]) => {
+                if (!codeOk) return false;
                 // Insights without its Trends view would never fetch Trends again: both or neither
                 if (Object.values(templates).some(html => !html)) return false;
                 this.injectPages(templates);
@@ -162,4 +170,11 @@ export class TemplateLoader {
      * @type {(tab: string, el: HTMLElement) => void}
      */
     static onPageAdded() {}
+
+    /**
+     * Set by main.js: imports the code of a page that is loaded with it (U-38), or undefined.
+     * @param {string} _tab
+     * @returns {Promise<*>|undefined}
+     */
+    static pageCode(_tab) { return undefined; }
 }
