@@ -306,7 +306,9 @@ export const StatementsManager = {
         const { rows, totals } = dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions: sessions.list });
         const isToday = this.day === todayLocalISO();
         const timeOf = (r) => (r.t ? formatDayTime(r.t, { lang }).split(', ').pop() : '');
-        const body = rows.map(r => `<tr><td>${esc(timeOf(r))}</td><td>${esc(this.kindLabel(r.kind))}</td><td>${esc([r.billNo, r.party, r.note].filter(Boolean).join(' · '))}</td><td class="num">${moneyHtml(r.amount)}</td><td class="num">${r.due ? moneyHtml(r.due) : ''}</td></tr>`).join('');
+        // Phones stack each row like the party ledger (N-20): time and kind, then the details, with the amount always on the right
+        const dueLabel = esc(t('ui.statements.due'));
+        const body = rows.map(r => `<tr><td class="st-when">${esc(timeOf(r))}</td><td class="st-what">${esc(this.kindLabel(r.kind))}</td><td class="st-detail">${esc([r.billNo, r.party, r.note].filter(Boolean).join(' · '))}</td><td class="num st-amt">${moneyHtml(r.amount)}</td><td class="num st-due" data-label="${dueLabel}">${r.due ? moneyHtml(r.due) : ''}</td></tr>`).join('');
         const tot = [
             ['ui.statements.t_sales', totals.sales, totals.salesCount], ['ui.statements.t_purchases', totals.purchases, totals.purchaseCount],
             ['ui.statements.t_expenses', totals.expenses], ['ui.statements.t_withdrawals', totals.withdrawals],
@@ -315,7 +317,7 @@ export const StatementsManager = {
         const html = (isToday ? `<p class="ins-hint"><button type="button" class="btn btn-ghost btn-sm" data-onclick="nav.showTab('day')">${esc(t('ui.statements.today_link'))} ›</button></p>` : '')
             + `<h3 class="st-title">${esc(title)}</h3>`
             + this.duesCaveat(sessions)
-            + (body ? `<div class="ins-scroll" tabindex="0" role="region" aria-label="${esc(title)}"><table class="table"><thead><tr><th>${esc(t('ui.statements.time'))}</th><th>${esc(t('ui.statements.what'))}</th><th>${esc(t('ui.statements.details'))}</th><th class="num">${esc(t('ui.money.amount'))}</th><th class="num">${esc(t('ui.statements.due'))}</th></tr></thead><tbody>${body}</tbody></table></div>`
+            + (body ? `<div class="ins-scroll st-daybook-wrap" tabindex="0" role="region" aria-label="${esc(title)}"><table class="table st-daybook"><thead><tr><th>${esc(t('ui.statements.time'))}</th><th>${esc(t('ui.statements.what'))}</th><th>${esc(t('ui.statements.details'))}</th><th class="num">${esc(t('ui.money.amount'))}</th><th class="num">${dueLabel}</th></tr></thead><tbody>${body}</tbody></table></div>`
                 : emptyState({ icon: 'file', title: t('ui.statements.nothing_on_day'), action: { onclick: 'statements.stepDay(-1)', label: t('ui.statements.day_before') } }))
             + (isToday ? '' : `<div class="st-totals">${tot.map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.statements.t_sales' ? 'M1' : k === 'ui.statements.t_purchases' ? 'M16' : 'M4'}">${Number.isFinite(Number(v)) ? esc(formatRupees(Number(v))) : '—'}</span></div>`).join('')}</div>`);
         let share = [title, ...tot.map(([k, v]) => `${t(k)}: ${formatRupees(v)}`)].join('\n');
