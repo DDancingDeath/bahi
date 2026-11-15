@@ -25,7 +25,7 @@ import { moneyHtml, emptyState } from '../ui/components.js';
 import { setPendingJoins } from '../utils/owner-alerts.js';
 import { FIRST_RUN_TEAM_KEY } from '../utils/first-run.js';
 import { safeSetItem } from '../utils/storage-full.js';
-import { normalizeUsername, validPin, workerEmail, workerUsername } from '../utils/worker-accounts.js';
+import { normalizeUsername, rolesFor, validPin, workerEmail, workerUsername } from '../utils/worker-accounts.js';
 import { createWorkerAccount, workerEmailDomain } from '../firebase/repos/users.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -206,7 +206,7 @@ const AdminManager = {
         const name = ($('teamWorkerName')?.value || '').trim();
         const username = normalizeUsername($('teamWorkerUser')?.value);
         const pin = $('teamWorkerPin')?.value || '';
-        const role = $('teamWorkerRole')?.value === 'manager' ? 'manager' : 'staff';
+        const role = 'staff';
         if (!name) { say('msg.team.enter_name'); $('teamWorkerName')?.focus(); return false; }
         if (!username) { say('msg.team.bad_username'); $('teamWorkerUser')?.focus(); return false; }
         if (!validPin(pin)) { say('msg.team.bad_pin'); $('teamWorkerPin')?.focus(); return false; }
@@ -329,7 +329,7 @@ const AdminManager = {
             return `<div class="admin-user-actions">
                     <select class="input admin-role-pick" id="role-${Helpers.escapeHtml(user.id)}">
                         <option value="staff">${Helpers.escapeHtml(Helpers.roleLabel('staff'))}</option>
-                        <option value="manager">${Helpers.escapeHtml(Helpers.roleLabel('manager'))}</option>
+                        ${rolesFor(user.email).includes('manager') ? `<option value="manager">${Helpers.escapeHtml(Helpers.roleLabel('manager'))}</option>` : ''}
                     </select>
                     <button type="button" class="btn btn-sm btn-tonal btn-approve" data-onclick="admin.approveUser('${id}')">
                         ${icon('check', 'i-sm')} ${tx('ui.admin.approve')}
@@ -339,10 +339,11 @@ const AdminManager = {
                     </button>
                 </div>`;
         }
+        const canChangeRole = user.role !== 'staff' || rolesFor(user.email).length > 1;
         return `<div class="admin-user-actions">
-                    <button type="button" class="btn btn-sm btn-tonal" data-onclick="admin.showChangeRole('${id}', '${safeName}', '${Helpers.escapeJsAttr(user.role)}')">
+                    ${canChangeRole ? `<button type="button" class="btn btn-sm btn-tonal" data-onclick="admin.showChangeRole('${id}', '${safeName}', '${Helpers.escapeJsAttr(user.role)}')">
                         ${icon('sliders', 'i-sm')} ${tx('ui.admin.edit_role')}
-                    </button>
+                    </button>` : ''}
                     ${workerUsername(user.email) ? '' : `<button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
                         ${icon('lock', 'i-sm')} ${tx('ui.admin.reset_password')}
                     </button>`}
@@ -454,7 +455,8 @@ const AdminManager = {
      */
     async approveUser(userId) {
         const roleSelect = document.getElementById(`role-${userId}`);
-        const role = roleSelect?.value || 'staff';
+        const person = this.users.find(u => u.id === userId);
+        const role = rolesFor(person?.email).includes(roleSelect?.value) ? roleSelect.value : 'staff';
 
         try {
             UIManager.showLoading();
@@ -504,9 +506,12 @@ const AdminManager = {
      * @param {string} currentRole - Current role
      */
     async showChangeRole(userId, userName, currentRole) {
-        const roles = ['staff', 'manager'];
         const newRole = currentRole === 'staff' ? 'manager' : 'staff';
-        
+        if (!rolesFor(this.users.find(u => u.id === userId)?.email).includes(newRole)) {
+            UIManager.showToast(t('msg.team.member_only'), 'warning');
+            return;
+        }
+
         const confirmed = await UIManager.showModal(
             t('msg.admin.change_s_role_from', { userName, roleLabel: Helpers.roleLabel(currentRole), roleLabel2: Helpers.roleLabel(newRole) }),
             t('msg.admin.change_role'),

@@ -3,7 +3,7 @@
  * worker sign-ins without email, the owner's write-off alerts, the first-run checklist and the
  * phone lock's PIN and idle rules.
  */
-import { normalizeUsername, validPin, workerDomain, workerEmail, loginEmailFor, workerUsername } from '../utils/worker-accounts.js';
+import { normalizeUsername, validPin, workerDomain, workerEmail, loginEmailFor, workerUsername, rolesFor } from '../utils/worker-accounts.js';
 import { writeOffsByOthers } from '../utils/owner-alerts.js';
 import { firstRunSteps, showFirstRun, appLockOfferDue } from '../utils/first-run.js';
 import { hashPin, shouldLock, validLockPin, canUseAppLock, AppLock, APP_LOCK_STATE_KEY, readLockState } from '../ui/app-lock.js';
@@ -16,9 +16,15 @@ describe('worker accounts without email (U-56)', () => {
         expect(normalizeUsername('ab')).toBeNull();
         expect(normalizeUsername('ram esh')).toBeNull();
         expect(normalizeUsername('ram@shop')).toBeNull();
-        expect(validPin('123456')).toBe(true);
-        expect(validPin('12345')).toBe(false);
-        expect(validPin('12a456')).toBe(false);
+        expect(validPin('12345678')).toBe(true);
+        expect(validPin('123456')).toBe(false);
+        expect(validPin('1234567')).toBe(false);
+        expect(validPin('12a45678')).toBe(false);
+    });
+
+    test('a username + PIN account may only be a Member', () => {
+        expect(rolesFor('ramesh@happa-dev.bahi.invalid')).toEqual(['staff']);
+        expect(rolesFor('owner@shop.in')).toEqual(['staff', 'manager']);
     });
 
     test('a username signs in with its reserved .invalid email; an email is used as typed', () => {

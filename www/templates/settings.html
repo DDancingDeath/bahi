@@ -337,15 +337,15 @@
                     </div>
                     <div class="field">
                         <label for="teamWorkerPin" data-i18n="ui.team.pin">PIN</label>
-                        <input class="input" type="password" id="teamWorkerPin" inputmode="numeric" maxlength="8" autocomplete="new-password" aria-describedby="teamWorkerPinHint">
-                        <p class="setting-description" id="teamWorkerPinHint" data-i18n="ui.team.pin_rule">6 to 8 numbers</p>
+                        <input class="input" type="password" id="teamWorkerPin" inputmode="numeric" maxlength="12" autocomplete="new-password" aria-describedby="teamWorkerPinHint">
+                        <p class="setting-description" id="teamWorkerPinHint" data-i18n="ui.team.pin_rule">8 to 12 numbers</p>
                     </div>
                     <div class="field">
                         <label for="teamWorkerRole" data-i18n="ui.team.role">Role</label>
-                        <select class="input" id="teamWorkerRole">
+                        <select class="input" id="teamWorkerRole" disabled aria-describedby="teamWorkerRoleHint">
                             <option value="staff" data-i18n="ui.roles.member">Member</option>
-                            <option value="manager" data-i18n="ui.roles.manager">Manager</option>
                         </select>
+                        <p class="setting-description" id="teamWorkerRoleHint" data-i18n="ui.team.member_only_hint">A sign-in without email is always a Member.</p>
                     </div>
                     <div id="teamWorkerMessage" class="notice" role="alert" aria-live="assertive" hidden></div>
                     <button type="submit" class="btn btn-tonal btn-block" id="teamWorkerSubmit" data-i18n="ui.team.create_account">Create account</button>

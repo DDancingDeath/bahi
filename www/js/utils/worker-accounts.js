@@ -4,13 +4,14 @@
  * Settings › Team with a username and a PIN. Firebase Auth needs an email, so the account's email
  * is made from the username under a reserved `.invalid` domain (RFC 2606): no mail can ever reach
  * it, so a "forgot password" link for it goes nowhere. The login card takes the username or an email.
+ * Such an account is only ever a Member (firestore.rules refuses another role for it).
  * @module utils/worker-accounts
  */
 
 /** Usernames: 3–30 small letters, numbers, dot, dash or underscore, starting with a letter or number. */
 export const USERNAME_RE = /^[a-z0-9][a-z0-9._-]{2,29}$/;
-/** Firebase passwords are at least 6 characters: the PIN is 6 to 8 numbers. */
-export const PIN_RE = /^\d{6,8}$/;
+/** The PIN is the account's whole password, so at least 8 numbers. */
+export const PIN_RE = /^\d{8,12}$/;
 export const WORKER_DOMAIN_SUFFIX = 'bahi.invalid';
 
 /**
@@ -49,6 +50,13 @@ export function loginEmailFor(input, domain) {
     const u = normalizeUsername(v);
     return u ? workerEmail(u, domain) : v;
 }
+
+/**
+ * Roles the owner may give this person: a username + PIN account is only a Member.
+ * @param {*} email
+ * @returns {string[]}
+ */
+export const rolesFor = (email) => (workerUsername(email) ? ['staff'] : ['staff', 'manager']);
 
 /**
  * The username of a worker account's email, else null (an ordinary email).

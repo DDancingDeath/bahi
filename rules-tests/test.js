@@ -1314,6 +1314,19 @@ function defineSuite(prefix) {
             status: 'disabled', disabledAt: new Date(), disabledBy: 'legacyOwner'
         })));
 
+    t('a username + PIN account (U-56) stays a Member: no manager or owner, no email change; removing it works', async () => {
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(users).doc('worker1')
+            .set({ name: 'W', email: 'ramu@shop.bahi.invalid', role: 'staff', status: 'pending' }));
+        const w = () => as('legacyOwner').collection(users).doc('worker1');
+        await assertFails(w().update({ status: 'active', role: 'manager' }));
+        await assertFails(w().update({ role: 'owner' }));
+        await assertFails(w().update({ email: 'ramu@x.com' }));
+        await assertFails(w().update({ email: 'ramu@x.com', role: 'manager' }));
+        await assertSucceeds(w().update({ status: 'active', role: 'staff', approvedBy: 'legacyOwner' }));
+        await assertSucceeds(w().update({ role: FieldValue.delete(), status: 'disabled' }));
+        await assertSucceeds(as('legacyOwner').collection(users).doc('staff1').update({ role: 'manager' }));
+    });
+
     t('nobody writes users/{uid}/preferences (the app never uses it, #64); its user may read it', async () => {
         await assertFails(as('staff1').collection(users).doc('staff1').collection('preferences').doc('ui').set({ a: 1 }));
         await assertFails(as('legacyOwner').collection(users).doc('legacyOwner').collection('preferences').doc('ui').set({ a: 1 }));
