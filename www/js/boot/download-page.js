@@ -1,10 +1,11 @@
 // /download: the language switch and the latest release's version and notes.
 (function () {
     var root = document.documentElement;
-    var appName = document.querySelector('h1').textContent;
-    var titles = { en: appName + ' — Download', hi: appName + ' — डाउनलोड' };
+    var nameIn = function (lang) { return document.querySelector('h1 .' + lang).textContent; };
+    var titles = { en: nameIn('en') + ' — Download', hi: nameIn('hi') + ' — डाउनलोड' };
     var releaseNotes = null;
     var tagShown = false;
+    var testBuild = false;
 
     function fillNotes(lang) {
         var list = document.getElementById('notesList');
@@ -44,7 +45,7 @@
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (data) {
             var latest = data && Array.isArray(data.releases) ? data.releases[0] : null;
-            if (!latest) return;
+            if (!latest || testBuild) return;
             if (!tagShown) {
                 document.getElementById('latestVersion').textContent = 'v' + String(latest.version || '');
                 if (latest.date) document.getElementById('latestDate').textContent = '(' + String(latest.date) + ')';
@@ -54,15 +55,32 @@
         })
         .catch(function () { /* page still works without notes */ });
 
-    // The published APK's own tag (e.g. v1.0.0-rc14), from the repo the download button points at.
-    var repo = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/releases\//.exec(document.getElementById('downloadBtn').href);
-    if (repo) {
-        fetch('https://api.github.com/repos/' + repo[1] + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    // The published APK's own release (e.g. v1.0.0-rc14), from the API in happa.config.json. A test app's
+    // rolling pre-release (dev-latest) shows the version in its title and its own notes instead of the changelog's.
+    var api = document.querySelector('meta[name="happa-release-api"]');
+    if (api && /^https:\/\/api\.github\.com\/repos\//.test(api.content)) {
+        fetch(api.content, { headers: { Accept: 'application/vnd.github+json' } })
             .then(function (res) { return res.ok ? res.json() : null; })
             .then(function (rel) {
-                if (!rel || !/^v\d+\.\d+\.\d+(-rc\d+)?$/.test(String(rel.tag_name))) return;
+                if (!rel) return;
+                var version = null;
+                if (/^v\d+\.\d+\.\d+(-rc\d+)?$/.test(String(rel.tag_name))) {
+                    version = rel.tag_name;
+                } else if (rel.prerelease) {
+                    var m = /(\d+\.\d+\.\d+-dev\.\d+\.\d+)/.exec(String(rel.name || ''));
+                    if (!m) return;
+                    version = m[1];
+                    testBuild = true;
+                    var lines = String(rel.body || '').split(/\r?\n/)
+                        .map(function (line) { return line.replace(/[*`]/g, '').trim(); })
+                        .filter(Boolean);
+                    releaseNotes = { en: lines };
+                    fillNotes(root.lang);
+                } else {
+                    return;
+                }
                 tagShown = true;
-                document.getElementById('latestVersion').textContent = rel.tag_name;
+                document.getElementById('latestVersion').textContent = version;
                 var day = String(rel.published_at || '').slice(0, 10);
                 if (/^\d{4}-\d{2}-\d{2}$/.test(day)) document.getElementById('latestDate').textContent = '(' + day + ')';
             })

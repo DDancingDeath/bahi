@@ -266,9 +266,15 @@ describe('Android build target (config/targets)', () => {
         expect(derive(dev)).toMatchObject({
             projectId: 'bahi-happa-dev', siteUrl: 'https://bahi-happa-dev.web.app', appName: 'Bahi Dev',
             androidPackage: 'com.happa.dev', androidNamespace: 'com.happa', apkFile: 'bahi-dev.apk',
-            appCheckSiteKey: '6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd'
+            appCheckSiteKey: '6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd',
+            apkDownloadUrl: 'https://github.com/DDancingDeath/happa/releases/download/dev-latest/bahi-dev.apk',
+            latestReleaseApi: 'https://api.github.com/repos/DDancingDeath/happa/releases/tags/dev-latest',
+            downloadName: { en: 'Bahi Dev (test app)', hi: 'Bahi Dev (टेस्ट ऐप)' }
         });
         const files = Object.fromEntries(plan(ROOT, dev).map((p) => [p.file, p.wanted]));
+        expect(files['www/download.html']).toContain('href="https://github.com/DDancingDeath/happa/releases/download/dev-latest/bahi-dev.apk"');
+        expect(files['www/download.html']).toContain('content="https://api.github.com/repos/DDancingDeath/happa/releases/tags/dev-latest"');
+        expect(files['www/download.html']).toContain('<span class="hi" data-happa="downloadNameHi">Bahi Dev (टेस्ट ऐप)</span>');
         expect(files['android/app/build.gradle']).toMatch(/^\s*applicationId "com\.happa\.dev"$/m);
         expect(files['android/app/build.gradle']).toMatch(/^\s*namespace "com\.happa"$/m);
         expect(files['android/app/src/main/res/values/strings.xml']).toContain('<string name="app_name">Bahi Dev</string>');
@@ -279,6 +285,18 @@ describe('Android build target (config/targets)', () => {
 
         const prod = derive(bahi());
         expect(prod).toMatchObject({ projectId: 'bahi-happa', appName: 'Bahi', androidPackage: 'com.happa', androidNamespace: 'com.happa', apkFile: 'bahi.apk' });
+        for (const d of [prod, derive(loadConfig(ROOT))]) {
+            expect(d).toMatchObject({
+                apkDownloadUrl: 'https://github.com/DDancingDeath/happa/releases/latest/download/bahi.apk',
+                latestReleaseApi: 'https://api.github.com/repos/DDancingDeath/happa/releases/latest',
+                downloadName: { en: 'Bahi', hi: 'Bahi' }
+            });
+        }
+        const bad = (download) => configProblems({ ...loadConfig(ROOT), download }).filter((e) => e.startsWith('download'));
+        expect(bad({ apkDownloadUrl: 'https://example.com/releases/download/dev-latest/bahi.apk' })).toHaveLength(1);
+        expect(bad({ apkDownloadUrl: 'https://github.com/DDancingDeath/happa/releases/download/dev-latest/other.apk' })).toHaveLength(1);
+        expect(bad({ latestReleaseApi: 'https://api.github.com/repos/someone/else/releases/latest' })).toHaveLength(1);
+        expect(bad({ name: { en: '<b>x</b>' } })).toHaveLength(1);
         expect(plan(ROOT, bahi()).find((p) => p.file === 'android/app/build.gradle').wanted)
             .toBe(fs.readFileSync(path.join(ROOT, 'android', 'app', 'build.gradle'), 'utf8').replace(/\r\n/g, '\n'));
     });
@@ -286,6 +304,7 @@ describe('Android build target (config/targets)', () => {
     test('the dev APK is a pre-release, never latest, with its own google-services.json', () => {
         const android = workflow('android-release.yml');
         expect(android).toContain('--prerelease --latest=false');
+        expect(android).toContain('gh release create dev-latest');
         expect(android).toContain('GOOGLE_SERVICES_JSON="$GOOGLE_SERVICES_JSON_DEV"');
         expect(android).toContain('--verify-tag --title "$title" --notes-file dist/release-notes.md --latest="$make_latest"');
     });

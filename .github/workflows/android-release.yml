@@ -5,7 +5,8 @@
 #  - A target with its own androidPackage (bahi-happa-dev: "Bahi Dev", com.happa.dev) is a test app
 #    that installs next to the shop's: a manual run publishes it as a GitHub pre-release
 #    dev-YYYYMMDD-N with <apkName>.apk only, never marked latest, with GOOGLE_SERVICES_JSON_DEV
-#    and a DEV badge on its launcher icon (android/dev-icon).
+#    and a DEV badge on its launcher icon (android/dev-icon). The rolling pre-release dev-latest is
+#    moved to the same commit each time: the test app's stable download URL and release API.
 #  - Tag push v<version> (or manual re-run with a tag): signed release APK,
 #    verified against the production signing cert, published as a GitHub Release
 #    marked latest. A v<version>-rc<n> tag is published the same way: the shop
@@ -208,9 +209,9 @@ jobs:
             echo "version_code=$DEV_VERSION_CODE" >> "$GITHUB_OUTPUT"
             mkdir -p dist
             {
-              echo "Test app **$(node scripts/happa-config.js get appName)** (\`$(node scripts/happa-config.js get androidPackage)\`) for Firebase project \`$(node scripts/happa-config.js get projectId)\`, built from $DEV_SHA."
+              echo "Test app $(node scripts/happa-config.js get appName) ($(node scripts/happa-config.js get androidPackage)) for Firebase project $(node scripts/happa-config.js get projectId), version $DEV_VERSION, built from ${DEV_SHA:0:7} (target $TARGET)."
               echo
-              echo "It installs next to the shop's Bahi app and never replaces it. Not for the shop. Target \`$TARGET\`, version $DEV_VERSION."
+              echo "It installs next to the shop's Bahi app and never replaces it. Not for the shop."
             } > dist/release-notes.md
             cat dist/release-notes.md
             exit 0
@@ -586,12 +587,26 @@ jobs:
             else
               gh release create "$TAG" "dist/$name.apk" --target "$SHA" --title "$name $VERSION" --notes-file dist/release-notes.md --prerelease --latest=false
             fi
+            # dev-latest: a rolling pre-release on the same commit, the test app's stable download URL
+            # and release-info API (config/targets/<target>.json "download").
+            if gh api "repos/$GH_REPO/git/ref/tags/dev-latest" > /dev/null 2>&1; then
+              gh api -X PATCH "repos/$GH_REPO/git/refs/tags/dev-latest" -f sha="$SHA" -F force=true > /dev/null
+            else
+              gh api -X POST "repos/$GH_REPO/git/refs" -f ref=refs/tags/dev-latest -f sha="$SHA" > /dev/null
+            fi
+            if gh release view dev-latest > /dev/null 2>&1; then
+              gh release upload dev-latest "dist/$name.apk" --clobber
+              gh release edit dev-latest --title "$name $VERSION" --notes-file dist/release-notes.md --prerelease --latest=false
+            else
+              gh release create dev-latest "dist/$name.apk" --verify-tag --title "$name $VERSION" --notes-file dist/release-notes.md --prerelease --latest=false
+            fi
+            [[ "$(gh api "repos/$GH_REPO/git/ref/tags/dev-latest" --jq .object.sha)" == "$SHA" ]] || { echo "::error::dev-latest is not on $SHA."; exit 1; }
             after="$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)"
-            if [[ "$after" != "$before" || "$after" == "$TAG" ]]; then
+            if [[ "$after" != "$before" || "$after" == "$TAG" || "$after" == "dev-latest" ]]; then
               echo "::error::The latest release moved from $before to $after."
               exit 1
             fi
-            echo "Published pre-release: https://github.com/$GH_REPO/releases/tag/$TAG (latest stays $after)" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "Published pre-release: https://github.com/$GH_REPO/releases/tag/$TAG and dev-latest (latest stays $after)" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           title="$name v$VERSION"
