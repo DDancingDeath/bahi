@@ -10,7 +10,7 @@
 
 import { AppState } from '../utils/state.js';
 import { billsForKind } from '../utils/party-due.js';
-import { closeParty, matchParties, partyEntries } from '../utils/party-match.js';
+import { closeParty, entriesFromNames, matchParties, partyEntries } from '../utils/party-match.js';
 import { partyNameKey } from '../utils/parties.js';
 import { formatRupees } from '../utils/money.js';
 import { t } from '../i18n/index.js';
@@ -171,6 +171,29 @@ function fillName(kind, name) {
     } finally {
         filling = false;
     }
+}
+
+/**
+ * The parties a form's name can be matched to (voice, #498): the bills' parties, then the names list.
+ * @param {'purchase'|'retail'} kind
+ * @returns {Array<*>}
+ */
+export function partyEntriesFor(kind) {
+    const extra = [...(document.getElementById(OPTIONS_OF[kind])?.options || [])].map(o => o.value).filter(Boolean);
+    const entries = entriesFor(kind, editingId.get(kind) ?? null);
+    const known = new Set(entries.map(e => e.key));
+    return [...entries, ...entriesFromNames(extra).filter(e => !known.has(e.key))];
+}
+
+/**
+ * Puts a name in a form's name field as if typed (the due line, checks and auto-save follow).
+ * @param {'purchase'|'retail'} kind
+ * @param {string} name
+ */
+export function fillPartyName(kind, name) {
+    fillName(kind, name);
+    closeSuggestions(kind);
+    hideNameHint(kind);
 }
 
 function choose(kind, entry) {

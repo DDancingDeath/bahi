@@ -39,10 +39,11 @@
         <div id="purchaseLastSaved" class="panel last-saved" role="status" hidden></div>
         <div class="bill-main">
         <div class="field-float bill-customer">
-            <label for="customerName"><span data-i18n="ui.billing.supplier_label">Supplier</span><span class="party-needed-note" data-i18n="ui.billing.needed_for_due">needed if anything is in Due</span></label>
+            <label for="customerName"><span data-i18n="ui.billing.supplier_label">Customer</span><span class="party-needed-note" data-i18n="ui.billing.needed_for_due">needed if anything is in Due</span></label>
             <div class="bill-party">
                 <input type="text" class="input" id="customerName" enterkeyhint="next" autocomplete="off" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
                 <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
+                <button type="button" class="btn btn-ghost btn-icon voice-name-mic" data-voice-mic id="voiceNamePurchase" hidden data-onclick="voice.name('purchase')" title="Say the name" aria-label="Say the customer's name" data-i18n-title="ui.voice.name_mic_title" data-i18n-aria-label="ui.voice.name_mic_supplier"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
             </div>
             <datalist id="customerOptions"></datalist>
         </div>
@@ -61,7 +62,7 @@
                     </div>
                     <datalist id="rateOptions"></datalist>
                 </div>
-                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicPurchase" hidden data-onclick="voice.start('purchase')" title="Say item, weight and rate" aria-label="Speak the line" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicPurchase" hidden data-voice-hold="purchase" data-onclick="voice.start('purchase')" title="Hold and speak: party, items, payment…" aria-label="Hold to speak the bill" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
             </div>
             <div class="voice-strip" hidden>
                 <p class="voice-transcript" id="voiceTranscriptPurchase" role="status" aria-live="polite"></p>
@@ -210,7 +211,7 @@
 
         <div class="bill-actions">
             <div class="bill-bar-total">
-                <span class="bill-bar-label" data-i18n="ui.billing.total_payable_label">Total payable</span>
+                <span class="bill-bar-label" aria-hidden="true" data-i18n="ui.billing.bar_payable">Payable</span><span class="sr-only" data-i18n="ui.billing.total_payable_label">Total payable</span>
                 <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barPayable">0</span></strong>
                 <span class="bill-backdated" data-backdated-for="billDate" role="status" hidden></span>
             </div>
@@ -237,6 +238,7 @@
             <div class="bill-party">
                 <input type="text" class="input" id="saleCustomerName" enterkeyhint="next" autocomplete="off" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
                 <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickSaleContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
+                <button type="button" class="btn btn-ghost btn-icon voice-name-mic" data-voice-mic id="voiceNameSale" hidden data-onclick="voice.name('sale')" title="Say the name" aria-label="Say the customer's name" data-i18n-title="ui.voice.name_mic_title" data-i18n-aria-label="ui.voice.name_mic_customer"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
             </div>
             <datalist id="saleCustomerOptions"></datalist>
         </div>
@@ -255,7 +257,7 @@
                     </div>
                     <datalist id="saleRateOptions"></datalist>
                 </div>
-                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicSale" hidden data-onclick="voice.start('sale')" title="Say item, weight and rate" aria-label="Speak the line" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicSale" hidden data-voice-hold="sale" data-onclick="voice.start('sale')" title="Hold and speak: party, items, payment…" aria-label="Hold to speak the bill" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
             </div>
             <div class="voice-strip" hidden>
                 <p class="voice-transcript" id="voiceTranscriptSale" role="status" aria-live="polite"></p>
@@ -386,7 +388,7 @@
 
         <div class="bill-actions">
             <div class="bill-bar-total">
-                <span class="bill-bar-label" data-i18n="ui.billing.total_receivable_label">Total receivable</span>
+                <span class="bill-bar-label" aria-hidden="true" data-i18n="ui.billing.bar_receivable">Receivable</span><span class="sr-only" data-i18n="ui.billing.total_receivable_label">Total receivable</span>
                 <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barReceivable">0</span></strong>
                 <span class="bill-backdated" data-backdated-for="saleDate" role="status" hidden></span>
             </div>

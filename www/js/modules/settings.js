@@ -31,6 +31,7 @@ import { UsageView } from '../ui/usage-view.js';
 import { ThemeManager, resolveMode } from '../ui/theme.js';
 import { APPEARANCES, DEFAULT_APPEARANCE, DEFAULT_THEME, THEMES, themeById } from '../ui/themes.js';
 import { icon } from '../ui/icons.js';
+import { on, PRINTER_CHANGED } from '../utils/events.js';
 
 const LABOUR_OWNER_ONLY_KEY = 'msg.settings.labour_owner_only';
 const LABOUR_INPUTS = ['settingHeavyWeight', 'settingLaborRate', 'settingLabourPackageKg'];
@@ -174,19 +175,23 @@ export class SettingsManager {
         this.renderThemeGallery();
         this.syncAppearance();
         
-        const bluetoothCheckbox = document.getElementById('settingBluetoothEnabled');
-        if (bluetoothCheckbox) {
-            const printerSettings = PrinterService.settings();
-            bluetoothCheckbox.checked = printerSettings.enabled;
-            const section = document.getElementById('bluetoothPrinterSection');
-            if (section) { section.hidden = !printerSettings.enabled; section.style.display = printerSettings.enabled ? '' : 'none'; }
-            const preview = document.getElementById('settingPrintPreview');
-            if (preview) preview.checked = printerSettings.previewFirst;
-        }
+        this.syncPrinterPanel();
         this.renderReceiptOptions();
         
         this.updatePrinterStatus();
         UsageView.render();
+    }
+
+    /** The Bluetooth printer panel's switches from this phone's printer settings (also used by Billing's printer sheet). */
+    static syncPrinterPanel() {
+        const bluetoothCheckbox = document.getElementById('settingBluetoothEnabled');
+        if (!bluetoothCheckbox) return;
+        const printerSettings = PrinterService.settings();
+        bluetoothCheckbox.checked = printerSettings.enabled;
+        const section = document.getElementById('bluetoothPrinterSection');
+        if (section) { section.hidden = !printerSettings.enabled; section.style.display = printerSettings.enabled ? '' : 'none'; }
+        const preview = document.getElementById('settingPrintPreview');
+        if (preview) preview.checked = printerSettings.previewFirst;
     }
 
     /**
@@ -1030,6 +1035,8 @@ export class SettingsManager {
         const container = document.getElementById('savedPrintersList');
         if (!container) return;
         const { printers, deviceId } = PrinterService.settings();
+        const connected = PrinterService.isConnected();
+        this._listConnected = connected;
         container.innerHTML = '';
         if (!printers.length || !PrinterService.isAvailable()) return;
         const title = document.createElement('h4');
@@ -1049,7 +1056,7 @@ export class SettingsManager {
                 <div class="row-main"><span class="row-title">${Helpers.escapeHtml(name)}</span>${inUse ? ` <span class="tag pos saved-printer-in-use">${Helpers.escapeHtml(t('ui.settings.printer_in_use'))}</span>` : ''}</div>
                 <div class="set-device-tools">
                     <select class="input saved-printer-width" aria-label="${Helpers.escapeHtml(t('ui.settings.paper_width'))}">${widths}</select>
-                    ${inUse ? '' : `<button type="button" class="btn btn-sm btn-tonal saved-printer-use">${Helpers.escapeHtml(t('ui.settings.use_printer'))}</button>`}
+                    ${inUse && connected ? '' : `<button type="button" class="btn btn-sm btn-tonal saved-printer-use">${Helpers.escapeHtml(t(inUse ? 'ui.settings.connect' : 'ui.settings.use_printer'))}</button>`}
                     <button type="button" class="btn btn-sm btn-ghost saved-printer-forget">${Helpers.escapeHtml(t('ui.settings.forget_printer'))}</button>
                 </div>`;
             row.querySelector('.saved-printer-width').addEventListener('change', (e) => this.setPaperWidth(p.deviceId, Number(e.target.value)));
@@ -1180,3 +1187,8 @@ export class SettingsManager {
 
 // A preview can end outside Settings (leaving the page): keep the bar and the cards in step
 if (typeof window !== 'undefined') window.addEventListener('aadhat:themechange', () => SettingsManager.syncTheme());
+
+// A saved printer's Connect shows only while it is not connected; the link can drop or come up outside this page
+on(PRINTER_CHANGED, () => {
+    if (SettingsManager._listConnected !== undefined && PrinterService.isConnected() !== SettingsManager._listConnected) SettingsManager.renderSavedPrinters();
+});

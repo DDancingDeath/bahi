@@ -8,7 +8,7 @@
             <button type="button" id="dayTabCash" role="tab" aria-selected="false" aria-controls="dayCashContent" data-onclick="day.showSubTab('cash')" data-i18n="ui.today.cash_management">Cash</button>
         </div>
 
-        <!-- Today's Summary Sub-Tab: hero, then what needs attention, then the day's figures (redesign 5.1) -->
+        <!-- Today's Summary Sub-Tab: hero, the key figures, then what needs attention (closed cards), then the rest of the day's figures -->
         <div id="dayTodayContent" class="day-content today-summary" role="tabpanel" aria-labelledby="dayTabToday">
 
             <!-- Figures from the phone's cache until the server answers (#59) -->
@@ -27,7 +27,8 @@
                 </div>
             </section>
 
-            <div class="today-side">
+            <!-- The day's key figures first; on a desktop they keep the left column -->
+            <div class="today-main today-main-top">
             <!-- Bills saved today but no cash session (#141) -->
             <div id="todayCashPrompt" class="notice warn today-cash-prompt" role="status" hidden>
                 <svg class="i" aria-hidden="true" focusable="false"><use href="#i-banknote"/></svg>
@@ -35,14 +36,6 @@
                 <button type="button" class="btn btn-sm today-cash-prompt-btn" data-onclick="day.showSubTab('cash')" data-i18n="ui.today.open_cash">Open cash</button>
             </div>
 
-            <!-- Reminders (#86): udhaar to collect / pay and rent due, from data already on the phone -->
-            <div id="todayReminders" class="today-reminders" hidden></div>
-
-            <!-- Day report / review queue (#187, #40): owner/manager only, filled by anomalies.js -->
-            <div id="dayReportCard" class="panel panel-pad day-report" style="display: none;"></div>
-            </div>
-
-            <div class="today-main">
             <!-- Purchases (T1), sales (T2), business (T4) and personal (T5) expenses -->
             <h3 class="section-title" data-i18n="ui.today.transactions">Transactions</h3>
             <div class="panel metrics today-metrics">
@@ -67,7 +60,18 @@
                     <div class="metric-sub" id="todayPersonalExpenseCount"><span data-i18n="ui.day.0_entries">0 entries</span></div>
                 </div>
             </div>
+            </div>
 
+            <!-- Needs attention, after the key figures (a right-hand column on a desktop). Both cards start closed (ui/disclosure.js) -->
+            <div class="today-side">
+            <!-- Reminders (#86): udhaar to collect / pay and rent due, from data already on the phone -->
+            <div id="todayReminders" class="today-reminders" hidden></div>
+
+            <!-- Day report / review queue (#187, #40): owner/manager only, filled by anomalies.js -->
+            <div id="dayReportCard" class="panel day-report" style="display: none;"></div>
+            </div>
+
+            <div class="today-main">
             <!-- TODAY'S BILLS (T19): tap a row to open the bill -->
             <h3 class="section-title" data-i18n="ui.today.bills_title">Today's bills</h3>
             <div class="panel" id="todayBillsCard">

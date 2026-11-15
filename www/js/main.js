@@ -6,6 +6,7 @@ import { NavigationManager } from './ui/navigation.js';
 import { BottomNav } from './ui/bottom-nav.js';
 import { VoiceMic } from './ui/voice-mic.js';
 import { PhotoWeights } from './ui/photo-weights.js';
+import { PrinterShortcut } from './ui/printer-shortcut.js';
 import { CrashReports } from './services/crash-reports.js';
 import { BusinessSwitcher } from './ui/business-switcher.js';
 import { SyncStatus } from './ui/sync-status.js';
@@ -29,6 +30,7 @@ import { SettingsManager } from './modules/settings.js';
 import { CashManagementManager } from './modules/cash-management.js';
 import { DayManager, loadAnomalies, loadedAnomalies } from './modules/day.js';
 import { ManualReminders } from './ui/manual-reminders.js';
+import { toggleDisclosure } from './ui/disclosure.js';
 import { RolesAccessManager } from './modules/roles-access.js';
 import { tip, configureTip, startTipReporting, tipDeviceId } from './tip/index.js';
 import { dayKeyOf } from './tip/tip.js';
@@ -53,6 +55,7 @@ import { InstallManager } from './services/install-prompt.js';
 import { SecurityMonitor } from './services/security-monitor.js';
 import { startLongTaskRecorder } from './utils/perf-probe.js';
 import { shortcutFromSearch, withoutShortcut } from './utils/launch-shortcut.js';
+import { chooseStartPage, routeFromHash } from './utils/start-page.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
@@ -67,7 +70,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108gg-billing-float';
+const BUILD_ID = '20261108gl-voice-bill';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -478,18 +481,33 @@ function writeTipReport({ delta, failures }) {
     });
 }
 
-/** Opens the page of a home-screen shortcut (#151) once, after the first screen. */
-function openLaunchShortcut() {
-    const shortcut = shortcutFromSearch(window.location.search);
-    if (!shortcut) return;
-    window.history.replaceState(window.history.state, '', withoutShortcut(window.location.pathname, window.location.search, window.location.hash));
-    if (shortcut.tab !== 'billing') {
-        const shown = NavigationManager.showTab(shortcut.tab);
-        if (shown && typeof shown.then === 'function') shown.then(ok => { if (ok) NavigationManager.setActiveNavLink(shortcut.tab); });
-        else if (shown !== false) NavigationManager.setActiveNavLink(shortcut.tab);
+/** The page a launch URL asks for (#151 home-screen shortcut, or `#route`), taken from the URL once. */
+function takeLaunchLink() {
+    const { pathname, search, hash } = window.location;
+    const shortcut = shortcutFromSearch(search);
+    const hashed = routeFromHash(hash);
+    const route = hashed && NavigationManager.isKnownRoute(hashed) ? hashed : null;
+    if (shortcut || route) window.history.replaceState(window.history.state, '', withoutShortcut(pathname, search, route ? '' : hash));
+    if (shortcut) return shortcut;
+    return route ? { tab: route } : null;
+}
+
+/** Shows the start page; Billing keeps its start-up path (bill dates, no mode reset). */
+function openStartPage(tab) {
+    if (tab === 'billing') {
+        NavigationManager.showTab('billing');
+        BillingManager.prepareBillDates();
+        NavigationManager.setActiveNavLink('billing');
         return;
     }
-    if (shortcut.mode) BillingManager.switchMode(shortcut.mode, { currentTarget: document.getElementById(shortcut.mode === 'sale' ? 'saleModeBtn' : 'purchaseModeBtn') });
+    BillingManager.prepareBillDates();
+    NavigationManager.showTabFromNav(tab, null, { quiet: true });
+}
+
+/** A home-screen shortcut's bill mode (#151), after the auto-save check has started. */
+function openLaunchMode(launch) {
+    if (launch?.tab !== 'billing' || !launch.mode) return;
+    BillingManager.switchMode(launch.mode, { currentTarget: document.getElementById(launch.mode === 'sale' ? 'saleModeBtn' : 'purchaseModeBtn') });
 }
 
 async function initializeUserData() {
@@ -622,6 +640,11 @@ async function initializeUserData() {
             });
         }
 
+        // A launch link or a reloaded page may need the owner's Roles & access choices (settings/app)
+        const launch = takeLaunchLink();
+        const restored = NavigationManager.restoredRoute();
+        if (launch || restored) await Promise.race([appSettingsApplied, new Promise(resolve => setTimeout(resolve, VERSION_CHECK_WAIT_MS))]);
+
         // Stock is computed right after the first screen is painted (#13): the
         // screens show "Stock updating…" until then and re-render when it is
         // ready, so the first screen never waits on it.
@@ -640,7 +663,16 @@ async function initializeUserData() {
             appContent.classList.remove('hidden');
         }
         
-        // Show the billing tab by default
+        // Billing's printer button and sheet: the Settings printer panel, Settings put in first
+        PrinterShortcut.init({
+            loadPanel: async () => {
+                if (!(await TemplateLoader.ensurePage('settings'))) return null;
+                SettingsManager.syncPrinterPanel();
+                SettingsManager.updatePrinterStatus().catch(e => console.warn('Printer status:', e));
+                return document.getElementById('printerPanel');
+            }
+        });
+
         BottomNav.init({
             showTab: (tab) => NavigationManager.showTabFromNav(tab),
             // Pull-to-refresh reloads data only: filters, the bill being entered and forms stay as they are
@@ -665,9 +697,15 @@ async function initializeUserData() {
             },
             onRefreshed: () => UIManager.showToast(t('msg.nav.refreshed'))
         });
-        NavigationManager.showTab('billing');
-        BillingManager.prepareBillDates();
-        NavigationManager.setActiveNavLink('billing');
+        // Start page (utils/start-page.js): a launch link, else this tab's page before a reload, else the role's
+        const start = chooseStartPage({
+            role: AppState.userRole,
+            link: launch?.tab,
+            restored,
+            canOpen: (id) => NavigationManager.canOpenRoute(id)
+        });
+        NavigationManager.homeTab = start.home;
+        openStartPage(start.tab);
         NavigationManager.initBackNavigation();
         
         // Initialize UI
@@ -695,7 +733,7 @@ async function initializeUserData() {
         // Auto-saved bill: its banner shows when the read returns. The first screen doesn't wait for it
         // (a server read queues behind the listeners' server answers, #59); auto-save writes wait for it.
         BillingManager.checkAutoSave();
-        openLaunchShortcut();
+        openLaunchMode(launch);
         BillingManager.renderBillNumber();
         BillingManager.focusFirstItem();
         if (outdatedBlocked) {
@@ -834,6 +872,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 workers?.reset();
                 recurring?.reset();
                 BusinessSwitcher.reset();
+                NavigationManager.forgetRoute();
                 AppState.currentUser = null;
                 document.getElementById('printerPermissionBanner')?.remove();
                 document.getElementById('authScreen').style.display = 'flex';
@@ -1074,6 +1113,8 @@ window.app = {
     // Voice billing (#81): Settings switch (off by default) and the Billing mic buttons
     voice: {
         start: (mode) => VoiceMic.start(mode),
+        name: (mode) => VoiceMic.name(mode),
+        pickName: (choice) => UIManager.closeModal(choice),
         setOn: (on) => VoiceMic.setOn(on),
         setReadback: (on) => VoiceMic.setReadback(on),
         setBeep: (on) => VoiceMic.setBeep(on),
@@ -1100,6 +1141,12 @@ window.app = {
         open: (page, evt) => BusinessSwitcher.openRentals(page, evt)
     },
     
+    // Billing's Bluetooth printer sheet (app bar, next to the bell)
+    printerSheet: {
+        open: () => PrinterShortcut.open(),
+        close: () => PrinterShortcut.close()
+    },
+
     // Notifications inbox (#12)
     notifications: {
         toggle: () => NotificationsManager.toggle(),
@@ -1517,6 +1564,11 @@ window.app = {
         ...Object.fromEntries(['selectItem', 'setRange', 'setPeriod', 'setView', 'setWeeks', 'setCompareKind', 'setBudget',
             'startBackfill', 'continueBackfill', 'setTrafficMonth', 'setTrafficItem', 'setTrafficWeeks']
             .map(name => [name, (...args) => loadRateTrends().then(m => m[name](...args))]))
+    },
+
+    // Disclosure cards (ui/disclosure.js): Today's Reminders and Day report
+    disclosure: {
+        toggle: (key) => toggleDisclosure(key)
     },
 
     // Day (Today's Summary + Cash Management)

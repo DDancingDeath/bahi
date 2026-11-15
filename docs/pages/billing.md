@@ -2,10 +2,12 @@
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [billing.hi.md](billing.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
+Managers and members open the app on Billing; the owner opens on Today. A reload keeps the page you were on, so a bill being typed stays.
+
 While a bill is being typed:
 
-- **Customer / supplier name**: typing lists the names already on the bills on this phone
-  (purchases for a supplier, retail sales for a customer), newest first, with what is open
+- **Customer name** (Purchase and Retail sale both say "Customer"): typing lists the names already on the bills on this phone
+  (purchases on Purchase, retail sales on Retail sale), newest first, with what is open
   on them, the same amount as the "Already owes" line (PARTY). Latin and Hindi spellings
   find each other ("ramesh" finds "रमेश कुमार"). Tap a name, or pick it with ↓ ↑ and Enter
   (Esc closes the list). Nothing extra is read from the internet. After you leave the
@@ -16,8 +18,12 @@ While a bill is being typed:
   app the phone asks once for the Contacts permission on the first tap; if it was refused, the
   app says where to allow it (phone Settings › Apps › this app › Permissions › Contacts). In
   Chrome on Android it opens Chrome's contact list. Elsewhere (computer, iPhone, other browsers)
-  the tap says picking contacts isn't available and puts you in the name field. Only the name is
-  used; nothing from the contacts is saved except the name on the bill. Hidden for roles with
+  the tap says picking contacts isn't available and puts you in the name field. The field is filled
+  as **Name - Number** (e.g. "Ramesh - 9876543210": the first mobile number, an Indian number as 10
+  digits; the name alone when there is no number, the number alone when there is no name), and that
+  is the name saved on the bill. Older bills under the plain name still show: the "Already owes" line
+  falls back to them, marked "(older bills)", and the suggestions and "Did you mean" offer the plain
+  name; nothing is merged by itself. Hidden for roles with
   Phone contacts off (Settings › Roles & access).
 - **Line amount** (BF-LINE) = kg × rate, rounded to the rupee.
 - **Bill total** (BF-TOTAL) = the sum of the lines.
@@ -52,7 +58,7 @@ While a bill is being typed:
   the box; on a bill line it changes that line). The bill's rate column says "Rate ₹/kg".
 - **Share draft (not saved)**: the WhatsApp button shows once the bill has a line, with "Draft"
   under it; it sends the bill on the form without saving it, and the message itself says "DRAFT,
-  not saved". Save first to record it. A purchase says "Supplier", a sale "Customer".
+  not saved". Save first to record it. Both say "Customer".
 - **Save & print** saves the bill, then prints it. In the Android app with no printer to print on,
   it asks first: **Save only**, or Cancel to connect the printer in Settings. A print that fails
   after the save keeps the bill saved and shows the picture with Print to try again.
@@ -75,11 +81,20 @@ While a bill is being typed:
   and Online have money; Retail's "Sale total" (always the same as Total receivable) is not shown.
   Labour reads "7 bags over 30 kg × ₹6 = ₹42" (the bill and the slip keep "6 × 7").
 - **Drafts**: this form's drafts first, each with its lines and amount (or "1 weight, no lines yet")
-  and Supplier or Customer by bill type; drafts with nothing in them are not listed. Drafts belong
+  and the Customer; drafts with nothing in them are not listed. Drafts belong
   to the one who saved them.
 - **Wholesale** uses the same form as Billing: the field names on the fields, Weight in kg, a tap on
   a line to change it, Notes behind **Add note** and the day behind **Change date**; Expenses and the
   profit are folded under **Expenses and profit**; the recent bills show only when there are some.
+- **Share draft (not saved)**: sends the bill on the form to WhatsApp without
+  saving it; the message itself says "DRAFT, not saved". Save first to record it.
+- **Print** saves the bill, then prints it. With no printer connected the
+  receipt is only shown as a picture, and the message says "Not printed".
+- **Printer button** (top bar, next to the bell; Billing and Wholesale, Android app only): a dot shows the
+  Bluetooth printer (green connected, amber connecting, grey saved but not connected, none when no printer is saved).
+  A tap opens the printer controls of Settings › Printing & receipts in a sheet over the bill: switch on, status,
+  saved printers (**Connect** with one tap), Scan, Test print, Disconnect. Closing the sheet leaves the bill as it was.
+  The website has no Bluetooth printing, so the button is not shown there.
 - "Save draft" keeps an unfinished bill; an unsaved bill is offered back at the
   next start. If that bill was saved meanwhile, Restore (or loading the draft)
   offers to open the saved bill instead of saving it again; an unsaved edit goes
@@ -90,17 +105,22 @@ While a bill is being typed:
   switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
   The bill is for today ("Today"); the owner can tap **Change date** to pick another day ("Back-dated: 12 Nov"). Save draft and Clear
   (which asks first when the bill has lines) are in the ⋯ menu beside Purchase / Retail sale; **Drafts** is there too, with
-  its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Supplier / Customer, Item, Rate,
+  its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Customer, Item, Rate,
   Weight) sits on the field's top edge and stays there after typing. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
-  screen the Save / Print row starts with the bill's total (Total payable / Total receivable).
-- **Voice** (VB-1; off until switched on in Settings › Billing tools › Voice billing): tap 🎤 and
-  say the item, weight and rate. Several lines can be said in one go ("… and …"),
-  and "customer" before a name fills the customer. The app shows what it understood
-  (and reads it aloud, unless muted in the dialog) and acts only after OK: one line
-  fills the form, several ticked lines are added to the bill. Voice never saves. A
-  heard line can be corrected in the dialog (**Correct**: item, kg, rate); what was
-  heard stays in a line under 🎤; **Undo voice** (or saying "undo") takes back the
-  last voice change; Settings can add a short beep after listening. See
+  screen the Save / Print row starts with the bill's total: a short label (Payable / Receivable, 14 px) over the amount in large bold figures.
+- **Voice** (VB-1, #498; off until switched on in Settings › Billing tools › Voice billing): **hold** 🎤
+  and speak, let go when done (a quick tap listens to the first pause). Say the bill in any order, in one
+  hold or several: the party ("Ramesh se", "customer Ramesh", "Ramesh ko"), lines ("gehun 10 kilo 25,
+  chawal 5 kilo 30"), bag weights ("wheat bags 23, 24.5, 22 at 25"), "rate 26", the payment ("cash 500",
+  "online 300", "baaki udhaar", "pura cash"), labour ("labour 60", "labour band"), "note …" and, for the
+  owner, the day ("kal"). A **check sheet** shows everything understood, marks what is unclear, lets each
+  part be changed or unticked, and **Hold to add more** adds to it. Only **Fill bill** puts it on the page,
+  as typing would; voice never saves. A party is picked only when exactly one known party fits; otherwise
+  the sheet asks. The small 🎤 in the Customer field (Purchase and Retail sale) (beside the contact button) listens for a
+  name and lists the closest parties (any script: "रमेश" ~ "Ramesh Bhai") and "Use … as said". A heard
+  line can be corrected in the sheet (**Correct**: item, kg, rate); what was heard stays in a line under
+  🎤; **Undo voice** (or saying "undo") takes back the last voice change; Settings can add a short beep
+  after listening. In the Android app the first press asks for the microphone. See
   [voice-billing.md](../voice-billing.md).
 - **Photo of weights** (PW-1; Purchase only; hidden until the owner switches it on in
   Settings › Billing tools › Photo of weights): tap the camera button beside the weight box

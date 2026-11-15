@@ -2419,6 +2419,107 @@ a.row:active {
   box-shadow: var(--focus);
 }
 
+/* Disclosure (ui/disclosure.js): a card closed to one row (title, a short summary, chevron) that opens to its content.
+   The row is an <h3><button aria-expanded>; small tools (a 44 px icon button) may sit after it. */
+.disclosure-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.disclosure-head > .btn-icon {
+  flex: none;
+  margin-right: var(--sp-2);
+}
+
+.disclosure .disclosure-heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.disclosure-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: var(--row-h);
+  padding: var(--sp-2) var(--sp-4);
+  border: none;
+  border-radius: var(--r-panel);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.disclosure-toggle:hover {
+  background: var(--surface-2);
+}
+
+.disclosure-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.disclosure-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.disclosure-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: var(--w-strong);
+}
+
+.disclosure-summary > span {
+  white-space: nowrap;
+}
+
+.disclosure-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+/* Something overdue: an amber dot after the title (its words are for screen readers) */
+.disclosure-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-round);
+  background: var(--warning);
+}
+
+.disclosure-chev {
+  display: inline-flex;
+  flex: none;
+  color: var(--ink-3);
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.disclosure-toggle[aria-expanded="true"] .disclosure-chev {
+  transform: rotate(180deg);
+}
+
+.disclosure-body {
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.disclosure-body[hidden] {
+  display: none;
+}
+
 /* Money figure: the ₹ sign smaller and muted beside the digits (<span class="cur">₹</span>) */
 .money {
   font-variant-numeric: tabular-nums;
@@ -4509,7 +4610,7 @@ input[type="number"] {
 
 :is(#billing, .bill-page) .bill-party > .input {
   width: 100%;
-  padding-right: 52px;
+  padding-right: var(--bill-party-pad, 52px);
 }
 
 .bill-party > .btn-icon {
@@ -5203,6 +5304,163 @@ input[type="number"] {
 .voice-edit-field .input {
   width: 100%;
 }
+/* Hold-to-talk mic (#498): no text selection, long-press menu or scrolling from a press */
+[data-voice-hold] {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.voice-sheet-mic.voice-listening {
+  background-color: var(--negative-soft);
+  color: var(--negative);
+}
+
+/* The mic in the Supplier / Customer field, beside the contact button (#498) */
+.bill-party > .voice-name-mic {
+  right: 48px;
+}
+
+body.no-perm-contacts .bill-party > .voice-name-mic {
+  right: 0;
+}
+
+.bill-party:has(> .voice-name-mic:not([hidden])) {
+  --bill-party-pad: 100px;
+}
+
+body.no-perm-contacts .bill-party:has(> .voice-name-mic:not([hidden])) {
+  --bill-party-pad: 52px;
+}
+
+/* Name mic pick list */
+.voice-name-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-lead);
+}
+
+.voice-name-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
+}
+
+.voice-name-pick {
+  justify-content: space-between;
+  min-height: 48px;
+  text-align: left;
+}
+
+.voice-name-pick-due {
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+}
+
+/* Whole-bill check sheet (#498) */
+.voice-part {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
+}
+
+.voice-part label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.voice-part input[type="checkbox"],
+.voice-pay input[type="checkbox"] {
+  width: var(--sp-5);
+  height: var(--sp-5);
+  flex: none;
+}
+
+.voice-part-input {
+  flex: 1 1 8rem;
+  max-width: 12rem;
+}
+
+.voice-part > .input[type="text"] {
+  flex: 1 1 12rem;
+}
+
+.voice-pay {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.voice-pay p {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+.voice-pay label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 5rem;
+}
+
+.voice-part-title {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+}
+
+.voice-customer select {
+  flex: 1 1 12rem;
+}
+
+.voice-customer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.voice-unclear {
+  border-left: 3px solid var(--warning);
+  padding-left: var(--sp-2);
+}
+
+select.voice-unclear {
+  border-left-width: 3px;
+}
+
+.voice-lines-total {
+  margin: var(--sp-2) 0;
+  font-weight: var(--w-strong);
+}
+
+.voice-sheet-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.voice-sheet-mic {
+  min-height: 48px;
+}
+
+.voice-sheet-live {
+  flex: 1 1 12rem;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+}
+
+.voice-sheet-live:empty {
+  display: none;
+}
 
 /* ---- css/photo-weights.css ---- */
 /* Photo of weights check sheet (#374): the photo with numbered boxes, then the weights to check */
@@ -5868,8 +6126,9 @@ input[type="number"] {
 :is(#billing, .bill-page) .bill-bar-label {
   display: block;
   overflow: hidden;
-  color: var(--ink-3);
-  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -8313,6 +8572,47 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   width: auto;
 }
 
+/* Billing's app-bar printer button (ui/printer-shortcut.js): the dot is the printer's state */
+.app-bar .printer-shortcut[hidden] {
+  display: none;
+}
+
+.printer-shortcut-dot {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  width: var(--sp-2);
+  height: var(--sp-2);
+  border-radius: var(--r-full);
+  outline: 2px solid var(--bg);
+  background: var(--ink-3);
+}
+
+.printer-shortcut[data-state="none"] .printer-shortcut-dot {
+  display: none;
+}
+
+.printer-shortcut[data-state="connected"] .printer-shortcut-dot {
+  background: var(--positive);
+}
+
+.printer-shortcut[data-state="connecting"] .printer-shortcut-dot {
+  background: var(--warning-dot);
+}
+
+/* The same printer panel inside Billing's sheet: no card of its own, the sheet's title is its heading */
+.printer-sheet .set-panel {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.printer-sheet .set-panel > .set-title {
+  display: none;
+}
+
 .usage-list {
   margin: 0;
   padding-left: var(--sp-5);
@@ -8927,10 +9227,11 @@ body.no-perm-contacts [data-perm~="contacts"] {
   color: var(--ink); font-family: var(--font-num); font-weight: var(--w-strong); font-variant-numeric: tabular-nums;
 }
 
-/* Needs attention: the cash prompt, then one row per reminder (icon tile, text, its action), then the Day report */
+/* Needs attention, after the key figures: Reminders (closed to one line, then one row per reminder: icon tile, text, its action) and the Day report */
 .today-cash-prompt { flex-wrap: wrap; align-items: center; margin-top: var(--section-gap); }
 .today-cash-prompt .btn { margin-left: auto; }
 .today-cash-prompt[hidden], .today-reminders[hidden] { display: none; }
+.today-reminders { margin-top: var(--section-gap); }
 .today-reminder { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); }
 .today-reminder + .today-reminder { border-top: 1px var(--rule-style) var(--line); }
 .today-reminder-body { flex: 1; min-width: 0; color: var(--ink-2); font-size: var(--fs-sm); }
@@ -9093,32 +9394,27 @@ body.no-perm-contacts [data-perm~="contacts"] {
 /* ---- css/anomalies.css ---- */
 /* Anomalies (#187, #40; 5.8a): Today's Day report card and the Anomalies page on the shared components */
 
-/* Today: Day report card */
-.anom-card-head {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
+/* Today: Day report card, a disclosure (closed: date and the counts; open: the report) */
+.day-report .disclosure-body {
+  padding: var(--sp-2) var(--sp-4) var(--sp-4);
 }
 
-.anom-card-head > .anom-card-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: var(--fs-body);
-  font-weight: var(--w-strong);
-}
-
-.anom-card-tools {
+.anom-card-sub-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
 }
 
 .anom-card-sub {
-  margin: var(--sp-2) 0;
   font-size: var(--fs-sm);
 }
 
+.anom-all-clear {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
 .anom-chips {
   display: flex;
   flex-wrap: wrap;
@@ -10500,6 +10796,28 @@ div.ins-wide,
     color: var(--ink);
   }
 
+  .app-bar .printer-shortcut {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--control-h);
+    height: var(--control-h);
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+  }
+
+  .app-bar .printer-shortcut:hover {
+    background: var(--state-hover);
+    color: var(--ink);
+  }
+
   .app-bar .notif-badge {
     top: -2px;
     right: -4px;
@@ -10885,10 +11203,11 @@ div.ins-wide,
     font-size: var(--fs-caption);
   }
 
-  /* ---------- Today: hero strip, the day's figures | needs attention (redesign 5.1) ---------- */
+  /* ---------- Today: hero strip, then the day's figures (left) | needs attention (right, from the key figures down) ---------- */
   #dayTodayContent:not([style*="none"]) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    grid-template-rows: repeat(4, auto) 1fr;
     grid-auto-flow: row dense;
     column-gap: var(--sp-6);
     align-items: start;
@@ -10901,6 +11220,14 @@ div.ins-wide,
 
   #dayTodayContent > .today-main { grid-column: 1; }
   #dayTodayContent > .today-side { grid-column: 2; }
+
+  /* Fixed rows: the side column starts beside the key figures, whatever above it is hidden */
+  .today-summary > .updating-note { grid-row: 1; }
+  .today-summary > .tip-health { grid-row: 2; }
+  .today-summary > .hero { grid-row: 3; }
+  .today-summary > .today-main-top { grid-row: 4; }
+  .today-summary > .today-side { grid-row: 4 / span 2; }
+  .today-summary > .today-main:not(.today-main-top) { grid-row: 5; }
 
   #dayTodayContent .hero {
     margin-bottom: var(--sp-2);
@@ -10918,10 +11245,13 @@ div.ins-wide,
 
   #dayTodayContent .today-side > *,
   #dayTodayContent .today-side .section-title,
-  #dayTodayContent .today-main > .section-title:first-child {
+  #dayTodayContent .today-main-top > .section-title {
     margin-top: 0;
   }
 
+  .today-main-top > .today-cash-prompt {
+    margin: 0 0 var(--sp-4);
+  }
   /* Today › Cash (5.2a): forms keep a readable width */
   .cash-body {
     max-width: 760px;

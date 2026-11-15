@@ -200,7 +200,7 @@ describe('save gate', () => {
         const result = await BillChecksUI.confirmSave('test');
         expect(result.ok).toBe(false);
         expect(toast).not.toHaveBeenCalled();
-        expect($('party').closest('.bill-form-field').nextElementSibling.textContent).toBe('⛔ Enter the name — a bill with Due needs a customer/supplier name.');
+        expect($('party').closest('.bill-form-field').nextElementSibling.textContent).toBe('⛔ Enter the name — a bill with Due needs a customer name.');
         expect($('party').scrollIntoView).toHaveBeenCalled();
         expect(document.activeElement).toBe($('party'));
     });

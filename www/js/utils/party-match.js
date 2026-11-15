@@ -9,7 +9,7 @@
  * @module utils/party-match
  */
 
-import { partyDisplayNames, partyNameKey, partyNameSpelling } from './parties.js';
+import { nameWithoutPhone, partyDisplayNames, partyNameKey, partyNameSpelling } from './parties.js';
 import { devanagariToLatin } from './item-name-autofill.js';
 import { buildAging } from './aging.js';
 import { billDateOf } from './history-filters.js';
@@ -101,11 +101,73 @@ export function partyEntries(bills, { today = new Date(), excludeId = null } = {
  */
 export function matchParties(entries, typed, { limit = 5 } = {}) {
     const key = partyNameKey(typed);
-    const words = looseWords(typed);
+    const words = looseWords(nameWithoutPhone(typed));
     if (!key || !words.length) return [];
     return (entries || [])
         .filter(e => e.key !== key && words.every(w => e.words.some(x => x.startsWith(w))))
         .slice(0, limit);
+}
+
+/**
+ * Entries for names known only by their spelling (no bills loaded for them), e.g. a form's name list.
+ * @param {Array<*>} names
+ * @returns {PartyEntry[]}
+ */
+export function entriesFromNames(names) {
+    /** @type {Map<string, PartyEntry>} */
+    const out = new Map();
+    (names || []).forEach(n => {
+        const name = String(n ?? '').trim();
+        const key = partyNameKey(name);
+        if (!key || out.has(key)) return;
+        const words = looseWords(name);
+        out.set(key, { key, name, words, core: coreOf(words), last: 0, count: 0, due: 0, dueBills: 0 });
+    });
+    return [...out.values()];
+}
+
+/** Two loose words close enough to be one spoken word: the same, one starting the other (3+ letters), or 1–2 letters off. */
+function wordDistance(/** @type {string} */ a, /** @type {string} */ b) {
+    if (a === b) return 0;
+    if (Math.min(a.length, b.length) >= 3 && (a.startsWith(b) || b.startsWith(a))) return 1;
+    const max = Math.min(a.length, b.length) >= 6 ? 2 : Math.min(a.length, b.length) >= 4 ? 1 : 0;
+    if (!max) return Infinity;
+    const d = editDistance(a, b, max);
+    return d > max ? Infinity : d + 1;
+}
+
+/**
+ * Known parties for a spoken name (#498), closest first: any script ("रमेश" ~ "Ramesh bhai"), honorifics
+ * left out, a word or two said of a longer name ("Ramesh" ~ "Ramesh Kumar") and small mishearings.
+ * `sure` is set only when one party is an exact loose match and no other is close: never a guess.
+ * @param {PartyEntry[]} entries
+ * @param {*} spoken
+ * @param {{limit?: number}} [opts]
+ * @returns {{matches: Array<PartyEntry & {score: number}>, sure: ?PartyEntry}}
+ */
+export function rankPartyMatches(entries, spoken, { limit = 5 } = {}) {
+    const words = looseWords(spoken).filter(w => !HONORIFICS.has(w));
+    const core = words.join('');
+    if (core.length < 2) return { matches: [], sure: null };
+    /** @type {Array<PartyEntry & {score: number}>} */
+    const scored = [];
+    (entries || []).forEach(e => {
+        if (!e?.core) return;
+        let score = Infinity;
+        if (e.core === core) score = 0;
+        else {
+            const own = e.words.filter(w => !HONORIFICS.has(w));
+            const perWord = words.map(w => Math.min(...own.map(x => wordDistance(w, x))));
+            if (perWord.every(Number.isFinite)) score = 1 + perWord.reduce((a, b) => a + b, 0) + (own.length > words.length ? 1 : 0);
+            const whole = wordDistance(core, e.core);
+            if (Number.isFinite(whole)) score = Math.min(score, 2 + whole);
+        }
+        if (Number.isFinite(score)) scored.push({ ...e, score });
+    });
+    scored.sort((a, b) => a.score - b.score || b.last - a.last || b.count - a.count || a.name.localeCompare(b.name));
+    const exact = scored.filter(m => m.score === 0);
+    const sure = exact.length === 1 && !scored.some(m => m.score > 0 && m.score <= 2) ? exact[0] : null;
+    return { matches: scored.slice(0, limit), sure };
 }
 
 /**
@@ -144,7 +206,7 @@ export function editDistance(a, b, max) {
 export function closeParty(entries, typed) {
     const key = partyNameKey(typed);
     if (!key || (entries || []).some(e => e.key === key)) return null;
-    const core = coreOf(looseWords(typed));
+    const core = coreOf(looseWords(nameWithoutPhone(typed)));
     if (core.length < 3) return null;
     /** @type {?PartyEntry} */
     let best = null;

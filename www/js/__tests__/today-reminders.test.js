@@ -7,6 +7,7 @@ import { DayManager } from '../modules/day.js';
 import { drillReminder, recordDrill } from '../utils/backup-verify.js';
 import { AppState } from '../utils/state.js';
 import { setLang } from '../i18n/index.js';
+import { toggleDisclosure } from '../ui/disclosure.js';
 import { savePayDue, payDueReminder, payDueStale, saveBillsDue, billsDueReminder, billsDueStale } from '../utils/pay-reminder.js';
 
 const TODAY = new Date(2026, 10, 15, 10, 0, 0);
@@ -176,9 +177,9 @@ describe('REM-3 backup check (#63)', () => {
         recordDrill(localStorage, { uid: 'u1', at: TODAY.getTime() - 29 * 86400000, exportedAt: null, docs: 5 });
         DayManager.renderReminders(TODAY);
         expect(card()).toBeNull();
-        // the owner's To do (REM-5, #86) stays, so the box is not hidden
-        expect(document.querySelectorAll('#todayReminders .today-reminder').length).toBe(1);
-        expect(document.querySelector('#todayReminders [data-reminder="manual"]')).not.toBeNull();
+        // an empty To do (REM-5, #86) takes no room: the owner only gets the small Add link
+        expect(document.querySelectorAll('#todayReminders .today-reminder').length).toBe(0);
+        expect(document.querySelector('#todayReminders .today-reminders-link')).not.toBeNull();
         recordDrill(localStorage, { uid: 'u1', at: TODAY.getTime() - 31 * 86400000, exportedAt: null, docs: 5 });
         DayManager.renderReminders(TODAY);
         expect(card().textContent).toContain('Last checked 31 days ago');
@@ -296,5 +297,88 @@ describe('RB-11 bills due (#437)', () => {
         expect(billsDueStale(s, 'u1', new Date(2026, 10, 16, 0, 1))).toBe(true);
         expect(payDueStale(s, 'u1', new Date(2026, 10, 16, 0, 1))).toBe(false);
         expect(billsDueReminder({ getItem: () => '{bad' }, 'u1', '2026-11-15')).toBeNull();
+    });
+});
+
+describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="todayReminders" hidden></div>';
+        AppState.currentUser = { uid: 'u1' };
+        AppState.settings = {};
+        AppState.userRole = 'owner';
+        AppState.retailSalesHistory = [bill('raja kumar', 100, 297), bill('suresh chacha', 150, 51)];
+        AppState.salesHistory = [];
+        AppState.purchaseHistory = [];
+        localStorage.clear();
+        saveRentReminder(localStorage, { uid: 'u1', month: '2026-11', due: 68000, late: 3, dueUnits: 3, at: TODAY.getTime() });
+    });
+    afterEach(() => { setLang('en'); AppState.userRole = null; AppState.retailSalesHistory = []; });
+    const toggle = () => document.getElementById('todayRemindersToggle');
+    const body = () => document.getElementById('todayRemindersBody');
+
+    test('closed by default: one row with a chip per reminder and the amber dot; the lists stay in the closed body', () => {
+        DayManager.renderReminders(TODAY);
+        expect(toggle().tagName).toBe('BUTTON');
+        expect(toggle().getAttribute('aria-expanded')).toBe('false');
+        expect(toggle().getAttribute('aria-controls')).toBe('todayRemindersBody');
+        expect(body().hidden).toBe(true);
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Udhaar ₹250·Rent ₹68,000·Backup');
+        expect(toggle().querySelector('[data-disclosure-alert]')).not.toBeNull();
+        expect(toggle().textContent).toContain('Something is overdue');
+        expect(toggle().textContent).not.toContain('raja kumar');
+        expect(body().querySelector('[data-reminder="collect"] button').getAttribute('data-onclick')).toBe("day.openDues('retail')");
+        expect(body().querySelector('[data-reminder="rent"] button').getAttribute('data-onclick')).toBe("rentals.open('rent', event)");
+        expect(body().querySelector('[data-reminder="backup"] button').getAttribute('data-onclick')).toBe('day.openBackupCheck()');
+        expect(body().querySelector('[data-reminder="manual"]')).toBeNull();
+    });
+
+    test('the dot only shows when something is overdue or late', () => {
+        AppState.retailSalesHistory = [];
+        saveRentReminder(localStorage, { uid: 'u1', month: '2026-11', due: 5000, late: 0, dueUnits: 1, at: TODAY.getTime() });
+        DayManager.renderReminders(TODAY);
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Rent ₹5,000·Backup');
+        expect(toggle().querySelector('[data-disclosure-alert]')).toBeNull();
+    });
+
+    test('a tap opens and closes it; the choice is kept on this device through redraws', () => {
+        DayManager.renderReminders(TODAY);
+        toggleDisclosure('today-reminders');
+        expect(toggle().getAttribute('aria-expanded')).toBe('true');
+        expect(body().hidden).toBe(false);
+        expect(localStorage.getItem('happa.open.today-reminders')).toBe('1');
+        DayManager.renderReminders(TODAY);
+        expect(toggle().getAttribute('aria-expanded')).toBe('true');
+        expect(body().hidden).toBe(false);
+        toggle().focus();
+        toggleDisclosure('today-reminders');
+        DayManager.renderReminders(TODAY);
+        expect(toggle().getAttribute('aria-expanded')).toBe('false');
+        expect(body().hidden).toBe(true);
+        expect(document.activeElement).toBe(toggle());
+    });
+
+    test('Hindi chips', () => {
+        setLang('hi');
+        DayManager.renderReminders(TODAY);
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('उधार ₹250·किराया ₹68,000·बैकअप');
+        expect(document.querySelector('.today-reminders-add').getAttribute('aria-label')).toBe('याद जोड़ें');
+    });
+
+    test('members with nothing to remind see nothing at all', () => {
+        AppState.userRole = 'staff';
+        AppState.retailSalesHistory = [];
+        DayManager.renderReminders(TODAY);
+        expect(document.getElementById('todayReminders').hidden).toBe(true);
+        expect(document.getElementById('todayReminders').innerHTML).toBe('');
+    });
+});
+
+describe('Today page order', () => {
+    test('the day\'s key figures come before Reminders and the Day report, which come before the rest', () => {
+        const fs = jest.requireActual('fs');
+        const path = jest.requireActual('path');
+        document.body.innerHTML = fs.readFileSync(path.resolve(__dirname, '../../templates/day.html'), 'utf8');
+        const all = [...document.querySelectorAll('#dayTodayContent .hero, #dayTodayContent .today-metrics, #todayReminders, #dayReportCard, #todayLabourCard')].map(e => e.id || e.className);
+        expect(all).toEqual(['hero', 'panel metrics today-metrics', 'todayReminders', 'dayReportCard', 'todayLabourCard']);
     });
 });

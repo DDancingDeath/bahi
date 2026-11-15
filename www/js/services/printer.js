@@ -11,6 +11,7 @@ import { track } from './usage.js';
 import { tip } from '../tip/index.js';
 import { printProps } from '../tip/scenarios/print.js';
 import { recordPrint } from '../utils/print-status.js';
+import { emit, PRINTER_CHANGED } from '../utils/events.js';
 import {
     currentPrinter, effectiveReceipt, hasOwnReceipt, logoSize, normalizeLogo, normalizePrinterSettings, normalizeSharedReceipt,
     paperDots, rasterThreshold, receiptLang
@@ -272,16 +273,23 @@ const PrinterService = {
         }
     },
 
+    /** True while a Connect (Settings or Billing's printer sheet) is running. */
+    connecting: false,
+
     async connect(deviceId, deviceName) {
+        this.connecting = true;
+        this.updateStatus();
         try {
             await this.manager.connect(deviceId, deviceName);
             localStorage.removeItem(STOPPED_KEY);
-            this.updateStatus();
             return true;
         } catch (error) {
             console.error('Printer connect error:', error);
             UIManager.showToast(t('msg.printer.failed_connect', { message: this.errorText(error) }));
             throw error;
+        } finally {
+            this.connecting = false;
+            this.updateStatus();
         }
     },
 
@@ -706,6 +714,7 @@ const PrinterService = {
         show(disconnectBtn, connected);
         show(testPrintBtn, available && !btOff && (connected || saved.deviceId));
         show(scanBtn, available);
+        emit(PRINTER_CHANGED);
     },
 
     /** Renders the status now, then again once the plugin has checked Bluetooth and the link. */

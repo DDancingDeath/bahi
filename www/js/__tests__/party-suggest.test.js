@@ -3,7 +3,7 @@
  * loaded bills (any spelling, Latin or Devanagari), "Did you mean", and the Billing name
  * field's suggestion list and warning line (keyboard and tap, warn-never-block).
  */
-import { closeParty, editDistance, looseWord, matchParties, partyEntries } from '../utils/party-match.js';
+import { closeParty, editDistance, entriesFromNames, looseWord, matchParties, partyEntries, rankPartyMatches } from '../utils/party-match.js';
 import { bindPartySuggest, closeSuggestions, renderNameHint, showSuggestions } from '../ui/party-suggest.js';
 import { AppState } from '../utils/state.js';
 
@@ -67,6 +67,33 @@ describe('matchParties: what typing lists', () => {
     });
 });
 
+describe('rankPartyMatches: a spoken name (#498)', () => {
+    const entries = entriesFromNames(['Ramesh Bhai', 'Ramesh Kumar', 'Suresh', 'मोहन लाल', 'Sohan']);
+    const rank = (spoken) => rankPartyMatches(entries, spoken);
+
+    test('any script and honorifics: "रमेश" and "ramesh" find both Rameshes, sure of neither', () => {
+        for (const said of ['रमेश', 'ramesh', 'Ramesh ji']) {
+            const { matches, sure } = rank(said);
+            expect(matches.map(m => m.name).slice(0, 2)).toEqual(['Ramesh Bhai', 'Ramesh Kumar']);
+            expect(sure).toBeNull();
+        }
+    });
+
+    test('one exact match and nothing else close is sure; the closest come first', () => {
+        expect(rank('रमेश कुमार').sure?.name).toBe('Ramesh Kumar');
+        expect(rank('Mohan Lal').sure?.name).toBe('मोहन लाल');
+        expect(rank('suresh').matches[0].name).toBe('Suresh');
+        // a small mishearing is offered, never taken as sure
+        const misheard = rank('Suresg');
+        expect([misheard.matches[0]?.name, misheard.sure]).toEqual(['Suresh', null]);
+    });
+
+    test('nothing close: no matches', () => {
+        expect(rank('Kamla')).toEqual({ matches: [], sure: null });
+        expect(rank('')).toEqual({ matches: [], sure: null });
+    });
+});
+
 describe('closeParty: "Did you mean"', () => {
     const entries = partyEntries(BILLS);
     const dym = (typed) => closeParty(entries, typed)?.name ?? null;
@@ -91,6 +118,20 @@ describe('closeParty: "Did you mean"', () => {
         expect(editDistance('sitadevi', 'sitadevi', 2)).toBe(0);
         expect(editDistance('kumar', 'kumr', 1)).toBe(1);
         expect(editDistance('abcdef', 'uvwxyz', 2)).toBe(3);
+    });
+});
+
+describe('a picked contact, "Name - Number" (v730): older bills under the plain name are suggested, not merged', () => {
+    const entries = partyEntries([...BILLS, bill('r', 'Ramesh', 120, 4)]);
+
+    test('the list and "Did you mean" offer the plain name', () => {
+        expect(matchParties(entries, 'Ramesh - 9876543210').map(e => e.name)).toEqual(['Ramesh Kumar', 'Ramesh']);
+        expect(closeParty(entries, 'Ramesh - 9876543210')?.name).toBe('Ramesh');
+    });
+
+    test('a party already saved with the number is the exact match: no hint', () => {
+        const saved = partyEntries([bill('n', 'Ramesh - 9876543210', 0, 1), bill('r', 'Ramesh', 120, 4)]);
+        expect(closeParty(saved, 'Ramesh - 9876543210')).toBeNull();
     });
 });
 

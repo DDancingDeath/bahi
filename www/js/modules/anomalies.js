@@ -13,7 +13,7 @@ import { PrinterService } from '../services/printer.js';
 import { openExternal } from '../utils/open-external.js';
 import { whatsAppReminderUrl } from '../utils/due-reminder.js';
 import { chartScaleMax } from '../utils/chart-scale.js';
-import { t } from '../i18n/index.js';
+import { t, getLang } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { pickLang } from '../i18n/localize.js';
 import {
@@ -29,7 +29,8 @@ import { numberCheckFlags } from '../utils/number-check-flags.js';
 import { safeSetItem } from '../utils/storage-full.js';
 import { icon } from '../ui/icons.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
-import { formatDate } from '../utils/dates.js';
+import { formatDate, formatDay } from '../utils/dates.js';
+import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const jsAttr = (v) => Helpers.escapeJsAttr(String(v ?? ''));
@@ -54,6 +55,8 @@ const NUMCHECK_FLAGS_PER_RUN = 50;
 const PAGE_SIZE = 200;
 const SEV_TONES = { high: 'tone-neg', medium: 'tone-warn', low: 'tone-muted' };
 const SEV_TAGS = { high: 'tag neg', medium: 'tag warn', low: 'tag' };
+/** Today's Day report card (ui/disclosure.js), closed by default. */
+const DAY_REPORT_KEY = 'day-report';
 // Chart series colours (data, not chrome): the canvas needs real colours, and the legend matches them
 const TYPE_COLORS = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#4f46e5', '#0d9488', '#9333ea', '#be123c', '#15803d', '#1d4ed8', '#a16207'];
 
@@ -441,26 +444,36 @@ export const AnomaliesManager = {
                 ${rows.length > 8 ? `<div class="tone-muted">${esc(t('ui.anom.more', { n: rows.length - 8 }))}</div>` : ''}</div>`;
         }).join('');
 
+        const sevTags = SEVERITIES.filter(sev => s.bySeverity[sev])
+            .map(sev => `<span class="${esc(SEV_TAGS[sev])}" data-day-report-sev="${esc(sev)}">${loc(SEVERITY_LABELS[sev])} ${esc(s.bySeverity[sev])}</span>`);
+        if (queue.length) sevTags.push(`<span class="tag warn" data-day-report-review>${esc(t('ui.anom.review_chip', { n: queue.length }))}</span>`);
+        const day = formatDay(today, { lang: getLang(), year: false });
+        const summary = sevTags.length ? `<span>${esc(day)}</span>${sevTags.join('')}` : `<span>${esc(`${day} · ${t('ui.anom.no_issues')}`)}</span>`;
+
+        const hadFocus = document.activeElement?.id === 'dayReportToggle';
         card.style.display = 'block';
-        card.innerHTML = `
-            <div class="anom-card-head">
-                <span class="lead-icon${s.bySeverity.high ? ' neg' : ''}">${icon('flag')}</span>
-                <h3 class="anom-card-title">${esc(t('ui.anom.day_report'))}</h3>
-                <span class="anom-card-tools"><button type="button" class="btn btn-ghost btn-icon btn-sm" title="${esc(t('ui.anom.refresh'))}" aria-label="${esc(t('ui.anom.refresh'))}" data-onclick="anomalies.refreshNow()">${icon('refresh')}</button>
-                <span class="tag ${s.total ? 'neg' : 'pos'} anomaly-count-badge">${esc(s.total)}</span></span>
+        card.innerHTML = disclosureHtml({
+            key: DAY_REPORT_KEY, id: 'dayReport',
+            lead: `<span class="lead-icon${s.bySeverity.high ? ' neg' : ''}">${icon('flag')}</span>`,
+            title: `<span class="anom-card-title">${esc(t('ui.anom.day_report'))}</span>`,
+            summary,
+            body: `
+            <div class="anom-card-sub-row">
+                <span class="tone-muted anom-card-sub">${esc(formatDate(today))} · ${esc(this.cashStatusLine())}</span>
+                <button type="button" class="btn btn-ghost btn-icon" title="${esc(t('ui.anom.refresh'))}" aria-label="${esc(t('ui.anom.refresh'))}" data-onclick="anomalies.refreshNow()">${icon('refresh')}</button>
             </div>
-            <div class="tone-muted anom-card-sub">${esc(formatDate(today))} · ${esc(this.cashStatusLine())}</div>
-            <div class="anom-chips">${chips}</div>
-            ${s.total ? `<ul class="anom-types">${types}</ul>${tops}` : emptyState({ icon: 'check', tone: 'pos', title: t('ui.anom.none_today') })}
-            <div class="anom-queue">
+            ${s.total ? `<div class="anom-chips">${chips}</div><ul class="anom-types">${types}</ul>${tops}` : ''}
+            ${queue.length ? `<div class="anom-queue">
                 <div class="anom-queue-title">${esc(t('ui.anom.needs_review', { n: queue.length }))}</div>
-                ${queue.length ? bySev : emptyState({ icon: 'check', tone: 'pos', title: t('ui.anom.nothing_to_review') })}
-            </div>
+                ${bySev}
+            </div>` : `<p class="tone-muted anom-all-clear" data-day-report-clear>${esc(t(s.total ? 'ui.anom.nothing_to_review' : 'ui.anom.all_clear'))}</p>`}
             <div class="anom-card-actions">
                 <button type="button" class="btn" data-onclick="anomalies.shareDayReport()">${icon('wa')} WhatsApp</button>
                 <button type="button" class="btn" data-onclick="anomalies.printDayReport()">${icon('printer')} ${esc(t('ui.anom.print_image'))}</button>
                 <button type="button" class="btn btn-tonal" data-onclick="anomalies.openPage()">${icon('search')} ${esc(allLabel)}</button>
-            </div>`;
+            </div>`
+        });
+        refocusDisclosure('dayReport', hadFocus);
     },
 
     /** Reconciliation line for the card: today's cash close status. */

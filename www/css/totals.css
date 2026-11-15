@@ -533,8 +533,9 @@
 :is(#billing, .bill-page) .bill-bar-label {
   display: block;
   overflow: hidden;
-  color: var(--ink-3);
-  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
 }

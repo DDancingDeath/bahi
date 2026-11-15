@@ -13,7 +13,7 @@ import { formatAmount } from './money.js';
 import { groupIndianText, normalizeNumberText, parseNumberText } from './number-text.js';
 import { formatDay, formatDayTime, formatTimeOfDay } from './dates.js';
 import { dayCounter } from '../firebase/repos/counters.js';
-import { pickPhoneContact } from './contact-picker.js';
+import { contactLabel, pickPhoneContact } from './contact-picker.js';
 
 export class Helpers {
     // -------------------- FORMATTING --------------------
@@ -258,9 +258,10 @@ export class Helpers {
 
     /**
      * Pick a contact from the phone (Android app: native picker; Chrome on Android: Contact Picker API)
-     * and put its name in the input. The phone number is returned but not stored: new bills carry no
-     * phone (docs/parties-design.md, the phone lives on the party with consent).
-     * @param {string} inputElementId - ID of input element to populate with contact name
+     * and put "Name - Number" in the input (owner, v730): the first mobile number, normalised; the name
+     * alone without a number, the number alone without a name. The due line and suggestions still find
+     * older bills saved under the plain name (utils/parties.js nameWithoutPhone).
+     * @param {string} inputElementId - ID of input element to populate
      * @returns {Promise<{ name: string, phone: string } | null>}
      */
     static async pickContact(inputElementId) {
@@ -269,8 +270,9 @@ export class Helpers {
         const nameInput = /** @type {HTMLInputElement|null} */ (document.getElementById(inputElementId));
         const res = await pickPhoneContact(window);
         if (res.status === 'picked') {
-            if (nameInput && res.name) {
-                nameInput.value = res.name;
+            const label = contactLabel(res.name, res.phone);
+            if (nameInput && label) {
+                nameInput.value = label;
                 // Let live listeners (bill checks, existing-due line #166) see the new name
                 nameInput.dispatchEvent(new Event('input', { bubbles: true }));
                 nameInput.dispatchEvent(new Event('change', { bubbles: true }));

@@ -9,12 +9,12 @@ sold-below-cost cards are for that period; overdue dues and stock-up are for now
 | On screen | How it is worked out |
 |---|---|
 | Item sales and profit (I1, I2) | Per item: sales, cost, profit, profit per ₹100; split retail / wholesale. |
-| Sales by customer, purchases by supplier (I3, I4) | Per party: totals, bills, last bill. "Stopped coming": bought in each of the same 3 months last year, and no bill for 60 days. |
+| Sales by customer, purchases by customer ("Purchase customers") (I3, I4) | Per party: totals, bills, last bill. "Stopped coming": bought in each of the same 3 months last year, and no bill for 60 days. |
 | Season index (I5) | Kg sold in a month ÷ the item's average monthly kg; 1.5 or more is busy. |
 | Low-profit items (I7) | Sales of ₹5,000 or more with under ₹3 profit per ₹100, or a loss. |
 | Sold below cost (I8) | Sales whose value was below their cost. |
 | Stock up before the season (I9) | Busy month within 8 weeks and stock that won't last until then + 4 weeks. |
-| What you bought (I11) | Per item: kg and **Bought for**, the purchase value after labour, paid or not. The suppliers table uses the same "Bought for". |
+| What you bought (I11) | Per item: kg and **Bought for**, the purchase value after labour, paid or not. The Purchase customers table uses the same "Bought for". |
 | Overdue parties (I10) | Parties with bills **more than 30 days old** still owing, and the ₹ on those bills only (OVERDUE, owner decision, 8 Nov 2026); the same ₹ as "Overdue (> 30 days)" on Outstanding. |
 | Top-5 share (I12) | The five biggest parties' share of the period's total. |
 | Trends, Product traffic (RT, PT) | Rates and kg per week or month from bills and the Rates page. |

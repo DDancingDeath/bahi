@@ -258,7 +258,7 @@ const NavigationManager = {
         
         // Show tab (use tabId directly, not tabId + 'Tab')
         this.showTab(tabId, undefined, opts);
-        UIManager.hapticFeedback('light');
+        if (!opts.quiet) UIManager.hapticFeedback('light');
         
         // Opening Billing from the menu / bottom bar starts on Purchase at once (D-5)
         if (tabId === 'billing' && typeof window.app?.billing?.startFromNav === 'function') {
@@ -419,6 +419,36 @@ const NavigationManager = {
 
     currentTab: null,
 
+    /** The role's start page (utils/start-page.js); Back leaves the app from it. */
+    homeTab: 'billing',
+
+    /** A page id or route the app has (a lazy page counts before it is loaded); Rentals opens only through its switch. */
+    isKnownRoute(routeId) {
+        const route = resolveRoute(routeId);
+        if (route.tab === 'rentals') return false;
+        const el = document.getElementById(route.tab);
+        return (!!el && el.classList.contains('tab')) || TemplateLoader.pageMissing(route.tab);
+    },
+
+    /** The route opens for this role without a refusal. */
+    canOpenRoute(routeId) {
+        return this.isKnownRoute(routeId) && !refusal(resolveRoute(routeId));
+    },
+
+    /** The route this browser tab showed before a reload (history.state survives a reload, not a new launch). */
+    restoredRoute() {
+        return (typeof history !== 'undefined' && history.state?.happaTab) || null;
+    },
+
+    /** Sign-out: the next sign-in opens the role's start page, not the last page. */
+    forgetRoute() {
+        this.currentTab = null;
+        if (typeof history === 'undefined' || !history.replaceState || !history.state?.happaTab) return;
+        const rest = { ...history.state };
+        delete rest.happaTab;
+        history.replaceState(rest, '');
+    },
+
     /** Counts navigations, so a page that finishes loading late doesn't override a newer one. */
     navSeq: 0,
 
@@ -457,7 +487,7 @@ const NavigationManager = {
                 history.replaceState(entry(parent), '');
                 history.pushState(entry(tabId), '');
             } else history.replaceState(entry(tabId), '');
-        } else if (prev !== tabId) {
+        } else if (prev !== tabId && !(prev === null && history.state.happaTab === tabId)) {
             if (parent && prev !== parent) history.pushState(entry(parent), '');
             history.pushState(entry(tabId), '');
         }
@@ -489,7 +519,7 @@ const NavigationManager = {
             if (this.currentTab) history.pushState({ ...(history.state || {}), happaTab: this.currentTab }, '');
             return;
         }
-        const tab = e?.state?.happaTab || HOME_TAB;
+        const tab = e?.state?.happaTab || this.homeTab;
         if (tab === this.currentTab) return;
         this.showTabFromNav(tab, null, { fromHistory: true });
     },
@@ -497,9 +527,9 @@ const NavigationManager = {
     // Android back button (APK): close what is open, else go back a tab, and leave the app only from home
     handleBackButton(appPlugin) {
         if (this.closeOverlay()) return;
-        if (this.currentTab && this.currentTab !== HOME_TAB) {
+        if (this.currentTab && this.currentTab !== this.homeTab) {
             if (history.state?.happaTab && history.length > 1) history.back();
-            else this.showTabFromNav(HOME_TAB, null);
+            else this.showTabFromNav(this.homeTab, null);
             return;
         }
         return this.leaveApp(appPlugin);
@@ -539,7 +569,6 @@ const NavigationManager = {
     }
 };
 
-const HOME_TAB = 'billing';
 const BACK_AGAIN_MS = 2000;
 
 // Export NavigationManager

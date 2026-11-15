@@ -16,7 +16,9 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
 - **Settings › Printing & receipts** (everyone): Bluetooth printer (switch on, status, show the bill before printing,
   saved and found printers, Scan, Test print, Disconnect) and **Printed bill**: the bottom line, the bill's QR code,
   the bill language, print darkness and logo are the same on every phone; the owner, or a manager allowed in Roles &
-  access, changes them (others see them). The printer and paper width stay on each phone.
+  access, changes them (others see them). The printer and paper width stay on each phone. A saved printer that is
+  in use but not connected (after the app restarts) has **Connect**. The same Bluetooth printer controls open from
+  the printer button next to the bell on Billing ([billing.md](billing.md)).
 - **Settings › Billing tools** (everyone): Voice billing and Beep after listening (per device), and **Photo of weights**
   (on or off for everyone; only the owner switches it).
 - **Settings › Aadhat** (owner and managers; a manager changes them only when Roles & access allows): business name

@@ -182,7 +182,25 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
 - **Panel and rows** `.panel`, `.row` (`.row-main`, `.row-title`, `.row-meta`, `.row-trail`,
   `.row-amt`, `.lead-icon`). **Metrics** `.metrics > .metric`, `.hero-num`, `.display-num`, `.meter`.
   `.panel-tap` is a panel that opens something (hover and focus ring).
-- **Hero figure** `.hero` (C1): the page's one big figure, plain on the page with no fill: a caption
+- **Disclosure** `.disclosure` (`www/js/ui/disclosure.js`): a card closed to **one row** that opens to its full content,
+  for what should be noticed but not take the screen (Today's Reminders and Day report). Draw it with
+  `disclosureHtml({ key, id, title, summary, lead, alert, tools, body })` inside a `.panel`; the row is
+  `<h3 class="disclosure-heading"><button class="disclosure-toggle" aria-expanded aria-controls>` (at least 44 px; Enter /
+  Space work as on any button) holding an optional `.lead-icon`, the title, a `.disclosure-summary` line (short chips: plain
+  words, or `.tag`s in a severity tone when something needs attention) and the `chevD` chevron, which turns when open.
+  `alert` adds an amber `.disclosure-dot` after the title (overdue / late) with its words in `.sr-only`. Small tools go
+  after the heading in `.disclosure-head` (a 44 px `-ghost -icon` button, e.g. Reminders' ＋). The body is
+  `.disclosure-body` with `hidden` when closed. `data-onclick="disclosure.toggle('<key>')"` (`toggleDisclosure`) opens
+  or closes every disclosure with that key and keeps the choice per device (`happa.open.<key>` through `safeSetItem`);
+  a redraw reads it back, and the default is **closed**. Leave out empty parts in both states (no "nothing here" blocks):
+  when there is nothing at all, show nothing, or one small link.
+  ```html
+  <div class="panel"><div class="disclosure" data-disclosure="day-report">
+      <div class="disclosure-head"><h3 class="disclosure-heading"><button type="button" class="disclosure-toggle" id="dayReportToggle"
+          aria-expanded="false" aria-controls="dayReportBody" data-onclick="disclosure.toggle('day-report')">…title, summary, chevron…</button></h3></div>
+      <div class="disclosure-body" id="dayReportBody" hidden>…</div>
+  </div></div>
+  ```- **Hero figure** `.hero` (C1): the page's one big figure, plain on the page with no fill: a caption
   `.hero-cap` (or `.metric-label`) above a `.hero-num` (or a `.display-num` `.hero-fig`), then its
   in / out or compare line. Money, Statements and Today use it; `ins-hero`, `today-hero` and the
   bespoke card classes of the legacy registry are gone (theme tiles keep their previews in a panel frame).
