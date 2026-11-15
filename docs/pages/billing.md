@@ -2,6 +2,8 @@
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [billing.hi.md](billing.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
+Managers and members open the app on Billing; the owner opens on Today. A reload keeps the page you were on, so a bill being typed stays.
+
 While a bill is being typed:
 
 - **Customer / supplier name**: typing lists the names already on the bills on this phone
