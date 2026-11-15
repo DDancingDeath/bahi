@@ -328,6 +328,6 @@ test('migrated member: original password, role gating holds', async ({ page }) =
 test('a migrated login still pending approval stays out', async ({ page }) => {
     test.skip(ctx.real || !logins.pending, 'synthetic only');
     await login(page, 'pending');
-    await expect(page.locator('#loginMessage')).toHaveText(/pending approval/, { timeout: 30000 });
+    await expect(page.locator('#loginMessage')).toHaveText(/owner to approve/, { timeout: 30000 });
     await expect(page.locator('#appContent')).toHaveClass(/hidden/);
 });
