@@ -430,7 +430,7 @@ rejected / no profile / unknown role.
 | `cashSessions` (legacy) | none (backup only) | no |
 | `settings/app` | one get per app start (version gate, Roles & access, labour, bill checks, business name, TIP policy) | yes; no other `settings` doc is read |
 | `notifications` | own only (`where('userId', '==', uid)`) | own |
-| `drafts` | own only (`where('userId', '==', uid)`, get by id) | own |
+| `drafts` | own (`where('userId', '==', uid)`) and shop-shared ones (`where('shared', '==', true)`, U-37), get by id | own and shared |
 | `autoSaves/{uid}` | own doc | own |
 | `users` | own profile at start-up / login / registration; full list: Admin and Roles & access › People (owner only) | **own only**. Names shown on bills, payments and audit rows are stored on those records |
 | `settings/team` (#87) | names and roles of the approved people, written by the owner's phone whenever it reads the profiles (Admin, App health, notification fan-out; and once a day 3 minutes after start-up, one read per profile + the doc; it writes only when a name or role differs) and by `tools/migrate`; one get for managers' App health device names and their notification fan-out on item and rate edits | no (managers only) |
@@ -460,6 +460,7 @@ except `rent_public` get.
 | `settings/app` (G) | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✗ → ✗ | ✗ → ✗ |
 | other `settings` docs, `settings` (L) | ✓ → ✓ | ✓ → ✗ | ✓ → ✗ | ✗ → ✗ | ✗ → ✗ |
 | `notifications`, `drafts`: own | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✗ → ✗ | ✗ → ✗ |
+| `drafts`: shared (`shared: true`, U-37) | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✗ → ✗ | ✗ → ✗ |
 | `notifications`, `drafts`: other users' (G, unfiltered L) | ✓ → ✓ | ✓ → ✗ | ✓ → ✗ | ✗ → ✗ | ✗ → ✗ |
 | `autoSaves`: own / other users' | ✓ / ✓ | ✓ / ✓ → ✗ | ✓ / ✓ → ✗ | ✗ | ✗ |
 | `users`: own profile | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ |
@@ -480,7 +481,8 @@ Rentals were already scoped and are unchanged; the matrix tests now check them f
 
 ### How the app's queries satisfy the rules
 
-- `notifications` and `drafts` queries already filter `where('userId', '==', uid)`; a get of a
+- `notifications` and `drafts` queries already filter `where('userId', '==', uid)` (shared drafts:
+  `where('shared', '==', true)`); a get of a
   missing draft is allowed (nothing to leak). Auto-save reads only `autoSaves/<own uid>`.
 - Withdrawals: `FirebaseService` reads them (listener, older history, refresh, oldest probe,
   legacy scan) only when `canReadWithdrawals(role, roleAccess)` (`utils/role-access.js`) says the
@@ -541,12 +543,13 @@ client-only (below).
    cost one more read per app start for everyone.
 6. Write side of per-user records (#18 follow-up), **now enforced**: `autoSaves/{uid}` is
    written and deleted only by that user (`docId == uid`, `userId` = own uid); drafts are
-   created and changed only by their own user with `userId` = own uid, never changed; a
+   created and changed only by their own user with `userId` = own uid, never changed (a shared draft
+   may be marked taken by any approved user: only `takenBy` = own uid and `takenAt`, U-37); a
    notification is created only by an owner or manager (the only roles that edit items) for
    another user, with `changedByUserId` = own uid, server `timestamp`, `read: false`, id
    `<eventKey>_<userId>`, type `rate_change` or `item_edit` and only the fields the app
    writes; members send none. Only the recipient updates a notification, and only `read` /
-   `readAt`. Drafts and notifications are deleted by their own user, auto-saves by theirs; the
+   `readAt`. Drafts and notifications are deleted by their own user (drafts also by a manager), auto-saves by theirs; the
    owner may delete any of them (Admin › Clear Data) but not write them. Still not checked:
    who a notification goes to (wholesale rate changes go only to owners/managers, item edits
    only to owners) — that would cost one profile read per recipient. No extra rule reads

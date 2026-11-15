@@ -271,6 +271,27 @@ describe('Statements page', () => {
         StatementsManager.day = null;
     });
 
+    test('U-61: the day book uses the shared period control: ‹ day ›, a Today / Yesterday / Choose day chip, no raw date box', () => {
+        jest.setSystemTime(new Date(NOW));
+        StatementsManager.open('day');
+        const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const now = new Date(NOW);
+        const chip = () => /** @type {HTMLSelectElement} */ (document.querySelector('#statementsControls .ins-period select.ins-preset'));
+        const box = () => /** @type {HTMLInputElement} */ (document.getElementById('statementsDayPick'));
+        StatementsManager.dayPreset('yesterday');
+        expect(StatementsManager.day).toBe(iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)));
+        expect(chip().value).toBe('yesterday');
+        expect(box().hidden).toBe(true);
+        StatementsManager.stepDay(-1);
+        expect(chip().value).toBe('pick');
+        StatementsManager.dayPreset('pick');
+        expect(box().hidden).toBe(false);
+        StatementsManager.dayPreset('today');
+        expect(StatementsManager.day).toBe(iso(now));
+        expect(chip().value).toBe('today');
+        StatementsManager.day = null;
+    });
+
     test('the list opens a statement and Back returns to the list', () => {
         StatementsManager.init();
         expect(document.getElementById('statementsList').hidden).toBe(false);

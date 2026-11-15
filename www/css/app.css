@@ -9480,7 +9480,9 @@ body.no-perm-contacts [data-perm~="contacts"] {
 #dayTodayContent .items-grid { gap: 0; }
 
 /* Hero: net (T12), in (T10) and out (T11) */
-.today-inout { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-2); font-size: var(--fs-sm); }
+/* "New bill" beside the net figure, for every role (U-35) */
+.today-new-bill { float: right; gap: var(--sp-1); margin-left: var(--sp-3); }
+.today-inout { clear: both; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-2); font-size: var(--fs-sm); }
 .today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
 .today-in .i { color: var(--positive); }
 .today-out .i { color: var(--ink-3); }
@@ -10997,9 +10999,9 @@ div.ins-wide,
   .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
 }
 
-/* Day book: ‹ day › with a date box for a jump (U-94) */
+/* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */
 .st-day-step { flex-wrap: wrap; }
-.st-day-pick { flex: 0 1 auto; width: auto; }
+.st-day-pick { flex: 1 1 100%; }
 
 /* Month statement: the month chip sits between ‹ and › (U-61) */
 .st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }

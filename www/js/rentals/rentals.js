@@ -24,7 +24,7 @@ import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { isShareToken, publicLink } from './rent-public.js';
 import {
-    UNIT_TYPES, VIEW_KEY, unitRows, summarize, collectedPct, tenantRows, placeText, typedPlace, meterPending
+    UNIT_TYPES, VIEW_KEY, rentModeKey, unitRows, summarize, collectedPct, tenantRows, placeText, typedPlace, meterPending
 } from './rent-views.js';
 import {
     PAYMENT_MODES, normalizeRentSettings, monthKey, monthLabel, monthsToCharge, chargeDue, leaseDues,
@@ -64,8 +64,8 @@ const state = {
     filters: { propertyId: '', type: '', status: '', q: '', sort: 'desc' }
 };
 
-/** Simple or Advanced, per user on this phone (owner decision: everyone starts in Simple). */
-const modeKey = () => `happa.rentMode.${AppState.currentUser?.uid || ''}`;
+/** Simple or Advanced (chosen in Settings › Rentals, U-65). */
+const modeKey = () => rentModeKey(AppState.currentUser?.uid);
 function savedMode() {
     try { return localStorage.getItem(modeKey()) === 'advanced' ? 'advanced' : 'simple'; } catch (_) { return 'simple'; }
 }
@@ -205,15 +205,11 @@ function render() {
         if (name === state.page) b.setAttribute('aria-current', 'page');
         else b.removeAttribute('aria-current');
     });
-    document.querySelectorAll('#rentals [data-rent-mode]').forEach((b) => {
-        const on = b.getAttribute('data-rent-mode') === state.mode;
-        b.classList.toggle('active', on);
-        b.setAttribute('aria-pressed', String(on));
-    });
     const links = byId('rentSettingsLinks');
-    if (links) links.hidden = !adv || !isManager();
+    if (links) links.hidden = !canWrite();
+    byId('rentals')?.setAttribute('data-rent-mode', state.mode);
     const roles = byId('rentRolesLink');
-    if (roles) roles.hidden = !isOwner();
+    if (roles) roles.hidden = !adv || !isOwner();
     document.querySelectorAll('.nav-menu a').forEach(a => {
         a.classList.toggle('active', a.getAttribute('data-rent-nav') === state.page);
     });

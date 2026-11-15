@@ -281,7 +281,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   `.lead-icon` per type, unread rows tinted `--info-soft` with an `--info` edge) and an `.empty`; its close button has
   `data-dismiss`. `/download` is standalone (`variables.css` pins `html` / `body` for the app shell), so its `<style>` copies the
   tokens it uses; `tests/ci/download-tokens.test.js` keeps them equal to `variables.css` and its rules free of raw colours.
-- **Rentals (5.9a)**: Simple | Advanced is a `.seg` beside the page title (`.rent-head`, on the right on desktop); This month |
+- **Rentals (5.9a)**: Simple | Advanced is a `.seg` in Settings › Rentals (U-65; `#rentals[data-rent-mode]` marks the mode); This month |
   Tenants | Properties | Reports are `.tabs`, Rentals settings and Roles & access ghost buttons. Lists are `.panel`s of `.row`s:
   a row with several lines (a tenant, unit or property) is a `.row.rent-entry` (title and figure on top, then details, `.tag`
   statuses with `data-rent-status`, and small `.btn`s); totals are `.metrics`; the yearly-increase note a `.notice.info`; the ⋯

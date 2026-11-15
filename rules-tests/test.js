@@ -3342,6 +3342,23 @@ function defineSuite(prefix) {
         await assertSucceeds(as('legacyOwner').collection(drafts).doc('theirs').delete());
     });
 
+    t('drafts: a shared draft is read and taken over by any member, deleted only by its maker, owner or manager (U-37)', async () => {
+        await seedBill(drafts, 'shop', draft('manager1', { shared: true }));
+        await seedBill(drafts, 'old', draft('manager1'));
+        const take = (uid, extra = {}) => ({ takenBy: uid, takenAt: 5, ...extra });
+        await assertSucceeds(as('staff1').collection(drafts).doc('shop').get());
+        await assertFails(as('staff1').collection(drafts).doc('old').get());
+        await assertFails(as('staff1').collection(drafts).doc('shop').update(take('manager1')));
+        await assertFails(as('staff1').collection(drafts).doc('shop').update(take('staff1', { weights: [] })));
+        await assertFails(as('staff1').collection(drafts).doc('old').update(take('staff1')));
+        await assertFails(as('pending1').collection(drafts).doc('shop').update(take('pending1')));
+        await assertSucceeds(as('staff1').collection(drafts).doc('shop').update(take('staff1')));
+        await assertFails(as('staff1').collection(drafts).doc('shop').delete());
+        await seedBill(drafts, 'byStaff', draft('staff1', { shared: true }));
+        await assertSucceeds(as('manager1').collection(drafts).doc('byStaff').delete());
+        await assertSucceeds(as('manager1').collection(drafts).doc('shop').delete());
+    });
+
     t('notifications: owner and manager fan rate and item edits out to others (batched)', async () => {
         for (const actor of ['legacyOwner', 'manager1']) {
             const db = as(actor);
@@ -3526,6 +3543,11 @@ function defineReadMatrix(prefix) {
             get: (db) => db.collection(c(name)).doc('n-staff').get(), getAllowed: ['owner', 'member'],
             list: (db) => db.collection(c(name)).get(), listAllowed: OWNER
         });
+    });
+    add('drafts: shared (query on shared, U-37)', {
+        seed: [[`${c('drafts')}/d-shop`, { userId: 'staff1', shared: true, timestamp: 1 }]],
+        get: (db) => db.collection(c('drafts')).doc('d-shop').get(), getAllowed: APPROVED,
+        list: (db) => db.collection(c('drafts')).where('shared', '==', true).get(), listAllowed: APPROVED
     });
     add('autoSaves', {
         seed: [[`${c('autoSaves')}/staff1`, { userId: 'staff1' }]],

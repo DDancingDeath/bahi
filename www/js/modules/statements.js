@@ -118,6 +118,18 @@ export const StatementsManager = {
         if (next) this.set('month', next);
     },
 
+    /** Day book preset chip: Today, Yesterday, or "Choose day…" (shows the date box and opens its picker). */
+    dayPreset(value) {
+        const today = todayLocalISO();
+        if (value === 'today') return this.set('day', today);
+        if (value === 'yesterday') return this.set('day', toLocalISODate(/** @type {Date} */ (addLocalDays(/** @type {Date} */ (parseLocalDate(today)), -1))));
+        const box = /** @type {HTMLInputElement|null} */ (document.getElementById('statementsDayPick'));
+        if (!box) return;
+        box.hidden = false;
+        box.focus();
+        try { box.showPicker?.(); } catch (_) { /* the box stays for typing */ }
+    },
+
     /** Chooses the party the ledger opens on next (Insights › Parties row). */
     selectParty(partyKey, kind = 'customer') {
         this.partyKey = partyKey || null;
@@ -189,12 +201,18 @@ export const StatementsManager = {
         if (h) h.textContent = t(heading);
         let html = '';
         if (this.kind === 'day') {
-            const atToday = this.day >= todayLocalISO();
+            const today = todayLocalISO();
+            const yesterday = toLocalISODate(/** @type {Date} */ (addLocalDays(/** @type {Date} */ (parseLocalDate(today)), -1)));
+            const preset = this.day === today ? 'today' : this.day === yesterday ? 'yesterday' : 'pick';
+            const opt = (v, key) => `<option value="${esc(v)}"${v === preset ? ' selected' : ''}>${esc(t(key))}</option>`;
+            // The shared period control (U-61): ‹ day › and a preset chip; "Choose day…" opens the phone's date picker
             html = `<div class="ins-period st-day-step">`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(-1)" aria-label="${esc(t('ui.statements.day_before'))}">${icon('chevL')}</button>`
                 + `<span class="ins-period-label">${esc(formatDay(parseLocalDate(this.day) || new Date(), { lang }))}</span>`
-                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(1)" aria-label="${esc(t('ui.statements.day_after'))}"${atToday ? ' disabled' : ''}>${icon('chevR')}</button>`
-                + `<input type="date" class="form-control st-day-pick" value="${esc(this.day)}" max="${esc(todayLocalISO())}" aria-label="${esc(t('ui.statements.pick_day'))}" data-onchange="statements.set('day', this.value)"></div>`;
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(1)" aria-label="${esc(t('ui.statements.day_after'))}"${this.day >= today ? ' disabled' : ''}>${icon('chevR')}</button>`
+                + `<select class="ins-preset st-day-preset" aria-label="${esc(t('ui.statements.pick_day'))}" data-onchange="statements.dayPreset(this.value)">`
+                + `${opt('today', 'ui.money.p_today')}${opt('yesterday', 'ui.history.yesterday')}${opt('pick', 'ui.statements.choose_day')}</select>`
+                + `<input type="date" class="form-control st-day-pick" id="statementsDayPick" value="${esc(this.day)}" max="${esc(today)}" aria-label="${esc(t('ui.statements.pick_day'))}" data-onchange="statements.set('day', this.value)" hidden></div>`;
         } else if (this.kind === 'month') {
             const now = new Date();
             const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));

@@ -89,7 +89,7 @@ test('owner adds a property, unit and tenant, moves them in, records a part paym
 
     await page.evaluate(() => window.app.rentals.page('rent'));
     // Simple (the default) lists who owes; Property wise and Unit wise are in Advanced.
-    await expect(page.locator('#rentals [data-rent-mode="simple"]')).toHaveClass(/active/);
+    await expect(page.locator('#rentals')).toHaveAttribute('data-rent-mode', 'simple');
     await expect(page.locator('#rentalsBody [data-lease]', { hasText: `Ram ${stamp}` })).toContainText('5,000');
     await page.evaluate(() => window.app.rentals.setMode('advanced'));
     // Property wise: the property card, then the property's units grouped by type.
