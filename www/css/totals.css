@@ -504,8 +504,9 @@
   margin-top: var(--sp-5);
 }
 
-/* Share / Save / Print (3.2; Print right-most, the most used): the summary footer on desktop, the action bar on the phone.
-   The bar repeats the payable (BF-PAYABLE) or receivable figure, written beside it in purchase.js / retail-sale.js. */
+/* Total · Share / Save / Print (3.2; Print right-most, the most used): the summary footer on desktop, the action bar on the phone.
+   The row starts with the payable (BF-PAYABLE) or receivable figure, on every width, written in purchase.js / retail-sale.js /
+   wholesale-sales.js. */
 .bill-actions {
   display: flex;
   align-items: center;
@@ -513,8 +514,31 @@
   margin-top: var(--sp-4);
 }
 
-.bill-bar-total {
-  display: none;
+:is(#billing, .bill-page) .bill-bar-total {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+:is(#billing, .bill-page) .bill-bar-label {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--fs-caption);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:is(#billing, .bill-page) .bill-bar-money {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-hero);
+  font-size: var(--fs-title);
+  font-weight: var(--w-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .bill-actions > button {
@@ -525,7 +549,7 @@
 /* Save and Print share the rest of the row equally */
 .bill-actions > :is(.btn-primary, .bill-print) {
   flex: 1 1 0;
-  min-width: 0;
+  min-width: min-content;
 }
 
 /* Share is an icon (its words stay for screen readers and the tooltip) */
@@ -550,38 +574,11 @@
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
   line-height: 1.4;
+  white-space: nowrap;
 }
 
 /* Phone and tablet: the row is compact (payable, Share icon, Save and Print of equal width) */
 @media (max-width: 1023.98px) {
-  :is(#billing, .bill-page) .bill-bar-total {
-    display: block;
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-
-  :is(#billing, .bill-page) .bill-bar-label {
-    display: block;
-    overflow: hidden;
-    color: var(--ink-3);
-    font-size: var(--fs-caption);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  :is(#billing, .bill-page) .bill-bar-money {
-    display: block;
-    overflow: hidden;
-    color: var(--ink);
-    font-family: var(--font-hero);
-    font-size: var(--fs-title);
-    font-weight: var(--w-display);
-    font-variant-numeric: tabular-nums lining-nums;
-    line-height: 1.2;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
   :is(#billing, .bill-page) .bill-actions > :is(.btn-primary, .bill-print) {
     padding: 0 var(--sp-2);
   }
@@ -592,8 +589,9 @@
   }
 }
 
-/* Below 360 px Print keeps its word, without the icon */
-@media (max-width: 359.98px) {
+/* Print keeps its word without the icon below 400 px (room for the total beside equal Save and Print)
+   and on desktop (its Ctrl P hint says what it is) */
+@media (max-width: 399.98px), (min-width: 1024px) {
   .bill-actions > .bill-print > .i {
     display: none;
   }

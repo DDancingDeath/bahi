@@ -76,3 +76,25 @@ test('the E2E code still uses every listed id', () => {
     const used = e2eIds();
     expect(BILLING_E2E_IDS.filter((id) => !used.has(id))).toEqual([]);
 });
+
+test.each([
+    ['billing.html', 'shareWhatsApp', 'barPayable'],
+    ['billing.html', 'shareSaleWhatsApp', 'barReceivable'],
+    ['wholesale-sales.html', 'shareViaWhatsApp', 'wholesaleBarTotal'],
+])('%s action row (%s) starts with the bill total #%s', (file, share, money) => {
+    const html = fs.readFileSync(path.join(ROOT, 'www', 'templates', file), 'utf8');
+    const row = html.slice(html.lastIndexOf('<div class="bill-actions">', html.indexOf(`.${share}()`)), html.indexOf(`.${share}()`));
+    expect(row).toMatch(new RegExp(`^<div class="bill-actions">\\s*<div class="bill-bar-total">\\s*<span class="bill-bar-label"[^>]*>[^<]+</span>\\s*<strong class="bill-bar-money money"><span class="cur">₹</span><span id="${money}">`));
+});
+
+test('no stylesheet hides the action row total, at any width', () => {
+    const dir = path.join(ROOT, 'www', 'css');
+    const hidden = [];
+    for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.css') && n !== 'app.css')) {
+        const css = fs.readFileSync(path.join(dir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+        for (const m of css.matchAll(/([^{}]*\bbill-bar-(?:total|label|money)\b[^{}]*)\{([^{}]*)\}/g)) {
+            if (/\bdisplay\s*:\s*none|visibility\s*:\s*hidden|clip-path|\bwidth\s*:\s*[01]px/.test(m[2])) hidden.push(`${f}: ${m[1].trim()}`);
+        }
+    }
+    expect(hidden).toEqual([]);
+});

@@ -4,8 +4,8 @@
  * on a small phone (360×640),
  * scrolled to the bottom, they show whole, not under the bottom bar. Both bill modes,
  * with a line on the bill so the totals column has its real height. The page scrolls
- * inside the open tab (`.tab.active`), not the window. On the phone Save / Print sit in the
- * action bar above the bottom bar, with the payable beside them, and the last field still
+ * inside the open tab (`.tab.active`), not the window. On every width the action row is the bill's total, then
+ * Share, Save and Print on one line; on the phone it is a bar above the bottom bar, and the last field still
  * scrolls clear of it.
  */
 const { test, expect, login, showTab, settle } = require('./support/app');
@@ -122,13 +122,21 @@ for (const size of SIZES) {
                 expect(p.right, `not cut off on the right (${where})`).toBeLessThanOrEqual(p.vw);
                 expect(p.onTop, `nothing covers it (${where})`).toBe(true);
             }
-            if (!size.fold) {
-                // The bar repeats the card's figure, on screen and uncovered
-                const [bar, card] = m.bar;
-                const p = await place(page, bar);
-                expect(p.top >= 0 && p.bottom <= p.vh && p.onTop, `${bar} on screen (${JSON.stringify(p)})`).toBe(true);
-                await expect(page.locator(bar)).toHaveText(await page.locator(card).textContent());
-            }
+            // Every width: the row starts with the bill's total, the same figure as the card, then Share, Save
+            // and Print on one line, Save and Print the same width
+            const [bar, card] = m.bar;
+            const p = await place(page, bar);
+            expect(p.top >= 0 && p.bottom <= p.vh && p.onTop, `${bar} on screen at ${size.name} (${JSON.stringify(p)})`).toBe(true);
+            await expect(page.locator(bar)).toHaveText(await page.locator(card).textContent());
+            const row = await page.$eval(`${m.section} .bill-actions`, (el) => [...el.children].map((c) => {
+                const r = c.getBoundingClientRect();
+                return { cls: c.className, mid: Math.round(r.top + r.height / 2), left: Math.round(r.left), width: Math.round(r.width) };
+            }));
+            expect(row[0].cls, `${mode} row starts with the total at ${size.name}`).toContain('bill-bar-total');
+            const mids = row.map((c) => c.mid);
+            expect(Math.max(...mids) - Math.min(...mids), `${mode} row on one line at ${size.name}: ${JSON.stringify(row)}`).toBeLessThanOrEqual(2);
+            expect(row.every((c, i) => i === 0 || c.left > row[i - 1].left), `${mode} row in order at ${size.name}`).toBe(true);
+            expect(Math.abs(row[2].width - row[3].width), `${mode} Save and Print equal at ${size.name}: ${JSON.stringify(row)}`).toBeLessThanOrEqual(1);
             // The line between the totals and Save/Print (date, Add note) can be reached by scrolling.
             expect(await reachable(page, m.last), `${m.last} reachable by scrolling`).toBe(true);
             await scrollTab(page, 'top');

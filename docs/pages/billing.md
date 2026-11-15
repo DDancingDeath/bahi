@@ -49,7 +49,8 @@ While a bill is being typed:
   switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
   The bill is for today ("Today"); the owner can tap **Change date** to pick another day. Save draft and Clear
   (which asks first when the bill has lines) are in the ⋯ menu at the top; **Drafts** shows only when there are
-  drafts. On a phone the "Next bill no." hint is left out, and Save and Print are the same width.
+  drafts. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
+  screen the Save / Print row starts with the bill's total (Total payable / Total receivable).
 - **Voice** (VB-1; off until switched on in Settings › Billing tools › Voice billing): tap 🎤 and
   say the item, weight and rate. Several lines can be said in one go ("… and …"),
   and "customer" before a name fills the customer. The app shows what it understood
