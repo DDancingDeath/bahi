@@ -11008,7 +11008,7 @@ div.ins-wide,
     height: calc(100dvh - var(--desktop-header-h));
   }
 
-  /* A page's head (<header class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</header>; surfaces.css hides it
+  /* A page's head (<div class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</div>; surfaces.css hides it
      below 1024 px). The header bar shows the title, so the h2 stays for screen readers and the row holds the page's mode and actions. */
   .page-head {
     display: flex;
