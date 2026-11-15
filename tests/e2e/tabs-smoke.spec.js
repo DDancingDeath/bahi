@@ -120,7 +120,8 @@ const ROUTE_READY = {
     'wholesale-sales': '#salesEntrySection',
     history: '#history .history-type-filter .active',
     stock: '#currentStockSection',
-    due: '#due .filter-sale.active',
+    // Sales first, or the list last opened this session (U-69)
+    due: '#due .due-seg > .active',
     anomalies: '#anomalies .anom-tabs [aria-selected="true"]',
     admin: '#adminTabsContainer [aria-selected="true"]',
     diagnostics: '#diagnosticsTabsContainer [aria-selected="true"]'
