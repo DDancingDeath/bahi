@@ -5147,7 +5147,7 @@ input[type="number"] {
   margin-top: var(--sp-5);
 }
 
-/* Share / Print / Save (3.2): the summary footer on desktop, the action bar on the phone.
+/* Share / Save / Print (3.2; Print right-most, the most used): the summary footer on desktop, the action bar on the phone.
    The bar repeats the payable (BF-PAYABLE) or receivable figure, written beside it in purchase.js / retail-sale.js. */
 .bill-actions {
   display: flex;
@@ -5189,7 +5189,7 @@ input[type="number"] {
   line-height: 1.4;
 }
 
-/* Phone and tablet: the row is compact (payable, two icon buttons, Save) */
+/* Phone and tablet: the row is compact (payable, Share icon, Save, Print icon) */
 @media (max-width: 1023.98px) {
   :is(#billing, .bill-page) .bill-bar-total {
     display: block;
