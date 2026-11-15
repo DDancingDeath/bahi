@@ -75,8 +75,9 @@ free tier's own limit is the cap.
 ## Console steps for the owner (we don't do these)
 
 Do them on the **current dev project `bahi-happa-dev` first**, test, then `bahi-happa`
-(live today). At the rename cut-over (#375) repeat them on **`happa-bahi-dev`** and
-**`happa-bahi`**: the code follows whichever project the build's Firebase config points at.
+(live today). These are also the cut-over targets (#72), so nothing needs repeating there: the code
+follows whichever project the build's Firebase config points at. (The earlier pair `happa-bahi` /
+`happa-bahi-dev` was retired on 15 Nov 2026.)
 
 1. **Turn on AI Logic.** Firebase console › the project › AI Services › **AI Logic** ›
    Get started › **Gemini Developer API**. It enables the Firebase AI Logic API
