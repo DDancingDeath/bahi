@@ -3455,6 +3455,7 @@ export default {
     'ui.statements.print': "Print / PDF",
     'ui.statements.download_csv': "CSV",
     'ui.statements.pick_day': "Day",
+    'ui.statements.choose_day': "Choose day…",
     'ui.statements.pick_month': "Month",
     'ui.statements.from': "From",
     'ui.statements.to': "To",

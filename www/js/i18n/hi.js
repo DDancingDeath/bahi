@@ -3455,6 +3455,7 @@ export default {
     'ui.statements.print': "प्रिंट / PDF",
     'ui.statements.download_csv': "CSV डाउनलोड",
     'ui.statements.pick_day': "दिन",
+    'ui.statements.choose_day': "दिन चुनें…",
     'ui.statements.pick_month': "महीना",
     'ui.statements.from': "से",
     'ui.statements.to': "तक",
