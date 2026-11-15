@@ -10,6 +10,7 @@ first release after it) and note the result in the follow-up issue "[Owner] Devi
 | 2. Voice billing, Hindi and English | #81 | Shop phone, Android app | 15 min |
 | 3. Thermal printer from the shop PC | #133 | Shop PC, Chrome or Edge | 10 min |
 | 4. One test crash | #122 | Shop phone, Android app, after the cut-over | 5 min |
+| 5. Screen edges, keyboard and Back | UX review 2026-11-15 | An Android 15 phone and an older one | 15 min |
 
 ## 1. Cold start (#59)
 
@@ -83,6 +84,27 @@ Only after the cut-over to **bahi-happa**, once the `GOOGLE_SERVICES_JSON` secre
 
 **Pass:** the "Test crash sent by the owner from Diagnostics" report shows within a few minutes. Also
 tap **Send a test error**: it shows under Diagnostics › Errors and as a non-fatal in Crashlytics.
+
+## 5. Screen edges, keyboard and Back (UX review 2026-11-15)
+
+Do it on an **Android 15** phone (both **gesture** and **3-button** navigation: Settings › Display ›
+Navigation) and once on an Android 11–14 phone, in Light and in Dark (Settings › Appearance).
+
+1. **Bars:** on Billing, the page title is below the clock and battery, and the tab bar and the
+   Total / Save / Print row sit above the Back / Home buttons (or the gesture line). The phone's top bar
+   has the app bar's colour and the bottom bar the tab bar's, with readable icons, also after switching
+   Light / Dark or the theme.
+2. **Keyboard:** tap Weight, Rate and Cash: the number pad opens (Gboard and the Samsung keyboard). Type a
+   Hindi supplier name: the letters land where the cursor is and the list filters. Fill a partly paid bill:
+   Due and Notes stay visible above the keyboard, and Next moves to the next field.
+3. **Back:** open the ⋯ bill menu, press Back: only the menu closes. On an empty Billing, Back shows
+   "Press Back again…", a second Back leaves; opening the app again is quick. With a line on the bill,
+   Back asks first; after leaving, the bill is still there.
+4. **On its side:** turn the phone: Save stays at the bottom above a lower tab bar.
+5. **No prompts at start:** a fresh install asks nothing before sign-in (no notifications prompt).
+6. **Vibration:** adding a weight gives a short buzz (when the phone's touch vibration is on).
+
+**Pass:** all of the above; note the phone model, Android version and the keyboard used.
 
 ## Closure notes
 

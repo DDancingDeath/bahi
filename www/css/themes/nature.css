@@ -37,7 +37,6 @@
     --warning: #85570c;
     --warning-soft: #f3e5c3;
     --warning-dot: #c9932a;
-    --panel-border: #e6e0cf;
     --panel-shadow: 0 2px 10px -6px rgba(60, 50, 20, 0.18);
     --seg-on: #fbfaf5;
     --toast-bg: #24301f;
@@ -77,7 +76,6 @@
     --negative-soft: rgba(240, 154, 140, 0.13);
     --warning: #e7c06c;
     --warning-soft: rgba(231, 192, 108, 0.12);
-    --panel-border: rgba(220, 235, 200, 0.07);
     --panel-shadow: none;
     --seg-on: #2c3a29;
     --toast-bg: #273425;

@@ -12,7 +12,7 @@
   color: var(--toast-ink);
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
-  line-height: 18px;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

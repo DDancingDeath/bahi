@@ -154,9 +154,11 @@ describe('🎙 only with Voice billing on, 📷 only with Photo of weights on', 
         expect(shown('[data-photo-weights]')).toEqual([false]);
     });
 
-    test('Photo of weights on: the 📷 beside Weight, no 🎙', () => {
+    test('Photo of weights on (a build with App Check): the 📷 beside Weight, no 🎙', () => {
         AppState.userRole = 'owner';
+        window.APP_CHECK_SITE_KEY = 'site-key';
         PhotoWeights.setShared({ enabled: true });
+        delete window.APP_CHECK_SITE_KEY;
         VoiceMic.apply();
         expect(shown('[data-voice-mic]')).toEqual([false, false]);
         expect(shown('[data-photo-weights]')).toEqual([true]);

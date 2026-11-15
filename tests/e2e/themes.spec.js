@@ -12,7 +12,8 @@ const { seed } = require('./support/seed');
 const { commit } = require('./support/emulator');
 
 const COMBOS = [
-    ['modern', 'light'], ['modern', 'dark'], ['nordic', 'light'], ['nordic', 'dark'],
+    ['modern', 'light'], ['modern', 'dark'], ['sunlight', 'light'], ['sunlight', 'dark'], ['sunlight', 'light', 'hi'],
+    ['nordic', 'light'], ['nordic', 'dark'],
     ['nature', 'light'], ['nature', 'dark'], ['dark', 'light'], ['midnight', 'system'],
     ['vintage', 'light'], ['vintage', 'dark'], ['classic', 'light'], ['classic', 'dark'],
     ['premium', 'light'], ['premium', 'dark'],
@@ -189,7 +190,7 @@ test('the gallery previews without saving; Cancel, leaving Settings and Apply be
     const bar = page.locator('#themePreviewBar');
 
     await showTab(page, 'settings-appearance');
-    await expect(page.locator('#themeGallery .theme-tile')).toHaveCount(12);
+    await expect(page.locator('#themeGallery .theme-tile')).toHaveCount(13);
     // Each card is a mini Billing in its own theme
     await expect(page.locator('[data-theme-choice="cyberpunk"] .tcp[data-theme="cyberpunk"][data-mode="dark"] .tcp-save')).toHaveText(/Save/);
     await expect(page.locator('[data-theme-choice="modern"]')).toHaveAttribute('aria-pressed', 'true');
