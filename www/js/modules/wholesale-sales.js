@@ -7,6 +7,7 @@ import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
 import { computeShortfallsFrom, approxStockNote, stockWarnOnlyNote } from '../utils/stock-check.js';
+import { openExternal } from '../utils/open-external.js';
 import { awaitingServer } from '../utils/data-freshness.js';
 import { normalizeThresholds, stockCreditFor } from '../utils/bill-checks.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
@@ -689,7 +690,7 @@ export class WholesaleSalesManager {
         });
         
         const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        openExternal(url);
     }
 
     /**
