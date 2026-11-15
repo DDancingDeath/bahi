@@ -24,6 +24,7 @@ const STATIC_ASSETS = [
     '/css/app.css',
     '/css/rentals.css',
     '/js/auth/authentication.js',
+    '/js/boot/boot-splash.js',
     '/js/boot/capture-install-prompt.js',
     '/js/boot/download-lang.js',
     '/js/boot/download-page.js',

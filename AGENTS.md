@@ -290,13 +290,14 @@ In order:
   offline says "Saved on this phone, will sync" (`FirebaseService.savedOnPhoneOnly()`) only once
   the phone confirmed storing it; unconfirmed after 10 s (`saveUnconfirmed()`) it keeps the form
   and says "Saving… check before entering again" (expenses: after 4 s).
-  The header pill (`ui/sync-status.js`: Offline / N changes waiting to sync / Synced) uses
+  The header pill (`ui/sync-status.js`: "N not sent" first, then Offline / Synced; a tap opens the waiting list,
+  `ui/sync-sheet.js`; Log out asks first while anything is not sent, U-03) uses
   online/offline events, `hasPendingWrites` of the existing listeners, the writes
   `saveBill` / `startSaveExpense` send and `waitForPendingWrites()`: no Firestore reads.
   Offline it adds "data as of HH:MM" (the last server snapshot, kept in localStorage); History /
-  Expenses rows, Cash days and Money's withdrawals carry `SyncStatus.chipHtml(id)` (cash-day writes are
-  tracked in `repos/cash-sessions.js`) (Waiting to sync / Saved, kept up to date by
-  `fillSyncChips`), and Close cash asks while `pendingCount()` > 0.
+  Expenses rows, Today's bills, Cash days and Money's withdrawals carry `SyncStatus.chipHtml(id)` (cash-day writes are
+  tracked in `repos/cash-sessions.js`) (Not sent yet / Saved, kept up to date by
+  `fillSyncChips`), and Close cash asks while `pendingCount()` > 0; offline, Close cash keeps the count on the phone and the close finishes online (U-32).
 - **Two phones, one item or setting (#113)**: item, settings and user writes need the
   internet (`utils/write-conflict.js`, code `needs-internet`). The item dialog saves with
   `FirebaseService.saveItem(item, { expectedRev })` (a transaction on the item's `rev`) and a
@@ -341,7 +342,10 @@ In order:
   (`services/receipt-drawing.js`, added to the printer manager by `loadReceiptDrawing()`)
   are imported with `import()` on first use, and the anomalies code and receipt drawing
   also when the phone is idle after the first screen (#59). They stay precached (offline);
-  `startup-weight.test.js` fails if start-up code imports them statically again.
+  `startup-weight.test.js` fails if start-up code imports them statically again. Stock, Wholesale and Expenses
+  (`modules/stock.js`, `wholesale-sales.js`, `miscellaneous.js`) are imported with their page
+  (`TemplateLoader.pageCode`, so a click on the page always finds them) and when the phone is idle; `window.app.stock|wholesaleSales|expenses`
+  call them through `withStock` / `withWholesale` / `withExpenses` in main.js (U-38). The deepest start-up modules are `<link rel="modulepreload">`s in index.html.
 - `firebase.json` sends security headers and an **enforced** CSP on every
   path (#89, `docs/security.md`). A new external origin (fetch, script, image)
   goes into that CSP in the same PR: `security-headers.test.js` fails on an

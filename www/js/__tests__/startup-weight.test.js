@@ -52,6 +52,18 @@ describe('start-up imports (#59)', () => {
     test('Recurring bills (#437) adds nothing to start-up: its page, figures and repository are imported when the page opens', () => {
         expect(startupGraph().filter(f => ['js/modules/recurring-bills.js', 'js/utils/recurring-bills.js', 'js/firebase/repos/recurring-bills.js', 'js/firebase/repos/entry-docs.js'].includes(f))).toEqual([]);
     });
+
+    test('Stock, Wholesale and Expenses (U-38) are imported with their page, not at start', () => {
+        expect(startupGraph().filter(f => ['js/modules/stock.js', 'js/modules/wholesale-sales.js', 'js/modules/miscellaneous.js'].includes(f))).toEqual([]);
+    });
+
+    test('every modulepreload in index.html is a start-up module (U-38)', () => {
+        const html = fs.readFileSync(path.join(WWW, 'index.html'), 'utf8');
+        const preloads = [...html.matchAll(/<link rel="modulepreload" href="([^"?]+)"/g)].map(m => m[1]);
+        expect(preloads.length).toBeGreaterThan(0);
+        const graph = startupGraph();
+        expect(preloads.filter(f => !graph.includes(f))).toEqual([]);
+    });
 });
 
 describe('language catalogues load on demand (#59)', () => {
