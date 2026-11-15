@@ -1264,7 +1264,7 @@ function defineSuite(prefix) {
 
     t('app language follows the person (U-86): only en or hi, only their own profile', async () => {
         await assertSucceeds(as('staff1').collection(users).doc('staff1').update({ lang: 'hi' }));
-        await assertSucceeds(as('owner1').collection(users).doc('owner1').update({ lang: 'en' }));
+        await assertSucceeds(as('legacyOwner').collection(users).doc('legacyOwner').update({ lang: 'en' }));
         await assertFails(as('staff1').collection(users).doc('staff1').update({ lang: 'fr' }));
         await assertFails(as('staff1').collection(users).doc('staff1').update({ lang: 1 }));
         await assertFails(as('staff1').collection(users).doc('manager1').update({ lang: 'hi' }));
