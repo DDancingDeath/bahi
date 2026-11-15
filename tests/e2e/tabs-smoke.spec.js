@@ -71,7 +71,7 @@ const STEPS = [
     { name: 'Insights › Seasons › Trends', route: 'insights-trends', page: 'insights', roles: OM, expect: '#insights #rtRatesSection' },
     { name: 'Insights › Seasons › Product traffic', route: 'insights-traffic', page: 'insights', roles: OM, expect: '#insights #rtTrafficSection' },
     { name: 'Statements', route: 'statements', page: 'statements', roles: OM, expect: '#statementsList' },
-    { name: 'Statements › Day', route: 'statements-day', page: 'statements', roles: OM, expect: `#statementsControls [data-onchange*="set('day'"]` },
+    { name: 'Statements › Day', route: 'statements-day', page: 'statements', roles: OM, expect: `#statementsControls [data-onchange*="dayPreset("]` },
     { name: 'Statements › Month', route: 'statements-month', page: 'statements', roles: OM, expect: `#statementsControls [data-onchange*="set('month'"]` },
     { name: 'Statements › Party', route: 'statements-party', page: 'statements', roles: OM, expect: `#statementsControls [data-onchange*="set('partyKey'"]` },
     { name: 'Statements › Item', route: 'statements-item', page: 'statements', roles: OM, expect: `#statementsControls [data-onchange*="set('itemKey'"]` },
