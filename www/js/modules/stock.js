@@ -124,7 +124,7 @@ export class StockManager {
             // Buckets keyed by a catalogue id or a legacy name collapse to one row per
             // item with a weighted average rate; buckets with no catalogue match stay
             // visible as "Unmatched" rows (utils/calc/stock.js stockRows, S1/S2).
-            const { rows: stockWithDetails, orphanKeys } = stockRows(stock, AppState.items);
+            const { rows: stockWithDetails, orphanKeys } = stockRows(stock, AppState.items, { includeBelowZero: true });
 
             if (orphanKeys.length > 0) {
                 console.warn(
@@ -143,7 +143,8 @@ export class StockManager {
         // Check if user is staff (show limited quantity info for items > 100kg)
         const isStaff = AppState.userRole === 'staff';
 
-        this.renderSummary(stockSummary(stockWithDetails), stockValue(stock), isStaff);
+        const belowZeroCount = stockWithDetails.filter(r => r.belowZero).length;
+        this.renderSummary(stockSummary(stockWithDetails), stockValue(stock), isStaff, belowZeroCount);
         const approxNote = stockApproxNoteHtml(AppState.stockApprox);
         if (approxNote) container.insertAdjacentHTML('beforeend', approxNote);
         container.insertAdjacentHTML('beforeend', this.lowStockHtml(stock, isStaff));
@@ -172,6 +173,27 @@ export class StockManager {
                         <div class="row-trail">
                             <div class="row-amt">${stockKg(item.quantity)} kg</div>
                             <div class="row-meta" data-perm="profit">${rateLine}</div>
+                        </div>
+                `;
+                list.appendChild(div);
+                return;
+            }
+
+            if (item.belowZero) {
+                // Sold before the purchase was entered: shown to everyone, at the top,
+                // with words (not only colour) so a stock count can fix it (U-12).
+                div.classList.add('stock-below-zero', 'tone-neg');
+                const fix = canSetAlerts
+                    ? `<button type="button" class="btn btn-ghost btn-sm" data-stock-adjust data-onclick="stock.openStockCount()">${tx('ui.stock.fix_with_count')}</button>`
+                    : '';
+                div.innerHTML = `
+                        <div class="row-main">
+                            <div class="row-title">${Helpers.escapeHtml(displayName)}</div>
+                            <div class="stock-orphan-note">${icon('triangle', 'i-sm')} ${tx('ui.stock.below_zero_note')}</div>${fix}
+                        </div>
+                        <div class="row-trail">
+                            <div class="row-amt">${stockKg(item.quantity)} kg</div>
+                            <div class="row-meta">${tx('ui.stock.below_zero_tag')}</div>
                         </div>
                 `;
                 list.appendChild(div);
@@ -216,14 +238,18 @@ export class StockManager {
      * @param {?{items: number, kg: number}} summary null hides the card
      * @param {number} [value] S4
      * @param {boolean} [isStaff]
+     * @param {number} [belowZero] items below zero (U-12), shown as their own figure
      */
-    static renderSummary(summary, value = 0, isStaff = false) {
+    static renderSummary(summary, value = 0, isStaff = false, belowZero = 0) {
         const box = document.getElementById('stockSummary');
         if (!box) return;
-        box.hidden = !summary || summary.items === 0;
+        box.hidden = !summary || (summary.items === 0 && !belowZero);
         if (box.hidden) return;
         const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
         set('stockSummaryItems', formatAmount(summary.items));
+        set('stockSummaryBelowZero', formatAmount(belowZero));
+        const bzCell = document.getElementById('stockSummaryBelowZeroCell');
+        if (bzCell) bzCell.hidden = !belowZero;
         set('stockSummaryKg', `${stockKg(summary.kg)} kg`);
         const valueEl = document.getElementById('stockSummaryValue');
         if (valueEl) valueEl.innerHTML = `≈ ${figHtml(value)}`;
