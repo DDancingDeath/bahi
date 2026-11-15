@@ -95,12 +95,12 @@ export const BottomNav = {
         this.bindGestures();
     },
 
-    /** Highlights the open page's item ("More" for pages not on the bar). */
+    /** Highlights the open page's item ("More" for pages not on the bar; Rentals marks its own items). */
     markActive(tabId) {
-        const items = document.querySelectorAll('.bottom-nav-item');
+        const items = document.querySelectorAll('.bottom-nav-item[data-tab]');
         const onBar = BAR_TABS.includes(tabId);
         items.forEach(item => {
-            const here = onBar ? item.dataset.tab === tabId : item.dataset.tab === 'more';
+            const here = onBar ? item.dataset.tab === tabId : item.dataset.tab === 'more' && tabId !== 'rentals';
             item.classList.toggle('active', here);
             if (here && onBar) item.setAttribute('aria-current', 'page');
             else item.removeAttribute('aria-current');

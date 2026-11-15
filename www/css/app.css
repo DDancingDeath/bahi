@@ -3269,10 +3269,6 @@ body {
     margin-left: calc(-1 * var(--sp-3));
   }
 
-  body.biz-rentals .app-bar .hamburger {
-    display: inline-flex;
-  }
-
   .app-bar .notif-badge {
     top: 4px;
     right: 2px;
@@ -3816,8 +3812,14 @@ body {
   outline-offset: -4px;
 }
 
-body.biz-rentals .bottom-nav,
 body.typing .bottom-nav {
+  display: none;
+}
+
+/* One business's pages on the bar (U-65): the shop's, or Rentals' with the same More */
+body.biz-rentals .bottom-nav-item[data-tab]:not([data-tab="more"]),
+body:not(.biz-rentals) .bottom-nav-item[data-rent-bar],
+.bottom-nav-item[hidden] {
   display: none;
 }
 

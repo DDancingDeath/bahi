@@ -198,6 +198,13 @@ function render() {
         b.classList.toggle('active', on);
         b.setAttribute('aria-selected', String(on));
     });
+    document.querySelectorAll('.bottom-nav-item[data-rent-bar]').forEach((b) => {
+        const name = b.getAttribute('data-rent-bar');
+        if (name === 'reports') b.hidden = !adv || !canWrite();
+        b.classList.toggle('active', name === state.page);
+        if (name === state.page) b.setAttribute('aria-current', 'page');
+        else b.removeAttribute('aria-current');
+    });
     document.querySelectorAll('#rentals [data-rent-mode]').forEach((b) => {
         const on = b.getAttribute('data-rent-mode') === state.mode;
         b.classList.toggle('active', on);

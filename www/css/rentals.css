@@ -25,6 +25,14 @@
 .rent-vacant { margin-top: var(--sp-2); }
 .rent-sticky { position: sticky; bottom: var(--sp-3); margin-top: var(--sp-4); }
 
+/* Phone (U-65): the pages are on the bottom bar; the sticky button sits above the bar and the list ends clear of it */
+@media (max-width: 1023.98px) {
+    .rent-nav > .tabs { display: none; }
+    .rent-nav:not(:has(> :not(.tabs, [hidden]))) { display: none; }
+    .rent-sticky { bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + var(--sp-3)); }
+    #rentals.tab { padding-bottom: calc(var(--bottomnav-h) + var(--tap-min) + var(--sp-10) + env(safe-area-inset-bottom, 0px)); }
+}
+
 /* A row holding several lines (tenant, unit, property): title and figure on top, then details and actions */
 .row.rent-entry { flex-direction: column; align-items: stretch; gap: var(--sp-1); padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
 .rent-entry-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); }

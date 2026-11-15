@@ -8,7 +8,8 @@ const NAV = fs.readFileSync(path.resolve(__dirname, '../../templates/navigation.
 
 test('the bar lists its pages in order, then More', () => {
     document.body.innerHTML = NAV;
-    expect([...document.querySelectorAll('.bottom-nav-item')].map(i => i.dataset.tab)).toEqual([...BAR_TABS, 'more']);
+    expect([...document.querySelectorAll('.bottom-nav-item[data-tab]')].map(i => i.dataset.tab)).toEqual([...BAR_TABS, 'more']);
+    expect([...document.querySelectorAll('.bottom-nav-item[data-rent-bar]')].map(i => i.dataset.rentBar)).toEqual(['rent', 'tenants', 'properties', 'reports']);
 });
 
 test('the open page is marked (aria-current); other pages mark More', () => {
@@ -20,6 +21,9 @@ test('the open page is marked (aria-current); other pages mark More', () => {
     BottomNav.markActive('stock');
     expect([...document.querySelectorAll('.bottom-nav-item.active')].map(i => i.dataset.tab)).toEqual(['more']);
     expect(document.querySelector('[aria-current]')).toBeNull();
+    // Rentals (U-65) marks its own bar items; More is not the open page there
+    BottomNav.markActive('rentals');
+    expect(document.querySelectorAll('.bottom-nav-item.active')).toHaveLength(0);
 });
 
 test('swipe left goes to the next bar page, right to the previous; short, slanted or off-bar swipes do nothing', () => {
