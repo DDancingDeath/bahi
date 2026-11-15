@@ -419,7 +419,7 @@ export class Helpers {
     static showSplitRemaining(elementId, check) {
         const el = typeof document !== 'undefined' ? document.getElementById(elementId) : null;
         if (!el || !check) return;
-        const row = el.closest('.pay-rest');
+        const row = /** @type {?HTMLElement} */ (el.closest('.pay-rest'));
         if (row) row.hidden = !!check.ok;
         const amount = formatAmount(Math.abs(check.difference), { exact: true });
         if (check.ok) {
