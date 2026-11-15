@@ -11,7 +11,7 @@ import { openExternal } from '../utils/open-external.js';
 import { awaitingServer } from '../utils/data-freshness.js';
 import { normalizeThresholds, stockCreditFor } from '../utils/bill-checks.js';
 import { showAmount } from '../ui/number-input.js';
-import { showUndo } from '../ui/undo-bar.js';
+import { showUndo, hideUndo } from '../ui/undo-bar.js';
 import { showLastSaved } from '../ui/last-saved.js';
 import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
@@ -395,6 +395,7 @@ export class WholesaleSalesManager {
      */
     static openEditor(bill) {
         if (!bill) return;
+        hideUndo();
         editing = { bill, paymentSig: FirebaseService.loadedPaymentSignature(bill) };
         pendingBill = null;
         wholesaleSaleItems = (Array.isArray(bill.items) ? bill.items : []).map(item => {
@@ -443,6 +444,7 @@ export class WholesaleSalesManager {
 
     /** Empties the form (after a save, or a cancelled edit). */
     static clearForm() {
+        hideUndo();
         pendingBill = null;
         wholesaleSaleItems = [];
         const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
@@ -685,7 +687,7 @@ export class WholesaleSalesManager {
         showUndo(t('msg.billing.line_removed', { item, kg: formatKg(line.qty) }), () => {
             wholesaleSaleItems.splice(Math.min(index, wholesaleSaleItems.length), 0, line);
             this.renderWholesaleBill();
-        });
+        }, { tag: () => pendingBill?.id ?? null });
     }
 
     static async completeSale(options = {}) {
@@ -802,6 +804,7 @@ export class WholesaleSalesManager {
             this.updateWholesaleCustomerOptions(customerName);
             
             // Clear bill
+            hideUndo();
             pendingBill = null;
             wholesaleSaleItems = [];
             document.getElementById('wholesaleCustomerName').value = '';

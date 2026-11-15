@@ -5,7 +5,7 @@
  */
 
 import { showAmount } from '../ui/number-input.js';
-import { showUndo } from '../ui/undo-bar.js';
+import { showUndo, hideUndo } from '../ui/undo-bar.js';
 import { AppState } from '../utils/state.js';
 import { SecurityMonitor } from '../services/security-monitor.js';
 import { on, REFRESH, ITEM_FREQUENCY_CHANGED } from '../utils/events.js';
@@ -274,6 +274,7 @@ const BillingManager = {
      * @param {Event} [event] - The click, if any (the buttons follow the mode either way)
      */
     switchMode(mode, event) {
+        hideUndo();
         const purchaseSection = document.getElementById('purchaseSection');
         const saleSection = document.getElementById('saleSection');
         const purchaseBtn = document.getElementById('purchaseModeBtn');
@@ -857,10 +858,11 @@ const BillingManager = {
         if (choice !== 'clear') return;
         const snapshot = this.formSnapshot();
         this.clearBill();
+        const form = this.currentMode === 'purchase' ? PurchaseManager : RetailSaleManager;
         showUndo(t('msg.billing.bill_cleared'), () => {
             this.applyDraft(snapshot, { exact: true });
             this.triggerAutoSave();
-        });
+        }, { tag: () => form.getPendingBill()?.id ?? null });
     },
 
     /** "3 lines, ₹16,191" for the Clear question. */
@@ -1827,6 +1829,7 @@ const BillingManager = {
      * @param {number} [index] - its place in the history list
      */
     openEditor(bill, billType, index = findBillIndex(historyOf(billType), bill.id, -1)) {
+        hideUndo();
         this.editingBillIndex = index;
         this.editingBillId = bill.id;
         this.editingBillType = billType;
