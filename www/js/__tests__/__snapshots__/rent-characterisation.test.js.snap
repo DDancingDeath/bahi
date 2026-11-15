@@ -787,6 +787,7 @@ exports[`pages (en) Rent: property cards, each property, unit list; Tenants; Pro
     "Received this month: ₹18,500",
     "Includes old dues and advances paid this month, so it can be more than this month's rent.",
     "Total due (all months): ₹33,706",
+    "Record payment",
     "Needs attention",
     "5 units owe rent · 3 late₹33,706",
     "Shop 3, Arora Market · Omrent increase due: 10% → ₹13,200",
@@ -837,7 +838,6 @@ exports[`pages (en) Rent: property cards, each property, unit list; Tenants; Pro
     "Paid",
     "This month: paid",
     "2 vacant units",
-    "Record payment",
   ],
   "unitList": [
     "Feb 2028",
@@ -1229,6 +1229,7 @@ exports[`pages (hi) Rent: property cards, each property, unit list; Tenants; Pro
     "इस महीने मिला: ₹18,500",
     "इसमें इस महीने चुकाया पुराना बकाया और पेशगी भी है, इसलिए यह इस महीने के किराए से ज़्यादा हो सकता है।",
     "कुल बकाया (सभी महीने): ₹33,706",
+    "भुगतान लिखें",
     "ध्यान दें",
     "5 यूनिट का किराया बाकी · 3 देर से₹33,706",
     "दुकान Shop 3, Arora Market · Omकिराया बढ़ना है: 10% → ₹13,200",
@@ -1279,7 +1280,6 @@ exports[`pages (hi) Rent: property cards, each property, unit list; Tenants; Pro
     "चुकाया",
     "इस महीने: चुकाया",
     "2 खाली यूनिट",
-    "भुगतान लिखें",
   ],
   "unitList": [
     "फ़रवरी 2028",

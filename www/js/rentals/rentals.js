@@ -311,11 +311,11 @@ function renderMonth(d, ix, rows) {
     const paidList = paid.length ? `<details class="rent-more"><summary>${et('ui.rent.paid_month', { n: paid.length })}</summary>
         <div class="panel">${paid.map(a => collectRow(a, ix, lang)).join('')}</div></details>` : '';
     const vacant = sum.vacant ? `<button type="button" class="btn btn-ghost btn-sm rent-vacant" data-onclick="rentals.page('properties')">${et(sum.vacant === 1 ? 'ui.rent.vacant_units_one' : 'ui.rent.vacant_units', { n: sum.vacant })}${icon('chevR', 'i-sm')}</button>` : '';
-    const payAny = canWrite() && owe.length ? `<div class="rent-sticky">${btn(' btn-primary btn-block', 'payAny', '', 'ui.rent.record_payment', '', ' data-rent-pay')}</div>` : '';
-    return `${title}${summary}${attentionHtml(d, ix)}
+    const payAny = canWrite() && owe.length ? `<div class="rent-pay-any">${btn(' btn-primary btn-block', 'payAny', '', 'ui.rent.record_payment', '', ' data-rent-pay')}</div>` : '';
+    return `${title}${summary}${payAny}${attentionHtml(d, ix)}
         <h3 class="rent-section-title">${et('ui.rent.to_collect', { n: owe.length })}${owe.some(a => a.late)
             ? ` <button type="button" class="chip" aria-pressed="${state.onlyLate ? 'true' : 'false'}" data-onclick="rentals.onlyLate()">${et('ui.rent.status_late')}</button>` : ''}</h3>
-        ${shown.length ? `<div class="panel">${list}</div>` : list}${paidList}${vacant}${payAny}`;
+        ${shown.length ? `<div class="panel">${list}</div>` : list}${paidList}${vacant}`;
 }
 
 /** This month's rent paid as a bar with the % in words: a native <progress> looks full at 0 % in dark mode (U-31). */

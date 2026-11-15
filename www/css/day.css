@@ -193,7 +193,6 @@
 .ask-change-field { display: flex; flex: 1 1 140px; min-width: 0; flex-direction: column; gap: 2px; font-size: var(--fs-sm); color: var(--ink-2); }
 .ask-change-field select { width: 100%; min-height: 44px; font-size: var(--fs-body); }
 .ask-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
-.ask-kind { min-height: 44px; }
 
 /* Cash › history (5.2b): each day is a row, its figures two columns; it lights up under the pointer (#89) */
 .cash-history-list .row.cash-day { align-items: flex-start; padding: var(--sp-3) 0; cursor: pointer; transition: background var(--dur-1) var(--ease); }

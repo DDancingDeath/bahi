@@ -236,6 +236,20 @@ div.ins-wide,
   .st-ledger .st-sold:not(:empty)::before,
   .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
   .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
+
+  /* Day book (N-20): time and kind, then bill · party · note and any due; the amount always on the right */
+  .st-daybook-wrap { overflow-x: visible; }
+  .st-daybook { width: 100%; }
+  .st-daybook thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .st-daybook tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "when what amt" "detail detail amt" "due due amt"; column-gap: var(--sp-2); align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px var(--rule-style) var(--line); }
+  .st-daybook td { display: block; height: auto; padding: 0; border: none; }
+  .st-daybook td:empty { display: none; }
+  .st-daybook .st-when { grid-area: when; color: var(--ink-3); white-space: nowrap; }
+  .st-daybook .st-what { grid-area: what; overflow-wrap: anywhere; }
+  .st-daybook .st-detail { grid-area: detail; color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .st-daybook .st-due { grid-area: due; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-daybook .st-due::before { content: attr(data-label) " "; color: var(--ink-3); }
+  .st-daybook .st-amt { grid-area: amt; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
 }
 
 /* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */

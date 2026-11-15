@@ -449,32 +449,42 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 /* ---------- Chips: .chip + aria-pressed (on/off), and tags ----------
-   A chip draws 40 px; its tap area reaches 48 px (the ::after), so rows of chips stay compact (U-14) */
+   The button is the full 48 px tap area; the pill (::before) is drawn 40 px inside it, so rows of chips stay
+   compact (U-14, N-21) */
 .chip {
   position: relative;
-  min-height: var(--control-h-sm);
-  padding: 0 14px;
-  border: 1px solid var(--line-control);
+  isolation: isolate;
+  min-height: var(--tap-min);
+  padding: 0 15px;
+  border: 0;
   border-radius: var(--r-chip);
-  background-color: var(--surface);
+  background: none;
   color: var(--ink);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
 }
 
-.chip::after {
+.chip::before {
   content: '';
   position: absolute;
-  inset: calc((var(--control-h-sm) - var(--tap-min)) / 2) 0;
+  z-index: calc(-1 * var(--z-base));
+  inset: calc((var(--tap-min) - var(--control-h-sm)) / 2) 0;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-chip);
+  background-color: var(--surface);
 }
 
 /* The chosen chip looks like the chosen segment (U-61): one "selected" look across segments, chips and tabs */
 .chip.on,
 .chip[aria-pressed="true"] {
+  color: var(--seg-on-ink);
+}
+
+.chip.on::before,
+.chip[aria-pressed="true"]::before {
   border-color: var(--seg-on-line);
   background-color: var(--accent-soft);
   box-shadow: var(--chip-on-ring);
-  color: var(--seg-on-ink);
 }
 
 /* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------

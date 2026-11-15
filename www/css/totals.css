@@ -544,7 +544,7 @@
   grid-column: 2;
   align-self: end;
   gap: 6px;
-  min-height: 36px;
+  min-height: var(--tap-min);
   color: var(--ink-2);
   font-size: var(--fs-sm);
   white-space: nowrap;
