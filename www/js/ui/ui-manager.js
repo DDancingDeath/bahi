@@ -243,7 +243,7 @@ export function buildSheet({ role = 'dialog', labelId, title, describedBy = '', 
     const grabber = document.createElement('div');
     grabber.className = 'grabber';
     grabber.setAttribute('aria-hidden', 'true');
-    const h = document.createElement('h3');
+    const h = document.createElement('h2');
     h.className = 'dialog-title';
     h.id = labelId;
     h.textContent = title;
