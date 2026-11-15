@@ -537,9 +537,10 @@ input[type="checkbox"].switch:focus-visible,
   padding-block: var(--sp-3);
 }
 
-/* Text buttons and the list's Load more / Retry get the button height */
+/* Text buttons, the list's Load more / Retry and the Show voided / old dues toggles get the button height (N-15) */
 .infinite-scroll-more,
-.history-range-retry {
+.history-range-retry,
+.chip[data-group-toggle] {
   min-height: var(--tap-min);
 }
 

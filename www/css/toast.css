@@ -29,7 +29,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  min-height: var(--control-h-sm);
+  min-height: var(--tap-min);
   font-size: var(--fs-sm);
   pointer-events: auto;
   cursor: pointer;

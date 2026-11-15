@@ -1488,7 +1488,7 @@ input[type="number"],
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  min-height: var(--control-h-sm);
+  min-height: var(--tap-min);
   font-size: var(--fs-sm);
   pointer-events: auto;
   cursor: pointer;
@@ -2125,9 +2125,10 @@ input[type="checkbox"].switch:focus-visible,
   padding-block: var(--sp-3);
 }
 
-/* Text buttons and the list's Load more / Retry get the button height */
+/* Text buttons, the list's Load more / Retry and the Show voided / old dues toggles get the button height (N-15) */
 .infinite-scroll-more,
-.history-range-retry {
+.history-range-retry,
+.chip[data-group-toggle] {
   min-height: var(--tap-min);
 }
 
@@ -3434,6 +3435,12 @@ body {
 
 .nav-close:active {
   transform: scale(0.96);
+}
+
+/* Drawn inside the button: the sheet edge would cut an outer ring (N-14) */
+.nav-close:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--focus-ring);
 }
 
 .nav-menu {
@@ -9631,6 +9638,11 @@ body.no-perm-contacts [data-perm~="contacts"] {
 
 .anom-scroll {
   overflow-x: auto;
+}
+
+.anom-scroll:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
 }
 
 .anom-heat,
