@@ -70,14 +70,19 @@ While a bill is being typed:
   its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Customer, Item, Rate,
   Weight) sits on the field's top edge and stays there after typing. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
   screen the Save / Print row starts with the bill's total: a short label (Payable / Receivable, 14 px) over the amount in large bold figures.
-- **Voice** (VB-1; off until switched on in Settings › Billing tools › Voice billing): tap 🎤 and
-  say the item, weight and rate. Several lines can be said in one go ("… and …"),
-  and "customer" before a name fills the customer. The app shows what it understood
-  (and reads it aloud, unless muted in the dialog) and acts only after OK: one line
-  fills the form, several ticked lines are added to the bill. Voice never saves. A
-  heard line can be corrected in the dialog (**Correct**: item, kg, rate); what was
-  heard stays in a line under 🎤; **Undo voice** (or saying "undo") takes back the
-  last voice change; Settings can add a short beep after listening. See
+- **Voice** (VB-1, #498; off until switched on in Settings › Billing tools › Voice billing): **hold** 🎤
+  and speak, let go when done (a quick tap listens to the first pause). Say the bill in any order, in one
+  hold or several: the party ("Ramesh se", "customer Ramesh", "Ramesh ko"), lines ("gehun 10 kilo 25,
+  chawal 5 kilo 30"), bag weights ("wheat bags 23, 24.5, 22 at 25"), "rate 26", the payment ("cash 500",
+  "online 300", "baaki udhaar", "pura cash"), labour ("labour 60", "labour band"), "note …" and, for the
+  owner, the day ("kal"). A **check sheet** shows everything understood, marks what is unclear, lets each
+  part be changed or unticked, and **Hold to add more** adds to it. Only **Fill bill** puts it on the page,
+  as typing would; voice never saves. A party is picked only when exactly one known party fits; otherwise
+  the sheet asks. The small 🎤 in the Supplier / Customer field (beside the contact button) listens for a
+  name and lists the closest parties (any script: "रमेश" ~ "Ramesh Bhai") and "Use … as said". A heard
+  line can be corrected in the sheet (**Correct**: item, kg, rate); what was heard stays in a line under
+  🎤; **Undo voice** (or saying "undo") takes back the last voice change; Settings can add a short beep
+  after listening. In the Android app the first press asks for the microphone. See
   [voice-billing.md](../voice-billing.md).
 - **Photo of weights** (PW-1; Purchase only; hidden until the owner switches it on in
   Settings › Billing tools › Photo of weights): tap the camera button beside the weight box

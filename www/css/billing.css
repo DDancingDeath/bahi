@@ -511,7 +511,7 @@ input[type="number"] {
 
 :is(#billing, .bill-page) .bill-party > .input {
   width: 100%;
-  padding-right: 52px;
+  padding-right: var(--bill-party-pad, 52px);
 }
 
 .bill-party > .btn-icon {

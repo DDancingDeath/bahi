@@ -1,22 +1,109 @@
-# Voice billing (#81, #131)
+# Voice billing (#81, #131, #498)
 
-Status: in the app, **off by default**: one or several bill lines per sentence,
-the customer's name and a spoken readback (#81 A1–A3). The web header (#266) and
-the Android recogniser (#267) are in, so it can run in Chrome and in the Android
-app; it still needs a test on a real phone (see "What is still needed").
+Status: in the app, **off by default**: the whole bill by voice (#498: party, lines, bag
+weights, rate, payment, labour, note, day) through one check sheet, a name mic in the
+Supplier / Customer field, hold-to-talk, and a spoken readback (#81 A1–A3). The web header
+(#266) and the Android recogniser (#267) are in, so it runs in Chrome and in the Android
+app; #498 fixed the Android microphone flow (see "Android app").
+
+## Whole bill by voice (#498)
+
+**Hold to talk.** Press and hold the 🎤 beside Rate, speak, let go. While held the mic is
+marked and the words heard so far show under it ("Hearing: …"; the Android recogniser and
+Chrome both give partial words). Let go off the mic (more than 48 px away) or have the press
+cancelled by the system, and nothing is used ("Let go off the mic: nothing used"). A quick tap
+(under 350 ms) listens once, to the first pause, as before; so does a key or TalkBack (a click
+with no press). The press uses pointer events (`www/js/ui/voice-mic.js`, `bindHold`): no text
+selection, long-press menu or scrolling starts from the mic (`touch-action: none`). Android's
+recogniser ends at a pause by itself; while the mic is still held it is started again and the
+parts are joined, so a long bill with pauses is one hold.
+
+**Say it in any order**, in one hold or several (`www/js/utils/voice-bill-parse.js`). Hindi
+or English, in either script:
+
+| Part | Say | Goes to |
+|---|---|---|
+| Party | "Ramesh se", "from Ramesh", "supplier Ramesh", "customer Ramesh", "Ramesh ko", "Ramesh ke liye", "ग्राहक का नाम रमेश", "रमेश से" | Supplier / Customer (matched to known parties, below) |
+| Lines | "gehun 10 kilo 25 rupaye, chawal 5 kilo 30", "wheat 10 kg 24 aur rice 5 kg 30" (VB-1 below; "aur", "and", "phir", commas and pauses split lines; Hindi item names said in Latin letters, "gehun" = गेहूं, are matched) | Ticked lines are added through Add to bill |
+| Bag weights | "wheat bags 23, 24.5, 22 at 25", "gehun bori 50, 52 rate 24" (also katta, packet, vajan) | One line with each bag as a weight chip (sum shown) |
+| Rate | "rate 26", "bhav 26" | The last line heard, else the Rate box |
+| Payment | "cash 500", "500 cash", "nakad 500", "online 300", "UPI / PhonePe / GPay / Paytm 300", "udhaar 200" | Cash / Online / Due boxes |
+| Rest | "baaki udhaar", "rest due", "baad mein", "udhaar" alone; "baaki cash", "baaki online" | Rest → due (the page's own logic), or the rest in that box |
+| Whole bill | "pura cash", "full cash", "sab online", "pura udhaar" | As ticking that box's Fill |
+| Labour (Purchase) | "labour 60", "majdoori 60", "hammali 60" | The Labour box (as typed) |
+| Labour per bag | "labour 6 per bag", "labour 6 bori ka" | ₹6 × the bill's heavy bags, in the Labour box |
+| Labour off / on | "labour band", "labour charge band", "labour off", "labour nahi", "no labour", "मज़दूरी बंद"; "labour on" | The Labour switch |
+| Note | "note GPay name Mohan" (everything after "note" / "नोट", words kept as said) | Notes (opened) |
+| Day | "aaj", "kal", "yesterday", "parso", "3 din pehle" | Date, only for the owner on a new bill (the Change date rule) within the allowed days; otherwise the sheet says it was not changed |
+| Undo | "undo", "wapas", "वापस" | With the sheet open: takes the last hold off the sheet; else Undo voice |
+
+Labour on a Retail sale is not used (the sheet says so). Labour is the bill's Labour box
+(`manualLaborCharges`, marked as typed so the auto value doesn't replace it); the shared
+per-bag rate in Settings is never changed by voice.
+
+**The check sheet.** One sheet shows everything understood: what was heard (each hold), the
+party with its match, each line (item, kg — a bag list as "23 + 24.5 + 22 = 69.5" —, rate,
+amount), the rate for the line, labour, the payment legs, rest / whole bill, the note and the
+day, and "Lines heard: ₹…". Every part can be unticked or changed (Correct for a line, a box
+for each amount, the note text, a pick list for the party). Unclear parts are marked (a line
+missing its weight or rate, words that fit nowhere: "Not understood: …", more than one
+party fitting, a day that can't be used). **Hold to add more** in the sheet listens again and
+adds to it; a later party, payment leg, labour or day replaces the earlier one, lines are
+added, notes joined. Readback (if on) reads each hold's summary. Only **Fill bill** puts it on
+the page, in order: party (with input/change events, so the due line and suggestions follow),
+lines (one line alone with nothing else fills the entry boxes as before; otherwise the ticked
+lines are added through Add to bill, with its checks), the rate, labour, the payment (then
+Rest → due), the note and the day. **Nothing is saved**; Undo voice takes all of it back.
+
+**Party matching** (`rankPartyMatches` in `utils/party-match.js`). The known parties are the
+names on the bills loaded on this phone (the same list as the name suggestions, #139). A name
+matches in any script and spelling (`looseWord`: "रमेश" = "ramesh"), honorifics left out
+("Ramesh bhai" ~ "Ramesh"), a part of a longer name, or a small mishearing. The sheet uses a
+party only when exactly one fits exactly and no other is close; otherwise the pick list starts
+on "Use '<as said>'" and is marked, and the user chooses.
+
+**Name mic.** A small 🎤 inside the Supplier / Customer field, beside the contact button
+(44+ px, en/hi label; only while voice billing is on). A tap listens once for a name ("Ramesh
+bhai se" → "Ramesh Bhai"), then lists the closest known parties (with what is open on them),
+"Use '<as said>'" and, where the phone can pick contacts, "Pick from phone contacts". Nothing
+is picked for the user. A pick fills the field as typing would. Phone contacts are not read in
+bulk: the contact picker shows only the one contact chosen.
+
+## Android app (#498)
+
+What was checked: rc14 bundles `@capacitor-community/speech-recognition` 7.0.1
+(`assets/capacitor.plugins.json`), its manifest has `RECORD_AUDIO` and the
+`android.speech.RecognitionService` query, and in the app `voiceEngine()` is `'native'`
+(Capacitor's bridge lists the plugin). What was wrong or fragile:
+
+- The recogniser was one-shot (`partialResults: false`): Android ends it at the first short
+  pause, so a whole bill ("gehun 10 kilo … [pause] … 25") was cut off, and nothing showed while
+  listening. Hold-to-talk uses `partialResults: true` (live words, and Android's dictation
+  mode), starts again after a pause while held, and ends on release.
+- The plugin's `stop()` never answers on Android: it is never awaited (the last words come as
+  a `partialResults` event, with a 2.5 s limit).
+- The microphone is asked for on first use (`checkPermissions` → `requestPermissions`); the
+  press that shows the system dialog does not listen, and says "Microphone allowed. Now hold
+  the mic and speak." Refused: "Microphone permission is off. To use voice, allow it in the
+  phone's Settings › Apps › this app › Permissions › Microphone. Or type." (en/hi). No
+  recogniser on the phone (`available()` false): a message to turn on Google's speech services.
+- The mic is never hidden while voice is on; a device with no speech engine shows the mic and a
+  tap says why (Settings keeps the switch usable to turn voice off).
+
+Needs a new APK (the app bundles `www/`).
 
 ## What it does
 
-Settings › **Voice billing** (per device, off until switched on). When on and the
-device has a speech engine, Billing shows a 🎤 button on the purchase and the
-retail sale form. One tap:
+Settings › **Voice billing** (per device, off until switched on). When on, Billing shows a 🎤
+button on the purchase and the retail sale form (and the name mic). One tap (or hold, above):
 
-1. listens once (the language follows the app: Hindi `hi-IN`, English `en-IN`);
-2. reads the customer's name and each line's item, weight and rate from what was
-   heard (`www/js/utils/voice-parse.js`, spec VB-1 in [calculations.md](calculations.md));
-3. shows a check dialog: what was heard, the customer, and the item / weight (kg) /
+1. listens (the language follows the app: Hindi `hi-IN`, English `en-IN`);
+2. reads the party and each line's item, weight and rate from what was
+   heard (`www/js/utils/voice-parse.js`, spec VB-1 in [calculations.md](calculations.md)),
+   and the rest of the bill (above);
+3. shows the check sheet: what was heard, the customer, and the item / weight (kg) /
    rate (₹) found for each line, or "not heard", and reads it back aloud;
-4. only after **OK**: one line goes in the form's Item, Rate and Weight boxes;
+4. only after **Fill bill**: one line alone goes in the form's Item, Rate and Weight boxes;
    several lines are added to the bill, each ticked line through the form's own
    Add to Bill (with its bag-weight and rate checks), in spoken order; the
    customer's name, if ticked, goes in the Customer box.

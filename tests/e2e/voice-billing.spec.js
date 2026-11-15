@@ -123,7 +123,7 @@ test('tier B: correct a line, the transcript, undo by keyboard and by voice, Eng
     await say(page, 'wheat 50 kg 22 rupees, mustard 30 kg');
     await page.click('#voiceMicPurchase');
     await expect(dialog).toBeVisible();
-    await expect(strip).toHaveText('Heard: “wheat 50 kg 22 rupees, mustard 30 kg”. Check it and tap OK.');
+    await expect(strip).toHaveText('Heard: “wheat 50 kg 22 rupees, mustard 30 kg”. Check it and tap Fill bill.');
     await expect(dialog.locator('[data-voice-line="1"]')).toBeDisabled();
     await dialog.locator('[data-voice-edit-btn="1"]').click();
     await expect(dialog.locator('[data-voice-edit-btn="1"]')).toHaveAttribute('aria-expanded', 'true');
@@ -163,4 +163,43 @@ test('tier B: correct a line, the transcript, undo by keyboard and by voice, Eng
 
     expect(problems.pageErrors).toEqual([]);
     await page.evaluate(() => window.app.i18n.setLang('en'));
+});
+
+test('name mic and whole bill: the mic in the name field, then party, line and payment from one sentence (#498)', async ({ page, problems }) => {
+    await fakeSpeech(page);
+    await login(page, 'staff');
+    await showTab(page, 'billing');
+    await page.click('#purchaseModeBtn');
+
+    // The small mic sits in the Supplier field beside the contact button
+    const nameMic = page.locator('#voiceNamePurchase');
+    await expect(nameMic).toBeVisible();
+    const field = await page.locator('#customerName').boundingBox();
+    const mic = await nameMic.boundingBox();
+    expect(mic.y).toBeGreaterThanOrEqual(field.y - 1);
+    expect(mic.x + mic.width).toBeLessThanOrEqual(field.x + field.width + 1);
+    expect(mic.height).toBeGreaterThanOrEqual(44);
+    await say(page, 'Zorawar se');
+    await nameMic.click();
+    const pickList = page.locator('#modalMessage #voiceNamePick');
+    await expect(pickList).toBeVisible();
+    await pickList.locator('[data-onclick*="spoken"]').click();
+    await expect(page.locator('#customerName')).toHaveValue('Zorawar');
+
+    // One sentence: line, labour and payment; the sheet fills only on Fill bill
+    await say(page, 'wheat 10 kg 24, labour 20, cash 100, baaki udhaar');
+    await page.click('#voiceMicPurchase');
+    const sheet = page.locator('#modalMessage #voiceCheck');
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toContainText('Rest as due');
+    await expect(page.locator('#modalConfirm')).toHaveText('Fill bill');
+    await page.click('#modalConfirm');
+    await expect(page.locator('#billTable tbody')).toContainText('Wheat');
+    await expect(page.locator('#manualLaborCharges')).toHaveValue('20');
+    await expect(page.locator('#cashPayment')).toHaveValue('100');
+    await expect(page.locator('#dueAmount')).toHaveValue('120');
+
+    const saved = await listDocs('dev_purchases');
+    expect(saved.filter(b => b.customerName === 'Zorawar')).toEqual([]);
+    expect(problems.pageErrors).toEqual([]);
 });

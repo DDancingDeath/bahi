@@ -1,11 +1,11 @@
 /**
- * @fileoverview Voice billing (#81): listens once, shows what was heard (and reads it
- * back aloud) and acts only after the user taps OK: one line fills the purchase /
- * retail form, several lines are added to the bill, a customer name fills the
- * customer box. A line can be corrected in the dialog, what was heard stays on screen,
- * and the last voice change can be undone (#131). It never saves; nothing heard is stored.
- * Loaded with import() on the first mic tap (ui/voice-mic.js). Design and limits:
- * docs/voice-billing.md.
+ * @fileoverview Voice billing (#81, #131, #498). Hold the mic and speak (a quick tap listens
+ * once); what was heard is sorted into the parts of the Billing page (utils/voice-bill-parse.js):
+ * the party, bill lines, bag weights, a rate, the payment, labour, a note and the day. A check
+ * sheet shows it all (and reads it back); each further hold adds to it; only "Fill bill" puts
+ * it on the page, as typing would. It never saves; nothing heard is stored. The small mic in
+ * the name field (#498) matches a spoken name to known parties and offers the closest ones.
+ * Loaded with import() on the first mic use (ui/voice-mic.js). Design: docs/voice-billing.md.
  * @module modules/voice-billing
  */
 
@@ -13,39 +13,73 @@ import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { t, getLang } from '../i18n/index.js';
-import { pickVoiceBill, hasVoiceBillValues, isUndoCommand } from '../utils/voice-parse.js';
+import { isUndoCommand, voiceTokens, VOICE_WORDS, voiceNameCase } from '../utils/voice-parse.js';
+import { pickWholeBill, hasWholeBillValues, mergeWholeBill, voiceLineAmount, voiceLinesTotal, labourForBags } from '../utils/voice-bill-parse.js';
 import { createVoiceUndo, planUndo, fieldChanges } from '../utils/voice-undo.js';
+import { entriesFromNames, rankPartyMatches } from '../utils/party-match.js';
+import { partyEntriesFor, fillPartyName, dueText } from '../ui/party-suggest.js';
+import { computeRetailTotals, restInDue } from '../utils/calc/billing.js';
+import { billDayRange } from '../utils/bill-date.js';
+import { billDateWho, canChangeBillDate, renderBillDateLine } from '../ui/bill-date-input.js';
+import { addLocalDays, formatDate, toLocalISODate } from '../utils/dates.js';
+import { formatRupees } from '../utils/money.js';
+import { contactPickerKind } from '../utils/contact-picker.js';
 import { isArchivedItem } from '../utils/item-catalog.js';
 import { safeSetItem } from '../utils/storage-full.js';
 import { track, trackVoiceMiss } from '../services/usage.js';
 import { on, BILL_CLEARED } from '../utils/events.js';
 import { VoiceMic } from '../ui/voice-mic.js';
-import { BillingManager, PurchaseManager, RetailSaleManager } from './billing.js';
+import { BillingManager, PurchaseManager, RetailSaleManager, syncBillNotes } from './billing.js';
 
 const FIELDS = {
     purchase: {
-        mic: 'voiceMicPurchase', item: 'billItem', rate: 'billRate', weight: 'newWeight',
+        key: 'purchase', kind: 'purchase',
+        mic: 'voiceMicPurchase', nameMic: 'voiceNamePurchase', item: 'billItem', rate: 'billRate', weight: 'newWeight',
         customer: 'customerName', customerNames: 'customerOptions',
         transcript: 'voiceTranscriptPurchase', undo: 'voiceUndoPurchase', lock: 'purchase',
+        cash: 'cashPayment', online: 'onlinePayment', due: 'dueAmount', note: 'billComments', date: 'billDate',
+        labourOn: 'autoLaborCharge', labour: 'manualLaborCharges',
         editing: () => !!PurchaseManager.isEditingLine?.(),
         pending: () => PurchaseManager.getWeights() || [],
         loadRates: () => BillingManager.loadRates(),
         addLine: () => PurchaseManager.addToBill(),
+        addWeights: (list) => PurchaseManager.addWeights(list),
         lines: () => PurchaseManager.getBillItems() || [],
         removeLine: (i) => PurchaseManager.deleteBillItem(i),
-        lineCount: () => (PurchaseManager.getBillItems() || []).length
+        lineCount: () => (PurchaseManager.getBillItems() || []).length,
+        total: () => PurchaseManager.computeTotals().grandTotal,
+        split: () => PurchaseManager.readPaymentSplit(),
+        payChanged: () => PurchaseManager.updatePaymentTotal(),
+        restToDue: () => PurchaseManager.putRestInDue(),
+        fillAll: (type) => PurchaseManager.fillPayableAmount(type),
+        heavyPackets: () => PurchaseManager.computeTotals(0).heavyPackets,
+        totalsChanged: () => PurchaseManager.updateTotals()
     },
     sale: {
-        mic: 'voiceMicSale', item: 'saleItem', rate: 'saleRate', weight: 'saleWeight',
+        key: 'sale', kind: 'retail',
+        mic: 'voiceMicSale', nameMic: 'voiceNameSale', item: 'saleItem', rate: 'saleRate', weight: 'saleWeight',
         customer: 'saleCustomerName', customerNames: 'saleCustomerOptions',
         transcript: 'voiceTranscriptSale', undo: 'voiceUndoSale', lock: 'retail',
+        cash: 'saleCashPayment', online: 'saleOnlinePayment', due: 'saleDueAmount', note: 'saleComments', date: 'saleDate',
+        labourOn: null, labour: null,
         editing: () => !!RetailSaleManager.isEditingLine?.(),
         pending: () => RetailSaleManager.getSaleWeights() || [],
         loadRates: () => BillingManager.loadSaleRates(),
         addLine: () => RetailSaleManager.addToSalesBill(),
+        addWeights: (list) => {
+            RetailSaleManager.setSaleWeights([...(RetailSaleManager.getSaleWeights() || []), ...list]);
+            RetailSaleManager.renderSaleWeights?.();
+        },
         lines: () => RetailSaleManager.getSaleItems() || [],
         removeLine: (i) => RetailSaleManager.removeSaleItem(i),
-        lineCount: () => (RetailSaleManager.getSaleItems() || []).length
+        lineCount: () => (RetailSaleManager.getSaleItems() || []).length,
+        total: () => computeRetailTotals(RetailSaleManager.getSaleItems() || []).total,
+        split: () => RetailSaleManager.readPaymentSplit(),
+        payChanged: () => RetailSaleManager.updateSalePaymentTotal(),
+        restToDue: () => RetailSaleManager.putRestInDue(),
+        fillAll: (type) => RetailSaleManager.fillReceivableAmount(type),
+        heavyPackets: () => 0,
+        totalsChanged: () => RetailSaleManager.updateSaleTotals?.()
     }
 };
 
@@ -139,16 +173,59 @@ export function beep(kind, win = window) {
 }
 
 const LISTEN_TIMEOUT_MS = 15000;
+/** A hold listens at most this long. */
+const HOLD_MAX_MS = 60000;
+/** After a quick tap, the browser engine stops this long after the last words. */
+const QUIET_MS = 1500;
+/** After release, how long the engine may take to give its last words. */
+const FINAL_WAIT_MS = 2500;
 
 /** Error codes of both engines → message key ('' = say nothing, the user stopped it). */
 export function voiceErrorKey(code) {
     const c = String(code || '').toLowerCase();
     if (c === 'aborted') return '';
+    if (c === 'no-recogniser') return 'msg.voice.no_recogniser';
     if (c.includes('no-speech') || c.includes('no speech') || c.includes('no match')) return 'msg.voice.no_speech';
     if (c.includes('not-allowed') || c.includes('permission') || c.includes('audio-capture')) return 'msg.voice.mic_denied';
     if (c.includes('network')) return 'msg.voice.offline';
+    if (c.includes('busy')) return 'msg.voice.busy';
     if (c.includes('unavailable') || c.includes('not available')) return 'msg.voice.unavailable';
     return 'msg.voice.failed';
+}
+
+let micGranted = false;
+
+/** Forget that the microphone was allowed (tests; Android restarts the app when it is taken back). */
+export function forgetMicPermission() {
+    micGranted = false;
+}
+
+/**
+ * The Android app's microphone permission (#498): checked on each first use, asked for only
+ * when Android may still ask. 'asked' = just allowed in the system dialog.
+ * @param {any} plugin Capacitor SpeechRecognition
+ * @returns {Promise<'granted'|'asked'|'denied'>}
+ */
+export async function micPermission(plugin) {
+    if (micGranted) return 'granted';
+    let perm = (await plugin.checkPermissions?.())?.speechRecognition;
+    if (perm === 'granted') {
+        micGranted = true;
+        return 'granted';
+    }
+    perm = (await plugin.requestPermissions?.())?.speechRecognition;
+    if (perm === 'granted') {
+        micGranted = true;
+        return 'asked';
+    }
+    return 'denied';
+}
+
+/** The phone's recogniser is there (Google's speech services or another). */
+async function nativeReady(plugin) {
+    if (!plugin) throw new Error('unavailable');
+    const { available } = await plugin.available();
+    if (!available) throw new Error('no-recogniser');
 }
 
 /** Browser Web Speech API (Chrome): one utterance, up to 3 alternatives. */
@@ -185,17 +262,14 @@ export function listenWeb(lang, win = window) {
     });
 }
 
-/** Android app: the phone's own recogniser through @capacitor-community/speech-recognition. */
+/** Android app: the phone's own recogniser through @capacitor-community/speech-recognition, one utterance. */
 export async function listenNative(lang, plugin) {
-    if (!plugin) throw new Error('unavailable');
-    const { available } = await plugin.available();
-    if (!available) throw new Error('unavailable');
-    let perm = await plugin.checkPermissions();
-    if (perm?.speechRecognition !== 'granted') perm = await plugin.requestPermissions();
-    if (perm?.speechRecognition !== 'granted') throw new Error('not-allowed');
+    await nativeReady(plugin);
+    if ((await micPermission(plugin)) === 'denied') throw new Error('not-allowed');
     let timer = null;
     const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => {
+            // The plugin's stop() never answers: never wait for it
             Promise.resolve(plugin.stop?.()).catch(() => {});
             reject(new Error('no-speech'));
         }, LISTEN_TIMEOUT_MS);
@@ -208,18 +282,233 @@ export async function listenNative(lang, plugin) {
     }
 }
 
+/** The recogniser's alternatives for the words heard so far: earlier pieces' best, then each guess for the last. */
+function joinPieces(/** @type {string[][]} */ pieces) {
+    const list = pieces.filter(p => p.length);
+    if (!list.length) return [];
+    const head = list.slice(0, -1).map(p => p[0]).join(' ');
+    return list[list.length - 1].map(a => `${head} ${a}`.trim()).filter(Boolean);
+}
+
+/**
+ * Hold-to-talk (#498): listens until stop(), across the pauses at which an engine ends by itself
+ * (it starts again while the mic is held), with the words so far through onPartial.
+ * finishOnSilence() turns it into a one-shot listen (a quick tap); abort() drops what was heard.
+ * @param {'native'|'web'} engine
+ * @param {string} lang
+ * @param {{onPartial?: (text: string) => void, win?: any}} [opts]
+ * @returns {{result: Promise<string[]>, stop: () => void, finishOnSilence: () => void, abort: () => void}}
+ */
+export function openSession(engine, lang, { onPartial = () => {}, win = window } = {}) {
+    let held = true;
+    let stopping = false;
+    let aborted = false;
+    let done = false;
+    let restarts = 0;
+    /** @type {string[][]} */
+    const pieces = [];
+    /** @type {string[]} */
+    let current = [];
+    let resolveFn = (_) => {};
+    let rejectFn = (_) => {};
+    const result = new Promise((res, rej) => { resolveFn = res; rejectFn = rej; });
+    const timers = new Set();
+    const later = (fn, ms) => {
+        const id = setTimeout(() => { timers.delete(id); fn(); }, ms);
+        timers.add(id);
+        return id;
+    };
+    const cleanups = [];
+    const heard = () => joinPieces([...pieces, current]);
+    const tellPartial = () => { try { onPartial(heard()[0] || ''); } catch { /* display only */ } };
+    const finish = (err = null) => {
+        if (done) return;
+        done = true;
+        timers.forEach(clearTimeout);
+        timers.clear();
+        cleanups.forEach(fn => { try { fn(); } catch { /* already gone */ } });
+        const words = aborted ? [] : heard();
+        if (err && !words.length && !aborted) rejectFn(err);
+        else resolveFn(words);
+    };
+    later(() => api.stop(), HOLD_MAX_MS);
+
+    /** @type {{stop: () => void, abort: () => void, quiet: () => void}} */
+    let engineApi;
+    if (engine === 'native') {
+        const plugin = win.Capacitor?.Plugins?.SpeechRecognition;
+        let ended = false;
+        let restarting = false;
+        const begin = () => plugin.start({ language: lang, maxResults: 3, partialResults: true, popup: false });
+        // Android ended (a pause, or after stop): its last words come just after
+        const onEnded = () => {
+            if (done || ended || restarting) return;
+            ended = true;
+            if (stopping) return;
+            later(() => {
+                if (done) return;
+                if (current.length) pieces.push(current);
+                current = [];
+                if (held && !aborted && restarts < 20) {
+                    restarts++;
+                    restarting = true;
+                    Promise.resolve(begin()).then(() => { ended = false; restarting = false; })
+                        .catch(e => { restarting = false; finish(e); });
+                    return;
+                }
+                finish(new Error('no-speech'));
+            }, 400);
+        };
+        const listen = (event, fn) => Promise.resolve(plugin.addListener?.(event, fn))
+            .then(h => { if (done) h?.remove?.(); else cleanups.push(() => h?.remove?.()); });
+        (async () => {
+            try {
+                await listen('partialResults', (d) => {
+                    const matches = (d?.matches || []).map(String).filter(m => m.trim());
+                    if (!matches.length || done) return;
+                    current = matches.slice(0, 3);
+                    tellPartial();
+                    // After stop(), the next result is the last one
+                    if (stopping) later(() => finish(), 150);
+                });
+                await listen('listeningState', (d) => { if (d?.status === 'stopped') onEnded(); });
+                await begin();
+                const poll = setInterval(async () => {
+                    if (done || restarting || ended) return;
+                    try {
+                        const state = await plugin.isListening?.();
+                        if (state && state.listening === false) onEnded();
+                    } catch { /* keep listening */ }
+                }, 1000);
+                cleanups.push(() => clearInterval(poll));
+                if (aborted || stopping) engineApi[aborted ? 'abort' : 'stop']();
+            } catch (e) {
+                finish(e);
+            }
+        })();
+        engineApi = {
+            stop: () => {
+                // The plugin's stop() never answers: never wait for it
+                Promise.resolve(plugin.stop?.()).catch(() => {});
+                later(() => finish(), ended ? 500 : FINAL_WAIT_MS);
+            },
+            abort: () => {
+                Promise.resolve(plugin.stop?.()).catch(() => {});
+                finish();
+            },
+            quiet: () => { if (ended) later(() => finish(), 400); }
+        };
+    } else {
+        const Ctor = win.SpeechRecognition || win.webkitSpeechRecognition;
+        /** @type {any} */
+        let rec = null;
+        let lastError = null;
+        let quietTimer = null;
+        const armQuiet = () => {
+            if (held || stopping) return;
+            clearTimeout(quietTimer);
+            timers.delete(quietTimer);
+            quietTimer = later(() => engineApi.stop(), QUIET_MS);
+        };
+        const begin = () => {
+            rec = new Ctor();
+            rec.lang = lang;
+            rec.continuous = true;
+            rec.interimResults = true;
+            rec.maxAlternatives = 3;
+            rec.onresult = (e) => {
+                /** @type {string[][]} */
+                const finals = [];
+                let interim = [];
+                for (let i = 0; i < e.results.length; i++) {
+                    const r = e.results[i];
+                    const alts = [];
+                    for (let k = 0; k < r.length; k++) alts.push(String(r[k].transcript || ''));
+                    if (r.isFinal) finals.push(alts);
+                    else interim = alts;
+                }
+                current = joinPieces([...finals, interim]);
+                tellPartial();
+                armQuiet();
+            };
+            rec.onerror = (e) => {
+                const code = e?.error || 'failed';
+                if (code === 'no-speech' && held) return;
+                if (code !== 'aborted') lastError = new Error(code);
+            };
+            rec.onend = () => {
+                if (current.length) pieces.push(current);
+                current = [];
+                if (held && !stopping && !aborted && !lastError && restarts < 20) {
+                    restarts++;
+                    try { begin(); return; } catch (e) { lastError = e; }
+                }
+                finish(lastError || new Error('no-speech'));
+            };
+            rec.start();
+        };
+        if (!Ctor) later(() => finish(new Error('unavailable')), 0);
+        else {
+            try { begin(); } catch (e) { later(() => finish(e), 0); }
+        }
+        engineApi = {
+            stop: () => {
+                stopping = true;
+                try { rec?.stop(); } catch { /* already stopped */ }
+                later(() => finish(), FINAL_WAIT_MS);
+            },
+            abort: () => {
+                try { rec?.abort(); } catch { /* already stopped */ }
+                finish();
+            },
+            quiet: () => {
+                if (current.length) armQuiet();
+                else later(() => engineApi.stop(), LISTEN_TIMEOUT_MS);
+            }
+        };
+    }
+    const api = {
+        result,
+        stop() {
+            if (done || stopping) return;
+            held = false;
+            stopping = true;
+            engineApi.stop();
+        },
+        finishOnSilence() {
+            if (done) return;
+            held = false;
+            engineApi.quiet();
+        },
+        abort() {
+            if (done) return;
+            held = false;
+            aborted = true;
+            engineApi.abort();
+        }
+    };
+    return api;
+}
+
 const byId = (id) => document.getElementById(id);
+const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
 const itemLabel = (item) => (AppState.settings?.showHindi && item.hindiName ? item.hindiName : item.name) || '';
 /** Readback names the item in the language it is spoken in. */
 const spokenLabel = (item) => (getLang() === 'hi' && item.hindiName ? item.hindiName : item.name) || '';
 /** Column heads reuse the form labels without their colon. */
 const head = (key) => t(key).replace(/\s*[:：]\s*$/, '');
-const lineItem = (line) => (line.itemIndex !== null ? AppState.items[line.itemIndex] : null);
+/** The line's item as it was when heard (the item list can change while the sheet is open). */
+const lineItem = (line) => (line.item !== undefined ? line.item : (line.itemIndex !== null ? AppState.items[line.itemIndex] : null));
 const complete = (line) => line.itemIndex !== null && line.weight !== null && line.rate !== null;
 const formKey = (mode) => (mode === 'sale' ? 'sale' : 'purchase');
+const value = (id) => String((id && byId(id)?.value) ?? '');
 const boxes = (f) => ({
-    customer: String(byId(f.customer)?.value ?? ''), item: String(byId(f.item)?.value ?? ''),
-    rate: String(byId(f.rate)?.value ?? ''), weight: String(byId(f.weight)?.value ?? '')
+    customer: value(f.customer), item: value(f.item), rate: value(f.rate), weight: value(f.weight),
+    cash: value(f.cash), online: value(f.online), due: value(f.due), note: value(f.note),
+    ...(f.labour ? {
+        labour: value(f.labour), labourOn: byId(f.labourOn)?.checked === false ? '0' : '1',
+        labourTyped: byId(f.labour)?.dataset.manuallySet ? '1' : '0'
+    } : {})
 });
 /** A typed correction: a positive number, else not heard. */
 const typedNumber = (v) => {
@@ -227,133 +516,613 @@ const typedNumber = (v) => {
     const n = Number(text.replace(',', '.'));
     return text !== '' && Number.isFinite(n) && n > 0 ? n : null;
 };
+/** A typed amount: 0 or more, else none. */
+const typedAmount = (v) => {
+    const text = String(v ?? '').trim();
+    const n = Number(text.replace(',', '.'));
+    return text !== '' && Number.isFinite(n) && n >= 0 ? n : null;
+};
+const lineAmount = (line) => voiceLineAmount(line);
+const hasExtras = (b) => !!b && (b.rate !== null || b.labour || b.note || b.date || b.unclear.length > 0
+    || ['cash', 'online', 'due', 'rest', 'full'].some(k => b.payment[k] !== null && b.payment[k] !== undefined)
+    || b.lines.some(l => Array.isArray(l.weights) && l.weights.length > 0));
+/** A payment leg's Fill box (onlineCheckbox, saleCashCheckbox…). */
+const payBox = (f, k) => byId(f.key === 'sale' ? `sale${k[0].toUpperCase()}${k.slice(1)}Checkbox` : `${k}Checkbox`);
+const PAY_LABEL = { cash: 'ui.billing.cash_label', online: 'ui.billing.online_label', due: 'ui.billing.due_label' };
+const HONORIFIC_END = new Set(['ji', 'जी']);
+const NAME_DROP = new Set([...VOICE_WORDS.CUSTOMER_WORDS, ...VOICE_WORDS.NAME_FILLER, ...VOICE_WORDS.NAME_END,
+    'from', 'supplier', 'seller', 'farmer', 'mr', 'mrs', 'shri', 'please', 'सप्लायर', 'श्री']);
+
+/** The name in what was said for the name mic: "Ramesh bhai se" → "Ramesh Bhai", "customer Suresh" → "Suresh". */
+export function nameFromSpeech(text) {
+    const words = voiceTokens(text).filter(w => !/\d/.test(w));
+    let a = 0;
+    let b = words.length;
+    while (a < b && NAME_DROP.has(words[a])) a++;
+    while (b > a && NAME_DROP.has(words[b - 1]) && !HONORIFIC_END.has(words[b - 1])) b--;
+    return voiceNameCase(words.slice(a, Math.min(b, a + 4)));
+}
 
 export const VoiceBilling = {
     busy: false,
-    /** @type {?{text: string, lang: string}} what the open check dialog reads aloud */
+    /** A listen (tap or hold) is running. */
+    listening: false,
+    /** @type {?{text: string, lang: string}} what the open check sheet reads aloud */
     spoken: null,
     /** Voice changes per form, last first (#131). */
     undo: { purchase: createVoiceUndo(), sale: createVoiceUndo() },
-    /** @type {?{lines: Array, items: Array}} the open check dialog's lines and the item list it offers */
+    /** @type {?{lines: Array, items: Array}} the open check sheet's lines and the item list it offers */
     checking: null,
+    /** @type {?{key: string, acc: any, history: any[], partyChoice: ?string}} the open check sheet (#498) */
+    sheet: null,
     /** What the current action heard, for the transcript strip. */
     heardNow: '',
 
     /**
-     * One mic tap: listen, check (and read back), then fill or add.
+     * A tap or a key on the mic: listen once, then the check sheet (or add to the open one).
      * @param {'purchase'|'sale'} mode
      * @param {'native'|'web'} engine
-     * @returns {Promise<boolean>} true when something was filled or added
+     * @returns {Promise<boolean>} true when something was put on the page
      */
     async listenOnce(mode, engine) {
         const key = formKey(mode);
         const f = FIELDS[key];
-        if (this.busy) return false;
-        this.busy = true;
+        if (this.listening || this.busy) return false;
+        this.listening = true;
         this.heardNow = '';
-        const mic = byId(f.mic);
-        mic?.classList.add('voice-listening');
-        mic?.setAttribute('aria-busy', 'true');
-        UIManager.showToast(t('msg.voice.listening'));
-        this.setStrip(f, '', t('msg.voice.listening'));
+        const mic = this.micFor(f);
+        this.showListening(f, mic, true, t('msg.voice.listening'));
+        let heard;
         try {
             // Chrome loads its voice list on first ask; by the time speech is heard it is there
             try { window.speechSynthesis?.getVoices?.(); } catch { /* no speech synthesis */ }
-            const lang = getLang() === 'hi' ? 'hi-IN' : 'en-IN';
-            const heard = engine === 'native'
-                ? await listenNative(lang, window.Capacitor?.Plugins?.SpeechRecognition)
-                : await listenWeb(lang);
-            mic?.classList.remove('voice-listening');
-            const toast = byId('toast');
-            if (toast?.textContent === t('msg.voice.listening')) toast.classList.remove('show');
-            if (!heard.some(h => String(h || '').trim())) {
-                beep('fail');
-                this.setStrip(f, '', t('msg.voice.no_speech'));
-                UIManager.showToast(t('msg.voice.no_speech'));
-                return false;
-            }
-            if (isUndoCommand(heard)) {
-                beep('ok');
-                this.heardNow = String(heard.find(h => String(h || '').trim())).trim();
-                this.undoLast(key, true);
-                return false;
-            }
-            const known = [...(byId(f.customerNames)?.options || [])].map(o => o.value).filter(Boolean);
-            const bill = pickVoiceBill(heard, AppState.items, known);
-            this.heardNow = bill.heard;
-            if (!hasVoiceBillValues(bill)) {
-                beep('fail');
-                trackVoiceMiss(bill.heard);
-                this.tell(f, t('msg.voice.not_understood', { heard: bill.heard }), 4000);
-                return false;
-            }
-            beep('ok');
-            this.setStrip(f, bill.heard, t('ui.voice.strip_check'));
-            const lines = bill.lines.filter(l => l.itemIndex !== null || l.weight !== null || l.rate !== null)
-                .map(l => ({ ...l, item: lineItem(l) }));
-            const current = String(byId(f.customer)?.value || '').trim();
-            const readback = !!localVoice(lang) && this.readbackText(bill.customer, lines);
-            this.checking = { lines, items: AppState.items.slice() };
-            const asked = UIManager.showModalWithHtml(this.previewHtml(bill, lines, current, !!readback), t('ui.voice.check_title'), true);
-            this.spoken = readback ? { text: readback, lang } : null;
-            if (this.spoken) Readback.speak(this.spoken.text, lang);
-            const ok = await asked;
-            this.spoken = null;
-            Readback.stop();
-            if (!ok) {
-                this.setStrip(f, bill.heard, t('ui.voice.strip_cancelled'));
-                return false;
-            }
-            if (Helpers.isBusy(f.lock)) {
-                this.tell(f, t('msg.voice.finish_saving'), 4000);
-                return false;
-            }
-            const used = lines.map((line, i) => this.correctedLine(line, i));
-            if (used.some(l => l.edited)) track('voice.edit');
-            const before = boxes(f);
-            const linesBefore = f.lines().slice();
-            try {
-                return await this.apply(f, bill, used);
-            } finally {
-                const added = f.lines().filter(l => !linesBefore.includes(l));
-                if (this.undo[key].push({ lines: added, fields: fieldChanges(before, boxes(f)) })) this.refreshUndo(key);
-            }
+            heard = engine === 'native'
+                ? await listenNative(this.lang(), window.Capacitor?.Plugins?.SpeechRecognition)
+                : await listenWeb(this.lang());
         } catch (e) {
-            const errKey = voiceErrorKey(e?.message || e);
-            if (errKey) {
-                beep('fail');
-                this.setStrip(f, this.heardNow, t(errKey));
-                UIManager.showToast(t(errKey), 4000);
-            }
+            this.listenFailed(f, e);
             return false;
         } finally {
-            this.busy = false;
+            this.listening = false;
+            this.showListening(f, mic, false);
+        }
+        return this.handleHeard(key, heard);
+    },
+
+    /**
+     * The mic pressed and held (#498): listens until released. Released quickly, it listens once
+     * (to the first pause); released off the button, or the press cancelled, nothing is used.
+     * In the Android app the first press asks for the microphone and does not listen yet.
+     * @param {'purchase'|'sale'} mode
+     * @param {'native'|'web'} engine
+     * @param {{btn?: ?HTMLElement, released?: boolean, cancel?: boolean, quick?: boolean, session?: any}} hold
+     * @returns {Promise<boolean>}
+     */
+    async beginHold(mode, engine, hold) {
+        const key = formKey(mode);
+        const f = FIELDS[key];
+        if (this.listening || this.busy) return false;
+        this.listening = true;
+        this.heardNow = '';
+        const mic = hold.btn || this.micFor(f);
+        let heard;
+        try {
+            if (engine === 'native') {
+                const plugin = window.Capacitor?.Plugins?.SpeechRecognition;
+                await nativeReady(plugin);
+                const perm = await micPermission(plugin);
+                if (perm !== 'granted') {
+                    // The system dialog took the press: listen from the next one
+                    const msg = t(perm === 'asked' ? 'msg.voice.mic_allowed' : 'msg.voice.mic_denied');
+                    this.setStrip(f, '', msg);
+                    UIManager.showToast(msg, 5000);
+                    return false;
+                }
+            }
+            if (hold.released && hold.cancel) return false;
+            try { window.speechSynthesis?.getVoices?.(); } catch { /* no speech synthesis */ }
+            this.showListening(f, mic, true, t('msg.voice.hold_listening'));
+            const session = openSession(engine, this.lang(), { onPartial: (text) => this.showLive(f, text) });
+            hold.session = session;
+            if (hold.released) this.endHold(hold);
+            heard = await session.result;
+        } catch (e) {
+            this.listenFailed(f, e);
+            return false;
+        } finally {
+            this.listening = false;
+            this.showListening(f, mic, false);
+        }
+        if (hold.cancel) {
+            this.showLive(f, '');
+            this.setStrip(f, '', t('ui.voice.strip_hold_cancelled'));
+            return false;
+        }
+        return this.handleHeard(key, heard);
+    },
+
+    /** The press ended: stop (held), listen to the first pause (quick tap) or drop it (slid off / cancelled). */
+    endHold(hold) {
+        const s = hold?.session;
+        if (!s) return;
+        if (hold.cancel) s.abort();
+        else if (hold.quick) s.finishOnSilence();
+        else s.stop();
+    },
+
+    lang() {
+        return getLang() === 'hi' ? 'hi-IN' : 'en-IN';
+    },
+
+    micFor(f) {
+        return this.sheet ? (document.querySelector('#modalMessage [data-voice-hold]') || byId(f.mic)) : byId(f.mic);
+    },
+
+    showListening(f, mic, on, message = '') {
+        if (mic) {
+            mic.classList.toggle('voice-listening', on);
+            if (on) mic.setAttribute('aria-busy', 'true');
+            else mic.removeAttribute('aria-busy');
+        }
+        if (on) {
+            UIManager.showToast(message);
+            this.setStrip(f, '', message);
+            this.showLive(f, '');
+            return;
+        }
+        const toast = byId('toast');
+        if (toast && [t('msg.voice.listening'), t('msg.voice.hold_listening'), t('msg.voice.name_listening')].includes(toast.textContent)) toast.classList.remove('show');
+    },
+
+    /** Words so far while the mic is held, under the mic (and in the open check sheet). */
+    showLive(f, text) {
+        const live = byId('voiceSheetLive');
+        if (live) live.textContent = text ? t('ui.voice.live', { text }) : '';
+        if (text) this.setStrip(f, '', t('ui.voice.live', { text }));
+    },
+
+    listenFailed(f, e) {
+        const errKey = voiceErrorKey(e?.message || e);
+        if (!errKey) return;
+        beep('fail');
+        this.setStrip(f, this.heardNow, t(errKey));
+        UIManager.showToast(t(errKey), 5000);
+    },
+
+    knownNames(f) {
+        return [...(byId(f.customerNames)?.options || [])].map(o => o.value).filter(Boolean);
+    },
+
+    /** The parties a spoken name may be, closest first, and the one it surely is (if any). */
+    partyMatches(f, spoken) {
+        let entries;
+        try { entries = partyEntriesFor(f.kind); } catch { entries = entriesFromNames(this.knownNames(f)); }
+        return rankPartyMatches(entries, spoken);
+    },
+
+    /**
+     * What was heard: "undo", or parts of the bill for the check sheet (a new one, or added to the open one).
+     * @param {'purchase'|'sale'} key
+     * @param {string[]} heard alternatives
+     * @returns {Promise<boolean>}
+     */
+    async handleHeard(key, heard) {
+        const f = FIELDS[key];
+        if (!(heard || []).some(h => String(h || '').trim())) {
+            beep('fail');
+            this.setStrip(f, '', t('msg.voice.no_speech'));
+            UIManager.showToast(t('msg.voice.no_speech'));
+            return false;
+        }
+        this.heardNow = String(heard.find(h => String(h || '').trim())).trim();
+        if (isUndoCommand(heard)) {
+            beep('ok');
+            if (this.sheet?.key === key) return this.undoSheetStep();
+            this.undoLast(key, true);
+            return false;
+        }
+        const bill = pickWholeBill(heard, AppState.items, { knownNames: this.knownNames(f) });
+        this.heardNow = bill.heard;
+        if (!hasWholeBillValues(bill)) {
+            beep('fail');
+            trackVoiceMiss(bill.heard);
+            const msg = t('msg.voice.not_understood', { heard: bill.heard });
+            if (this.sheet?.key === key) {
+                const live = byId('voiceSheetLive');
+                if (live) live.textContent = msg;
+                return false;
+            }
+            this.tell(f, msg, 4000);
+            return false;
+        }
+        beep('ok');
+        bill.lines = bill.lines.map(l => ({ ...l, item: lineItem(l) }));
+        if (bill.party) bill.party = { ...bill.party, ...this.partyMatches(f, bill.party.spoken) };
+        if (this.sheet?.key === key) {
+            this.captureSheet();
+            this.sheet.history.push(this.sheet.acc);
+            this.sheet.acc = mergeWholeBill(this.sheet.acc, bill);
+            if (bill.party) this.sheet.partyChoice = null;
+            this.renderSheet();
+            this.readAloud([bill], key);
+            return true;
+        }
+        return this.openVoiceSheet(key, bill);
+    },
+
+    /** "undo" said while the check sheet is open: takes back what the last hold added to it. */
+    undoSheetStep() {
+        const sheet = this.sheet;
+        if (!sheet?.history.length) {
+            const live = byId('voiceSheetLive');
+            if (live) live.textContent = t('msg.voice.undo_none');
+            return false;
+        }
+        sheet.acc = sheet.history.pop();
+        this.renderSheet();
+        const live = byId('voiceSheetLive');
+        if (live) live.textContent = t('ui.voice.sheet_undone');
+        return true;
+    },
+
+    /** Opens the check sheet and, after "Fill bill", puts what it shows on the page. */
+    async openVoiceSheet(key, bill) {
+        const f = FIELDS[key];
+        this.sheet = { key, acc: mergeWholeBill(null, bill), history: [], partyChoice: null };
+        this.setStrip(f, bill.heard, t('ui.voice.strip_check', { fill: t('ui.voice.fill_bill') }));
+        const asked = UIManager.showModalWithHtml(this.sheetHtml(), t('ui.voice.check_title'), true, { confirmLabel: t('ui.voice.fill_bill') });
+        this.readAloud([bill], key);
+        let ok = false;
+        let sheet = null;
+        try {
+            ok = await asked;
+            sheet = this.sheet;
+            if (ok) this.captureSheet();
+        } finally {
             this.spoken = null;
+            Readback.stop();
+            this.sheet = null;
+        }
+        if (!ok) {
             this.checking = null;
-            mic?.classList.remove('voice-listening');
-            mic?.removeAttribute('aria-busy');
+            this.setStrip(f, sheet?.acc.heard || bill.heard, t('ui.voice.strip_cancelled'));
+            return false;
+        }
+        if (Helpers.isBusy(f.lock)) {
+            this.checking = null;
+            this.tell(f, t('msg.voice.finish_saving'), 4000);
+            return false;
+        }
+        this.heardNow = sheet.acc.heard;
+        this.busy = true;
+        const before = boxes(f);
+        const linesBefore = f.lines().slice();
+        try {
+            return await this.applySheet(f, sheet);
+        } finally {
+            this.busy = false;
+            this.checking = null;
+            const added = f.lines().filter(l => !linesBefore.includes(l));
+            if (this.undo[key].push({ lines: added, fields: fieldChanges(before, boxes(f)) })) this.refreshUndo(key);
         }
     },
 
-    /** After OK: the customer, then one line in the form or the ticked lines on the bill. */
-    async apply(f, bill, lines) {
-        const ticked = (el, fallback) => (el ? !!el.checked : fallback);
-        const name = bill.customer && ticked(byId('voiceCustomerTick'), true) ? bill.customer : null;
+    readAloud(bills, key) {
+        const lang = this.lang();
+        const text = !!localVoice(lang) && bills.map(b => this.readbackText(b.party?.spoken || null, b.lines.map(l => ({ ...l, item: lineItem(l) })), b, key)).filter(Boolean).join('. ');
+        this.spoken = text ? { text, lang } : null;
+        if (this.spoken) Readback.speak(this.spoken.text, lang);
+    },
+
+    /** Reads what the user changed in the open sheet into it (so a new hold or Fill bill keeps it). */
+    captureSheet() {
+        const sheet = this.sheet;
+        const root = byId('voiceCheck');
+        if (!sheet || !root) return;
+        const acc = sheet.acc;
+        acc.lines = acc.lines.map((line, i) => {
+            const now = this.correctedLine({ ...line, item: lineItem(line) }, i);
+            const tick = root.querySelector(`[data-voice-line="${i}"]`);
+            return { ...now, unticked: tick ? !tick.checked : !!line.unticked };
+        });
+        const tick = (id) => root.querySelector(`#${id}`);
+        if (acc.party) {
+            const pick = tick('voicePartyPick');
+            if (pick) sheet.partyChoice = pick.value;
+            if (tick('voiceCustomerTick') && !tick('voiceCustomerTick').checked) acc.party = { ...acc.party, skip: true };
+            else if (acc.party.skip) acc.party = { ...acc.party, skip: false };
+        }
+        root.querySelectorAll('[data-voice-pay]').forEach(input => {
+            acc.payment[input.dataset.voicePay] = typedAmount(input.value);
+        });
+        if (tick('voicePayRest') && !tick('voicePayRest').checked) acc.payment.rest = null;
+        if (tick('voicePayFull') && !tick('voicePayFull').checked) acc.payment.full = null;
+        if (acc.labour) {
+            if (tick('voiceLabourTick') && !tick('voiceLabourTick').checked) acc.labour = null;
+            else if (tick('voiceLabour')) {
+                const v = typedAmount(tick('voiceLabour').value);
+                acc.labour = acc.labour.perBag !== null ? { ...acc.labour, perBag: v } : { ...acc.labour, amount: v };
+            }
+        }
+        if (tick('voiceNote')) acc.note = String(tick('voiceNote').value || '').trim() || null;
+        if (tick('voiceDateTick') && !tick('voiceDateTick').checked) acc.date = null;
+        if (tick('voiceRateTick') && !tick('voiceRateTick').checked) acc.rate = null;
+        else if (tick('voiceRate')) acc.rate = typedNumber(tick('voiceRate').value);
+    },
+
+    renderSheet() {
+        const el = byId('voiceCheck');
+        if (el) el.outerHTML = this.sheetHtml();
+        else {
+            const msg = byId('modalMessage');
+            if (msg) msg.innerHTML = this.sheetHtml();
+        }
+    },
+
+    /** The party the sheet will fill: the one picked, the one surely meant, or the words as said. */
+    partyName(party, choice) {
+        if (!party || party.skip) return null;
+        const matches = party.matches || [];
+        const pick = choice ?? (party.sure ? `m${matches.indexOf(party.sure) === -1 ? 0 : matches.indexOf(party.sure)}` : 'spoken');
+        if (pick.startsWith('m')) return matches[Number(pick.slice(1))]?.name || party.spoken;
+        return party.spoken;
+    },
+
+    /** The day a spoken date stands for, and whether this bill may take it (owner, not an edited / locked bill, in range). */
+    dateFor(f, date) {
+        if (!date) return null;
+        const now = new Date();
+        const day = toLocalISODate(/** @type {Date} */ (addLocalDays(now, -date.daysAgo)));
+        const input = byId(f.date);
+        if (!canChangeBillDate() || !input || input.disabled || input.dataset.locked) return { day, ok: false, why: 'ui.voice.date_not_allowed' };
+        const range = billDayRange(billDateWho(now));
+        if (day < range.min || day > range.max) return { day, ok: false, why: 'ui.voice.date_out_of_range' };
+        return { day, ok: true, why: '' };
+    },
+
+    /** The check sheet (#498): everything understood, each part editable or untickable; unclear parts marked. */
+    sheetHtml() {
+        const sheet = this.sheet;
+        const f = FIELDS[sheet.key];
+        const acc = sheet.acc;
+        const lines = acc.lines.map(l => ({ ...l, item: lineItem(l) }));
+        this.checking = { lines, items: AppState.items.slice() };
+        const simple = lines.length === 1 && !hasExtras(acc);
+        let html = `<div id="voiceCheck" class="voice-sheet"><p class="voice-heard">${esc(t('ui.voice.heard'))} `
+            + `${(acc.heardAll || [acc.heard]).map(h => `<q>${esc(h)}</q>`).join(' ')}</p>`;
+        html += this.partyHtml(f, acc.party, sheet.partyChoice);
+        if (lines.length) html += this.linesHtml(lines, simple);
+        if (acc.rate !== null) {
+            html += `<p class="voice-part"><label><input type="checkbox" id="voiceRateTick" checked> ${esc(t('ui.voice.rate_current'))}</label> `
+                + `<span class="adorn voice-part-input"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" type="number" inputmode="decimal" min="0" step="any" id="voiceRate" value="${esc(acc.rate)}" aria-label="${esc(t('ui.voice.rate_current'))}"></span></p>`;
+        }
+        html += this.labourHtml(f, acc.labour);
+        html += this.paymentHtml(acc.payment);
+        if (acc.note !== null) {
+            html += `<p class="voice-part"><label for="voiceNote">${esc(head('ui.billing.notes_label'))}</label> `
+                + `<input class="input" type="text" id="voiceNote" value="${esc(acc.note)}"></p>`;
+        }
+        const date = this.dateFor(f, acc.date);
+        if (date?.ok) {
+            html += `<p class="voice-part"><label><input type="checkbox" id="voiceDateTick" checked> ${esc(t('ui.voice.date_set', { day: formatDate(date.day, 'full') }))}</label></p>`;
+        } else if (date) {
+            html += `<p class="voice-warn voice-unclear">${esc(t(date.why, { day: formatDate(date.day, 'full') }))}</p>`;
+        }
+        acc.unclear.forEach(u => { html += `<p class="voice-warn voice-unclear">${esc(t('ui.voice.unclear', { heard: u }))}</p>`; });
+        const counted = lines.filter(l => !l.unticked && complete(l));
+        if (counted.length > 1 || (counted.length === 1 && hasExtras(acc))) {
+            html += `<p class="voice-lines-total">${esc(t('ui.voice.lines_total', { amount: formatRupees(voiceLinesTotal(counted)) }))}</p>`;
+        }
+        html += `<p class="voice-note">${esc(simple
+            ? t('ui.voice.check_note', { ok: t('ui.voice.fill_bill'), add: t('ui.common.add_bill') })
+            : t('ui.voice.sheet_note', { fill: t('ui.voice.fill_bill') }))}</p>`;
+        html += `<div class="voice-sheet-more"><button type="button" class="btn btn-tonal voice-sheet-mic" data-voice-hold="${esc(sheet.key)}" `
+            + `aria-label="${esc(t('ui.voice.hold_more'))}" title="${esc(t('ui.voice.hold_more_title'))}">`
+            + '<svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg>'
+            + `<span>${esc(t('ui.voice.hold_more'))}</span></button>`
+            + '<p class="voice-sheet-live" id="voiceSheetLive" role="status" aria-live="polite"></p></div>';
+        if (localVoice(this.lang())) {
+            html += `<p class="voice-readback"><label><input type="checkbox" id="voiceReadback" data-onchange="voice.setReadback(this.checked)"${Readback.isOn() ? ' checked' : ''}> ${esc(t('ui.voice.readback'))}</label></p>`;
+        }
+        return html + '</div>';
+    },
+
+    partyHtml(f, party, choice) {
+        if (!party) return '';
+        const label = esc(head(f.key === 'sale' ? 'ui.billing.customer_label' : 'ui.billing.supplier_label'));
+        const current = String(byId(f.customer)?.value || '').trim();
+        const matches = party.matches || [];
+        const name = this.partyName({ ...party, skip: false }, choice);
+        let html = `<p class="voice-customer"><label><input type="checkbox" id="voiceCustomerTick"${party.skip ? '' : ' checked'}> ${label}</label> `;
+        const unsure = matches.length > 0 && !party.sure && choice === null;
+        if (matches.length) {
+            const selected = choice ?? (party.sure ? `m${Math.max(0, matches.indexOf(party.sure))}` : 'spoken');
+            const options = matches.map((m, i) => `<option value="m${esc(i)}"${selected === `m${i}` ? ' selected' : ''}>${esc(m.name)} · ${esc(dueText(f.kind, m))}</option>`);
+            options.push(`<option value="spoken"${selected === 'spoken' ? ' selected' : ''}>${esc(t('ui.voice.use_spoken', { name: party.spoken }))}</option>`);
+            html += `<select class="input${unsure ? ' voice-unclear' : ''}" id="voicePartyPick" aria-label="${label}">${options.join('')}</select></p>`;
+            if (unsure) html += `<p class="voice-warn voice-unclear">${esc(t('ui.voice.party_unsure', { name: party.spoken }))}</p>`;
+            else if (party.sure && selected !== 'spoken') html += `<p class="voice-hint">${esc(t('ui.voice.party_matched', { heard: party.spoken, name: party.sure.name }))}</p>`;
+        } else {
+            html += `<strong>${esc(party.spoken)}</strong></p>`;
+        }
+        if (current && name && current !== name) html += `<p class="voice-warn">${esc(t('ui.voice.customer_replaces', { name: current }))}</p>`;
+        return html;
+    },
+
+    linesHtml(lines, simple) {
+        const missing = `<em>${esc(t('ui.voice.not_heard'))}</em>`;
+        const val = (v) => (v !== null && v !== undefined ? esc(v) : missing);
+        const kg = (line) => (Array.isArray(line.weights) && line.weights.length > 1
+            ? `${esc(line.weights.join(' + '))} = ${esc(line.weight)}` : val(line.weight));
+        const money = (line) => { const a = lineAmount(line); return a === null ? '' : esc(formatRupees(a)); };
+        const warns = (line, i) => (line.extraNumbers ? `<p class="voice-warn" data-voice-warn="${esc(i)}">${esc(t('ui.voice.extra_numbers'))}</p>` : '')
+            + (line.rateUnusual ? `<p class="voice-warn" data-voice-warn="${esc(i)}">${esc(t('ui.voice.rate_unusual'))}</p>` : '');
+        if (simple) {
+            const [line] = lines;
+            const row = (label, name, value) => `<tr><th scope="row">${esc(label)}</th><td data-voice-cell="${esc(name)}">${value}</td></tr>`;
+            return '<table class="voice-check"><tbody data-voice-row="0">'
+                + row(t('ui.common.item'), 'item', line.item ? esc(itemLabel(line.item)) : missing)
+                + row(t('ui.billing.weight_kg'), 'weight', kg(line))
+                + row(t('ui.billing.rate'), 'rate', val(line.rate))
+                + (complete(line) ? row(head('ui.common.total'), 'amount', money(line)) : '')
+                + '</tbody></table>' + warns(line, 0)
+                + `<p class="voice-edit-bar">${this.editButtonHtml(0)}</p>` + this.editorHtml(line, 0);
+        }
+        let html = `<table class="voice-check voice-lines"><thead><tr><th scope="col">${esc(t('ui.voice.tick_head'))}</th>`
+            + `<th scope="col">${esc(head('ui.common.item'))}</th><th scope="col">${esc(head('ui.billing.weight_kg'))}</th><th scope="col">${esc(head('ui.billing.rate'))}</th>`
+            + `<th scope="col">${esc(head('ui.common.total'))}</th><th scope="col">${esc(t('ui.voice.correct_head'))}</th></tr></thead>`;
+        lines.forEach((line, i) => {
+            const ok = complete(line);
+            html += `<tbody data-voice-row="${esc(i)}"${ok ? '' : ' class="voice-unclear"'}><tr><td><input type="checkbox" data-voice-line="${esc(i)}" aria-label="${esc(t('ui.voice.tick_line'))}"${ok && !line.unticked ? ' checked' : ''}${ok ? '' : ' disabled'}></td>`
+                + `<td data-voice-cell="item">${line.item ? esc(itemLabel(line.item)) : missing}</td><td data-voice-cell="weight">${kg(line)}</td><td data-voice-cell="rate">${val(line.rate)}</td>`
+                + `<td data-voice-cell="amount">${money(line)}</td><td>${this.editButtonHtml(i)}</td></tr>`;
+            const notes = (ok ? '' : `<p class="voice-warn" data-voice-incomplete="${esc(i)}">${esc(t('ui.voice.line_incomplete'))}</p>`) + warns(line, i);
+            html += `<tr class="voice-line-notes"><td></td><td colspan="5">${notes}${this.editorHtml(line, i)}</td></tr></tbody>`;
+        });
+        return html + '</table>';
+    },
+
+    labourHtml(f, labour) {
+        if (!labour) return '';
+        if (!f.labour) return `<p class="voice-warn voice-unclear">${esc(t('ui.voice.labour_purchase_only'))}</p>`;
+        if (!labour.on) return `<p class="voice-part"><label><input type="checkbox" id="voiceLabourTick" checked> ${esc(t('ui.voice.labour_off'))}</label></p>`;
+        if (labour.amount === null && labour.perBag === null) return `<p class="voice-part"><label><input type="checkbox" id="voiceLabourTick" checked> ${esc(t('ui.voice.labour_on'))}</label></p>`;
+        const perBag = labour.perBag !== null;
+        const label = perBag ? t('ui.voice.labour_per_bag') : head('ui.billing.labour_label');
+        return `<p class="voice-part"><label><input type="checkbox" id="voiceLabourTick" checked> ${esc(label)}</label> `
+            + `<span class="adorn voice-part-input"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" type="number" inputmode="decimal" min="0" step="any" id="voiceLabour" `
+            + `value="${esc(perBag ? labour.perBag : labour.amount)}" aria-label="${esc(label)}"></span></p>`;
+    },
+
+    paymentHtml(pay) {
+        const legs = /** @type {Array<'cash'|'online'|'due'>} */ (['cash', 'online', 'due']).filter(k => pay[k] !== null && pay[k] !== undefined);
+        if (!legs.length && !pay.rest && !pay.full) return '';
+        let html = `<div class="voice-part voice-pay"><p class="voice-part-title">${esc(t('ui.billing.payment'))}</p>`;
+        legs.forEach(k => {
+            html += `<p class="voice-pay-leg"><label for="voicePay-${esc(k)}">${esc(head(PAY_LABEL[k]))}</label> <span class="adorn voice-part-input"><span class="adorn-pre" aria-hidden="true">₹</span>`
+                + `<input class="input" type="number" inputmode="decimal" min="0" step="any" id="voicePay-${esc(k)}" data-voice-pay="${esc(k)}" value="${esc(pay[k])}"></span></p>`;
+        });
+        if (pay.rest) html += `<p><label><input type="checkbox" id="voicePayRest" checked> ${esc(t(`ui.voice.rest_${pay.rest}`))}</label></p>`;
+        if (pay.full) html += `<p><label><input type="checkbox" id="voicePayFull" checked> ${esc(t(`ui.voice.full_${pay.full}`))}</label></p>`;
+        return html + '</div>';
+    },
+
+    /**
+     * Fill bill: the party, then the lines (one line alone goes in the form as before; otherwise the ticked
+     * lines are added, each through the form's own Add to bill), the rate, labour, the payment, the note and
+     * the day. Like typing: nothing is saved.
+     */
+    async applySheet(f, sheet) {
+        const acc = sheet.acc;
+        let did = false;
+        const name = this.partyName(acc.party, sheet.partyChoice);
         if (name && byId(f.customer)) {
-            byId(f.customer).value = name;
+            fillPartyName(f.kind, name);
             BillingManager.triggerAutoSave?.();
+            did = true;
         }
-        if (lines.length === 0) {
-            if (name) this.tell(f, t('msg.voice.customer_filled', { name }), 4000);
-            return !!name;
+        const lines = acc.lines.map(l => ({ ...l, item: lineItem(l) }));
+        const used = lines.map((line, i) => this.correctedLine(line, i));
+        if (used.some(l => l.edited)) track('voice.edit');
+        const extras = hasExtras(acc);
+        let message = name ? t('msg.voice.customer_filled', { name }) : '';
+        if (used.length === 1 && !extras) {
+            return this.fill(f, used[0], used[0].item) || did;
         }
-        if (lines.length === 1) return this.fill(f, lines[0], lines[0].item) || !!name;
-        const chosen = lines.filter((l, i) => complete(l) && ticked(document.querySelector(`[data-voice-line="${i}"]`), true));
-        if (chosen.length === 0) {
-            this.tell(f, t(name ? 'msg.voice.customer_filled' : 'msg.voice.nothing_added', { name }), 4000);
-            return !!name;
+        if (used.length === 1 && !complete(used[0])) {
+            did = this.fill(f, used[0], used[0].item, false) || did;
+        } else if (used.length) {
+            const chosen = used.filter((l, i) => complete(l) && !l.unticked
+                && (document.querySelector(`[data-voice-line="${i}"]`)?.checked ?? true));
+            if (chosen.length) {
+                const result = await this.addLines(f, chosen, true);
+                if (result.added > 0) did = true;
+                if (result.stopped) return did;
+                message = t('msg.voice.lines_added', { n: result.added });
+            } else message = t(name ? 'msg.voice.customer_filled' : 'msg.voice.nothing_added', { name });
         }
-        return (await this.addLines(f, chosen)) || !!name;
+        if (acc.rate !== null && byId(f.rate)) {
+            byId(f.rate).value = String(acc.rate);
+            did = true;
+        }
+        did = this.applyLabour(f, acc.labour) || did;
+        did = this.applyPayment(f, acc.payment) || did;
+        if (acc.note && byId(f.note)) {
+            const box = byId(f.note);
+            const old = String(box.value || '').trim();
+            box.value = old && !old.includes(acc.note) ? `${old} ${acc.note}` : acc.note;
+            syncBillNotes(f.note, true);
+            did = true;
+        }
+        const date = this.dateFor(f, acc.date);
+        if (date?.ok) {
+            const input = byId(f.date);
+            input.value = date.day;
+            if (date.day !== toLocalISODate(new Date())) input.dataset.picked = '1';
+            else delete input.dataset.picked;
+            input.dataset.open = '1';
+            renderBillDateLine(f.date);
+            did = true;
+        }
+        BillingManager.triggerAutoSave?.();
+        if (extras && did) message = message ? `${message} ${t('msg.voice.bill_filled')}` : t('msg.voice.bill_filled');
+        if (message) this.tell(f, message, 4000);
+        return did;
+    },
+
+    applyLabour(f, labour) {
+        if (!labour || !f.labour) return false;
+        const box = byId(f.labour);
+        const on = byId(f.labourOn);
+        if (!box || !on) return false;
+        on.checked = !!labour.on;
+        if (labour.on && (labour.amount !== null || labour.perBag !== null)) {
+            const amount = labour.amount !== null ? labour.amount : labourForBags(labour.perBag, f.heavyPackets());
+            box.value = String(amount);
+            box.dataset.manuallySet = 'true';
+        }
+        f.totalsChanged();
+        return true;
+    },
+
+    applyPayment(f, pay) {
+        if (!pay) return false;
+        const set = (k, v) => {
+            const el = byId(f[k]);
+            if (!el) return;
+            el.value = String(v);
+            const tick = payBox(f, k);
+            if (tick) tick.checked = false;
+        };
+        let did = false;
+        if (pay.full) {
+            // As tapping that leg's Fill box
+            const box = payBox(f, pay.full);
+            if (box) box.checked = true;
+            f.fillAll(pay.full);
+            return true;
+        }
+        for (const k of /** @type {Array<'cash'|'online'|'due'>} */ (['cash', 'online', 'due'])) {
+            if (pay[k] !== null && pay[k] !== undefined) {
+                set(k, pay[k]);
+                did = true;
+            }
+        }
+        if (did) f.payChanged();
+        if (pay.rest === 'due') {
+            f.restToDue();
+            did = true;
+        } else if (pay.rest) {
+            const split = f.split();
+            const other = pay.rest === 'cash' ? 'online' : 'cash';
+            const rest = restInDue(f.total(), { cash: split.due || 0, online: split[other] || 0 });
+            if (rest.ok) {
+                set(pay.rest, rest.due);
+                f.payChanged();
+                did = true;
+            } else UIManager.showToast(t('msg.voice.rest_too_much'), 4000);
+        }
+        return did;
     },
 
     /** A toast that also goes in the transcript strip, after what was heard. */
@@ -386,7 +1155,7 @@ export const VoiceBilling = {
     undoLast(mode, spoken = false) {
         const key = formKey(mode);
         const f = FIELDS[key];
-        if (this.busy && !spoken) return false;
+        if ((this.busy || this.listening) && !spoken) return false;
         if (!spoken) this.heardNow = '';
         if (Helpers.isBusy(f.lock)) {
             this.tell(f, t('msg.voice.finish_saving'), 4000);
@@ -413,24 +1182,43 @@ export const VoiceBilling = {
             set(f.rate, 'rate' in plan.restore ? plan.restore.rate : rate);
         } else if ('rate' in plan.restore) set(f.rate, plan.restore.rate);
         if ('weight' in plan.restore) set(f.weight, plan.restore.weight);
+        if ('note' in plan.restore) {
+            set(f.note, plan.restore.note);
+            syncBillNotes(f.note);
+        }
+        if (f.labour && ['labourOn', 'labour', 'labourTyped'].some(k => k in plan.restore)) {
+            if ('labourOn' in plan.restore && byId(f.labourOn)) byId(f.labourOn).checked = plan.restore.labourOn !== '0';
+            if ('labour' in plan.restore) set(f.labour, plan.restore.labour);
+            if ('labourTyped' in plan.restore && byId(f.labour)) {
+                if (plan.restore.labourTyped === '1') byId(f.labour).dataset.manuallySet = 'true';
+                else delete byId(f.labour).dataset.manuallySet;
+            }
+            f.totalsChanged();
+        }
+        if (['cash', 'online', 'due'].some(k => k in plan.restore)) {
+            ['cash', 'online', 'due'].forEach(k => { if (k in plan.restore) set(f[k], plan.restore[k]); });
+            f.payChanged();
+        }
         BillingManager.triggerAutoSave?.();
         track('voice.undo');
         this.tell(f, t(plan.kept ? 'msg.voice.undo_partly' : 'msg.voice.undone'), 4000);
         return true;
     },
 
-    /** The dialog's line i, with what was typed in its Correct boxes (when changed). */
+    /** The sheet's line i, with what was typed in its Correct boxes (when changed). */
     correctedLine(line, i) {
         const box = document.querySelector(`[data-voice-edit="${i}"]`);
         if (!box || box.dataset.changed !== '1') return line;
         const items = this.checking?.items || AppState.items;
         const pick = box.querySelector('[data-voice-field="item"]')?.value ?? '';
         const item = pick === '' ? null : items[Number(pick)] || null;
+        const weight = typedNumber(box.querySelector('[data-voice-field="weight"]')?.value);
         return {
             ...line,
-            itemIndex: item ? Number(pick) : null,
+            itemIndex: item ? AppState.items.indexOf(item) : null,
             item,
-            weight: typedNumber(box.querySelector('[data-voice-field="weight"]')?.value),
+            weight,
+            weights: Array.isArray(line.weights) && weight === line.weight ? line.weights : undefined,
             rate: typedNumber(box.querySelector('[data-voice-field="rate"]')?.value),
             extraNumbers: false,
             rateUnusual: false,
@@ -438,7 +1226,7 @@ export const VoiceBilling = {
         };
     },
 
-    /** Opens or closes line i's Correct boxes in the check dialog. */
+    /** Opens or closes line i's Correct boxes in the check sheet. */
     editLine(i) {
         const n = Number(i);
         const box = document.querySelector(`[data-voice-edit="${n}"]`);
@@ -471,6 +1259,8 @@ export const VoiceBilling = {
         cell('item', now.item ? itemLabel(now.item) : null);
         cell('weight', now.weight);
         cell('rate', now.rate);
+        const amount = row?.querySelector('[data-voice-cell="amount"]');
+        if (amount) amount.textContent = complete(now) ? formatRupees(lineAmount(now)) : '';
         const ok = complete(now);
         const tick = document.querySelector(`[data-voice-line="${n}"]`);
         if (tick) {
@@ -478,6 +1268,7 @@ export const VoiceBilling = {
             if (!ok) tick.checked = false;
             tick.disabled = !ok;
         }
+        row?.classList.toggle('voice-unclear', !ok && !!tick);
         const note = document.querySelector(`[data-voice-incomplete="${n}"]`);
         if (note) note.hidden = ok;
         document.querySelectorAll(`[data-voice-warn="${n}"]`).forEach(w => { w.hidden = true; });
@@ -485,16 +1276,16 @@ export const VoiceBilling = {
 
     /** Line i's Correct boxes: item, weight (kg) and rate, filled with what was heard. */
     editorHtml(line, i) {
-        const esc = (s) => Helpers.escapeHtml(String(s));
         const items = this.checking?.items || AppState.items;
+        const at = line.item ? items.indexOf(line.item) : -1;
         const options = [`<option value="">${esc(t('ui.voice.pick_item'))}</option>`];
         items.forEach((it, k) => {
-            if (!it || (isArchivedItem(it) && k !== line.itemIndex)) return;
-            options.push(`<option value="${esc(k)}"${k === line.itemIndex ? ' selected' : ''}>${esc(itemLabel(it))}</option>`);
+            if (!it || (isArchivedItem(it) && k !== at)) return;
+            options.push(`<option value="${esc(k)}"${k === at ? ' selected' : ''}>${esc(itemLabel(it))}</option>`);
         });
         const num = (field, label, v, pre, post) => `<label class="field voice-edit-field"><span>${esc(label)}</span><span class="adorn">`
             + (pre ? `<span class="adorn-pre" aria-hidden="true">${esc(pre)}</span>` : '')
-            + `<input class="input" type="number" inputmode="decimal" min="0" step="any" data-voice-field="${esc(field)}" value="${v !== null ? esc(v) : ''}" data-oninput="voice.lineChanged(${esc(i)})">`
+            + `<input class="input" type="number" inputmode="decimal" min="0" step="any" data-voice-field="${esc(field)}" value="${v !== null && v !== undefined ? esc(v) : ''}" data-oninput="voice.lineChanged(${esc(i)})">`
             + `<span class="adorn-post" aria-hidden="true">${esc(post)}</span></span></label>`;
         return `<div class="voice-edit" id="voiceEdit${esc(i)}" data-voice-edit="${esc(i)}" hidden>`
             + `<label class="field voice-edit-field"><span>${esc(head('ui.common.item'))}</span>`
@@ -506,20 +1297,20 @@ export const VoiceBilling = {
 
     /** The button that opens line i's Correct boxes. */
     editButtonHtml(i) {
-        const esc = (s) => Helpers.escapeHtml(String(s));
         return `<button type="button" class="btn btn-ghost btn-sm voice-edit-btn" data-voice-edit-btn="${esc(i)}" aria-expanded="false" `
             + `aria-controls="voiceEdit${esc(i)}" data-onclick="voice.editLine(${esc(i)})">${esc(t('ui.voice.correct'))}</button>`;
     },
 
-    /** The mute switch in the check dialog: per device, stops or restarts the readback. */
+    /** The mute switch in the check sheet: per device, stops or restarts the readback. */
     setReadback(on) {
         Readback.setOn(!!on);
         if (on && this.spoken) Readback.speak(this.spoken.text, this.spoken.lang);
     },
 
-    /** What the readback says: the customer, then each line's item, weight and rate as understood. */
-    readbackText(customer, lines) {
-        const parts = customer ? [t('ui.voice.say_customer', { name: customer })] : [];
+    /** What the readback says: the party, each line's item, weight and rate, then the payment, labour, note and day. */
+    readbackText(customer, lines, bill = null, key = 'purchase') {
+        const role = bill?.party?.role || (key === 'sale' ? 'customer' : 'supplier');
+        const parts = customer ? [t(role === 'supplier' && bill ? 'ui.voice.say_supplier' : 'ui.voice.say_customer', { name: customer })] : [];
         for (const line of lines) {
             const bits = [
                 line.item ? spokenLabel(line.item) : '',
@@ -528,57 +1319,25 @@ export const VoiceBilling = {
             ].filter(Boolean);
             if (bits.length) parts.push(bits.join(', '));
         }
+        if (bill) {
+            const pay = bill.payment;
+            if (bill.rate !== null) parts.push(t('ui.voice.say_rate', { rate: bill.rate }));
+            if (bill.labour) {
+                parts.push(!bill.labour.on ? t('ui.voice.labour_off')
+                    : bill.labour.amount !== null ? t('ui.voice.say_labour', { amount: bill.labour.amount })
+                        : bill.labour.perBag !== null ? t('ui.voice.say_labour_bag', { amount: bill.labour.perBag }) : t('ui.voice.labour_on'));
+            }
+            ['cash', 'online', 'due'].forEach(k => { if (pay[k] !== null) parts.push(t(`ui.voice.say_${k}`, { amount: pay[k] })); });
+            if (pay.rest) parts.push(t(`ui.voice.rest_${pay.rest}`));
+            if (pay.full) parts.push(t(`ui.voice.full_${pay.full}`));
+            if (bill.note) parts.push(t('ui.voice.say_note', { note: bill.note }));
+        }
         return parts.join('. ');
-    },
-
-    /** The check dialog: what was heard, the customer and the line(s) found. */
-    previewHtml(bill, lines, currentCustomer = '', readback = false) {
-        const esc = (s) => Helpers.escapeHtml(String(s));
-        const missing = `<em>${esc(t('ui.voice.not_heard'))}</em>`;
-        const val = (v) => (v !== null ? esc(v) : missing);
-        const warns = (line, i) => (line.extraNumbers ? `<p class="voice-warn" data-voice-warn="${esc(i)}">${esc(t('ui.voice.extra_numbers'))}</p>` : '')
-            + (line.rateUnusual ? `<p class="voice-warn" data-voice-warn="${esc(i)}">${esc(t('ui.voice.rate_unusual'))}</p>` : '');
-        let html = `<div id="voiceCheck"><p class="voice-heard">${esc(t('ui.voice.heard'))} <q>${esc(bill.heard)}</q></p>`;
-        if (bill.customer) {
-            html += `<p class="voice-customer"><label><input type="checkbox" id="voiceCustomerTick" checked> ${esc(t('ui.voice.customer_fill'))} <strong>${esc(bill.customer)}</strong></label></p>`;
-            if (currentCustomer && currentCustomer !== bill.customer) html += `<p class="voice-warn">${esc(t('ui.voice.customer_replaces', { name: currentCustomer }))}</p>`;
-        }
-        if (lines.length === 1) {
-            const [line] = lines;
-            const row = (label, name, value) => `<tr><th scope="row">${esc(label)}</th><td data-voice-cell="${esc(name)}">${value}</td></tr>`;
-            html += '<table class="voice-check"><tbody data-voice-row="0">'
-                + row(t('ui.common.item'), 'item', line.item ? esc(itemLabel(line.item)) : missing)
-                + row(t('ui.billing.weight_kg'), 'weight', val(line.weight))
-                + row(t('ui.billing.rate'), 'rate', val(line.rate))
-                + '</tbody></table>' + warns(line, 0)
-                + `<p class="voice-edit-bar">${this.editButtonHtml(0)}</p>` + this.editorHtml(line, 0)
-                + `<p class="voice-note">${esc(t('ui.voice.check_note', { ok: t('ui.modals.ok'), add: t('ui.common.add_bill') }))}</p>`;
-        } else if (lines.length > 1) {
-            html += `<table class="voice-check voice-lines"><thead><tr><th scope="col">${esc(t('ui.voice.tick_head'))}</th>`
-                + `<th scope="col">${esc(head('ui.common.item'))}</th><th scope="col">${esc(head('ui.billing.weight_kg'))}</th><th scope="col">${esc(head('ui.billing.rate'))}</th>`
-                + `<th scope="col">${esc(t('ui.voice.correct_head'))}</th></tr></thead>`;
-            lines.forEach((line, i) => {
-                const ok = complete(line);
-                html += `<tbody data-voice-row="${esc(i)}"><tr><td><input type="checkbox" data-voice-line="${esc(i)}" aria-label="${esc(t('ui.voice.tick_line'))}"${ok ? ' checked' : ' disabled'}></td>`
-                    + `<td data-voice-cell="item">${line.item ? esc(itemLabel(line.item)) : missing}</td><td data-voice-cell="weight">${val(line.weight)}</td><td data-voice-cell="rate">${val(line.rate)}</td>`
-                    + `<td>${this.editButtonHtml(i)}</td></tr>`;
-                const notes = (ok ? '' : `<p class="voice-warn" data-voice-incomplete="${esc(i)}">${esc(t('ui.voice.line_incomplete'))}</p>`) + warns(line, i);
-                html += `<tr class="voice-line-notes"><td></td><td colspan="4">${notes}${this.editorHtml(line, i)}</td></tr></tbody>`;
-            });
-            html += '</table>'
-                + `<p class="voice-note">${esc(t('ui.voice.lines_note', { ok: t('ui.modals.ok') }))}</p>`;
-        } else {
-            html += `<p class="voice-note">${esc(t('ui.voice.customer_note', { ok: t('ui.modals.ok') }))}</p>`;
-        }
-        if (readback) {
-            html += `<p class="voice-readback"><label><input type="checkbox" id="voiceReadback" data-onchange="voice.setReadback(this.checked)"${Readback.isOn() ? ' checked' : ''}> ${esc(t('ui.voice.readback'))}</label></p>`;
-        }
-        return html + '</div>';
     },
 
     /**
      * Picks the line's item in the form (found again by identity: the list can change
-     * while the dialog is open). Refuses to move weights already entered for another item.
+     * while the sheet is open). Refuses to move weights already entered for another item.
      * @returns {boolean}
      */
     selectItem(f, item) {
@@ -602,42 +1361,128 @@ export const VoiceBilling = {
     },
 
     /** Puts the checked values in the form; the user still taps Add to Bill and Save. */
-    fill(f, line, item) {
+    fill(f, line, item, say = true) {
         if (!this.selectItem(f, item)) return false;
         const rate = byId(f.rate);
         if (rate && line.rate !== null) rate.value = String(line.rate);
         const weight = byId(f.weight);
-        if (weight && line.weight !== null) weight.value = String(line.weight);
+        if (Array.isArray(line.weights) && line.weights.length > 1) {
+            if (f.pending().length > 0 || String(weight?.value || '').trim()) {
+                this.tell(f, t('msg.voice.finish_weights'), 4000);
+                return false;
+            }
+            f.addWeights(line.weights);
+        } else if (weight && line.weight !== null) weight.value = String(line.weight);
         BillingManager.triggerAutoSave?.();
-        this.tell(f, t('msg.voice.filled', { add: t('ui.common.add_bill') }), 4000);
+        if (say) this.tell(f, t('msg.voice.filled', { add: t('ui.common.add_bill') }), 4000);
         return true;
     },
 
     /**
      * Several lines (#81 A2): each ticked line goes through the form's own Add to Bill,
-     * with its checks (bag weight, rate), one after another. A line those checks stop
-     * stays in the form and the rest are not added. Never saves.
-     * @returns {Promise<boolean>} true when at least one line was added
+     * with its checks (bag weight, rate), one after another; bag weights go in as chips first.
+     * A line those checks stop stays in the form and the rest are not added. Never saves.
+     * @returns {Promise<any>} true when at least one line was added ({added, stopped} with `detail`)
      */
-    async addLines(f, lines) {
+    async addLines(f, lines, detail = false) {
+        const out = (added, stopped) => (detail ? { added, stopped } : added > 0);
         if (f.pending().length > 0 || String(byId(f.weight)?.value || '').trim()) {
             this.tell(f, t('msg.voice.finish_weights'), 4000);
-            return false;
+            return out(0, true);
         }
         let added = 0;
         for (const line of lines) {
-            if (!this.selectItem(f, line.item)) return added > 0;
+            if (!this.selectItem(f, line.item)) return out(added, true);
             byId(f.rate).value = String(line.rate);
-            byId(f.weight).value = String(line.weight);
+            if (Array.isArray(line.weights) && line.weights.length > 1) {
+                byId(f.weight).value = '';
+                f.addWeights(line.weights);
+            } else byId(f.weight).value = String(line.weight);
             const before = f.lineCount();
             await f.addLine();
             if (f.lineCount() === before) {
                 this.tell(f, t('msg.voice.lines_stopped', { n: added, total: lines.length, add: t('ui.common.add_bill') }), 6000);
-                return added > 0;
+                return out(added, true);
             }
             added++;
         }
-        this.tell(f, t('msg.voice.lines_added', { n: added }), 4000);
+        if (!detail) this.tell(f, t('msg.voice.lines_added', { n: added }), 4000);
+        return out(added, false);
+    },
+
+    /**
+     * The mic in the name field (#498): listen once, then the known parties closest to what was
+     * said (any script, honorifics left out) and "Use '<as said>'". Nothing is picked for the user;
+     * a pick fills the field as typing would (the due line and suggestions follow).
+     * @param {'purchase'|'sale'} mode
+     * @param {'native'|'web'} engine
+     * @returns {Promise<boolean>} true when the name was filled
+     */
+    async listenName(mode, engine) {
+        const key = formKey(mode);
+        const f = FIELDS[key];
+        if (this.listening || this.busy) return false;
+        this.listening = true;
+        this.heardNow = '';
+        const mic = byId(f.nameMic);
+        this.showListening(f, mic, true, t('msg.voice.name_listening'));
+        let heard;
+        try {
+            heard = engine === 'native'
+                ? await listenNative(this.lang(), window.Capacitor?.Plugins?.SpeechRecognition)
+                : await listenWeb(this.lang());
+        } catch (e) {
+            this.listenFailed(f, e);
+            return false;
+        } finally {
+            this.listening = false;
+            this.showListening(f, mic, false);
+        }
+        const names = [...new Set((heard || []).map(nameFromSpeech).filter(Boolean))];
+        if (!names.length) {
+            beep('fail');
+            this.setStrip(f, '', t('msg.voice.no_speech'));
+            UIManager.showToast(t('msg.voice.no_speech'));
+            return false;
+        }
+        beep('ok');
+        const spoken = names[0];
+        this.heardNow = spoken;
+        /** @type {Map<string, any>} */
+        const best = new Map();
+        names.forEach((n, alt) => this.partyMatches(f, n).matches.forEach(m => {
+            const score = m.score + alt * 0.5;
+            if (!best.has(m.key) || best.get(m.key).score > score) best.set(m.key, { ...m, score });
+        }));
+        const matches = [...best.values()].sort((a, b) => a.score - b.score).slice(0, 5);
+        const contacts = !!contactPickerKind(window) && !document.body.classList.contains('no-perm-contacts');
+        const pick = (v, cls, label, sub = '') => `<button type="button" class="btn ${esc(cls)} voice-name-pick" data-onclick="voice.pickName('${esc(v)}')">`
+            + `<span class="voice-name-pick-name">${esc(label)}</span>${sub ? `<span class="voice-name-pick-due">${esc(sub)}</span>` : ''}</button>`;
+        const label = head(key === 'sale' ? 'ui.billing.customer_label' : 'ui.billing.supplier_label');
+        let html = `<div id="voiceNamePick" class="voice-name-sheet"><h2 class="voice-name-title">${esc(t('ui.voice.name_pick_title', { field: label }))}</h2>`
+            + `<p class="voice-heard">${esc(t('ui.voice.heard'))} <q>${esc(heard.find(h => String(h || '').trim()) || spoken)}</q></p>`;
+        if (matches.length) {
+            html += `<p class="voice-note">${esc(t('ui.voice.name_pick_note'))}</p><div class="voice-name-list" role="group" aria-label="${esc(t('ui.voice.name_pick_title', { field: label }))}">`
+                + matches.map((m, i) => pick(`m${i}`, 'btn-tonal', m.name, dueText(f.kind, m))).join('') + '</div>';
+        } else html += `<p class="voice-note">${esc(t('ui.voice.name_no_match', { name: spoken }))}</p>`;
+        html += `<div class="voice-name-list">${pick('spoken', 'btn-ghost', t('ui.voice.use_spoken', { name: spoken }))}`
+            + (contacts ? pick('contacts', 'btn-ghost', t('ui.voice.name_from_contacts')) : '') + '</div></div>';
+        const choice = await UIManager.showCustomModal(html, [{ text: t('ui.modals.cancel'), value: null, class: 'btn btn-ghost' }]);
+        if (!choice) {
+            this.setStrip(f, spoken, t('ui.voice.strip_cancelled'));
+            return false;
+        }
+        if (choice === 'contacts') {
+            await Helpers.pickContact(f.customer);
+            return !!String(byId(f.customer)?.value || '').trim();
+        }
+        const name = choice === 'spoken' ? spoken : matches[Number(String(choice).slice(1))]?.name;
+        if (!name) return false;
+        const before = boxes(f);
+        fillPartyName(f.kind, name);
+        BillingManager.triggerAutoSave?.();
+        if (this.undo[key].push({ lines: [], fields: fieldChanges(before, boxes(f)) })) this.refreshUndo(key);
+        this.tell(f, t('msg.voice.name_filled', { name }), 4000);
         return true;
     }
 };

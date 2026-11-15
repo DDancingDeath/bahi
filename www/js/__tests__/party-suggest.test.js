@@ -3,7 +3,7 @@
  * loaded bills (any spelling, Latin or Devanagari), "Did you mean", and the Billing name
  * field's suggestion list and warning line (keyboard and tap, warn-never-block).
  */
-import { closeParty, editDistance, looseWord, matchParties, partyEntries } from '../utils/party-match.js';
+import { closeParty, editDistance, entriesFromNames, looseWord, matchParties, partyEntries, rankPartyMatches } from '../utils/party-match.js';
 import { bindPartySuggest, closeSuggestions, renderNameHint, showSuggestions } from '../ui/party-suggest.js';
 import { AppState } from '../utils/state.js';
 
@@ -64,6 +64,33 @@ describe('matchParties: what typing lists', () => {
         expect(names('  SITA devi ')).toEqual([]);
         expect(names('xyz')).toEqual([]);
         expect(matchParties(entries, 's', { limit: 1 })).toHaveLength(1);
+    });
+});
+
+describe('rankPartyMatches: a spoken name (#498)', () => {
+    const entries = entriesFromNames(['Ramesh Bhai', 'Ramesh Kumar', 'Suresh', 'मोहन लाल', 'Sohan']);
+    const rank = (spoken) => rankPartyMatches(entries, spoken);
+
+    test('any script and honorifics: "रमेश" and "ramesh" find both Rameshes, sure of neither', () => {
+        for (const said of ['रमेश', 'ramesh', 'Ramesh ji']) {
+            const { matches, sure } = rank(said);
+            expect(matches.map(m => m.name).slice(0, 2)).toEqual(['Ramesh Bhai', 'Ramesh Kumar']);
+            expect(sure).toBeNull();
+        }
+    });
+
+    test('one exact match and nothing else close is sure; the closest come first', () => {
+        expect(rank('रमेश कुमार').sure?.name).toBe('Ramesh Kumar');
+        expect(rank('Mohan Lal').sure?.name).toBe('मोहन लाल');
+        expect(rank('suresh').matches[0].name).toBe('Suresh');
+        // a small mishearing is offered, never taken as sure
+        const misheard = rank('Suresg');
+        expect([misheard.matches[0]?.name, misheard.sure]).toEqual(['Suresh', null]);
+    });
+
+    test('nothing close: no matches', () => {
+        expect(rank('Kamla')).toEqual({ matches: [], sure: null });
+        expect(rank('')).toEqual({ matches: [], sure: null });
     });
 });
 
