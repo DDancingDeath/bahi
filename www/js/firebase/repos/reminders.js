@@ -10,9 +10,10 @@
 import { getDb, col, serverCreatedAt } from '../db.js';
 
 /** Optional fields of a reminder: set when given, removed (on an edit) when empty. */
-const optional = (doc, { party, repeat, repeatDay }, remove) => {
+const optional = (doc, { dueTime, party, repeat, repeatDay }, remove) => {
     const del = remove ? firebase.firestore.FieldValue.delete() : undefined;
     const put = (k, v) => { if (v) doc[k] = v; else if (remove) doc[k] = del; };
+    put('dueTime', dueTime);
     put('party', party);
     put('repeat', repeat);
     put('repeatDay', repeat === 'monthly' ? repeatDay : null);
@@ -37,13 +38,13 @@ export const reminderMethods = {
     },
 
     /**
-     * @param {{title: string, dueDate: string, party?: string}} r checked by checkReminder()
+     * @param {{title: string, dueDate: string, dueTime?: ?string, party?: string}} r checked by checkReminder()
      * @param {{uid: string, name?: string}} by
      * @returns {Promise<string>} the new id
      */
-    async createReminder({ title, dueDate, party, repeat, repeatDay }, { uid, name }) {
+    async createReminder({ title, dueDate, dueTime, party, repeat, repeatDay }, { uid, name }) {
         const ref = getDb().collection(col('reminders')).doc();
-        const doc = optional({ title, dueDate, status: 'open', createdBy: uid, createdAt: serverCreatedAt() }, { party, repeat, repeatDay }, false);
+        const doc = optional({ title, dueDate, status: 'open', createdBy: uid, createdAt: serverCreatedAt() }, { dueTime, party, repeat, repeatDay }, false);
         if (name) doc.createdByName = String(name).slice(0, 60);
         await ref.set(doc);
         return ref.id;
@@ -52,11 +53,11 @@ export const reminderMethods = {
     /**
      * Owner / manager: changes an open reminder's title, date, party or repeat.
      * @param {string} id
-     * @param {{title: string, dueDate: string, party?: string, repeat?: ?string, repeatDay?: ?number}} r checked by checkReminder()
+     * @param {{title: string, dueDate: string, dueTime?: ?string, party?: string, repeat?: ?string, repeatDay?: ?number}} r checked by checkReminder()
      * @param {{uid: string, name?: string}} by
      */
-    async updateReminder(id, { title, dueDate, party, repeat, repeatDay }, { uid, name }) {
-        const patch = optional({ title, dueDate, updatedBy: uid, updatedAt: serverCreatedAt() }, { party, repeat, repeatDay }, true);
+    async updateReminder(id, { title, dueDate, dueTime, party, repeat, repeatDay }, { uid, name }) {
+        const patch = optional({ title, dueDate, updatedBy: uid, updatedAt: serverCreatedAt() }, { dueTime, party, repeat, repeatDay }, true);
         if (name) patch.updatedByName = String(name).slice(0, 60);
         await getDb().collection(col('reminders')).doc(id).update(patch);
     },
@@ -76,7 +77,7 @@ export const reminderMethods = {
      * copy is created in the same batch, linked both ways (`nextId` / `repeatOf`).
      * @param {string} id
      * @param {{uid: string, name?: string}} by
-     * @param {?{title: string, dueDate: string, party?: string, repeat: string, repeatDay?: ?number}} [next]
+     * @param {?{title: string, dueDate: string, dueTime?: ?string, party?: string, repeat: string, repeatDay?: ?number}} [next]
      * @returns {Promise<?string>} the next reminder's id
      */
     async ackReminder(id, { uid, name }, next = null) {

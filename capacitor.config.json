@@ -19,6 +19,10 @@
     "FirebaseAuthentication": {
       "skipNativeAuth": true,
       "providers": ["google.com"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_bahi",
+      "iconColor": "#89B284"
     }
   }
 }

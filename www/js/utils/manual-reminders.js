@@ -18,6 +18,23 @@ export const REMINDER_MAX_DAYS_AHEAD = 730;
 export const REMINDER_LISTEN_LIMIT = 50;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
+/** Optional time of a reminder, 24 h 'HH:MM' (firestore.rules checks the same). */
+export const REMINDER_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Phone notifications of a reminder without a time come at this time of its day. */
+export const DEFAULT_REMINDER_TIME = '09:00';
+
+/**
+ * Local date and time a reminder is due: its date at its time (or 9:00 am), or null.
+ * @param {string} dueIso
+ * @param {?string} [dueTime]
+ * @returns {?Date}
+ */
+export function reminderAt(dueIso, dueTime) {
+    const d = parseLocalDate(dueIso);
+    if (!d) return null;
+    const [h, m] = (REMINDER_TIME_RE.test(String(dueTime || '')) ? String(dueTime) : DEFAULT_REMINDER_TIME).split(':').map(Number);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m);
+}
 
 /** How a reminder repeats once marked done (absent = once). */
 export const REMINDER_REPEATS = Object.freeze(['daily', 'weekly', 'monthly']);
@@ -42,13 +59,13 @@ export function repeatDayFor(dueIso, repeat) {
 /**
  * Checks a new or edited reminder; the trimmed fields to save, or the i18n key of what is wrong.
  * An edit may keep a due date that has passed meanwhile (`keepDueDate`); a new date can't be in the past.
- * @param {{title?: string, dueDate?: string, party?: string, repeat?: string}} input
+ * @param {{title?: string, dueDate?: string, dueTime?: string, party?: string, repeat?: string}} input
  * @param {string} todayIso the phone's local date
  * @param {{keepDueDate?: string, keepRepeatDay?: ?number}} [opts] an edit: the stored date and day of the month,
  *   kept while the date and the monthly repeat stay (a Feb 28 copy of a 31st reminder keeps 31)
- * @returns {{ok: true, value: {title: string, dueDate: string, party: string, repeat: ?string, repeatDay: ?number}} | {ok: false, error: string}}
+ * @returns {{ok: true, value: {title: string, dueDate: string, dueTime: ?string, party: string, repeat: ?string, repeatDay: ?number}} | {ok: false, error: string}}
  */
-export function checkReminder({ title, dueDate, party, repeat } = {}, todayIso, { keepDueDate, keepRepeatDay } = {}) {
+export function checkReminder({ title, dueDate, dueTime, party, repeat } = {}, todayIso, { keepDueDate, keepRepeatDay } = {}) {
     const t = String(title || '').trim().replace(/\s+/g, ' ');
     const p = String(party || '').trim().replace(/\s+/g, ' ');
     if (!t) return { ok: false, error: 'msg.reminders.title_needed' };
@@ -59,11 +76,13 @@ export function checkReminder({ title, dueDate, party, repeat } = {}, todayIso, 
     }
     const kept = keepDueDate !== undefined && dueDate === keepDueDate;
     if (!kept && dueDate < todayIso) return { ok: false, error: 'msg.reminders.date_past' };
+    const tm = String(dueTime || '').trim();
+    if (tm && !REMINDER_TIME_RE.test(tm)) return { ok: false, error: 'msg.reminders.time_bad' };
     if (!kept && dueDate > toLocalISODate(/** @type {Date} */ (addLocalDays(parseLocalDate(todayIso), REMINDER_MAX_DAYS_AHEAD)))) return { ok: false, error: 'msg.reminders.date_far' };
     const r = isReminderRepeat(repeat) ? repeat : null;
     const day = kept && r === 'monthly' && Number.isInteger(keepRepeatDay) && /** @type {number} */ (keepRepeatDay) >= 1 && /** @type {number} */ (keepRepeatDay) <= 31
         ? /** @type {number} */ (keepRepeatDay) : repeatDayFor(/** @type {string} */ (dueDate), r);
-    return { ok: true, value: { title: t, dueDate: /** @type {string} */ (dueDate), party: p, repeat: r, repeatDay: day } };
+    return { ok: true, value: { title: t, dueDate: /** @type {string} */ (dueDate), dueTime: tm || null, party: p, repeat: r, repeatDay: day } };
 }
 
 /**

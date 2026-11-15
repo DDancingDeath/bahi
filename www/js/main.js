@@ -46,6 +46,7 @@ import { AuditService } from './services/audit.js';
 import { TelemetryService } from './services/telemetry.js';
 import { AppUpdatesManager } from './modules/app-updates.js';
 import { NotificationsManager } from './modules/notifications.js';
+import { PhoneNotify } from './modules/phone-notify.js';
 import { markStartup, noteStartup, logStartupTimings } from './utils/startup-timings.js';
 
 // Import template loader utility
@@ -69,7 +70,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108gl-voice-bill';
+const BUILD_ID = '20261108gm-phone-notify';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -436,6 +437,7 @@ function blockOutdatedApp() {
     outdatedBlocked = true;
     FirebaseService.cleanup();
     NotificationsManager.stop();
+    PhoneNotify.stop();
     ManualReminders.reset();
     document.getElementById('appContent')?.classList.add('hidden');
     UIManager.hideLoading();
@@ -586,7 +588,10 @@ async function initializeUserData() {
 
         // Notifications: the profile is loaded, so the uid is known (#12).
         const notifUid = AppState.currentUser?.uid || firebase.auth().currentUser?.uid;
-        if (notifUid) NotificationsManager.start(notifUid);
+        if (notifUid) {
+            NotificationsManager.start(notifUid);
+            PhoneNotify.start(notifUid).catch(e => console.warn('Phone notifications failed to start:', e));
+        }
 
         // Don't hold the first screen for a slow version read (up to ~24 s on a
         // weak network): wait briefly, then let it finish in the background and
@@ -820,6 +825,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 FirebaseService.cleanup();
                 FirebaseService.forgetPeopleCaches();
                 NotificationsManager.stop();
+                PhoneNotify.stop();
                 ManualReminders.reset();
                 ask?.reset();
                 workers?.reset();
@@ -1092,7 +1098,10 @@ window.app = {
         markAllRead: () => NotificationsManager.markAllRead(),
         openNotification: (id) => NotificationsManager.openNotification(id),
         openReminder: (page) => NotificationsManager.openReminder(page),
-        toggleSystem: (checked) => NotificationsManager.toggleSystem(checked),
+        setPhone: (checked) => PhoneNotify.setOn(checked),
+        setType: (type, checked) => PhoneNotify.setType(type, checked),
+        setTime: (value) => PhoneNotify.setTime(value),
+        test: () => PhoneNotify.sendTest(),
         refreshSettings: () => NotificationsManager.refreshSettings()
     },
 
