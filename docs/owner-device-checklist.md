@@ -11,6 +11,7 @@ first release after it) and note the result in the follow-up issue "[Owner] Devi
 | 3. Thermal printer from the shop PC | #133 | Shop PC, Chrome or Edge | 10 min |
 | 4. One test crash | #122 | Shop phone, Android app, after the cut-over | 5 min |
 | 5. Screen edges, keyboard and Back | UX review 2026-11-15 | An Android 15 phone and an older one | 15 min |
+| 6. Lock, start-up, files and sharing | UX review, PR #519 | Shop phone, Android app (two phones for drafts) | 20 min |
 
 ## 1. Cold start (#59)
 
@@ -105,6 +106,33 @@ Navigation) and once on an Android 11–14 phone, in Light and in Dark (Settings
 6. **Vibration:** adding a weight gives a short buzz (when the phone's touch vibration is on).
 
 **Pass:** all of the above; note the phone model, Android version and the keyboard used.
+
+## 6. Lock, start-up, files and sharing (UX review, PR #519)
+
+On the shop phone with the APK built from #519 (or the first release with it), Light and Dark.
+
+1. **Start-up:** close the app fully and open it: the Bahi splash stays until the "Loading…" screen
+   shows, with no white or blank screen between them (also in Dark). On slow data the screen says
+   "Slow internet…" and offers Try again.
+2. **Phone lock:** Settings › Lock this phone, set a PIN and 2 minutes. Leave the app for 3 minutes and
+   come back: the lock shows. Swipe the app away and open it again: the lock still shows. While it is
+   locked, the recent apps view shows no amounts and screenshots are blocked. Five wrong PINs make it
+   wait, also after reopening the app.
+3. **Switch user:** Settings › Account › Switch user: it asks first (and warns when changes are not
+   sent yet), then shows the login card with username and PIN empty.
+4. **Worker without email:** Settings › Team › Add a worker without email: the role is Member only;
+   the PIN must be 8 to 12 digits; the worker can sign in with the username and PIN on another phone.
+5. **Shared drafts:** a worker keeps a bill as a draft; on another phone a second worker opens Drafts,
+   sees "by <name>" and continues it; the draft is gone from both lists. Only the maker, owner or
+   manager sees Delete.
+6. **Files and links:** Print/PDF and Download (statements, CSV) open the share/save sheet; WhatsApp
+   share and UPI links open the app, and a missing app shows a message instead of nothing.
+7. **Printer setup:** pairing asks only for Nearby devices (no Location prompt on Android 12+); a
+   refusal shows a Hindi/English message in the app language.
+8. **Write-off note (U-08, by design):** when a Member writes off or clears a due, the owner gets a
+   notification.
+
+**Pass:** all of the above; note the phone model and Android version.
 
 ## Closure notes
 
