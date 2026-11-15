@@ -46,6 +46,11 @@ While a bill is being typed:
   saving it; the message itself says "DRAFT, not saved". Save first to record it.
 - **Print** saves the bill, then prints it. With no printer connected the
   receipt is only shown as a picture, and the message says "Not printed".
+- **Printer button** (top bar, next to the bell; Billing and Wholesale, Android app only): a dot shows the
+  Bluetooth printer (green connected, amber connecting, grey saved but not connected, none when no printer is saved).
+  A tap opens the printer controls of Settings › Printing & receipts in a sheet over the bill: switch on, status,
+  saved printers (**Connect** with one tap), Scan, Test print, Disconnect. Closing the sheet leaves the bill as it was.
+  The website has no Bluetooth printing, so the button is not shown there.
 - "Save draft" keeps an unfinished bill; an unsaved bill is offered back at the
   next start. If that bill was saved meanwhile, Restore (or loading the draft)
   offers to open the saved bill instead of saving it again; an unsaved edit goes
