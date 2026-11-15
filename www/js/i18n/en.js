@@ -1970,6 +1970,7 @@ export default {
     'ui.stock.no_stock': "No stock available",
     'ui.stock.unmatched': "Unmatched — no catalogue item with this id/name",
     'ui.stock.summary_items': "Items in stock",
+    'ui.stock.rate_placeholder': "Average cost if empty",
     'ui.stock.summary_kg': "Total weight",
     'ui.stock.summary_value': "Stock value",
     'ui.stock.rate_per_kg': "Rate ₹{rate}/kg",

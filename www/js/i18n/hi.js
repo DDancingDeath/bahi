@@ -1970,6 +1970,7 @@ export default {
     'ui.stock.no_stock': "कोई स्टॉक नहीं",
     'ui.stock.unmatched': "मेल नहीं — इस नाम का कोई आइटम सूची में नहीं",
     'ui.stock.summary_items': "स्टॉक में आइटम",
+    'ui.stock.rate_placeholder': "खाली हो तो औसत लागत",
     'ui.stock.summary_kg': "कुल वज़न",
     'ui.stock.summary_value': "स्टॉक की कीमत",
     'ui.stock.rate_per_kg': "रेट ₹{rate}/kg",

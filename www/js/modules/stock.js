@@ -693,13 +693,17 @@ export class StockManager {
         if (!select) return;
 
         select.innerHTML = `<option value="">${tx('ui.wholesale.select_item')}</option>`;
-        AppState.items.forEach(item => {
-            const option = document.createElement("option");
-            option.value = item.id;
-            const displayName = (AppState.settings.showHindi && item.hindiName) ? item.hindiName : item.name;
-            option.textContent = isArchivedItem(item) ? `${displayName} (${t('ui.items.archived_chip')})` : displayName;
-            select.appendChild(option);
-        });
+        const nameOf = (item) => String((AppState.settings.showHindi && item.hindiName) ? item.hindiName : item.name);
+        // A–Z; an archived item only while it still holds stock (U-77)
+        AppState.items
+            .filter(item => item && item.id && (!isArchivedItem(item) || Math.abs(Number(AppState.stock?.[item.id]?.quantity) || 0) > 0.001))
+            .sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
+            .forEach(item => {
+                const option = document.createElement("option");
+                option.value = item.id;
+                option.textContent = isArchivedItem(item) ? `${nameOf(item)} (${t('ui.items.archived_chip')})` : nameOf(item);
+                select.appendChild(option);
+            });
     }
 
     static loadAdjustItemStock() {
@@ -709,6 +713,8 @@ export class StockManager {
         const avgRateValue = document.getElementById("avgRateValue");
         
         if (!display) return;
+        const now = document.getElementById('adjustStockNow');
+        if (now) now.hidden = !itemId;
 
         if (!itemId) {
             display.textContent = "";
@@ -857,7 +863,7 @@ export class StockManager {
         if (quiet) return true;
         if (!reversesId) {
             document.getElementById("adjustQuantity").value = "";
-            document.getElementById("adjustRate").value = "0";
+            document.getElementById("adjustRate").value = "";
             document.getElementById("adjustReason").value = "";
             const reasonSelect = document.getElementById("adjustReasonCode");
             if (reasonSelect) reasonSelect.value = "";

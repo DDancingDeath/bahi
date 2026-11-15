@@ -66,7 +66,7 @@
                     </select>
                 </div>
 
-                <div class="metrics stock-now">
+                <div class="metrics stock-now" id="adjustStockNow" hidden>
                     <div class="metric">
                         <div class="metric-label" data-i18n="ui.stock.current_stock">Current stock</div>
                         <div class="metric-value"><span id="currentStockDisplay">-</span> kg</div>
@@ -98,7 +98,7 @@
                     <label for="adjustRate" data-i18n="ui.stock.rate_kg_optional">Rate (optional)</label>
                     <div class="adorn">
                         <span class="adorn-pre">₹</span>
-                        <input type="number" inputmode="decimal" id="adjustRate" class="input" placeholder="0" value="0" />
+                        <input type="number" inputmode="decimal" id="adjustRate" class="input" placeholder="Average cost if empty" data-i18n-placeholder="ui.stock.rate_placeholder" />
                         <span class="adorn-post">/kg</span>
                     </div>
                 </div>
