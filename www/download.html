@@ -73,6 +73,12 @@
         .steps-art svg { width: 100%; max-width: 96px; height: auto; }
         .steps-art figcaption { font-weight: var(--w-strong); color: var(--accent-text); }
         html[lang="en"] .hi, html[lang="hi"] .en { display: none; }
+        /* Desktop: two columns (install steps on the right) instead of one narrow column */
+        @media (min-width: 960px) {
+            main { max-width: 1080px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--sp-4); align-items: start; }
+            main > section { grid-column: 1; }
+            main > section.install { grid-column: 2; grid-row: 1 / span 4; }
+        }
     </style>
     <script src="/js/boot/download-lang.js"></script>
 </head>
@@ -104,7 +110,7 @@
             <ul id="notesList"></ul>
         </section>
 
-        <section>
+        <section class="install">
             <div class="hi">
                 <h2>इंस्टॉल कैसे करें (Android 11 और नए)</h2>
                 <div class="steps-art" aria-hidden="true">
