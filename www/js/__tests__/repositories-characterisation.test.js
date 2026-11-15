@@ -147,13 +147,16 @@ describe('bill drafts, auto-save and item frequency (billing.js)', () => {
         expect(document.getElementById('draftCount').textContent).toBe('3');
     });
 
-    test('Drafts list: this user\'s drafts with something in them, this mode first, newest first', async () => {
+    test('Drafts list: this user\'s drafts with something in them, this mode first, newest first; old ones with no lines go (U-37)', async () => {
         await BillingManager.showDrafts();
+        await settle();
         pin('draft.list', rec.log);
         const html = document.getElementById('draftsContent').innerHTML;
         expect(html).toContain("loadDraft('d1')");
         expect(html).not.toContain("loadDraft('d2')"); // no lines, no weights (U-37)
         expect(html).not.toContain('d3');
+        expect(fake.raw('dev_drafts').has('d2')).toBe(false);
+        expect(fake.raw('dev_drafts').has('d1')).toBe(true);
     });
 
     test('load a draft: read it, put it in the editor, delete it, re-count', async () => {

@@ -773,12 +773,15 @@ const AuthManager = {
      * Before sign-out (U-03): changes this phone has not sent stay queued under this login,
      * so they reach the books only if the same person signs in here again. Returns whether
      * to go on with the sign-out.
+     * @param {{switching?: boolean}} [opts] - Switch user (U-86): the same check, its own question
      * @returns {Promise<boolean>}
      */
-    async confirmLogoutWithUnsent() {
+    async confirmLogoutWithUnsent({ switching = false } = {}) {
         const unsent = await SyncStatus.unsentCount();
         if (unsent === 0) {
-            return UIManager.showModal(t('msg.auth.are_sure_want_logout'), t('msg.auth.confirm_logout'), true, { confirmLabel: t('ui.settings.logout') });
+            return switching
+                ? UIManager.showModal(t('msg.auth.switch_user_confirm'), t('ui.settings.switch_user'), true, { confirmLabel: t('ui.settings.switch_user') })
+                : UIManager.showModal(t('msg.auth.are_sure_want_logout'), t('msg.auth.confirm_logout'), true, { confirmLabel: t('ui.settings.logout') });
         }
         const esc = Helpers.escapeHtml;
         const title = unsent > 0 ? tn('msg.auth.unsent_title', unsent) : t('msg.auth.unsent_title_unknown');
@@ -815,9 +818,12 @@ const AuthManager = {
         }
     },
 
-    // Handle logout
-    async handleLogout() {
-        const confirmed = await this.confirmLogoutWithUnsent();
+    /**
+     * Log out; with `switching` (Switch user, U-86) the login card is shown empty for the next person.
+     * @param {{switching?: boolean}} [opts]
+     */
+    async handleLogout({ switching = false } = {}) {
+        const confirmed = await this.confirmLogoutWithUnsent({ switching });
         
         if (!confirmed) return;
         
@@ -831,7 +837,15 @@ const AuthManager = {
             
             document.getElementById('authScreen').style.display = 'flex';
             UIManager.hideLoading();
-            UIManager.showToast(t('msg.auth.logged_out_successfully'));
+            if (switching) {
+                this.showAuthTab('login');
+                ['loginEmail', 'loginPassword'].forEach(id => {
+                    const input = /** @type {?HTMLInputElement} */ (document.getElementById(id));
+                    if (input) input.value = '';
+                });
+                document.getElementById('loginEmail')?.focus();
+            }
+            UIManager.showToast(t(switching ? 'msg.auth.switch_user_done' : 'msg.auth.logged_out_successfully'));
         } catch (error) {
             console.error('Logout error:', error);
             UIManager.hideLoading();

@@ -164,7 +164,7 @@ describe('purchase form', () => {
         expect(text('totalPacketsInBill')).toBe('3');
         expect($('manualLaborCharges').value).toBe('6');
         expect($('laborCalculation').dataset.working).toBe('6 × 1');
-        expect(text('laborCalculation')).toBe('1 bag over 30 kg × ₹6 = ₹6');
+        expect(text('laborCalculation')).toBe('1 bag × ₹6 = ₹6');
         expect(text('amountPayable')).toBe('1,947');
         expect(text('totalPayment')).toBe('0');
         expect(text('purchaseSplitRemaining')).toBe('₹1,947 left');

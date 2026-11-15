@@ -23,25 +23,25 @@ const last = {};
 
 /**
  * @param {string} cls
- * @param {string} label
+ * @param {string} label - the button's name (an icon-only button shows no text)
  * @param {string} iconHtml - the button's icon (sprite markup)
  * @param {() => void} onClick
  * @returns {HTMLButtonElement}
  */
-function button(cls, label, iconHtml, onClick) {
+function iconButton(cls, label, iconHtml, onClick) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = `btn btn-sm ${cls}`;
+    b.className = `btn btn-icon ${cls}`;
     b.insertAdjacentHTML('afterbegin', iconHtml);
-    const span = document.createElement('span');
-    span.textContent = label;
-    b.appendChild(span);
+    b.setAttribute('aria-label', label);
+    b.title = label;
     b.addEventListener('click', onClick);
     return b;
 }
 
 /**
- * Draws the strip of one form ('' when nothing was saved there yet).
+ * Draws the strip of one form ('' when nothing was saved there yet). One compact row (N-08): the bill
+ * number and "Saved · ₹total · Paid in full · party" open the bill; Print, WhatsApp and × beside them.
  * @param {'purchase'|'retail'|'wholesale'} kind
  */
 export function renderLastSaved(kind) {
@@ -54,31 +54,33 @@ export function renderLastSaved(kind) {
         return;
     }
     const onPhone = FirebaseService.savedOnPhoneOnly(bill);
-    const head = document.createElement('div');
+    box.classList.toggle('last-saved-pending', onPhone);
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'last-saved-open';
+    open.addEventListener('click', () => window.app?.history?.viewBill?.(`id:${bill.id}`, kind));
+    const head = document.createElement('span');
     head.className = 'last-saved-head';
-    head.insertAdjacentHTML('afterbegin', onPhone ? icon('refresh', 'i-sm') : icon('check', 'i-sm'));
-    const title = document.createElement('span');
-    title.textContent = onPhone ? t('ui.last_saved.on_phone', { no: bill.billNumber || '' }) : t('ui.last_saved.saved', { no: bill.billNumber || '' });
-    head.appendChild(title);
+    head.textContent = `#${bill.billNumber || ''}`;
     const due = outstandingDue(bill);
-    const facts = document.createElement('div');
+    const facts = document.createElement('span');
     facts.className = 'last-saved-facts';
     facts.textContent = [
-        bill.customerName || '',
+        t(onPhone ? 'ui.last_saved.status_on_phone' : 'ui.last_saved.status_saved'),
         formatRupees(billTotal(bill)),
-        due > 0 ? t('ui.last_saved.due', { amount: formatRupees(due) }) : t('ui.last_saved.paid')
+        due > 0 ? t('ui.last_saved.due', { amount: formatRupees(due) }) : t('ui.last_saved.paid'),
+        bill.customerName || ''
     ].filter(Boolean).join(' · ');
-    const actions = document.createElement('div');
-    actions.className = 'last-saved-actions';
-    actions.append(
-        button('btn-tonal', t('ui.common.print'), icon('printer', 'i-sm'), () => printLastSaved(kind)),
-        button('btn-tonal', t('ui.last_saved.whatsapp'), icon('wa', 'i-sm'), () => shareLastSaved(kind)),
-        button('btn-ghost', t('ui.last_saved.open'), icon('chevR', 'i-sm'), () => window.app?.history?.viewBill?.(`id:${bill.id}`, kind)),
-        button('btn-ghost btn-icon last-saved-close', '', icon('x', 'i-sm'), () => hideLastSaved(kind))
+    const hint = document.createElement('span');
+    hint.className = 'sr-only';
+    hint.textContent = t('ui.last_saved.open_bill', { no: bill.billNumber || '' });
+    open.append(head, facts, hint);
+    box.replaceChildren(
+        open,
+        iconButton('btn-tonal', t('ui.common.print'), icon('printer'), () => printLastSaved(kind)),
+        iconButton('btn-tonal', t('ui.last_saved.whatsapp'), icon('wa'), () => shareLastSaved(kind)),
+        iconButton('btn-ghost last-saved-close', t('ui.last_saved.hide'), icon('x', 'i-sm'), () => hideLastSaved(kind))
     );
-    const close = actions.querySelector('.last-saved-close');
-    close?.setAttribute('aria-label', t('ui.last_saved.hide'));
-    box.replaceChildren(head, facts, actions);
 }
 
 /**

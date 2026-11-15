@@ -853,6 +853,19 @@ function defineSuite(prefix) {
         await assertSucceeds(app('legacyOwner').set({ businessName: 'Owner set' }, { merge: true }));
     });
 
+    t('settings/app.upiId (U-62): empty or name@handle, a string of at most 60; an old bad one does not block other saves', async () => {
+        const app = () => as('legacyOwner').collection(`${prefix}settings`).doc('app');
+        await assertSucceeds(app().set({ upiId: 'ram.traders-1@okaxis' }, { merge: true }));
+        await assertSucceeds(app().set({ upiId: '' }, { merge: true }));
+        await assertFails(app().set({ upiId: 'ram traders' }, { merge: true }));
+        await assertFails(app().set({ upiId: 'ram@ok.axis' }, { merge: true }));
+        await assertFails(app().set({ upiId: '<b>@x' }, { merge: true }));
+        await assertFails(app().set({ upiId: `${'a'.repeat(55)}@okaxis` }, { merge: true }));
+        await assertFails(app().set({ upiId: 42 }, { merge: true }));
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(`${prefix}settings`).doc('app').set({ upiId: 'old bad' }, { merge: true }));
+        await assertSucceeds(app().set({ businessName: 'Ram Traders' }, { merge: true }));
+    });
+
     // ---- Printed bill shared by every phone (#107): settings/app.receipt ----
 
     t('settings/app section stamps: <x>UpdatedAt an int, <x>UpdatedBy a string of at most 128; the shapes every app writes pass', async () => {
@@ -1313,6 +1326,19 @@ function defineSuite(prefix) {
             role: FieldValue.delete(), rentRole: FieldValue.delete(), approvedAt: FieldValue.delete(), approvedBy: FieldValue.delete(),
             status: 'disabled', disabledAt: new Date(), disabledBy: 'legacyOwner'
         })));
+
+    t('a username + PIN account (U-56) stays a Member: no manager or owner, no email change; removing it works', async () => {
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(users).doc('worker1')
+            .set({ name: 'W', email: 'ramu@shop.bahi.invalid', role: 'staff', status: 'pending' }));
+        const w = () => as('legacyOwner').collection(users).doc('worker1');
+        await assertFails(w().update({ status: 'active', role: 'manager' }));
+        await assertFails(w().update({ role: 'owner' }));
+        await assertFails(w().update({ email: 'ramu@x.com' }));
+        await assertFails(w().update({ email: 'ramu@x.com', role: 'manager' }));
+        await assertSucceeds(w().update({ status: 'active', role: 'staff', approvedBy: 'legacyOwner' }));
+        await assertSucceeds(w().update({ role: FieldValue.delete(), status: 'disabled' }));
+        await assertSucceeds(as('legacyOwner').collection(users).doc('staff1').update({ role: 'manager' }));
+    });
 
     t('nobody writes users/{uid}/preferences (the app never uses it, #64); its user may read it', async () => {
         await assertFails(as('staff1').collection(users).doc('staff1').collection('preferences').doc('ui').set({ a: 1 }));

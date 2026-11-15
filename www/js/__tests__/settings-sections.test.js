@@ -262,6 +262,11 @@ describe('Settings page sections (jsdom)', () => {
         expect(await SettingsManager.saveBusinessDetails()).toBe(true);
         expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ upiId: 'new@upi' }));
         expect(AppState.settings.upiId).toBe('new@upi');
+        save.mockClear();
+        document.getElementById('settingUpiId').value = 'ram traders';
+        expect(await SettingsManager.saveBusinessDetails()).toBe(false);
+        expect(save).not.toHaveBeenCalled();
+        expect(AppState.settings.upiId).toBe('new@upi');
     });
 });
 

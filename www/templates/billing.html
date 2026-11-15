@@ -7,7 +7,7 @@
             <button type="button" id="saleModeBtn" aria-pressed="false" data-onclick="billing.switchMode('sale', event)"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.billing.sale">Retail sale</span></button>
         </div>
             <details class="bill-menu" id="billMenu">
-                <summary class="btn btn-ghost btn-icon" title="More" data-i18n-title="ui.billing.more"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg><span class="bill-menu-badge" id="draftBadge" aria-hidden="true" hidden>0</span></summary>
+                <summary class="btn btn-ghost btn-icon" title="More" data-i18n-title="ui.billing.more"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg><span class="sr-only" data-i18n="ui.billing.more">More</span><span class="bill-menu-badge" id="draftBadge" aria-hidden="true" hidden>0</span></summary>
                 <div class="panel bill-menu-list">
                     <button type="button" id="draftsBtn" data-onclick="billing.showDrafts()" class="btn btn-ghost" hidden>
                         <svg class="i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
@@ -126,13 +126,16 @@
                     <input type="checkbox" class="switch" id="autoLaborCharge" checked data-onchange="billing.updateTotals()">
                     <span data-i18n="ui.billing.labour_label">Labour</span>
                 </label>
-                <span id="laborCalculation" class="bill-labour-calc"></span>
-                <div class="adorn bill-money">
-                    <span class="adorn-pre" aria-hidden="true">−₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="manualLaborCharges" enterkeyhint="next" value="0"
-                       data-onchange="billing.markLabourManual(this); billing.updateTotals()"
-                       data-onfocus="billing.markLabourManual(this)"
-                       placeholder="0" aria-label="Labour" data-i18n-aria-label="ui.billing.labour_label" />
+                <button type="button" id="laborCalculation" class="btn btn-ghost btn-sm bill-labour-calc" aria-expanded="false" aria-controls="laborDetail" data-onclick="billing.toggleLabourDetail()"></button>
+                <div class="bill-labour-detail" id="laborDetail" hidden>
+                    <span id="laborWorking" class="bill-labour-working"></span>
+                    <div class="adorn bill-money">
+                        <span class="adorn-pre" aria-hidden="true">−₹</span>
+                        <input type="number" class="input" inputmode="decimal" id="manualLaborCharges" enterkeyhint="next" value="0"
+                           data-onchange="billing.markLabourManual(this); billing.updateTotals()"
+                           data-onfocus="billing.markLabourManual(this)"
+                           placeholder="0" aria-label="Labour" data-i18n-aria-label="ui.billing.labour_label" />
+                    </div>
                 </div>
             </div>
 
@@ -141,7 +144,7 @@
                 <strong class="money"><span class="cur">₹</span><span id="amountPayable">0</span></strong>
             </div>
 
-            <div class="bill-pay-title" data-i18n="ui.billing.payment">Payment</div>
+            <div class="bill-pay-title"><span data-i18n="ui.billing.payment">Payment</span></div>
 
             <div class="pay-line">
                 <label for="onlinePayment" id="onlinePaymentLabel" data-i18n="ui.billing.online_label">Online</label>
@@ -322,7 +325,7 @@
                 <strong class="money"><span class="cur">₹</span><span id="amountReceivable">0</span></strong>
             </div>
 
-            <div class="bill-pay-title" data-i18n="ui.billing.payment">Payment</div>
+            <div class="bill-pay-title"><span data-i18n="ui.billing.payment">Payment</span></div>
 
             <div class="pay-line">
                 <label for="saleOnlinePayment" id="saleOnlinePaymentLabel" data-i18n="ui.billing.online_label">Online</label>

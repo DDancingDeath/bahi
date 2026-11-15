@@ -147,15 +147,16 @@ describe('live marks', () => {
         expect(document.querySelectorAll('#testTable .bill-check-part')).toHaveLength(0);
     });
 
-    test('the same problem on the rate box and its line is counted once in the banner', () => {
+    test('the rate left in the box after Add to bill is warned once, on its line (U-01, U-18)', () => {
         state.items[0] = { itemId: 'rice', name: 'Rice', rate: 90, qty: 10, total: 900 };
         renderRows();
         $('cash').value = '900';
         $('rate').value = '90';
         BillChecksUI.run('test');
-        expect($('rate').classList.contains('bill-check-warn')).toBe(true);
+        expect($('rate').classList.contains('bill-check-warn')).toBe(false);
         expect(banner().hidden).toBe(true);
-        expect(document.querySelectorAll('#testSection .bill-check-msg')).toHaveLength(2);
+        expect(document.querySelectorAll('#testSection .bill-check-msg')).toHaveLength(1);
+        expect(document.querySelector('#testTable tbody tr').classList.contains('bill-check-warn')).toBe(true);
     });
 
     test('bill-level problems (duplicate) are listed in the banner', () => {

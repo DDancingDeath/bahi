@@ -2,7 +2,7 @@
 
 import { AppState } from './utils/state.js';
 import { UIManager } from './ui/ui-manager.js';
-import { NavigationManager } from './ui/navigation.js';
+import { NavigationManager, billInProgress } from './ui/navigation.js';
 import { BottomNav } from './ui/bottom-nav.js';
 import { VoiceMic } from './ui/voice-mic.js';
 import { PhotoWeights } from './ui/photo-weights.js';
@@ -414,7 +414,7 @@ function setupEventListeners() {
     
     // Warn before leaving page with unsaved bill
     window.addEventListener('beforeunload', function(e) {
-        if (AppState.billItems.length > 0 || AppState.salesItems.length > 0) {
+        if (billInProgress()) {
             e.preventDefault();
             e.returnValue = '';
         }
@@ -758,15 +758,15 @@ async function initializeUserData() {
         setTimeout(() => startClockCheck({ toast: (m) => UIManager.showToast(m) })
             .catch(e => console.warn('Clock check failed:', e)), 10000);
         
+        if (AppState.userRole === 'owner' || AppState.userRole === 'manager') {
+            const lockUid = AppState.currentUser?.uid;
+            loadAppLock().then(l => l.start(lockUid)).catch(e => console.warn('Phone lock not started:', e?.message || e));
+        }
         UIManager.hideLoading();
         markStartup('app-shown', { online: navigator.onLine });
         tip.start('SessionReads').complete({ startupReads: getQuotaStatus().reads - readsAtStart });
         noteStartup('listeners', FirebaseService.getStartupListenerInfo?.() || {});
         logStartupTimings();
-        if (AppState.userRole === 'owner' || AppState.userRole === 'manager') {
-            const lockUid = AppState.currentUser?.uid;
-            loadAppLock().then(l => l.start(lockUid)).catch(e => console.warn('Phone lock not started:', e?.message || e));
-        }
         // Shop | Rentals switch (#149): Rentals code loads only when opened
         BusinessSwitcher.init();
         // Offline / waiting-to-sync pill (#70)
@@ -1080,6 +1080,7 @@ window.app = {
         login: () => AuthManager.handleLogin(),
         register: () => AuthManager.handleRegister(),
         logout: () => AuthManager.handleLogout(),
+        switchUser: () => AuthManager.handleLogout({ switching: true }),
         forgotPassword: () => AuthManager.handleForgotPassword(),
         sendPasswordReset: () => AuthManager.handleSendPasswordReset(),
         togglePassword: (inputId, btn) => AuthManager.togglePassword(inputId, btn),
@@ -1221,6 +1222,7 @@ window.app = {
         loadSaleRates: () => BillingManager.loadSaleRates(),
         // Labour typed by hand: auto labour stops overwriting it
         markLabourManual: (input) => { input.dataset.manuallySet = 'true'; },
+        toggleLabourDetail: () => PurchaseManager.toggleLabourDetail(),
         
         // Weight management
         addWeight: () => BillingManager.addWeight(),

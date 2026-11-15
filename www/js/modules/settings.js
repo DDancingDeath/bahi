@@ -132,6 +132,8 @@ function storeLocalSettings(key = 'settings', value = AppState.settings) {
 
 /** A UPI ID as stored: no spaces, at most MAX_UPI characters. */
 const cleanUpi = (value) => String(value ?? '').replace(/\s+/g, '').slice(0, MAX_UPI);
+/** name@handle, as firestore.rules accepts it; empty means no UPI ID. */
+export const validUpi = (upi) => upi === '' || (upi.length <= MAX_UPI && /^[A-Za-z0-9._-]{2,}@[A-Za-z]{2,}$/.test(upi));
 
 /** Typed package weight is blank (→ default) or within 1–200 kg. */
 export function packageKgInRange(value) {
@@ -715,6 +717,11 @@ export class SettingsManager {
             businessDetails: clean('settingBusinessDetails', MAX_BUSINESS_DETAILS),
             upiId: upiInput ? cleanUpi(upiInput.value) : cleanUpi(AppState.settings.upiId)
         };
+        if (upiInput && !validUpi(details.upiId)) {
+            UIManager.showToast(t('msg.settings.bad_upi'), 'warning');
+            upiInput.focus();
+            return false;
+        }
         const previous = { businessName: AppState.settings.shopName || '', businessDetails: AppState.settings.businessDetails || '', upiId: cleanUpi(AppState.settings.upiId) };
         this.applyBusinessLocally(details);
         try {
@@ -796,7 +803,7 @@ export class SettingsManager {
             return;
         }
         const local = cleanUpi(AppState.settings.upiId);
-        if (!appSettings || !local || !this.canEditShop()) return;
+        if (!appSettings || !local || !validUpi(local) || !this.canEditShop()) return;
         try {
             await FirebaseService.saveShopUpi(local, { checked: false });
         } catch (error) {

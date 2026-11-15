@@ -16,7 +16,7 @@ import {
     shownAmount, sumWeights, validatePaymentSplit, weightsForEdit, withLineRate
 } from '../utils/calc/billing.js';
 import { showAmount } from '../ui/number-input.js';
-import { showUndo } from '../ui/undo-bar.js';
+import { showUndo, hideUndo } from '../ui/undo-bar.js';
 import { showLastSaved } from '../ui/last-saved.js';
 import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
@@ -166,7 +166,7 @@ const RetailSaleManager = {
             saleWeightChecks = before.checks;
             this.renderSaleWeights();
             if (this.billingManager) this.billingManager.triggerAutoSave();
-        });
+        }, { tag: () => pendingBill?.id ?? null });
     },
 
     /**
@@ -360,7 +360,7 @@ const RetailSaleManager = {
             saleItems.splice(Math.min(index, saleItems.length), 0, line);
             this.renderSalesBill();
             if (this.billingManager) this.billingManager.triggerAutoSave();
-        });
+        }, { tag: () => pendingBill?.id ?? null });
     },
 
     /**
@@ -658,6 +658,7 @@ const RetailSaleManager = {
             ]);
             
             // Clear sale
+            hideUndo();
             pendingBill = null;
             saleItems = [];
             emit(BILL_CLEARED, 'sale');
@@ -778,6 +779,7 @@ const RetailSaleManager = {
      * Clear the current sale
      */
     clearSale() {
+        hideUndo();
         pendingBill = null;
         saleItems = [];
         emit(BILL_CLEARED, 'sale');
