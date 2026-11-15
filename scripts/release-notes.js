@@ -19,7 +19,9 @@ const IDENTITY = derive(loadConfig());
 const DOWNLOAD_URL = IDENTITY.downloadPageUrl;
 const INSTALL_STEPS =
     `On your Android 11+ phone open the download page, tap Download, open \`${IDENTITY.apkFile}\`, ` +
-    'allow "Install unknown apps" if asked, then tap Update/Install (your data is stored online and is kept).';
+    'allow "Install unknown apps" if asked, then tap Update/Install. No need to uninstall: the update installs over ' +
+    'the old app and your data is kept. If Google Play Protect warns, tap More details › Install anyway. Only if the ' +
+    'phone says "App not installed", uninstall the old app first (bills are safe on the server).';
 
 function normalizeVersion(v) {
     return String(v || '').trim().replace(/^v/i, '');

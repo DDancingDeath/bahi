@@ -18,7 +18,7 @@
 import {
     billTotal, dueNeedsName, NAME_REQUIRED_FOR_DUE_KEY, paymentSplitMessage, readLineItem, round2, toMoney, formatKg, formatRupees
 } from './money.js';
-import { rateConfirmed, validatePaymentSplit, wholesaleCostRate } from './calc/billing.js';
+import { billRateIndex, rateConfirmed, todaysRates, unitSlip, usualRateFor, validatePaymentSplit, wholesaleCostRate } from './calc/billing.js';
 import { parseAnyBillDate, startOfLocalDay } from './dates.js';
 import { t } from '../i18n/index.js';
 import { computeShortfallsFrom, stockKeyFor, stockWarnOnlyNote, stockedItemKeys } from './stock-check.js';
@@ -50,12 +50,6 @@ export const DEFAULT_THRESHOLDS = Object.freeze({
     /** … within this many minutes raise a review flag. */
     deniedWindowMin: 10
 });
-
-/**
- * Rate list on an item for each bill kind (see utils/rate-history.js RATE_FIELDS).
- * @type {Object<string, string>}
- */
-const ITEM_RATE_FIELD = { purchase: 'rates', retail: 'saleRates', wholesale: 'wholesaleRates' };
 
 /** Rule ids an owner/manager may never override: saving them would corrupt money/stock. */
 const HARD_RULES = new Set(['payment-none', 'party-required', 'payment-split', 'qty-invalid', 'rate-invalid']);
@@ -100,26 +94,13 @@ function lineKey(item) {
 }
 
 /**
- * Most recent rate per item from saved bills of the same kind (newest wins).
+ * Saved rates per item for the median fallback (BF-USUAL, calc/billing.js billRateIndex).
  * @param {Array<Rec>} bills
  * @param {?string|undefined} skipId - bill being edited (its own old rate is not "usual")
- * @returns {Map<string, number>}
+ * @returns {Map<string, Array<{ts: number, rate: number}>>}
  */
 function lastRates(bills, skipId) {
-    /** @type {Map<string, {ts: number, rate: number}>} */
-    const best = new Map();
-    for (const bill of Array.isArray(bills) ? bills : []) {
-        if (!bill || (skipId && bill.id === skipId) || !Array.isArray(bill.items)) continue;
-        const ts = Number(bill.timestamp) || parseAnyBillDate(bill.date)?.getTime() || 0;
-        for (const item of bill.items) {
-            const key = lineKey(item);
-            const { rate } = readLineItem(item);
-            if (!key || !(rate > 0)) continue;
-            const prev = best.get(key);
-            if (!prev || ts > prev.ts) best.set(key, { ts, rate });
-        }
-    }
-    return new Map([...best].map(([k, v]) => [k, v.rate]));
+    return billRateIndex(bills, skipId || null, (b) => Number(b.timestamp) || parseAnyBillDate(b.date)?.getTime() || 0);
 }
 
 /**
@@ -137,20 +118,23 @@ function findItem(line, catalogue) {
 }
 
 /**
- * Usual rate for a line: last billed rate of this kind, else the item's saved rate.
+ * Usual rate for a line (BF-USUAL): the Rates page for this kind, else the median of
+ * recent saved bills that carry no rate warning; never a single bill.
  * @param {Rec} line
  * @param {Rec} ctx
- * @param {Map<string, number>} rates
- * @returns {number|null|undefined}
+ * @param {Map<string, Array<{ts: number, rate: number}>>} rates
+ * @returns {?{rate: number, source: 'rates'|'bills'}}
  */
 function usualRate(line, ctx, rates) {
-    const last = rates.get(lineKey(line));
-    if (/** @type {number} */ (last) > 0) return last;
     const item = findItem(line, ctx.catalogue);
-    const field = ITEM_RATE_FIELD[ctx.kind];
-    const saved = (Array.isArray(item?.[field]) ? item[field] : []).map(Number).find(r => Number.isFinite(r) && r > 0);
-    return saved || null;
+    return usualRateFor(readLineItem(line).rate, {
+        todays: todaysRates(item, ctx.kind),
+        billRates: rates.get(lineKey(line)) || (item?.id ? rates.get(item.id) : null) || []
+    });
 }
+
+/** "₹2,400.00/kg" (stored text keeps paise; the screen drops ".00", screenRateText). */
+const perKg = (/** @type {number} */ r) => `${formatRupees(r, 'ratePaise')}/kg`;
 
 /**
  * Average stock cost for a line (stock rate), or null when unknown.
@@ -173,7 +157,7 @@ function avgCost(line, ctx) {
  * @param {Rec} line
  * @param {string} field
  * @param {Rec} ctx
- * @param {Map<string, number>} rates
+ * @param {Map<string, Array<{ts: number, rate: number}>>} rates
  * @param {Rec} [extra]
  * @returns {Array<Rec>}
  */
@@ -189,19 +173,28 @@ function rateIssues(line, field, ctx, rates, extra) {
             `${name ? name + ': ' : ''}रेट ₹0 से ज़्यादा होना चाहिए`, extra));
         return out;
     }
-    const usual = usualRate(line, ctx, rates);
+    const found = usualRate(line, ctx, rates);
+    const usual = found?.rate;
     const m = ctx.thresholds.rateMultiple;
+    const who = name ? `${name}: ` : '';
     // An extreme rate confirmed at Add to bill (BF-RATECHECK) is recorded on its line, not asked again
     if (usual && !rateConfirmed(line)) {
         const ratio = rate / usual;
-        if (ratio > m + 1e-9) {
+        const facts = { rate, usual, usualSource: found?.source };
+        const slip = unitSlip(rate, usual);
+        if (slip) {
             out.push(issue('rate-high', field, 'warn',
-                `Rate ${formatRupees(rate, 'ratePaise')} is ${ratio.toFixed(1)}× the usual ${formatRupees(usual, 'ratePaise')}`,
-                `रेट ${formatRupees(rate, 'ratePaise')} सामान्य ${formatRupees(usual, 'ratePaise')} का ${ratio.toFixed(1)} गुना है`, extra));
+                `${who}${perKg(rate)} looks like a per-quintal rate — usually ${perKg(usual)}. Use ${perKg(slip.suggest)}?`,
+                `${who}${perKg(rate)} क्विंटल का रेट लगता है — आमतौर पर ${perKg(usual)}। ${perKg(slip.suggest)} करें?`,
+                { ...extra, ...facts, suggestRate: slip.suggest }));
+        } else if (ratio > m + 1e-9) {
+            out.push(issue('rate-high', field, 'warn',
+                `${who}${perKg(rate)} is ${ratio.toFixed(1)}× the usual ${perKg(usual)}`,
+                `${who}${perKg(rate)} सामान्य ${perKg(usual)} का ${ratio.toFixed(1)} गुना है`, { ...extra, ...facts }));
         } else if (ratio < 1 / m - 1e-9) {
             out.push(issue('rate-low', field, 'warn',
-                `Rate ${formatRupees(rate, 'ratePaise')} is less than 1/${m} of the usual ${formatRupees(usual, 'ratePaise')}`,
-                `रेट ${formatRupees(rate, 'ratePaise')} सामान्य ${formatRupees(usual, 'ratePaise')} के 1/${m} से कम है`, extra));
+                `${who}${perKg(rate)} is less than 1/${m} of the usual ${perKg(usual)}`,
+                `${who}${perKg(rate)} सामान्य ${perKg(usual)} के 1/${m} से कम है`, { ...extra, ...facts }));
         }
     }
     if (ctx.kind !== 'purchase') {
@@ -471,6 +464,33 @@ export function saveGate(issues) {
     const bill = (issues || []).filter(i => !isEntryIssue(i));
     const blocks = bill.filter(i => i.severity === 'block');
     return { blocks, hardBlocks: blocks.filter(i => !i.overridable), warns: bill.filter(i => i.severity === 'warn') };
+}
+
+/** Rate warnings on bill lines that are shown as one per bill. */
+const LINE_RATE_RULES = new Set(['rate-high', 'rate-low']);
+
+/**
+ * One rate warning per bill on screen: the bill lines' rate-high / rate-low warnings
+ * become one `rate-check` issue (`parts` = the warnings, `lines` = their lines), in the
+ * place of the first. Stored flags still use the warnings themselves (saveGate / toFlags).
+ * @param {Array<Rec>} issues
+ * @returns {Array<Rec>}
+ */
+export function combineRateWarnings(issues) {
+    const list = Array.isArray(issues) ? issues : [];
+    const parts = list.filter(i => LINE_RATE_RULES.has(i.id) && String(i.field).startsWith('items.'));
+    if (parts.length < 2) return list;
+    const merged = {
+        id: 'rate-check', field: 'items', severity: 'warn', overridable: false,
+        lines: parts.map(i => i.line).filter(n => Number.isInteger(n)),
+        en: parts.map(i => i.en).join('\n'),
+        hi: parts.map(i => i.hi).join('\n'),
+        parts
+    };
+    const at = list.indexOf(parts[0]);
+    const rest = list.filter(i => !parts.includes(i));
+    rest.splice(Math.min(at, rest.length), 0, merged);
+    return rest;
 }
 
 /**

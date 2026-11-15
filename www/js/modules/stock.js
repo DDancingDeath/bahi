@@ -15,6 +15,7 @@ import { SAVED_ON_PHONE_KEY } from '../utils/storage-full.js';
 import { formatAmount, formatRupees, formatRate, formatKg } from '../utils/money.js';
 import { parseAnyBillDate, formatDate } from '../utils/dates.js';
 import { stockRows, itemValue, stockValue, stockSummary, adjustItemStock, adjustmentValue, deadStockValue } from '../utils/calc/stock.js';
+import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import { isFullHistoryLoaded, historyLoadedFrom, formatWindowDate } from '../utils/history-window.js';
 import { planStockAdjustment, adjustReasonText, canReverseAdjustment, reversalPlan, stockCountPlan, adjustmentDelta, lastPurchaseRate, restockCost } from '../utils/stock-adjust.js';
@@ -147,6 +148,8 @@ export class StockManager {
         this.renderSummary(stockSummary(stockWithDetails), stockValue(stock), isStaff, belowZeroCount);
         const approxNote = stockApproxNoteHtml(AppState.stockApprox);
         if (approxNote) container.insertAdjacentHTML('beforeend', approxNote);
+        // A purchase at a 100× rate skews the stock rate and value (U-01)
+        if (this.canManageStock()) container.insertAdjacentHTML('beforeend', doubtfulRatesNoticeHtml(['purchase']));
         container.insertAdjacentHTML('beforeend', this.lowStockHtml(stock, isStaff));
         const canSetAlerts = this.canManageStock();
         const list = document.createElement('div');

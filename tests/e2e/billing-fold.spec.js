@@ -20,7 +20,7 @@ const SIZES = [
 
 const MODES = {
     purchase: { btn: '#purchaseModeBtn', item: '#billItem', rate: '#billRate', weight: '#newWeight', section: '#purchaseSection', totals: ['#billTotal', '#amountPayable'], actions: ['#saveBillBtn', '#printBillBtn'], fields: ['#billNoteToggle', '#billDateText'], last: '#billDateText', bar: ['#barPayable', '#amountPayable'] },
-    sale: { btn: '#saleModeBtn', item: '#saleItem', rate: '#saleRate', weight: '#saleWeight', section: '#saleSection', totals: ['#saleTotal'], actions: ['#saveSaleBtn', '#printSaleBtn'], fields: ['#saleNoteToggle', '#saleDateText'], last: '#saleDateText', bar: ['#barReceivable', '#amountReceivable'] }
+    sale: { btn: '#saleModeBtn', item: '#saleItem', rate: '#saleRate', weight: '#saleWeight', section: '#saleSection', totals: ['#amountReceivable'], actions: ['#saveSaleBtn', '#printSaleBtn'], fields: ['#saleNoteToggle', '#saleDateText'], last: '#saleDateText', bar: ['#barReceivable', '#amountReceivable'] }
 };
 
 /** Where an element is on screen, and whether it is the topmost thing at its centre. */
@@ -90,9 +90,9 @@ async function addLine(page, mode, rate = 30) {
     await tap(page, `${m.section} [data-add-weight]`);
     await tap(page, `${m.section} [data-add-line]`);
     await expect(page.locator(m.totals[0])).not.toHaveText('0');
-    // Nothing paid yet: the bill checks add their banner above the bill and a line under the
-    // split (after a short debounce). Measure with them, the case #104 is about.
-    await expect(page.locator(`${m.section} > .bill-check-notice`)).toBeVisible();
+    // Nothing paid yet: the bill checks add a line under the split and Save reads "Fix 1" (after a short
+    // debounce; one message per problem, U-33). Measure with them, the case #104 is about.
+    await expect(page.locator(m.actions[0])).toHaveText(/^Fix 1/);
     await expect(page.locator(`${m.section} .bill-side .bill-check-msg`).first()).toBeVisible();
 }
 

@@ -114,7 +114,8 @@ export function closeSuggestions(kind) {
         list.replaceChildren();
     }
     const input = inputOf(kind);
-    if (input) {
+    // aria-expanded is allowed only once the field is a combobox (ensureList), not on a plain text box
+    if (input && input.getAttribute('role') === 'combobox') {
         input.setAttribute('aria-expanded', 'false');
         input.removeAttribute('aria-activedescendant');
     }

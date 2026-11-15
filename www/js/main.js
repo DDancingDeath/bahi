@@ -12,6 +12,7 @@ import { SyncStatus } from './ui/sync-status.js';
 import { startClockCheck } from './ui/clock-banner.js';
 import { installStickyFocus } from './ui/sticky-focus.js';
 import { ThemeManager, CHOICE_AT_LOAD } from './ui/theme.js';
+import { watchSystemBars, keepFocusInView } from './utils/native-shell.js';
 import { AuthManager } from './auth/authentication.js';
 import { FirebaseService } from './firebase/firestore-service.js';
 import { userProfile, saveOwnSavedRanges } from './firebase/repos/users.js';
@@ -756,6 +757,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     ThemeManager.init(CHOICE_AT_LOAD);
     await injectTemplates();
     markStartup('shell');
+    watchSystemBars();
+    keepFocusInView();
     
     // STEP 2: Initialize auth tabs after templates are loaded
     AuthManager.initAuthTabs();
@@ -1249,6 +1252,7 @@ window.app = {
         loadItemDetails: () => WholesaleSalesManager.loadItemDetails(),
         addToWholesaleBill: () => WholesaleSalesManager.addToWholesaleBill(),
         removeWholesaleItem: (index) => WholesaleSalesManager.removeWholesaleItem(index),
+        editWholesaleItem: (index) => WholesaleSalesManager.editWholesaleItem(index),
         completeSale: () => WholesaleSalesManager.completeSale(),
         printWholesaleSale: () => WholesaleSalesManager.printWholesaleSale(),
         shareViaWhatsApp: () => WholesaleSalesManager.shareViaWhatsApp(),
@@ -1271,7 +1275,13 @@ window.app = {
         fillReceivableAmount: (type) => WholesaleSalesManager.fillReceivableAmount(type),
         putRestInDue: () => WholesaleSalesManager.putRestInDue(),
         pickContact: () => WholesaleSalesManager.pickContact(),
-        clearOutstandingParty: () => WholesaleSalesManager.clearOutstandingParty()
+        clearOutstandingParty: () => WholesaleSalesManager.clearOutstandingParty(),
+        // Edit a saved sale (U-30): the page is put in first when it was never opened (#66)
+        openEditor: async (bill) => {
+            await NavigationManager.showTab('wholesale-sales');
+            WholesaleSalesManager.openEditor(bill);
+        },
+        cancelEdit: () => WholesaleSalesManager.cancelEdit()
     },
     
     // History
@@ -1372,7 +1382,7 @@ window.app = {
     
     // Anomalies (#187, #40): Day report card on Today + Anomalies page (anomalies.js is imported on first use)
     anomalies: {
-        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'review',
+        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'correctRate', 'review',
             'shareDayReport', 'printDayReport', 'refreshNow']
             .map(name => [name, (...args) => loadAnomalies().then(m => m[name](...args))])),
         // The cash-close screen's line, when the code is loaded (owner/manager phones load it after the first screen)

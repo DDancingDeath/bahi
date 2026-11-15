@@ -17,13 +17,14 @@ import { UIManager } from './ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { AuditService } from '../services/audit.js';
 import {
-    bannerText, buildCheckContext, canOverride, evaluateBill, saveGate, toFlags, toOverrides
+    bannerText, buildCheckContext, canOverride, combineRateWarnings, evaluateBill, saveGate, toFlags, toOverrides
 } from '../utils/bill-checks.js';
 import { hidePartyDue, renderPartyDue } from './party-due-line.js';
 import { closeSuggestions, hideNameHint, renderNameHint } from './party-suggest.js';
 import { confirmLineRates } from './rate-check.js';
 import { lineItemIdentity } from '../utils/item-catalog.js';
-import { screenRateText } from '../utils/money.js';
+import { formatRate, screenRateText } from '../utils/money.js';
+import { parseNumberText } from '../utils/number-text.js';
 import { getLang, t } from '../i18n/index.js';
 import { tip } from '../tip/index.js';
 import { AUTO_ROLLBACK_REASON } from '../tip/scenarios/bill-save.js';
@@ -60,11 +61,11 @@ const byId = (id) => (typeof document === 'undefined' ? null : document.getEleme
 export function readTypedNumber(id) {
     const raw = byId(id)?.value;
     if (raw === undefined || raw === null || String(raw).trim() === '') return null;
-    const n = parseFloat(raw);
+    const n = parseNumberText(raw);
     return Number.isFinite(n) ? n : null;
 }
 /** Rules whose text carries rates (stored with paise, "₹2,400.00"); the screen shows them as rates ("₹2,400"). */
-const RATE_RULES = new Set(['rate-high', 'rate-low', 'below-cost']);
+const RATE_RULES = new Set(['rate-high', 'rate-low', 'below-cost', 'rate-check']);
 const text = (i) => {
     const s = getLang() === 'hi' ? i.hi : i.en;
     return RATE_RULES.has(i.id) ? screenRateText(s) : s;
@@ -159,11 +160,56 @@ function mark(el, severity, msgId) {
     }
 }
 
-function messageEl(issue, msgId) {
+/**
+ * "Use ₹24/kg" on a per-quintal-looking line rate (BF-UNITSLIP), when the form can change a line's rate.
+ * @returns {?HTMLButtonElement}
+ */
+function rateFixButton(cfg, part) {
+    if (!(part?.suggestRate > 0)) return null;
+    const entryInput = part.field === 'entry.rate' ? cfg?.fields?.['entry.rate']?.inputs?.[0] : null;
+    if (!entryInput && !(cfg?.applyRate && Number.isInteger(part.line))) return null;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm btn-tonal bill-check-fix';
+    b.textContent = t('ui.rate_check.use', { rate: formatRate(part.suggestRate) });
+    b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const input = entryInput ? byId(entryInput) : null;
+        if (input) {
+            input.value = String(part.suggestRate);
+            input.focus?.();
+        } else cfg.applyRate(part.line, part.suggestRate);
+        BillChecksUI.run(cfg.kind);
+    });
+    return b;
+}
+
+function messageEl(issue, msgId, cfg = null) {
     const div = document.createElement('div');
     div.className = `bill-check-msg ${CLASS[issue.severity]}`;
     div.id = msgId;
-    div.textContent = `${ICON[issue.severity]} ${text(issue)}`;
+    if (Array.isArray(issue.parts)) {
+        // One rate warning per bill (U-01): a heading and one row per line
+        const head = document.createElement('div');
+        head.textContent = `${ICON[issue.severity]} ${t('ui.checks.check_rates')}`;
+        div.appendChild(head);
+        issue.parts.forEach(part => {
+            const row = document.createElement('div');
+            row.className = 'bill-check-part';
+            const span = document.createElement('span');
+            span.textContent = text(part);
+            row.appendChild(span);
+            const fix = rateFixButton(cfg, part);
+            if (fix) row.appendChild(fix);
+            div.appendChild(row);
+        });
+        return div;
+    }
+    const span = document.createElement('span');
+    span.textContent = `${ICON[issue.severity]} ${text(issue)}`;
+    div.appendChild(span);
+    const fix = rateFixButton(cfg, issue);
+    if (fix) div.appendChild(fix);
     return div;
 }
 
@@ -183,7 +229,7 @@ function placeFieldIssue(cfg, issue, n) {
     const row = anchor.closest('.bill-form-field, .field-float, .pay-line') || anchor;
     let after = row;
     while (after.nextElementSibling?.classList.contains('bill-check-msg')) after = after.nextElementSibling;
-    after.insertAdjacentElement('afterend', messageEl(issue, msgId));
+    after.insertAdjacentElement('afterend', messageEl(issue, msgId, cfg));
     return inputs[0] || anchor;
 }
 
@@ -202,7 +248,7 @@ function placeLineIssue(cfg, issue, n) {
         msgRow.className = 'bill-check-line';
         const td = document.createElement('td');
         td.colSpan = tr.children.length || 5;
-        td.appendChild(messageEl(issue, msgId));
+        td.appendChild(messageEl(issue, msgId, cfg));
         msgRow.appendChild(td);
         let after = tr;
         while (after.nextElementSibling?.classList.contains('bill-check-line')) after = after.nextElementSibling;
@@ -226,6 +272,8 @@ function ensureBanner(section) {
 
 function renderBanner(cfg, section, issues, unplaced, firstTarget) {
     const banner = ensureBanner(section);
+    // One message per problem (U-33): a problem shown at its field needs no banner; only those with no place are listed here
+    issues = unplaced;
     if (issues.length === 0) {
         banner.hidden = true;
         banner.className = 'notice solid bill-check-notice';
@@ -261,16 +309,26 @@ function renderBanner(cfg, section, issues, unplaced, firstTarget) {
 
 /**
  * Save/Print state: 'blocked' (a red problem), 'override' (red problems an
- * owner/manager may save past with a reason) or 'ok'.
+ * owner/manager may save past with a reason) or 'ok'. Blocked, Save reads "Fix 2" and
+ * a tap goes to the first problem (U-33); the buttons never look disabled while they work.
  */
-function renderSaveButtons(cfg, state) {
+function renderSaveButtons(cfg, state, count = 0) {
     if (!cfg.saveButtons) return;
     document.querySelectorAll(cfg.saveButtons).forEach(btn => {
         btn.classList.remove('bill-check-save-blocked', 'bill-check-save-override');
         btn.removeAttribute('aria-disabled');
         btn.removeAttribute('title');
+        const save = btn.getAttribute('data-i18n') === 'ui.common.save' || btn.dataset.fixing === '1';
+        if (save && state === 'blocked') {
+            btn.dataset.fixing = '1';
+            btn.removeAttribute('data-i18n');
+            btn.textContent = t('ui.checks.fix_count', { count });
+        } else if (save && btn.dataset.fixing === '1') {
+            delete btn.dataset.fixing;
+            btn.setAttribute('data-i18n', 'ui.common.save');
+            btn.textContent = t('ui.common.save');
+        }
         if (state === 'blocked') {
-            btn.setAttribute('aria-disabled', 'true');
             btn.classList.add('bill-check-save-blocked');
             btn.title = t('ui.checks.fix_red_first');
         } else if (state === 'override') {
@@ -292,7 +350,8 @@ export function renderIssues(kind, issues) {
     clearMarks(section);
     const unplaced = [];
     let firstTarget = null;
-    issues.forEach((issue, n) => {
+    const shown = combineRateWarnings(issues);
+    shown.forEach((issue, n) => {
         let target = null;
         if (issue.field === 'items' || issue.field.startsWith('items.')) target = placeLineIssue(cfg, issue, n);
         else target = placeFieldIssue(cfg, issue, n);
@@ -303,8 +362,8 @@ export function renderIssues(kind, issues) {
     const saveState = !blocks.length ? 'ok'
         : (!hardBlocks.length && canOverride(AppState.userRole) ? 'override' : 'blocked');
     if (issues.length) section.classList.add(issues.some(i => i.severity === 'block') ? 'bill-checks-block' : 'bill-checks-warn');
-    renderBanner(cfg, section, issues, unplaced, firstTarget || section);
-    renderSaveButtons(cfg, saveState);
+    renderBanner(cfg, section, shown, unplaced, firstTarget || section);
+    renderSaveButtons(cfg, saveState, new Set(blocks.map(i => `${i.id}|${i.en}`)).size);
 }
 
 function evaluate(kind, overrides = null) {
@@ -356,6 +415,7 @@ export const BillChecksUI = {
         try {
             const cfg = forms[kind];
             const draft = cfg.getDraft();
+            markPartyNeeded(cfg, draft);
             renderPartyDue(kind, cfg.fields?.party?.inputs?.[0], draft);
             renderNameHint(kind, draft);
         } catch (error) {
@@ -419,7 +479,6 @@ export const BillChecksUI = {
         const by = AppState.currentUser?.uid || 'unknown';
 
         if (hardBlocks.length) {
-            UIManager.showToast(text(hardBlocks[0]));
             focusIssue(kind, hardBlocks[0]);
             return stop;
         }
@@ -435,6 +494,15 @@ export const BillChecksUI = {
         if (rateDraft) {
             const rates = await confirmLineRates(rateDraft);
             if (!rates.ok) {
+                const cfg = forms[kind];
+                if (rates.use && cfg?.applyRate) {
+                    const line = rateDraft.items?.[/** @type {number} */ (rates.index)];
+                    cfg.applyRate(rates.index, rates.use);
+                    BillChecksUI.run(kind);
+                    const name = line ? lineItemIdentity(line, AppState.items, AppState.settings?.showHindi).label : '';
+                    UIManager.showToast(t('msg.rate_check.rate_changed', { item: name || '', rate: formatRate(rates.use) }), 'warning');
+                    return stop;
+                }
                 showLine(kind, /** @type {number} */ (rates.index));
                 return stop;
             }
@@ -459,7 +527,6 @@ export const BillChecksUI = {
             ? blocks : [];
         if (blocks.length && !autoOverride.length) {
             if (!canOverride(AppState.userRole)) {
-                UIManager.showToast(text(blocks[0]));
                 focusIssue(kind, blocks[0]);
                 return stop;
             }
@@ -471,7 +538,7 @@ export const BillChecksUI = {
             }).catch(e => console.warn('Audit log failed:', e));
         }
 
-        const confirmList = [...autoOverride, ...warns];
+        const confirmList = [...autoOverride, ...combineRateWarnings(warns)];
         if (confirmList.length) {
             const list = confirmList.map(w => text(w)).join('\n');
             const ok = await UIManager.showModal(
@@ -492,11 +559,37 @@ export const BillChecksUI = {
     }
 };
 
+/**
+ * The name box says it is needed once anything is in Due (U-34): aria-required and the
+ * wrapper's `party-needed` (its label reads "needed"), so Save is not the first to say so.
+ */
+function markPartyNeeded(cfg, draft) {
+    const input = byId(cfg?.fields?.party?.inputs?.[0]);
+    if (!input) return;
+    const needed = Number(draft?.payment?.due) > 0;
+    if (needed) input.setAttribute('aria-required', 'true');
+    else input.removeAttribute('aria-required');
+    input.closest('.bill-customer')?.classList.toggle('party-needed', needed);
+}
+
+/**
+ * Takes the user to a problem that stops the save (U-33): its field (focused) or bill line, scrolled
+ * to the middle; its message is already there. Only a problem with no place on the form is a toast.
+ */
 function focusIssue(kind, issue) {
     const cfg = forms[kind];
     const id = cfg?.fields?.[issue.field]?.inputs?.[0];
     const el = id ? byId(id) : null;
-    if (el && typeof el.focus === 'function') el.focus();
+    const lines = String(issue.field).startsWith('items.') ? [Number(String(issue.field).slice(6))] : (issue.lines || []);
+    const row = !el && cfg && lines.length ? itemRows(cfg)[lines[0]] : null;
+    const target = el || row;
+    if (!target || !sectionOf(kind)) {
+        UIManager.showToast(text(issue));
+        if (el && typeof el.focus === 'function') el.focus();
+        return;
+    }
+    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    if (el && typeof el.focus === 'function') el.focus({ preventScroll: true });
 }
 
 /** "Fix rate" at Save: point at the bill line to correct. */

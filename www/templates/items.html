@@ -22,14 +22,14 @@
         </div>
 
         <div class="scroll-cue">
-        <div id="itemsTableScroll" class="scroll-cue-inner panel">
+        <div id="itemsTableScroll" class="scroll-cue-inner panel" tabindex="0" role="region" aria-label="Rates" data-i18n-aria-label="ui.nav.rates">
             <table id="itemsViewTable" class="table rates-table">
                 <thead>
                     <tr>
                         <th scope="col" data-i18n="ui.items.item_name">Item name</th>
-                        <th scope="col" data-perm="purchaseRates"><span class="rates-head"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.items.purchase_rates">Purchase rates</span></span></th>
-                        <th scope="col"><span class="rates-head"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.items.retail_rates">Retail rates</span></span></th>
-                        <th scope="col" class="wholesale-column"><span class="rates-head"><span class="mode-dot wholesale" aria-hidden="true"></span><span data-i18n="ui.items.wholesale_rates">Wholesale rates</span></span></th>
+                        <th scope="col" data-perm="purchaseRates"><span class="rates-head"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.items.purchase_rates">Purchase rates</span><span class="rates-unit" data-i18n="ui.common.per_kg_unit">₹/kg</span></span></th>
+                        <th scope="col"><span class="rates-head"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.items.retail_rates">Retail rates</span><span class="rates-unit" data-i18n="ui.common.per_kg_unit">₹/kg</span></span></th>
+                        <th scope="col" class="wholesale-column"><span class="rates-head"><span class="mode-dot wholesale" aria-hidden="true"></span><span data-i18n="ui.items.wholesale_rates">Wholesale rates</span><span class="rates-unit" data-i18n="ui.common.per_kg_unit">₹/kg</span></span></th>
                     </tr>
                 </thead>
                 <tbody id="itemsViewTableBody">
