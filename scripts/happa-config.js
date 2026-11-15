@@ -33,7 +33,7 @@ function loadConfig(root = DEFAULT_ROOT) {
 }
 
 const TARGETS_DIR = 'config/targets';
-const TARGET_KEYS = ['firebase', 'googleSignIn', 'appCheck'];
+const TARGET_KEYS = ['firebase', 'googleSignIn', 'appCheck', 'download'];
 // A side-by-side test app (e.g. "Bahi Dev", com.happa.dev) sets all four; see withTarget.
 const SIDE_BY_SIDE_KEYS = ['appName', 'appNameHi', 'androidPackage', 'apkName'];
 
@@ -90,6 +90,9 @@ function derive(raw) {
     };
     if (fb.measurementId) webConfig.measurementId = fb.measurementId;
     const google = raw.googleSignIn || {};
+    // Optional "download" block: where the APK and its release info come from (default: releases/latest)
+    const dl = raw.download || {};
+    const dlName = dl.name || {};
     return {
         appName: raw.appName,
         appNameHi: raw.appNameHi,
@@ -106,8 +109,9 @@ function derive(raw) {
         siteUrl,
         downloadPageUrl: `${siteUrl}/download`,
         downloadPageHost: `${siteHost}/download`,
-        apkDownloadUrl: `https://github.com/${raw.githubRepo}/releases/latest/download/${apkFile}`,
-        latestReleaseApi: `https://api.github.com/repos/${raw.githubRepo}/releases/latest`,
+        apkDownloadUrl: dl.apkDownloadUrl || `https://github.com/${raw.githubRepo}/releases/latest/download/${apkFile}`,
+        latestReleaseApi: dl.latestReleaseApi || `https://api.github.com/repos/${raw.githubRepo}/releases/latest`,
+        downloadName: { en: dlName.en || raw.appName, hi: dlName.hi || raw.appNameHi },
         // Off until the owner has done the console steps (docs/google-sign-in.md)
         googleSignIn: { web: google.web === true, android: google.android === true },
         // App Check (monitor mode) starts only when a reCAPTCHA v3 site key is set (docs/security.md)
@@ -156,6 +160,19 @@ function configProblems(raw) {
             (a.siteKey === undefined || (typeof a.siteKey === 'string' && /^[\w-]*$/.test(a.siteKey.trim())));
         if (!ok) errors.push('appCheck must be { "siteKey": "<reCAPTCHA v3 site key>" } (empty = App Check off)');
     }
+    if (raw.download !== undefined) {
+        const dl = raw.download;
+        const keysOk = dl && typeof dl === 'object' && Object.keys(dl).every((k) => ['apkDownloadUrl', 'latestReleaseApi', 'name'].includes(k));
+        const repo = String(raw.githubRepo || '').replace(/[.]/g, '\\.');
+        const urlOk = (v, re) => v === undefined || (typeof v === 'string' && re.test(v));
+        const nameOk = (n) => n === undefined || (n && typeof n === 'object' &&
+            Object.entries(n).every(([k, v]) => ['en', 'hi'].includes(k) && typeof v === 'string' && v.trim() && !/[<>]/.test(v)));
+        if (!keysOk || !nameOk(dl.name) ||
+            !urlOk(dl.apkDownloadUrl, new RegExp(`^https://github\\.com/${repo}/releases/(latest/download|download/[\\w.-]+)/${String(d.apkFile).replace(/[.]/g, '\\.')}$`)) ||
+            !urlOk(dl.latestReleaseApi, new RegExp(`^https://api\\.github\\.com/repos/${repo}/releases/(latest|tags/[\\w.-]+)$`))) {
+            errors.push(`download must be { "apkDownloadUrl": a ${raw.githubRepo} release asset named ${d.apkFile}, "latestReleaseApi": that repo's releases API, "name": { "en", "hi" } }`);
+        }
+    }
     return errors;
 }
 
@@ -170,13 +187,16 @@ function downloadValues(d) {
     return {
         appName: d.appName,
         appNameHi: d.appNameHi,
+        downloadNameEn: d.downloadName.en,
+        downloadNameHi: d.downloadName.hi,
+        latestReleaseApi: d.latestReleaseApi,
         apkFile: d.apkFile,
         apkDownloadUrl: d.apkDownloadUrl,
         siteUrl: d.siteUrl,
         siteHost: d.siteHost,
         downloadPageHost: d.downloadPageHost,
-        downloadTitle: `${d.appName} — Download`,
-        downloadDescription: `Download the ${d.appName} Android app and see how to install it.`,
+        downloadTitle: `${d.downloadName.en} — Download`,
+        downloadDescription: `Download the ${d.downloadName.en} Android app and see how to install it.`,
         qrAlt: `QR code for ${d.downloadPageHost}`
     };
 }
