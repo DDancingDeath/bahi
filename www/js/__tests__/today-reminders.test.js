@@ -326,7 +326,7 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
         expect(toggle().getAttribute('aria-expanded')).toBe('false');
         expect(toggle().getAttribute('aria-controls')).toBe('todayRemindersBody');
         expect(body().hidden).toBe(true);
-        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Udhaar ₹250·Rent ₹68,000·Backup');
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Dues ₹250·Rent ₹68,000·Backup');
         expect(toggle().querySelector('[data-disclosure-alert]')).not.toBeNull();
         expect(toggle().textContent).toContain('Something is overdue');
         expect(toggle().textContent).not.toContain('raja kumar');
