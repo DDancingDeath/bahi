@@ -4931,7 +4931,7 @@ input[type="number"] {
 }
 
 .ws-margin-toggle {
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: var(--sp-3) 0;
   color: var(--ink-2);
   font-size: var(--fs-sm);

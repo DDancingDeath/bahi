@@ -222,27 +222,25 @@
             <h2 class="set-group-title" id="settingsShopTitle" tabindex="-1" data-i18n="ui.settings.section_shop">Aadhat settings</h2>
         </div>
         <p class="setting-description" id="settingsShopViewOnly" hidden data-i18n="ui.settings.shop_view_only">Only the owner, or a manager allowed in Roles &amp; access, can change these.</p>
+        <p class="setting-description" id="settingsShopSaveNote" role="status" aria-live="polite" data-i18n="ui.settings.shop_autosave">Changes here save for everyone as soon as you leave a box.</p>
 
         <div class="panel panel-pad set-panel" id="businessDetailsCard">
             <h3 class="set-title" data-i18n="ui.settings.business_details">Business name and details</h3>
             <div class="field">
                 <label for="settingBusinessName" data-i18n="ui.settings.business_name">Business name</label>
-                <input type="text" class="input" id="settingBusinessName" maxlength="80" data-shop-edit />
+                <input type="text" class="input" id="settingBusinessName" maxlength="80" data-shop-edit data-onchange="settings.saveBusinessDetails()" />
             </div>
             <div class="field">
                 <label for="settingBusinessDetails" data-i18n="ui.settings.business_details_line">Address or phone (one line)</label>
-                <input type="text" class="input" id="settingBusinessDetails" maxlength="120" data-shop-edit />
+                <input type="text" class="input" id="settingBusinessDetails" maxlength="120" data-shop-edit data-onchange="settings.saveBusinessDetails()" />
             </div>
-            <p class="setting-description" data-i18n="ui.settings.business_details_hint">Printed at the top of bills and statements. Saved for everyone.</p>
-            <div class="set-actions">
-                <button class="btn btn-primary" type="button" data-onclick="settings.saveBusinessDetails()" data-shop-edit data-i18n="ui.roles.save">Save for everyone</button>
-            </div>
+            <p class="setting-description" data-i18n="ui.settings.business_details_hint">Printed at the top of bills and statements.</p>
         </div>
 
         <div class="panel panel-pad set-panel" id="upiCard">
             <h3 class="set-title"><label for="settingUpiId" data-i18n="ui.settings.upi_title">UPI ID</label></h3>
-            <input type="text" class="input" id="settingUpiId" maxlength="60" autocomplete="off" data-onchange="settings.saveUpi()" />
-            <p class="setting-description" data-i18n="ui.settings.upi_hint">Added to WhatsApp payment reminders. Saved on this device only.</p>
+            <input type="text" class="input" id="settingUpiId" maxlength="60" autocomplete="off" data-shop-edit data-onchange="settings.saveBusinessDetails()" />
+            <p class="setting-description" data-i18n="ui.settings.upi_hint">Added to WhatsApp payment reminders sent from every phone.</p>
         </div>
 
         <div class="panel panel-pad set-panel" id="labourSettingsCard">
@@ -279,6 +277,7 @@
                 <span data-i18n="ui.settings.enable_automatic_labor_charges">Enable automatic labour charges by default</span>
                 <input type="checkbox" class="switch" id="settingAutoLabor" checked data-onchange="settings.save()">
             </label>
+            <p class="setting-description" data-i18n="ui.settings.this_phone_only">This phone only.</p>
         </div>
 
         <div class="panel panel-pad set-panel" id="billChecksCard">

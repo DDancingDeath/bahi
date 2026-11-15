@@ -909,7 +909,7 @@
     "signIn": {
       "modals": [],
       "toasts": [
-        "Could not open cash: not opened in this test"
+        "Cash not opened. Something went wrong. Try again; if it keeps happening, tell the owner."
       ]
     }
   },

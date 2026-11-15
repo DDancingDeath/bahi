@@ -291,7 +291,7 @@ export function formatDateTimeIN(value, options, fallback = t('ui.reports.unknow
 
 const MONTHS = {
     en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    hi: ['जन॰', 'फ़र॰', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुल॰', 'अग॰', 'सित॰', 'अक्तू॰', 'नव॰', 'दिस॰']
+    hi: ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर']
 };
 const DAY_HALF = { en: ['am', 'pm'], hi: ['पूर्वाह्न', 'अपराह्न'] };
 const langOf = (/** @type {?string|undefined} */ lang) => (lang === 'hi' ? 'hi' : 'en');

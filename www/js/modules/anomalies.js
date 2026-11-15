@@ -14,6 +14,7 @@ import { openExternal } from '../utils/open-external.js';
 import { whatsAppReminderUrl } from '../utils/due-reminder.js';
 import { chartScaleMax } from '../utils/chart-scale.js';
 import { t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { pickLang } from '../i18n/localize.js';
 import {
     ANOMALY_DEFAULTS, ANOMALY_TYPES, DETECTION_FIELDS, SEVERITIES, SEVERITY_LABELS, STATUS_LABELS,
@@ -667,7 +668,7 @@ export const AnomaliesManager = {
             await FirebaseService.saveAnomalies([{ id: a.id, data }]);
         } catch (e) {
             console.error('Saving review failed:', e);
-            UIManager.showToast(t('msg.anomalies.could_not_save', { value: e?.message || e }));
+            UIManager.showToast(t('msg.anomalies.could_not_save', { value: friendlyError(e) }));
             return false;
         }
         const apply = (x) => (x.id === a.id ? { ...x, ...data } : x);

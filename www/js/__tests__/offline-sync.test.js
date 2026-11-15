@@ -357,9 +357,9 @@ describe('a save the phone refused is never reported as saved (#153)', () => {
     });
 
     test('settings with localStorage full: storage-full toast instead of "Settings saved"', () => {
-        document.body.innerHTML = '<input id="settingUpiId" value="shop@upi"><div id="toast"></div>';
+        document.body.innerHTML = '<div id="toast"></div>';
         jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw quotaDom(); });
-        SettingsManager.saveUpi();
+        SettingsManager.saveSettings();
         expect(toastTexts()).toEqual([t('msg.sync.storage_full')]);
     });
 

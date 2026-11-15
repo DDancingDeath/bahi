@@ -183,7 +183,7 @@ describe('#77 reminder message', () => {
         const s = buildStatement(party, { kind: 'payable', shopName: 'Shop', today: TODAY });
         expect(s).toMatchObject({
             shopName: 'Shop', partyName: 'Ram Lal', asOf: '22/10/2026', total: 123456.6,
-            totalLabel: 'Total payable', filename: 'statement_Ram_Lal_20261022.png'
+            totalLabel: 'Total due', filename: 'statement_Ram_Lal_20261022.png'
         });
         expect(s.rows.map(r => r.date)).toEqual(['01/09/2026', '10/10/2026']);
         expect(buildStatement({ name: '', bills: [] }).partyName).toBe('No name');
@@ -281,7 +281,7 @@ describe('#46/#77 Outstanding panel', () => {
         AppState.purchaseHistory = [{ id: 'p1', customerName: 'Supplier', timestamp: Date.now(), payment: { cash: 0, online: 0, due: 70 } }];
         OutstandingManager.renderDue();
         const panel = document.getElementById('dueAging');
-        expect(panel.textContent).toContain('Payables by age');
+        expect(panel.textContent).toContain('To pay, by age');
         expect(panel.querySelector('.aging-remind')).toBeNull();
         expect(panel.querySelector('.aging-chase')).toBeNull();
     });
@@ -351,7 +351,7 @@ describe('#125 wholesale dues on Outstanding (All / Retail / Wholesale)', () => 
         OutstandingManager.filterDue('retail');
         expect(ids()).toEqual(['r1', 'r2']);
         expect(total()).toBe('₹580');
-        expect(document.querySelector('#dueAging .aging-title').textContent).toBe('Retail receivables by age');
+        expect(document.querySelector('#dueAging .aging-title').textContent).toBe('Retail: to receive, by age');
         expect(document.querySelector('#dueList .due-kind-chip')).toBeNull();
         OutstandingManager.filterDue('wholesale');
         expect(ids()).toEqual(['w1', 'w2']);

@@ -110,7 +110,7 @@ describe.each([
 });
 
 describe.each([
-    ['en', "Your account is waiting for the owner's approval.", 'Your account has been rejected. Please contact admin.'],
+    ['en', "Your account is waiting for the owner's approval.", 'Your account was not approved. Please talk to the owner.'],
     ['hi', 'आपका खाता मालिक की मंज़ूरी का इंतज़ार कर रहा है।', 'आपका खाता मंज़ूर नहीं हुआ। मालिक से बात करें।']
 ])('after sign-in (%s)', (lang, pending, rejected) => {
     beforeEach(() => setLang(lang, { store: null }));

@@ -60,15 +60,15 @@ describe('F33: one date format', () => {
         expect(formatTimeOfDay(new Date(2026, 0, 1, 0, 5))).toBe('12:05 am');
         expect(formatDayTime(at, { now: new Date(2026, 9, 26) })).toBe('25 Oct, 8:59 pm');
         expect(formatDayTime(at, { now: new Date(2027, 0, 2) })).toBe('25 Oct 2026, 8:59 pm');
-        expect(formatDay(at, { lang: 'hi' })).toBe('25 अक्तू॰ 2026');
-        expect(formatDayTime(at, { lang: 'hi', now: at })).toBe('25 अक्तू॰, 8:59 अपराह्न');
+        expect(formatDay(at, { lang: 'hi' })).toBe('25 अक्टूबर 2026');
+        expect(formatDayTime(at, { lang: 'hi', now: at })).toBe('25 अक्टूबर, 8:59 अपराह्न');
         expect(formatDay('25/10/2026')).toBe('25 Oct 2026');
         expect(formatDay('nope')).toBe('');
     });
     test('Helpers.formatDate / formatDateTime follow the app language', () => {
         expect(Helpers.formatDate('2026-10-25')).toBe('25 Oct 2026');
         setLang('hi');
-        expect(Helpers.formatDate('2026-10-25')).toBe('25 अक्तू॰ 2026');
+        expect(Helpers.formatDate('2026-10-25')).toBe('25 अक्टूबर 2026');
         expect(Helpers.formatTime(at)).toBe('8:59 अपराह्न');
     });
 });

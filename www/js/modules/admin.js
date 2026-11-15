@@ -16,6 +16,7 @@ import { verifyBackup, verifyBackupText, recordDrill, readLimited } from '../uti
 import { userCounts, activityByUser, activityRange, ACTIVITY_RANGES } from '../utils/user-activity.js';
 import { historyLoadedFrom } from '../utils/history-window.js';
 import { getLang } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { buildBackup, isDeleteConfirmed, DELETE_CONFIRM_WORD, canClearCollection } from '../utils/data-export.js';
 import { t } from '../i18n/index.js';
 import { UserAdmin, isRemovedProfile, logUserAction } from '../services/user-admin.js';
@@ -1034,7 +1035,7 @@ const AdminManager = {
         } catch (error) {
             console.error('Error clearing data:', error);
             UIManager.hideLoading();
-            UIManager.showToast(t('msg.admin.error_clearing_data', { message: error.message }));
+            UIManager.showToast(t('msg.admin.error_clearing_data', { message: friendlyError(error) }));
         }
     }
 };

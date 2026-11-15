@@ -60,7 +60,7 @@ afterEach(() => {
 describe('login gate', () => {
     test.each([
         ['pending', "Your account is waiting for the owner's approval."],
-        ['rejected', 'Your account has been rejected. Please contact admin.'],
+        ['rejected', 'Your account was not approved. Please talk to the owner.'],
         ['disabled', 'This account has been removed. Please contact the owner.']
     ])('%s user is signed out and kept on the login screen', async (status, message) => {
         fake.seed('users', [{ id: 'u1', name: 'A', email: 'a@x.com', role: 'staff', status }]);

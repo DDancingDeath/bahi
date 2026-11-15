@@ -173,7 +173,7 @@ describe('web popup', () => {
 
     test.each([
         ['pending', "Your account is waiting for the owner's approval."],
-        ['rejected', 'Your account has been rejected. Please contact admin.'],
+        ['rejected', 'Your account was not approved. Please talk to the owner.'],
         ['disabled', 'This account has been removed. Please contact the owner.']
     ])('a %s profile does not get in (pending waits on the waiting card, U-24)', async (status, message) => {
         fake.seed('users', [{ id: 'g1', name: 'Asha', email: 'asha@gmail.com', role: 'owner', status }]);

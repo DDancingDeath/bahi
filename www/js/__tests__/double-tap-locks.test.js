@@ -226,7 +226,7 @@ describe('cash drawer', () => {
         expect(CashManagementManager.cachedSessions[0][field]).toEqual([]);
         expect(CashManagementManager.cachedSessions[1][field]).toEqual([entry]);
         expect(CashManagementManager.renderHistory).toHaveBeenCalled();
-        expect(UIManager.showToast).toHaveBeenLastCalledWith(expect.stringContaining('denied'));
+        expect(UIManager.showToast).toHaveBeenLastCalledWith(expect.stringContaining(t('msg.error.no_access')));
     });
 });
 

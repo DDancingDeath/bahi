@@ -5,6 +5,7 @@ import { UIManager, buildSheet, openSheet, closeSheet } from '../ui/ui-manager.j
 import { icon } from '../ui/icons.js';
 import { getAndroidMajorVersion, Helpers } from '../utils/helpers.js';
 import { t, loadAllCatalogues } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { PrinterLink } from './printer-link.js';
 import { track } from './usage.js';
 import { tip } from '../tip/index.js';
@@ -292,7 +293,7 @@ const PrinterService = {
             UIManager.showToast(t('msg.common.printer_disconnected'));
         } catch (error) {
             console.error('Disconnect error:', error);
-            UIManager.showToast(t('msg.common.failed_disconnect', { message: error.message }));
+            UIManager.showToast(t('msg.common.failed_disconnect', { message: this.errorText(error) }));
         }
     },
 
@@ -1063,7 +1064,7 @@ const PrinterService = {
             return this.showImagePreview(canvas, `expense_${expense.id || Date.now()}.png`, t('ui.today.expense'));
         } catch (error) {
             console.error('Failed to show expense preview:', error);
-            UIManager.showToast(t('msg.printer.failed_generate_preview_2', { message: error.message }));
+            UIManager.showToast(t('msg.printer.failed_generate_preview_2', { message: friendlyError(error) }));
             return false;
         }
     },

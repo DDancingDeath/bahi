@@ -11,6 +11,7 @@ import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { CHANGED_ELSEWHERE, writeErrorKey } from '../utils/write-conflict.js';
 import { t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { emptyState } from '../ui/components.js';
 import { tip, tipTargets, tipReasons } from '../tip/index.js';
 import { dayKeyOf, normalizePolicies } from '../tip/tip.js';
@@ -138,7 +139,7 @@ export const HealthManager = {
             this.render();
         } catch (error) {
             console.warn('App health not loaded:', error?.code || error);
-            if (status) status.textContent = t('ui.health.load_failed', { message: error?.code || error?.message || '' });
+            if (status) status.textContent = t('ui.health.load_failed', { message: friendlyError(error) });
         }
     },
 
@@ -267,7 +268,7 @@ export const HealthManager = {
             UIManager.showToast(t('msg.health.policies_saved', { count: Object.keys(policies).length }));
         } catch (error) {
             const key = writeErrorKey(error, null);
-            UIManager.showToast(key ? t(key) : t('msg.health.policies_not_saved', { message: error?.message || error }));
+            UIManager.showToast(key ? t(key) : t('msg.health.policies_not_saved', { message: friendlyError(error) }));
             if (error?.code === CHANGED_ELSEWHERE) {
                 // Show the policies stored now (another phone's), not this stale form
                 try {

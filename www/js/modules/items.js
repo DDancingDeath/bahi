@@ -22,6 +22,7 @@ import {
 import { createRateEditTracker, diffItemRates, diffItemFields } from '../utils/notification-format.js';
 import { canArchiveItem, ITEM_ARCHIVE_LOCKED_KEY, isPermissionDenied } from '../utils/record-permissions.js';
 import { t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { attachScrollCue } from '../ui/scroll-cue.js';
 import { CHANGED_ELSEWHERE, isOffline, writeErrorKey } from '../utils/write-conflict.js';
 import { suggestHindiName, suggestEnglishName, autofillValue } from '../utils/item-name-autofill.js';
@@ -637,7 +638,7 @@ const ItemsManager = {
         } catch (error) {
             console.error('Import error:', error);
             UIManager.hideLoading();
-            UIManager.showToast(t('msg.items.failed_import_items', { message: error.message }));
+            UIManager.showToast(t('msg.items.failed_import_items', { message: friendlyError(error) }));
         } finally {
             input.value = '';
         }
