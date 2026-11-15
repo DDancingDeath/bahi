@@ -143,6 +143,7 @@ const STATIC_ASSETS = [
     '/js/ui/printer-shortcut.js',
     '/js/modules/voice-billing.js',
     '/js/utils/voice-parse.js',
+    '/js/utils/voice-bill-parse.js',
     '/js/utils/voice-undo.js',
     '/js/i18n/index.js',
     '/js/i18n/lang-catalogues.js',

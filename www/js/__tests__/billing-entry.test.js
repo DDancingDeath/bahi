@@ -140,7 +140,7 @@ describe('🎙 only with Voice billing on, 📷 only with Photo of weights on', 
     test('both off: no icon buttons, and the fields keep the whole row', () => {
         VoiceMic.apply();
         PhotoWeights.apply();
-        expect(shown('[data-voice-mic]')).toEqual([false, false]);
+        expect(shown('[data-voice-mic]')).toEqual([false, false, false, false]);
         expect(shown('[data-photo-weights]')).toEqual([false]);
         expect(css('billing.css')).toMatch(/\.bill-entry-row > \.field-float \{[^}]*flex: 1 1 0/);
     });
@@ -150,15 +150,20 @@ describe('🎙 only with Voice billing on, 📷 only with Photo of weights on', 
         localStorage.setItem(VOICE_KEY, '1');
         VoiceMic.apply();
         PhotoWeights.apply();
-        expect(shown('[data-voice-mic]')).toEqual([true, true]);
+        expect(shown('[data-voice-mic]')).toEqual([true, true, true, true]);
         expect(shown('[data-photo-weights]')).toEqual([false]);
+        // #498: the name mic sits in the name field, beside the contact button
+        for (const [name, mic] of [['customerName', 'voiceNamePurchase'], ['saleCustomerName', 'voiceNameSale']]) {
+            expect($(mic).parentElement).toBe($(name).parentElement);
+            expect($(mic).previousElementSibling.getAttribute('data-onclick')).toMatch(/ontact/);
+        }
     });
 
     test('Photo of weights on: the 📷 beside Weight, no 🎙', () => {
         AppState.userRole = 'owner';
         PhotoWeights.setShared({ enabled: true });
         VoiceMic.apply();
-        expect(shown('[data-voice-mic]')).toEqual([false, false]);
+        expect(shown('[data-voice-mic]')).toEqual([false, false, false, false]);
         expect(shown('[data-photo-weights]')).toEqual([true]);
         expect($('photoWeightsPurchase').parentElement).toBe(rowOf('newWeight'));
     });

@@ -99,12 +99,19 @@ describe('VoiceMic switch', () => {
         expect(window.webkitSpeechRecognition).not.toHaveBeenCalled();
     });
 
-    test('switched on with an engine shows the buttons; with none it stays off and says so', () => {
+    test('switched on with an engine shows the buttons; with none the mic stays and a tap says why (#498)', async () => {
         VoiceMic.setOn(true);
         expect(localStorage.getItem(VOICE_KEY)).toBe('1');
-        expect(document.getElementById('settingVoiceBilling').disabled).toBe(true);
+        // Already on: it can still be switched off, and the mic is never hidden
+        expect(document.getElementById('settingVoiceBilling').disabled).toBe(false);
         expect(document.getElementById('voiceBillingUnavailable').hidden).toBe(false);
+        expect(document.getElementById('voiceMicPurchase').hidden).toBe(false);
+        await expect(VoiceMic.start('purchase')).resolves.toBe(false);
+        expect(UIManager.showToast).toHaveBeenLastCalledWith(expect.stringMatching(/isn't available on this device/), 5000);
+        VoiceMic.setOn(false);
+        expect(document.getElementById('settingVoiceBilling').disabled).toBe(true);
         expect(document.getElementById('voiceMicPurchase').hidden).toBe(true);
+        VoiceMic.setOn(true);
 
         window.webkitSpeechRecognition = fakeWebSpeech([]);
         VoiceMic.apply();
@@ -402,7 +409,7 @@ describe('tier B (#131): transcript, undo, correct a line, beep, missed phrases'
 
     test('what was heard and what came of it stay under the mic', async () => {
         window.webkitSpeechRecognition = fakeWebSpeech(['wheat 10 kg 24 aur rice 5 kg 30']);
-        dialog(true, () => { expect(strip()).toBe('Heard: “wheat 10 kg 24 aur rice 5 kg 30”. Check it and tap OK.'); });
+        dialog(true, () => { expect(strip()).toBe('Heard: “wheat 10 kg 24 aur rice 5 kg 30”. Check it and tap Fill bill.'); });
         await VoiceBilling.listenOnce('purchase', 'web');
         expect(strip()).toBe('Heard: “wheat 10 kg 24 aur rice 5 kg 30”. Lines added to the bill: 2. Check them, then save.');
 

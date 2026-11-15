@@ -4176,7 +4176,7 @@ input[type="number"] {
 
 :is(#billing, .bill-page) .bill-party > .input {
   width: 100%;
-  padding-right: 52px;
+  padding-right: var(--bill-party-pad, 52px);
 }
 
 .bill-party > .btn-icon {
@@ -4842,6 +4842,163 @@ input[type="number"] {
 
 .voice-edit-field .input {
   width: 100%;
+}
+/* Hold-to-talk mic (#498): no text selection, long-press menu or scrolling from a press */
+[data-voice-hold] {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.voice-sheet-mic.voice-listening {
+  background-color: var(--negative-soft);
+  color: var(--negative);
+}
+
+/* The mic in the Supplier / Customer field, beside the contact button (#498) */
+.bill-party > .voice-name-mic {
+  right: 48px;
+}
+
+body.no-perm-contacts .bill-party > .voice-name-mic {
+  right: 0;
+}
+
+.bill-party:has(> .voice-name-mic:not([hidden])) {
+  --bill-party-pad: 100px;
+}
+
+body.no-perm-contacts .bill-party:has(> .voice-name-mic:not([hidden])) {
+  --bill-party-pad: 52px;
+}
+
+/* Name mic pick list */
+.voice-name-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-lead);
+}
+
+.voice-name-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
+}
+
+.voice-name-pick {
+  justify-content: space-between;
+  min-height: 48px;
+  text-align: left;
+}
+
+.voice-name-pick-due {
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+}
+
+/* Whole-bill check sheet (#498) */
+.voice-part {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
+}
+
+.voice-part label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.voice-part input[type="checkbox"],
+.voice-pay input[type="checkbox"] {
+  width: var(--sp-5);
+  height: var(--sp-5);
+  flex: none;
+}
+
+.voice-part-input {
+  flex: 1 1 8rem;
+  max-width: 12rem;
+}
+
+.voice-part > .input[type="text"] {
+  flex: 1 1 12rem;
+}
+
+.voice-pay {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.voice-pay p {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+.voice-pay label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 5rem;
+}
+
+.voice-part-title {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+}
+
+.voice-customer select {
+  flex: 1 1 12rem;
+}
+
+.voice-customer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.voice-unclear {
+  border-left: 3px solid var(--warning);
+  padding-left: var(--sp-2);
+}
+
+select.voice-unclear {
+  border-left-width: 3px;
+}
+
+.voice-lines-total {
+  margin: var(--sp-2) 0;
+  font-weight: var(--w-strong);
+}
+
+.voice-sheet-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.voice-sheet-mic {
+  min-height: 48px;
+}
+
+.voice-sheet-live {
+  flex: 1 1 12rem;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+}
+
+.voice-sheet-live:empty {
+  display: none;
 }
 
 /* ---- css/photo-weights.css ---- */
