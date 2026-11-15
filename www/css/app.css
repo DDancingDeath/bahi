@@ -6795,6 +6795,12 @@ tr.bill-check-line .bill-check-msg {
   min-width: 0;
 }
 
+/* The period as the shared chip (U-61); its whole text shows (Since 1 Sep 2026) */
+.history-date-filter > select.period-preset {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
 .history-custom-range {
   display: flex;
   flex-wrap: wrap;
@@ -10833,6 +10839,9 @@ div.ins-wide,
 /* Day book: ‹ day › with a date box for a jump (U-94) */
 .st-day-step { flex-wrap: wrap; }
 .st-day-pick { flex: 0 1 auto; width: auto; }
+
+/* Month statement: the month chip sits between ‹ and › (U-61) */
+.st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }
 
 /* ---- css/desktop.css ---- */
 /* ==================== DESKTOP LAYOUT (wide screens only) ====================

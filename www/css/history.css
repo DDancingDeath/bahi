@@ -226,6 +226,12 @@
   min-width: 0;
 }
 
+/* The period as the shared chip (U-61); its whole text shows (Since 1 Sep 2026) */
+.history-date-filter > select.period-preset {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
 .history-custom-range {
   display: flex;
   flex-wrap: wrap;

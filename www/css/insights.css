@@ -241,3 +241,6 @@ div.ins-wide,
 /* Day book: ‹ day › with a date box for a jump (U-94) */
 .st-day-step { flex-wrap: wrap; }
 .st-day-pick { flex: 0 1 auto; width: auto; }
+
+/* Month statement: the month chip sits between ‹ and › (U-61) */
+.st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }

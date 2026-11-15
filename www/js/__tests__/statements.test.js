@@ -182,6 +182,18 @@ describe('Statements: CSV language, dates and permissions', () => {
         return toCsv(StatementsManager.current.csvHeader, StatementsManager.current.csvRows) && text && StatementsManager.current;
     };
 
+    test('U-61: the month statement steps a month with ‹ ›, within the 24 months listed', () => {
+        StatementsManager.open('month');
+        const months = [...document.querySelectorAll('#statementsControls option')].map(o => o.value);
+        StatementsManager.set('month', months[0]);
+        StatementsManager.stepMonth(-1);
+        expect(StatementsManager.month).toBe(months[1]);
+        StatementsManager.stepMonth(1);
+        StatementsManager.stepMonth(1);
+        expect(StatementsManager.month).toBe(months[0]);
+        expect(document.querySelector('#statementsControls .ins-period [data-onclick="statements.stepMonth(1)"]').disabled).toBe(true);
+    });
+
     test('day-book CSV writes ISO dates (YYYY-MM-DD HH:mm); month CSV labels have no = or − signs', () => {
         StatementsManager.open('day');
         const cur = StatementsManager.current;

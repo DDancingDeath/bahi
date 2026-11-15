@@ -110,6 +110,14 @@ export const StatementsManager = {
         this.set('day', next);
     },
 
+    /** Month statement ‹ › : one month back or forward, within the last 24 months. */
+    stepMonth(dir) {
+        const now = new Date();
+        const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
+        const next = opts[opts.indexOf(this.month) + (dir < 0 ? 1 : -1)];
+        if (next) this.set('month', next);
+    },
+
     /** Chooses the party the ledger opens on next (Insights › Parties row). */
     selectParty(partyKey, kind = 'customer') {
         this.partyKey = partyKey || null;
@@ -190,7 +198,12 @@ export const StatementsManager = {
         } else if (this.kind === 'month') {
             const now = new Date();
             const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
-            html = `<label>${esc(t('ui.statements.pick_month'))} <select class="form-control" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select></label>`;
+            const at = opts.indexOf(this.month);
+            // The shared period control (U-61): ‹ the month as a chip ›, as on Money and the Day book
+            html = `<div class="ins-period st-month-step">`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(-1)" aria-label="${esc(t('ui.money.earlier'))}"${at >= opts.length - 1 ? ' disabled' : ''}>${icon('chevL')}</button>`
+                + `<select class="ins-preset st-month-pick" aria-label="${esc(t('ui.statements.pick_month'))}" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select>`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(1)" aria-label="${esc(t('ui.money.later'))}"${at <= 0 ? ' disabled' : ''}>${icon('chevR')}</button></div>`;
         } else if (this.kind === 'party') {
             const parties = partyChoices(this.src(), this.partyKind);
             if (!this.partyKey || !parties.some(p => p.key === this.partyKey)) this.partyKey = parties[0]?.key || null;
