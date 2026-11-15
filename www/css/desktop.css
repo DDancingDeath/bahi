@@ -361,8 +361,9 @@
     align-items: start;
   }
 
-  /* Live bill-check banner (#188) spans both columns */
-  .bill-check-notice {
+  /* Live bill-check banner (#188) and the Last saved strip (U-05) span both columns */
+  .bill-check-notice,
+  .last-saved {
     grid-column: 1 / -1;
   }
 

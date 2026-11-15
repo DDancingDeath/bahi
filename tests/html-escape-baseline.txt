@@ -204,6 +204,7 @@ www/js/modules/outstanding.js: sortParties(aging.parties, this.agingSort) (marku
 www/js/modules/purchase.js: i
 www/js/modules/purchase.js: index
 www/js/modules/purchase.js: index
+www/js/modules/purchase.js: lineNameHtml(lineLabel(item), item.weights)
 www/js/modules/rate-trends.js: READ_BUDGET_OPTIONS (markup via map(v => `<option value="${v}"${v === budget ? ' selected' : ''}>${v.toLocaleString('en-IN')}</option>`))
 www/js/modules/rate-trends.js: YEAR_COLORS[i] ← YEAR_COLORS = ['#dc2626', '#2563eb', '#059669', '#7c3aed', '#d97706']
 www/js/modules/rate-trends.js: d.days ← d = dailyTraffic(loadedBills(), AppState.items || [], itemId, month) (markup via map(x => `<tr><td>${esc(`${Number(x.day.slice(8, 10))} ${monthLabel(month, lang, false)}`)}</td>${cells(x)}</tr>`))
@@ -236,6 +237,7 @@ www/js/modules/rate-trends.js: y
 www/js/modules/retail-sale.js: i
 www/js/modules/retail-sale.js: index
 www/js/modules/retail-sale.js: index
+www/js/modules/retail-sale.js: lineNameHtml(lineLabel(item), item.weights)
 www/js/modules/roles-access.js: CONFIGURABLE_ROLES (markup via map(r => ` <td><input type="checkbox" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMISSION_LABEL_KEYS[p])} – ${t(ROLE_LABEL_KEYS[r])}`)}"${acce))
 www/js/modules/roles-access.js: CONFIGURABLE_ROLES (markup via map(r => ` <td><input type="number" inputmode="numeric" min="0" max="${DAY_LIMITS[p]}" step="1" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMI))
 www/js/modules/roles-access.js: CONFIGURABLE_ROLES (markup via map(r => r !== 'manager' ? '<td>–</td>' : ` <td><input type="checkbox" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMISSION_LABEL_KEYS[p])} – $))
@@ -305,6 +307,8 @@ www/js/modules/voice-billing.js: value
 www/js/modules/wholesale-sales.js: billTableHtml(bills, { openings: this.historyOpenings, voided: this.historyVoided, onclickFor: (sale) => `wholesaleSales.reprintSaleById('${ (sink)
 www/js/modules/wholesale-sales.js: editsRowHtml(sale, 'history.showEdits()')
 www/js/modules/wholesale-sales.js: index
+www/js/modules/wholesale-sales.js: index
+www/js/modules/wholesale-sales.js: lineNameHtml(lineItemIdentity(item, AppState.items, AppState.settings.showHindi).label)
 www/js/modules/wholesale-sales.js: voidedBannerHtml(sale)
 www/js/rentals/rent-advanced.js: actions ← c.payBtns(lease.id) | c.receiptsBtn(lease.tenantId)
 www/js/rentals/rent-advanced.js: args
@@ -418,6 +422,7 @@ www/js/ui/finance-breakdown-sheet.js: groupOptions(b.rows) (markup via map(g => 
 www/js/ui/finance-breakdown-sheet.js: value
 www/js/ui/icons.js: name
 www/js/ui/icons.js: size ? ` ${size}` : '' ← size
+www/js/ui/last-saved.js: iconHtml (sink)
 www/js/ui/manual-reminders.js: REMINDER_PARTY_MAX
 www/js/ui/manual-reminders.js: REMINDER_TITLE_MAX
 www/js/ui/period-compare.js: Object.freeze(['last-month', 'this-month', 'last-year', 'this-year', 'last-fy', 'this-fy', 'last-30']) (markup via map(p => [p, t(PRESET_KEYS[p])]))

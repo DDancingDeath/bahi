@@ -16,10 +16,13 @@ import {
     shownAmount, sumWeights, validatePaymentSplit, weightsForEdit, withLineRate
 } from '../utils/calc/billing.js';
 import { showAmount } from '../ui/number-input.js';
+import { showUndo } from '../ui/undo-bar.js';
+import { showLastSaved } from '../ui/last-saved.js';
+import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
-import { t, tn } from '../i18n/index.js';
+import { t } from '../i18n/index.js';
 import { icon } from '../ui/icons.js';
 import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
@@ -149,11 +152,20 @@ const RetailSaleManager = {
      * @param {number} index - Index of weight to remove
      */
     removeSaleWeight(index) {
+        if (saleWeights[index] === undefined) return;
+        const before = { weights: [...saleWeights], checks: [...saleWeightChecks] };
+        const kg = saleWeights[index];
         saleWeights.splice(index, 1);
         saleWeightChecks = bagChecks(saleWeights, saleWeightChecks).confirmed;
         this.renderSaleWeights();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.weight_removed', { kg: formatKg(kg) }), () => {
+            saleWeights = before.weights;
+            saleWeightChecks = before.checks;
+            this.renderSaleWeights();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        });
     },
 
     /**
@@ -295,39 +307,13 @@ const RetailSaleManager = {
             return;
         }
         
-        // Render weight breakdown for items with 2 or more packets
-        if (saleWeightBreakdownSection) {
-            const itemsWithMultipleWeights = saleItems.filter(item => item.weights && item.weights.length >= 2);
-            
-            if (itemsWithMultipleWeights.length > 0) {
-                saleWeightBreakdownSection.innerHTML = itemsWithMultipleWeights.map(item => {
-                    const weightsPerLine = 6;
-                    const weightLines = [];
-                    for (let i = 0; i < item.weights.length; i += weightsPerLine) {
-                        const lineWeights = item.weights.slice(i, i + weightsPerLine);
-                        weightLines.push(lineWeights.map(w => formatKg(w)).join('&nbsp;&nbsp;'));
-                    }
-                    
-                    return `
-                        <div class="bill-weights bill-weights-sale">
-                            <div class="bill-weights-title">
-                                ${Helpers.escapeHtml(lineLabel(item))} (${Helpers.escapeHtml(tn('ui.print.packets_kg', item.weights.length, { kg: formatKg(item.qty) }))})
-                            </div>
-                            <div class="bill-weights-list">
-                                ${weightLines.join('<br>')}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                saleWeightBreakdownSection.innerHTML = '';
-            }
-        }
+        // Each line once (U-18): its packet weights go on the line itself
+        if (saleWeightBreakdownSection) saleWeightBreakdownSection.innerHTML = '';
         
         // Render bill items table
         tbody.innerHTML = saleItems.map((item, index) => `
             <tr class="bill-line" data-onclick="retailSale.editSaleItem(${index})">
-                <td>${Helpers.escapeHtml(lineLabel(item))}</td>
+                <td>${lineNameHtml(lineLabel(item), item.weights)}</td>
                 <td>${formatRate(item.rate)}</td>
                 <td>${formatKg(item.qty)} kg</td>
                 <td>${formatRupees(shownAmount(item.total))}</td>
@@ -363,10 +349,17 @@ const RetailSaleManager = {
     },
 
     removeSaleItem(index) {
+        const line = saleItems[index];
+        if (!line) return;
         saleItems.splice(index, 1);
         this.renderSalesBill();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.line_removed', { item: lineLabel(line), kg: formatKg(line.qty) }), () => {
+            saleItems.splice(Math.min(index, saleItems.length), 0, line);
+            this.renderSalesBill();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        });
     },
 
     /**
@@ -450,7 +443,11 @@ const RetailSaleManager = {
         const split = this.readPaymentSplit();
         
         const totalReceivedEl = document.getElementById('totalReceived');
-        if (totalReceivedEl) totalReceivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+        if (totalReceivedEl) {
+            totalReceivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+            const row = totalReceivedEl.closest('.payment-total');
+            if (row) row.hidden = !(split.cash > 0 && split.online > 0);
+        }
         Helpers.showSplitRemaining('saleSplitRemaining', validatePaymentSplit(computeRetailTotals(saleItems).total, split));
         BillChecksUI.schedule('retail');
     },
@@ -671,6 +668,7 @@ const RetailSaleManager = {
             
             UIManager.hideLoading();
             UIManager.showToast(this.savedText(sale));
+            showLastSaved('retail', sale);
             UIManager.hapticFeedback('success');
             
             return sale;

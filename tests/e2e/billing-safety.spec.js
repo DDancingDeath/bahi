@@ -46,7 +46,9 @@ test('Save with a typed retail line asks; "Add this line and save" bills it (S-1
     await dialog.locator('[data-choice="add"]').click();
     // The line is on the bill now; the payment check still guards the new total (unchanged rule)
     await expect(page.locator('#saleTotal')).toHaveText('196');
-    await expectToast(page, /₹144 less than the bill total/);
+    // One message per problem (U-33): under the payment split, not a toast over the form
+    await expect(page.locator('#saleSection .bill-check-msg', { hasText: /₹144 less than the bill total/ })).toBeVisible();
+    await expect(page.locator('#saveSaleBtn')).toHaveText('Fix 1');
     expect((await listDocs('dev_retailSales')).find(d => d.customerName === customer)).toBeUndefined();
     await page.fill('#saleCashPayment', '196');
     await clickAfterTyping(page, '#saveSaleBtn');

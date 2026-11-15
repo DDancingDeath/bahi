@@ -9,26 +9,35 @@
         </div>
 
         <div id="salesEntrySection" class="ws-entry">
+            <div id="wholesaleLastSaved" class="panel last-saved" role="status" hidden></div>
             <div id="wholesaleEditNotice" class="notice info bill-edit-notice" role="status" hidden>
                 <svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg>
                 <span id="wholesaleEditNoticeText" class="grow"></span>
                 <button type="button" class="btn btn-sm btn-ghost" data-onclick="wholesaleSales.cancelEdit()" data-i18n="ui.wholesale.cancel_edit">Cancel edit</button>
             </div>
             <div class="bill-main">
-            <div class="bill-form-field field bill-customer">
-                <label for="wholesaleCustomerName" data-i18n="ui.billing.customer_label">Customer</label>
+            <div class="field-float bill-customer">
+                <label for="wholesaleCustomerName"><span data-i18n="ui.billing.customer_label">Customer</span><span class="party-needed-note" data-i18n="ui.billing.needed_for_due">needed if anything is in Due</span></label>
                 <div class="bill-party">
-                    <input type="text" class="input" id="wholesaleCustomerName" enterkeyhint="next" list="wholesaleCustomerOptions" placeholder="Enter customer name" data-i18n-placeholder="ui.common.enter_customer_name"/>
+                    <input type="text" class="input" id="wholesaleCustomerName" enterkeyhint="next" list="wholesaleCustomerOptions" autocomplete="off" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
                     <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="wholesaleSales.pickContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
                 </div>
                 <datalist id="wholesaleCustomerOptions"></datalist>
             </div>
 
-            <h3 class="bill-section-title" data-i18n="ui.billing.new_line">New line</h3>
-            <div class="panel panel-pad bill-line-form">
-                <div class="bill-form-field field">
-                    <label for="sellItem" data-i18n="ui.common.item_2">Item</label>
-                    <select id="sellItem" class="input" data-onchange="wholesaleSales.loadItemDetails()"></select>
+            <div class="panel panel-pad bill-line-form" role="group" aria-label="New line" data-i18n-aria-label="ui.billing.new_line">
+                <div class="bill-entry-row">
+                    <div class="field-float bill-entry-item">
+                        <label for="sellItem" data-i18n="ui.common.item_2">Item</label>
+                        <select id="sellItem" class="input" data-onchange="wholesaleSales.loadItemDetails()"></select>
+                    </div>
+                    <div class="field-float bill-entry-rate">
+                        <label for="sellRate" data-i18n="ui.common.rate">Rate</label>
+                        <div class="adorn">
+                            <span class="adorn-pre" aria-hidden="true">₹</span>
+                            <input type="number" class="input" inputmode="decimal" id="sellRate" placeholder="0"/>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="wholesaleItemStats" class="ws-stock" hidden>
@@ -45,19 +54,11 @@
                     <p id="availableStockApprox" class="notice warn ws-stock-note" hidden></p>
                 </div>
 
-                <div class="bill-line-grid ws-entry-grid">
-                    <div class="bill-form-field field">
-                        <label for="sellRate" data-i18n="ui.wholesale.rate_kg">Rate</label>
+                <div class="bill-entry-row ws-entry-grid">
+                    <div class="field-float bill-entry-weight">
+                        <label for="sellQuantity" data-i18n="ui.billing.weight_label">Weight</label>
                         <div class="adorn">
-                            <span class="adorn-pre" aria-hidden="true">₹</span>
-                            <input type="number" class="input" inputmode="decimal" id="sellRate" enterkeyhint="next" placeholder="Enter selling rate" data-i18n-placeholder="ui.wholesale.enter_selling_rate"/>
-                            <span class="adorn-post" aria-hidden="true">/kg</span>
-                        </div>
-                    </div>
-                    <div class="bill-form-field field">
-                        <label for="sellQuantity" data-i18n="ui.wholesale.quantity">Quantity</label>
-                        <div class="adorn">
-                            <input type="number" class="input" inputmode="decimal" id="sellQuantity" enterkeyhint="enter" placeholder="Enter quantity" data-onenter="event.preventDefault(); wholesaleSales.addToWholesaleBill()" data-i18n-placeholder="ui.wholesale.enter_quantity"/>
+                            <input type="number" class="input" inputmode="decimal" id="sellQuantity" enterkeyhint="enter" placeholder="0" data-onenter="event.preventDefault(); wholesaleSales.addToWholesaleBill()"/>
                             <span class="adorn-post" aria-hidden="true">kg</span>
                         </div>
                     </div>
@@ -108,7 +109,7 @@
                     </div>
                 </div>
 
-                <div class="pay-line payment-total">
+                <div class="pay-line payment-total" hidden>
                     <span data-i18n="ui.billing.total_received_label">Total received</span>
                     <strong class="money"><span class="cur">₹</span><span id="wholesaleTotalReceived">0</span></strong>
                 </div>
@@ -129,7 +130,8 @@
                 </div>
             </div>
 
-            <div class="panel ws-profit">
+            <details class="panel ws-profit" id="wholesaleMargin">
+                <summary class="ws-margin-toggle" data-i18n="ui.wholesale.margin">Expenses and profit</summary>
                 <div class="pay-line">
                     <label for="salesExpensesAmount" data-i18n="ui.wholesale.expenses">Expenses</label>
                     <div class="adorn bill-money">
@@ -145,15 +147,22 @@
                     <span data-i18n="ui.wholesale.profit_2">Profit %</span>
                     <strong><span id="salesProfitPercent">0</span>%</strong>
                 </div>
-            </div>
+            </details>
 
             <div class="bill-notes-date">
-            <div class="bill-form-field field bill-notes">
+            <div class="bill-extras">
+                <span class="bill-date-line" data-date-line="wholesaleDate">
+                    <span class="bill-date-text" id="wholesaleDateText"></span>
+                    <button type="button" class="btn btn-ghost btn-sm bill-date-change" id="wholesaleDateChange" hidden data-onclick="billing.showDate('wholesaleDate')" data-i18n="ui.billing.change_date">Change date</button>
+                </span>
+                <button type="button" class="btn btn-ghost btn-sm bill-note-toggle" id="wholesaleNoteToggle" data-onclick="billing.showNotes('salesComments')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.billing.add_note">Add note</span></button>
+            </div>
+            <div class="bill-form-field field bill-notes" hidden>
                 <label for="salesComments" data-i18n="ui.billing.notes_label">Notes</label>
                 <input type="text" class="input" id="salesComments" enterkeyhint="done" />
             </div>
 
-            <div class="bill-form-field field bill-date">
+            <div class="bill-form-field field bill-date" hidden>
                 <label for="wholesaleDate" data-i18n="ui.billing.bill_date">Date</label>
                 <input type="date" id="wholesaleDate" class="bill-date-input input" lang="en-IN" />
             </div>
@@ -177,7 +186,7 @@
             </div>
             </div>
 
-            <h3 class="bill-section-title" data-i18n="ui.wholesale.recent_sales">Recent wholesale bills</h3>
+            <h3 class="bill-section-title ws-recent-title" data-i18n="ui.wholesale.recent_sales">Recent wholesale bills</h3>
             <div id="salesRecentList">
                 <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.wholesale.no_sales_yet">No sales yet</b></div>
             </div>

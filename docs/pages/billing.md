@@ -60,6 +60,26 @@ While a bill is being typed:
   (and on the date line), day and month always.
 - **Numbers typed in Hindi**: digits typed on a Hindi keyboard (१२३) go into the boxes as 123.
   Cash, Online and Due show commas the Indian way (1,25,000) once you leave the box.
+- **Last saved**: after Save a strip above the form shows the bill number, party, total and Due
+  (or "saved on phone, not sent yet" offline) with **Print**, **WhatsApp** and **Open**, until the
+  next save on that form (× hides it). Purchase, Retail sale and Wholesale have the same strip.
+- **Undo**: removing a bill line (×), a weight chip or a draft, and **Clear**, show "Removed … · Undo"
+  for about 6 seconds. Clear says what goes ("3 lines, ₹16,191 will be removed") and offers **Keep as
+  draft**; it is last in the ⋯ menu, after a line, in red.
+- **One message per problem**: a problem shows once, at its field or bill line (no toast over the
+  form, no "2 problems" banner unless the problem has no field). Save then reads **Fix 2** in red and
+  takes you to the first problem; it never looks disabled. Once anything is in Due, the name box
+  says "needed if anything is in Due".
+- **Each line once**: a line's bag / packet weights are one small line under the item ("3 packets:
+  52.5 · 48 · 50.5"); tap the line to change it. "Total paid / received" shows only when both Cash
+  and Online have money; Retail's "Sale total" (always the same as Total receivable) is not shown.
+  Labour reads "7 bags over 30 kg × ₹6 = ₹42" (the bill and the slip keep "6 × 7").
+- **Drafts**: this form's drafts first, each with its lines and amount (or "1 weight, no lines yet")
+  and Supplier or Customer by bill type; drafts with nothing in them are not listed. Drafts belong
+  to the one who saved them.
+- **Wholesale** uses the same form as Billing: the field names on the fields, Weight in kg, a tap on
+  a line to change it, Notes behind **Add note** and the day behind **Change date**; Expenses and the
+  profit are folded under **Expenses and profit**; the recent bills show only when there are some.
 - "Save draft" keeps an unfinished bill; an unsaved bill is offered back at the
   next start. If that bill was saved meanwhile, Restore (or loading the draft)
   offers to open the saved bill instead of saving it again; an unsaved edit goes

@@ -108,6 +108,17 @@
   border-bottom: none;
 }
 
+/* Rows that only repeat another figure stay out (U-18): Total paid with one way of paying, Retail's Sale total */
+.pay-line[hidden],
+.total-line[hidden] {
+  display: none;
+}
+
+/* A shorter bill on the phone (U-18): payment rows closer together */
+.bill-totals .pay-line {
+  padding: var(--sp-2) 0;
+}
+
 .pay-line label {
   margin: 0;
   font-weight: var(--w-label);
@@ -724,4 +735,61 @@
   border: 2px solid var(--line);
   margin: 0;
   accent-color: var(--accent-text);
+}
+
+/* "Last saved" strip above the form after a save (U-05): bill no., party, total, due; Print / WhatsApp / Open */
+.last-saved {
+  display: grid;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--positive);
+}
+
+.last-saved[hidden] {
+  display: none;
+}
+
+.last-saved-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--positive);
+  font-weight: var(--w-strong);
+}
+
+.last-saved-facts {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.last-saved-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.last-saved-actions > .last-saved-close {
+  margin-left: auto;
+}
+
+/* Undo after a removal (U-06): the toast with a button, which takes taps */
+.undo-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  text-align: left;
+}
+
+.undo-bar.show {
+  pointer-events: auto;
+}
+
+.undo-bar-btn {
+  flex: none;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
 }
