@@ -104,9 +104,11 @@ tr.bill-check-line .bill-check-msg {
     margin: 0 0 var(--sp-1);
 }
 
-.bill-check-save-blocked {
-    opacity: 0.55;
-    cursor: not-allowed;
+/* A red problem: Save reads "Fix 2" in the danger colour and takes the user to it (U-33); never pale, it still works */
+.btn-primary.bill-check-save-blocked {
+    border-color: transparent;
+    background: var(--btn-danger-bg);
+    color: var(--btn-danger-ink);
 }
 
 .bill-check-save-override {

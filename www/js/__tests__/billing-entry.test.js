@@ -78,7 +78,7 @@ describe('floating labels (.field-float)', () => {
     test('Hindi: every floating label and icon button is translated', async () => {
         await setLang('hi');
         applyTranslations(document);
-        expect($('customerName').closest('.field-float').querySelector('label').textContent).toBe(hi['ui.billing.supplier_label']);
+        expect($('customerName').closest('.field-float').querySelector('label > [data-i18n="ui.billing.supplier_label"]').textContent).toBe(hi['ui.billing.supplier_label']);
         expect($('saleItem').closest('.field-float').querySelector('label').textContent).toBe(hi['ui.common.item_2']);
         expect($('newWeight').closest('.field-float').querySelector('label').textContent).toBe(hi['ui.billing.weight_label']);
         expect($('voiceMicPurchase').getAttribute('aria-label')).toBe(hi['ui.voice.mic']);

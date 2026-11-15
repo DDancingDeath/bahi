@@ -19,7 +19,7 @@ const DOM = `
     <div class="pay-line"><input id="cash"></div>
     <div class="pay-line"><input id="due"></div>
     <div class="pay-line"><strong id="remaining"></strong></div>
-    <button id="saveBtn">Save</button><button id="printBtn">Print</button>
+    <button id="saveBtn" data-i18n="ui.common.save">Save</button><button id="printBtn">Print</button>
   </div>`;
 
 let state;
@@ -86,12 +86,16 @@ describe('live marks', () => {
         expect(msg.textContent).toMatch(/^⛔ Cash \+ Online \+ Due is ₹300 less [^\u0900-\u097F]*$/);
         expect($('cash').getAttribute('aria-describedby')).toBe(msg.id);
 
-        expect(banner().hidden).toBe(false);
-        expect(banner().getAttribute('aria-live')).toBe('polite');
-        expect(banner().textContent).toContain('⛔ 1 problem — check before saving');
+        // One message per problem (U-33): no banner for a problem shown at its field; Save says "Fix 1" and still works
+        expect(banner().hidden).toBe(true);
         expect($('testSection').classList.contains('bill-checks-block')).toBe(true);
-        expect($('saveBtn').getAttribute('aria-disabled')).toBe('true');
+        expect($('saveBtn').hasAttribute('aria-disabled')).toBe(false);
+        expect($('saveBtn').textContent).toBe('Fix 1');
         expect($('printBtn').classList.contains('bill-check-save-blocked')).toBe(true);
+        expect($('printBtn').textContent).toBe('Print');
+        $('cash').value = '400';
+        BillChecksUI.run('test');
+        expect($('saveBtn').textContent).toBe('Save');
     });
 
     test('fixing the problem removes every mark', () => {
@@ -150,7 +154,8 @@ describe('live marks', () => {
         $('rate').value = '90';
         BillChecksUI.run('test');
         expect($('rate').classList.contains('bill-check-warn')).toBe(true);
-        expect(banner().textContent).toContain('1 problem — check before saving');
+        expect(banner().hidden).toBe(true);
+        expect(document.querySelectorAll('#testSection .bill-check-msg')).toHaveLength(2);
     });
 
     test('bill-level problems (duplicate) are listed in the banner', () => {
@@ -165,11 +170,8 @@ describe('live marks', () => {
         $('rate').value = '0';
         BillChecksUI.run('test');
         expect($('rate').classList.contains('bill-check-block')).toBe(true);
-        expect($('saveBtn').hasAttribute('aria-disabled')).toBe(false); // the typed line is not on the bill yet
-        $('rate').scrollIntoView = jest.fn();
-        banner().querySelector('button').click();
-        expect($('rate').scrollIntoView).toHaveBeenCalled();
-        expect(document.activeElement).toBe($('rate'));
+        expect($('saveBtn').textContent).toBe('Save'); // the typed line is not on the bill yet
+        expect(banner().hidden).toBe(true);
     });
 
     test('typing is debounced: nothing until the user pauses, no popups', () => {
@@ -190,13 +192,16 @@ describe('live marks', () => {
 });
 
 describe('save gate', () => {
-    test('a money block stops the save with the same toast as before and focuses the field, even for the owner', async () => {
+    test('a money block stops the save: its message at the field, scrolled to and focused, no toast over the form (U-33), even for the owner', async () => {
         AppState.userRole = 'owner';
         const toast = jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
         $('due').value = '400';
+        $('party').scrollIntoView = jest.fn();
         const result = await BillChecksUI.confirmSave('test');
         expect(result.ok).toBe(false);
-        expect(toast).toHaveBeenCalledWith('Enter the name — a bill with Due needs a customer/supplier name.');
+        expect(toast).not.toHaveBeenCalled();
+        expect($('party').closest('.bill-form-field').nextElementSibling.textContent).toBe('⛔ Enter the name — a bill with Due needs a customer/supplier name.');
+        expect($('party').scrollIntoView).toHaveBeenCalled();
         expect(document.activeElement).toBe($('party'));
     });
 
@@ -205,7 +210,8 @@ describe('save gate', () => {
         $('cash').value = '4400';
         const toast = jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
         expect((await BillChecksUI.confirmSave('test')).ok).toBe(false);
-        expect(toast).toHaveBeenLastCalledWith(expect.stringContaining('Rice: selling 110 kg, only 100 kg'));
+        expect(toast).not.toHaveBeenCalled();
+        expect(document.querySelector('#testTable .bill-check-line').textContent).toContain('Rice: selling 110 kg, only 100 kg');
 
         AppState.userRole = 'manager';
         BillChecksUI.run('test');
@@ -292,7 +298,8 @@ describe('save gate', () => {
 
         // A member who could not override before is still blocked
         expect((await BillChecksUI.confirmSave('test')).ok).toBe(false);
-        expect(toast).toHaveBeenLastCalledWith(expect.stringContaining('Rice: selling 110 kg'));
+        expect(toast).not.toHaveBeenCalled();
+        expect(document.querySelector('#testTable .bill-check-line').textContent).toContain('Rice: selling 110 kg');
         expect(modal).not.toHaveBeenCalled();
 
         AppState.userRole = 'manager';

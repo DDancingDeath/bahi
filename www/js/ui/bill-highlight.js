@@ -272,6 +272,8 @@ function ensureBanner(section) {
 
 function renderBanner(cfg, section, issues, unplaced, firstTarget) {
     const banner = ensureBanner(section);
+    // One message per problem (U-33): a problem shown at its field needs no banner; only those with no place are listed here
+    issues = unplaced;
     if (issues.length === 0) {
         banner.hidden = true;
         banner.className = 'notice solid bill-check-notice';
@@ -307,16 +309,26 @@ function renderBanner(cfg, section, issues, unplaced, firstTarget) {
 
 /**
  * Save/Print state: 'blocked' (a red problem), 'override' (red problems an
- * owner/manager may save past with a reason) or 'ok'.
+ * owner/manager may save past with a reason) or 'ok'. Blocked, Save reads "Fix 2" and
+ * a tap goes to the first problem (U-33); the buttons never look disabled while they work.
  */
-function renderSaveButtons(cfg, state) {
+function renderSaveButtons(cfg, state, count = 0) {
     if (!cfg.saveButtons) return;
     document.querySelectorAll(cfg.saveButtons).forEach(btn => {
         btn.classList.remove('bill-check-save-blocked', 'bill-check-save-override');
         btn.removeAttribute('aria-disabled');
         btn.removeAttribute('title');
+        const save = btn.getAttribute('data-i18n') === 'ui.common.save' || btn.dataset.fixing === '1';
+        if (save && state === 'blocked') {
+            btn.dataset.fixing = '1';
+            btn.removeAttribute('data-i18n');
+            btn.textContent = t('ui.checks.fix_count', { count });
+        } else if (save && btn.dataset.fixing === '1') {
+            delete btn.dataset.fixing;
+            btn.setAttribute('data-i18n', 'ui.common.save');
+            btn.textContent = t('ui.common.save');
+        }
         if (state === 'blocked') {
-            btn.setAttribute('aria-disabled', 'true');
             btn.classList.add('bill-check-save-blocked');
             btn.title = t('ui.checks.fix_red_first');
         } else if (state === 'override') {
@@ -351,7 +363,7 @@ export function renderIssues(kind, issues) {
         : (!hardBlocks.length && canOverride(AppState.userRole) ? 'override' : 'blocked');
     if (issues.length) section.classList.add(issues.some(i => i.severity === 'block') ? 'bill-checks-block' : 'bill-checks-warn');
     renderBanner(cfg, section, shown, unplaced, firstTarget || section);
-    renderSaveButtons(cfg, saveState);
+    renderSaveButtons(cfg, saveState, new Set(blocks.map(i => `${i.id}|${i.en}`)).size);
 }
 
 function evaluate(kind, overrides = null) {
@@ -403,6 +415,7 @@ export const BillChecksUI = {
         try {
             const cfg = forms[kind];
             const draft = cfg.getDraft();
+            markPartyNeeded(cfg, draft);
             renderPartyDue(kind, cfg.fields?.party?.inputs?.[0], draft);
             renderNameHint(kind, draft);
         } catch (error) {
@@ -466,7 +479,6 @@ export const BillChecksUI = {
         const by = AppState.currentUser?.uid || 'unknown';
 
         if (hardBlocks.length) {
-            UIManager.showToast(text(hardBlocks[0]));
             focusIssue(kind, hardBlocks[0]);
             return stop;
         }
@@ -515,7 +527,6 @@ export const BillChecksUI = {
             ? blocks : [];
         if (blocks.length && !autoOverride.length) {
             if (!canOverride(AppState.userRole)) {
-                UIManager.showToast(text(blocks[0]));
                 focusIssue(kind, blocks[0]);
                 return stop;
             }
@@ -548,11 +559,37 @@ export const BillChecksUI = {
     }
 };
 
+/**
+ * The name box says it is needed once anything is in Due (U-34): aria-required and the
+ * wrapper's `party-needed` (its label reads "needed"), so Save is not the first to say so.
+ */
+function markPartyNeeded(cfg, draft) {
+    const input = byId(cfg?.fields?.party?.inputs?.[0]);
+    if (!input) return;
+    const needed = Number(draft?.payment?.due) > 0;
+    if (needed) input.setAttribute('aria-required', 'true');
+    else input.removeAttribute('aria-required');
+    input.closest('.bill-customer')?.classList.toggle('party-needed', needed);
+}
+
+/**
+ * Takes the user to a problem that stops the save (U-33): its field (focused) or bill line, scrolled
+ * to the middle; its message is already there. Only a problem with no place on the form is a toast.
+ */
 function focusIssue(kind, issue) {
     const cfg = forms[kind];
     const id = cfg?.fields?.[issue.field]?.inputs?.[0];
     const el = id ? byId(id) : null;
-    if (el && typeof el.focus === 'function') el.focus();
+    const lines = String(issue.field).startsWith('items.') ? [Number(String(issue.field).slice(6))] : (issue.lines || []);
+    const row = !el && cfg && lines.length ? itemRows(cfg)[lines[0]] : null;
+    const target = el || row;
+    if (!target || !sectionOf(kind)) {
+        UIManager.showToast(text(issue));
+        if (el && typeof el.focus === 'function') el.focus();
+        return;
+    }
+    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    if (el && typeof el.focus === 'function') el.focus({ preventScroll: true });
 }
 
 /** "Fix rate" at Save: point at the bill line to correct. */

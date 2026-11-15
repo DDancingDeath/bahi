@@ -54,8 +54,16 @@ export function prepareBillDate(id, editingBill = null) {
     renderBillDateLine(id);
 }
 
-/** Only the owner gets "Change date" on the Billing forms; everyone else sees the day only. */
-export const canChangeBillDate = () => AppState.userRole === 'owner';
+/**
+ * Only the owner gets "Change date" on the Billing forms; everyone else sees the day only. On Wholesale,
+ * whose Date box was always open, anyone whose role may pick another day keeps that (U-59).
+ * @param {string} [id]
+ */
+export const canChangeBillDate = (id) => {
+    if (AppState.userRole === 'owner') return true;
+    const input = id === 'wholesaleDate' ? /** @type {?HTMLInputElement} */ (document.getElementById(id)) : null;
+    return !!input && !!input.min && !!input.max && input.min < input.max;
+};
 
 /**
  * "Back-dated: 12 Nov" (day-month always; the year only when it is not this year).
@@ -92,7 +100,7 @@ export function renderBillDateLine(id, now = new Date()) {
         text.textContent = back ? backText : t('ui.billing.date_today');
         text.classList.toggle('bill-date-back', back);
     }
-    const can = canChangeBillDate() && !input.disabled;
+    const can = canChangeBillDate(id) && !input.disabled;
     const open = can && input.dataset.open === '1';
     const field = input.closest('.bill-date');
     if (field) field.hidden = !open;
@@ -103,7 +111,7 @@ export function renderBillDateLine(id, now = new Date()) {
 /** "Change date": unfolds the Date box (owner only) and opens its picker where the browser allows. */
 export function revealBillDate(id) {
     const input = document.getElementById(id);
-    if (!input || !canChangeBillDate() || input.disabled) return;
+    if (!input || !canChangeBillDate(id) || input.disabled) return;
     input.dataset.open = '1';
     renderBillDateLine(id);
     input.focus();

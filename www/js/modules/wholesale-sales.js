@@ -10,6 +10,9 @@ import { computeShortfallsFrom, approxStockNote, stockWarnOnlyNote } from '../ut
 import { awaitingServer } from '../utils/data-freshness.js';
 import { normalizeThresholds, stockCreditFor } from '../utils/bill-checks.js';
 import { showAmount } from '../ui/number-input.js';
+import { showUndo } from '../ui/undo-bar.js';
+import { showLastSaved } from '../ui/last-saved.js';
+import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkLineRate } from '../ui/rate-check.js';
@@ -45,7 +48,7 @@ import {
     buildPaymentSplit, computeLine, computeWholesaleTotals, draftLineSum, editKeepsMoney, editSplitFor, paidOnScreen, paymentSplit, pendingLine,
     prefillPayment, restInDue, shownAmount, typedAmount, validatePaymentSplit, wholesaleLiveProfit, withLineRate
 } from '../utils/calc/billing.js';
-import { askEditReason, BillingManager, commitBillEdit, editCheckContext } from './billing.js';
+import { askEditReason, BillingManager, commitBillEdit, editCheckContext, syncBillNotes } from './billing.js';
 
 /** Wholesale bills shown under the entry form (the rest are in Wholesale › History). */
 const RECENT_SALES = 5;
@@ -297,12 +300,12 @@ export class WholesaleSalesManager {
         const remove = L('ui.modals.delete');
         tbody.innerHTML = wholesaleSaleItems.map((item, index) => {
             return `
-                <tr class="bill-line">
-                    <td>${Helpers.escapeHtml(lineItemIdentity(item, AppState.items, AppState.settings.showHindi).label)}</td>
+                <tr class="bill-line" data-onclick="wholesaleSales.editWholesaleItem(${index})">
+                    <td>${lineNameHtml(lineItemIdentity(item, AppState.items, AppState.settings.showHindi).label)}</td>
                     <td>${formatRate(item.rate)}</td>
                     <td>${formatKg(item.qty)} kg</td>
                     <td>${moneyHtml(shownAmount(item.total))}</td>
-                    <td><button type="button" class="btn btn-ghost btn-icon bill-line-remove" data-onclick="wholesaleSales.removeWholesaleItem(${index})" aria-label="${remove}" title="${remove}">${icon('x')}</button></td>
+                    <td><button type="button" class="btn btn-ghost btn-icon bill-line-remove" data-onclick="event.stopPropagation(); wholesaleSales.removeWholesaleItem(${index})" aria-label="${remove}" title="${remove}">${icon('x')}</button></td>
                 </tr>
             `;
         }).join('');
@@ -413,6 +416,7 @@ export class WholesaleSalesManager {
             if (box) box.checked = true;
         });
         prepareBillDate('wholesaleDate', bill);
+        syncBillNotes('salesComments');
         this.showEditNotice();
         this.filterSalesTab('sales');
         this.renderWholesaleBill();
@@ -455,6 +459,7 @@ export class WholesaleSalesManager {
         if (avg) avg.textContent = '-';
         this.syncItemStats();
         this.showEditNotice();
+        syncBillNotes('salesComments');
         this.renderWholesaleBill();
     }
 
@@ -545,7 +550,11 @@ export class WholesaleSalesManager {
     static updatePaymentTotal() {
         const split = this.readPaymentSplit();
         const receivedEl = document.getElementById('wholesaleTotalReceived');
-        if (receivedEl) receivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+        if (receivedEl) {
+            receivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+            const row = receivedEl.closest('.payment-total');
+            if (row) row.hidden = !(split.cash > 0 && split.online > 0);
+        }
         Helpers.showSplitRemaining('wholesaleSplitRemaining', validatePaymentSplit(this.computeTotals().total, split));
         BillChecksUI.schedule('wholesale');
     }
@@ -634,10 +643,46 @@ export class WholesaleSalesManager {
         this.renderWholesaleBill();
     }
 
+    /**
+     * Tap a bill line to change it (as on Billing, U-59): it goes back into the entry boxes.
+     * @param {number} index
+     */
+    static editWholesaleItem(index) {
+        const line = wholesaleSaleItems[index];
+        if (!line) return;
+        const select = /** @type {?HTMLSelectElement} */ (document.getElementById('sellItem'));
+        const item = AppState.items.find(i => i.id === line.itemId) || AppState.items.find(i => i.name === line.name);
+        if (select && item && ![...select.options].some(o => o.value === item.name)) {
+            const opt = document.createElement('option');
+            opt.value = item.name;
+            opt.textContent = lineItemIdentity(line, AppState.items, AppState.settings?.showHindi).label;
+            select.appendChild(opt);
+        }
+        wholesaleSaleItems.splice(index, 1);
+        if (select && item) select.value = item.name;
+        this.loadItemDetails();
+        const rate = /** @type {?HTMLInputElement} */ (document.getElementById('sellRate'));
+        if (rate) rate.value = String(line.rate);
+        const qty = /** @type {?HTMLInputElement} */ (document.getElementById('sellQuantity'));
+        if (qty) {
+            qty.value = String(line.qty);
+            qty.focus();
+        }
+        this.renderWholesaleBill();
+        UIManager.showToast(t('msg.common.item_loaded_editing'));
+    }
+
     static removeWholesaleItem(index) {
+        const line = wholesaleSaleItems[index];
+        if (!line) return;
         wholesaleSaleItems.splice(index, 1);
         this.renderWholesaleBill();
         UIManager.hapticFeedback();
+        const item = lineItemIdentity(line, AppState.items, AppState.settings?.showHindi).label;
+        showUndo(t('msg.billing.line_removed', { item, kg: formatKg(line.qty) }), () => {
+            wholesaleSaleItems.splice(Math.min(index, wholesaleSaleItems.length), 0, line);
+            this.renderWholesaleBill();
+        });
     }
 
     static async completeSale(options = {}) {
@@ -761,6 +806,7 @@ export class WholesaleSalesManager {
             document.getElementById('sellRate').value = '';
             clearFieldError('sellRate');
             document.getElementById('salesComments').value = '';
+            syncBillNotes('salesComments');
             document.getElementById('salesExpensesAmount').value = '0';
             this.resetPaymentFields();
             resetBillDate('wholesaleDate');
@@ -779,6 +825,7 @@ export class WholesaleSalesManager {
             // per-item stock is shown in the meantime.
             
             UIManager.showToast(this.savedText(saleData));
+            showLastSaved('wholesale', saleData);
             UIManager.hapticFeedback();
             return saleData;
         } catch (error) {
@@ -1220,6 +1267,9 @@ export class WholesaleSalesManager {
         const container = document.getElementById('salesRecentList');
         if (!container) return;
         const recent = filterHistoryBills(this.wholesaleBills().filter(b => isActiveBill(b) && !isOpeningRecord(b)), {}).slice(0, RECENT_SALES);
+        // No recent bills: the block stays out of the way (U-36); History says why
+        [container, document.querySelector('#salesEntrySection .ws-recent-title'), document.querySelector('#salesEntrySection .ws-more')]
+            .forEach(el => { if (el) el.hidden = recent.length === 0; });
         if (recent.length === 0) {
             const message = isFullHistoryLoaded() ? t('ui.wholesale.no_sales_yet') : t('ui.wholesale.no_sales_since', { date: formatWindowDate(historyLoadedFrom()) });
             container.innerHTML = emptyState({ icon: 'receipt', title: message });

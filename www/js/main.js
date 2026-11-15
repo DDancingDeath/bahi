@@ -1249,6 +1249,7 @@ window.app = {
         loadItemDetails: () => WholesaleSalesManager.loadItemDetails(),
         addToWholesaleBill: () => WholesaleSalesManager.addToWholesaleBill(),
         removeWholesaleItem: (index) => WholesaleSalesManager.removeWholesaleItem(index),
+        editWholesaleItem: (index) => WholesaleSalesManager.editWholesaleItem(index),
         completeSale: () => WholesaleSalesManager.completeSale(),
         printWholesaleSale: () => WholesaleSalesManager.printWholesaleSale(),
         shareViaWhatsApp: () => WholesaleSalesManager.shareViaWhatsApp(),
