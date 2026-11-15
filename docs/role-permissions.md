@@ -675,6 +675,21 @@ not checked one by one (rules can't loop over map keys), so a member can still c
   first, then Restore and approve them after the reset.
 - Admin › Clear Data › Users still deletes profiles (a fresh start); those people can register again.
 
+### First owner on a fresh Firebase project
+
+**Cut-over checklist item (#72, `bahi-happa` / `bahi-happa-dev`).** On a new, empty project nobody can
+approve anyone: the rules let a sign-up create only its own **pending staff** profile (`role: 'staff'`,
+`status: 'pending'`), and only an owner may change `role` or `status`. So the first owner is set outside the
+app, once per project, by one of:
+
+- **Firestore console** (signed in as a project Owner): the person registers in the app first (so the Auth
+  account and `users/{uid}` exist), then in `users/{uid}` (`dev_users/{uid}` for `dev_` collections) set
+  `role` to `'owner'` and `status` to `'active'`. The uid is in Authentication › Users.
+- **The migration tool** (`tools/migrate/README.md`): `apply` copies the profiles with their roles and the
+  same uids, and `auth:import` the logins, so the old owner arrives as owner.
+
+Then sign in as that owner and approve everyone else in Admin › Users as usual.
+
 ## Manual reminders on Today (#86)
 
 Shop-wide to-dos ("Collect from Ramesh on Friday") in `reminders/{id}` (+ `dev_`), in-app only (#58: no push).

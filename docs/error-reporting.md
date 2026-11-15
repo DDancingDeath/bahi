@@ -104,10 +104,11 @@ and the switch says "Not set up in this version of the app yet":
 5. On a test phone: Settings › Crash reports on, then send a test crash (below). Crashlytics
    shows the app once a crash has been sent (it sends on the next app start after a crash).
 
-The project moves to `happa-bahi` at the Firebase cutover (rename plan §8.G, #375): the Android app
+The project moves to `bahi-happa` at the Firebase cutover (#72): the Android app
 `com.happa` is registered there and its `google-services.json` becomes the `GOOGLE_SERVICES_JSON`
-secret, so from the first APK built after that the reports are in **happa-bahi**'s console, not
+secret, so from the first APK built after that the reports are in **bahi-happa**'s console, not
 `happa-bfc07`'s. Crash collection still stays off on every phone until its user switches it on.
+(The earlier target `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026; it never had crash data.)
 
 ## Check that reports arrive (owner)
 
@@ -128,7 +129,7 @@ in Diagnostics › Errors.
 Steps for the owner after the cutover (and after any change to the Crashlytics set-up):
 1. Install the new APK; Settings › Crash reports on (the switch is per phone).
 2. Diagnostics › Status › **Send a test error**; then **Send a test crash** and confirm.
-3. Open the app again, wait a few minutes, and check Firebase console › project **happa-bahi** ›
+3. Open the app again, wait a few minutes, and check Firebase console › project **bahi-happa** ›
    Crashlytics: the app `com.happa` shows one crash and one non-fatal, both starting with "Test".
 4. Turn crash reports off again on that phone if it should not send them.
 

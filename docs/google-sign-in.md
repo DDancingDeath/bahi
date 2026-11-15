@@ -4,9 +4,11 @@
 `googleSignIn` in `happa.config.json` is `{ "web": false, "android": false }` until the owner has
 done the console steps below. Off means no button, and its code is never loaded.
 
-Target projects: `happa-bahi` (live) and `happa-bahi-dev` (test); the Android package stays
+Target projects: `bahi-happa` (live) and `bahi-happa-dev` (test); the Android package stays
 `com.happa` (owner decision). No Google sign-in is planned on the current project `happa-bfc07`
 (owner decision). The `GOOGLE_SERVICES_JSON` secret is not set yet, so the APK has no Google sign-in.
+The earlier pair `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026 (hosting disabled; project
+deletion pending); don't set anything up there.
 
 - Code: `www/js/auth/google-signin.js` (loaded with `import()` only when switched on; in the
   service worker's `LAZY_ASSETS`, not precached), the switch and the profile check in
@@ -118,14 +120,15 @@ Why this plugin:
 
 ## Owner / console steps
 
-**Target projects: `happa-bahi` (live) and `happa-bahi-dev` (test)**; the Android package stays
+**Target projects: `bahi-happa` (live) and `bahi-happa-dev` (test)**; the Android package stays
 `com.happa` (owner decision; existing installs update in place). By owner decision, **no Google sign-in setup is planned on
 `happa-bfc07`** (the current project): Google sign-in stays off there and is switched on only once the
 app runs on the new projects (`happa.config.json` then names them). Do these steps for each of the two
 new projects. Nothing here goes in the repo except the last step.
 
-1. **Enable Google** (done by the owner on 8 Nov 2026 for `happa-bahi` and `happa-bahi-dev`, support
-   email guptasdata@gmail.com): console.firebase.google.com → the project → Build → Authentication →
+1. **Enable Google** (the owner did this on 8 Nov 2026 on the now-retired `happa-bahi` pair; check
+   `bahi-happa` and `bahi-happa-dev` in the console and enable it there if it is not on yet):
+   console.firebase.google.com → the project → Build → Authentication →
    Sign-in method → Add new provider → Google → Enable. Public-facing name: the app's name (Google's
    chooser says "to continue to *name*"). Project support email → Save. This also creates the Web OAuth
    client the APK uses.
@@ -153,8 +156,8 @@ new projects. Nothing here goes in the repo except the last step.
    the file's whole text → Add secret. The release workflow already writes it to
    `android/app/google-services.json` before the build (the same file switches on the Crashlytics build
    path, docs/error-reporting.md; crash reports still stay off until a user switches them on). The
-   secret holds the **live** project's file (`happa-bahi`), the one the released APK signs in against;
-   `happa-bahi-dev`'s file is only for local test builds.
+   secret holds the **live** project's file (`bahi-happa`), the one the released APK signs in against;
+   `bahi-happa-dev`'s file is only for local test builds.
 6. **Google consent screen** (only for a project made from scratch): Google Cloud console → the same
    project → Google Auth Platform → Branding: app name and support email; Audience: External, In
    production. Only the `openid`, `email` and `profile` scopes are used, so no Google review is needed.
