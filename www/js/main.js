@@ -1313,6 +1313,14 @@ window.app = {
     // Outstanding
     outstanding: {
         filterDue: (filter, evt) => OutstandingManager.filterDue(filter, evt),
+        currentFilter: () => OutstandingManager.dueFilter(),
+        toggleBills: () => OutstandingManager.toggleBills(),
+        billMoreToggled: (id, open) => OutstandingManager.billMoreToggled(id, open),
+        openParty: (partyKey) => OutstandingManager.openParty(partyKey),
+        callParty: (partyKey) => OutstandingManager.callParty(partyKey),
+        clearSearch: () => OutstandingManager.clearSearch(),
+        partyPayQuick: (what) => OutstandingManager.partyPayQuick(what),
+        partyPaySplitShow: () => OutstandingManager.partyPaySplitShow(),
         render: () => OutstandingManager.renderDue(),
         renderDue: () => OutstandingManager.renderDue(),
         searchOutstanding: () => OutstandingManager.searchOutstanding(),

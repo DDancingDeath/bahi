@@ -428,3 +428,122 @@
 .due-pp-part {
     padding: var(--sp-1) var(--sp-2);
 }
+
+/* ---------- Compact Outstanding (U-19, U-20, U-68, U-69, U-72) ---------- */
+.due-seg-total {
+    color: var(--ink-3);
+    font-size: var(--fs-caption);
+}
+
+.due-search > .search-clear {
+    position: absolute;
+    top: 50%;
+    right: var(--sp-1);
+    transform: translateY(-50%);
+}
+
+.due-search > .search-clear[hidden] {
+    display: none;
+}
+
+.aging-chase li {
+    padding: 0;
+}
+
+.aging-chase-tap {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    min-height: var(--control-h);
+    padding: var(--sp-2) var(--sp-4);
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aging-party-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: var(--control-h);
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aging-chase-tap:focus-visible,
+.aging-party-main:focus-visible,
+.aging-bills-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+}
+
+.aging-more > summary {
+    list-style: none;
+}
+
+.aging-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.aging-more[open] {
+    flex-basis: 100%;
+}
+
+.aging-more-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+}
+
+.aging-bills-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    min-height: var(--control-h);
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.aging-bills-toggle[aria-expanded="true"] > .i {
+    transform: rotate(180deg);
+}
+
+.due-bill-more > summary {
+    margin-top: var(--sp-2);
+    list-style: none;
+}
+
+.due-bill-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.due-pp-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+}
+
+.due-pp-billno {
+    color: var(--ink-3);
+    white-space: nowrap;
+}
+
+.due-dlg .field-error {
+    color: var(--negative);
+    font-size: var(--fs-sm);
+}
