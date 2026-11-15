@@ -2037,32 +2037,42 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 /* ---------- Chips: .chip + aria-pressed (on/off), and tags ----------
-   A chip draws 40 px; its tap area reaches 48 px (the ::after), so rows of chips stay compact (U-14) */
+   The button is the full 48 px tap area; the pill (::before) is drawn 40 px inside it, so rows of chips stay
+   compact (U-14, N-21) */
 .chip {
   position: relative;
-  min-height: var(--control-h-sm);
-  padding: 0 14px;
-  border: 1px solid var(--line-control);
+  isolation: isolate;
+  min-height: var(--tap-min);
+  padding: 0 15px;
+  border: 0;
   border-radius: var(--r-chip);
-  background-color: var(--surface);
+  background: none;
   color: var(--ink);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
 }
 
-.chip::after {
+.chip::before {
   content: '';
   position: absolute;
-  inset: calc((var(--control-h-sm) - var(--tap-min)) / 2) 0;
+  z-index: calc(-1 * var(--z-base));
+  inset: calc((var(--tap-min) - var(--control-h-sm)) / 2) 0;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-chip);
+  background-color: var(--surface);
 }
 
 /* The chosen chip looks like the chosen segment (U-61): one "selected" look across segments, chips and tabs */
 .chip.on,
 .chip[aria-pressed="true"] {
+  color: var(--seg-on-ink);
+}
+
+.chip.on::before,
+.chip[aria-pressed="true"]::before {
   border-color: var(--seg-on-line);
   background-color: var(--accent-soft);
   box-shadow: var(--chip-on-ring);
-  color: var(--seg-on-ink);
 }
 
 /* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
@@ -4239,7 +4249,7 @@ body:not(.biz-rentals) .bottom-nav-item[data-rent-bar],
     text-align: left;
   }
 
-  /* Each line in two rows (U-18): the item, then "151 kg × ₹24 · 3 packets: 52.5 · 48 · 50.5" */
+  /* Each line: the item, then "151 kg × ₹24", then all its packet weights, wrapping rather than cut (U-18, N-17) */
   #billTable tbody tr.bill-line > td:nth-child(1), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(1) {
     display: contents;
   }
@@ -4254,16 +4264,10 @@ body:not(.biz-rentals) .bottom-nav-item[data-rent-bar],
   }
 
   tr.bill-line .bill-line-weights {
-    grid-column: 3;
-    grid-row: 2;
+    grid-column: 1 / 4;
+    grid-row: 3;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  tr.bill-line .bill-line-weights::before {
-    content: "· ";
+    overflow-wrap: anywhere;
   }
 
   tr.bill-line .bill-line-name {
@@ -6215,7 +6219,7 @@ select.voice-unclear {
   grid-column: 2;
   align-self: end;
   gap: 6px;
-  min-height: 36px;
+  min-height: var(--tap-min);
   color: var(--ink-2);
   font-size: var(--fs-sm);
   white-space: nowrap;
@@ -9581,7 +9585,6 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .ask-change-field { display: flex; flex: 1 1 140px; min-width: 0; flex-direction: column; gap: 2px; font-size: var(--fs-sm); color: var(--ink-2); }
 .ask-change-field select { width: 100%; min-height: 44px; font-size: var(--fs-body); }
 .ask-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
-.ask-kind { min-height: 44px; }
 
 /* Cash › history (5.2b): each day is a row, its figures two columns; it lights up under the pointer (#89) */
 .cash-history-list .row.cash-day { align-items: flex-start; padding: var(--sp-3) 0; cursor: pointer; transition: background var(--dur-1) var(--ease); }
@@ -10997,6 +11000,20 @@ div.ins-wide,
   .st-ledger .st-sold:not(:empty)::before,
   .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
   .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
+
+  /* Day book (N-20): time and kind, then bill · party · note and any due; the amount always on the right */
+  .st-daybook-wrap { overflow-x: visible; }
+  .st-daybook { width: 100%; }
+  .st-daybook thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .st-daybook tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "when what amt" "detail detail amt" "due due amt"; column-gap: var(--sp-2); align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px var(--rule-style) var(--line); }
+  .st-daybook td { display: block; height: auto; padding: 0; border: none; }
+  .st-daybook td:empty { display: none; }
+  .st-daybook .st-when { grid-area: when; color: var(--ink-3); white-space: nowrap; }
+  .st-daybook .st-what { grid-area: what; overflow-wrap: anywhere; }
+  .st-daybook .st-detail { grid-area: detail; color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .st-daybook .st-due { grid-area: due; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-daybook .st-due::before { content: attr(data-label) " "; color: var(--ink-3); }
+  .st-daybook .st-amt { grid-area: amt; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
 }
 
 /* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */
