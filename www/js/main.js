@@ -2,7 +2,7 @@
 
 import { AppState } from './utils/state.js';
 import { UIManager } from './ui/ui-manager.js';
-import { NavigationManager } from './ui/navigation.js';
+import { NavigationManager, billInProgress } from './ui/navigation.js';
 import { BottomNav } from './ui/bottom-nav.js';
 import { VoiceMic } from './ui/voice-mic.js';
 import { PhotoWeights } from './ui/photo-weights.js';
@@ -414,7 +414,7 @@ function setupEventListeners() {
     
     // Warn before leaving page with unsaved bill
     window.addEventListener('beforeunload', function(e) {
-        if (AppState.billItems.length > 0 || AppState.salesItems.length > 0) {
+        if (billInProgress()) {
             e.preventDefault();
             e.returnValue = '';
         }

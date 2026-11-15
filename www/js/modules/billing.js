@@ -35,6 +35,7 @@ import { prepareBillDate, renderBillDateLine, revealBillDate } from '../ui/bill-
 import { autoSaveSummary, nextBillNumberHint, restoreFigures } from '../utils/calc/billing.js';
 import { formatDateTimeIN, formatDate } from '../utils/dates.js';
 import { isArchivedItem } from '../utils/item-catalog.js';
+import { onUnsavedBillCheck } from '../ui/navigation.js';
 
 const EDIT_OFFLINE_KEY = 'msg.billing.edit_offline';
 const EDIT_TIMEOUT_MS = 20000;
@@ -2230,6 +2231,7 @@ if (typeof window !== 'undefined') {
     bindPartySuggest();
 }
 
+onUnsavedBillCheck(() => !BillingManager.editorEmpty('purchase') || !BillingManager.editorEmpty('sale'));
 on(REFRESH.billingDropdown, () => {
     BillingManager.loadItemsDropdown();
     BillingManager.loadSaleItemsDropdown();

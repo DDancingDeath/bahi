@@ -30,6 +30,7 @@ import { historyCutoff } from '../utils/role-access.js';
 import { OutstandingManager } from './outstanding.js';
 import { partyNameKey } from '../utils/parties.js';
 import { partyDues } from '../utils/due-payments.js';
+import { onUnsavedBillCheck } from '../ui/navigation.js';
 import { getLang, t } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
@@ -1587,6 +1588,8 @@ if (typeof window !== 'undefined') {
         if (document.visibilityState === 'visible') prepareBillDate('wholesaleDate');
     });
 }
+
+onUnsavedBillCheck(() => wholesaleSaleItems.length > 0);
 
 // Data changes re-render this page (firestore-service.js emits, utils/events.js).
 on(REFRESH.salesDropdown, () => WholesaleSalesManager.loadItemsDropdown());

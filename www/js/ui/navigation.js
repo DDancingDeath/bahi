@@ -123,6 +123,14 @@ function roleMayOpenRoute(route) {
     return roleMayOpenTab(route.tab, AppState.userRole) && (!route.needs || roleMayOpenTab(route.needs, AppState.userRole));
 }
 
+/** @type {Array<() => boolean>} */
+const unsavedBillChecks = [];
+/** Bill editors say here whether they hold a bill with lines: Back on home and closing the page ask before leaving it. */
+export function onUnsavedBillCheck(check) {
+    unsavedBillChecks.push(check);
+}
+export const billInProgress = () => unsavedBillChecks.some(check => check());
+
 const NavigationManager = {
     isMenuOpen() {
         const sideNav = document.querySelector('.side-nav');
@@ -541,7 +549,7 @@ const NavigationManager = {
      */
     async leaveApp(appPlugin) {
         const leave = () => (appPlugin?.minimizeApp ? appPlugin.minimizeApp() : appPlugin?.exitApp?.());
-        if ((AppState.billItems?.length || 0) > 0 || (AppState.salesItems?.length || 0) > 0) {
+        if (billInProgress()) {
             const ok = await UIManager.showModal(t('msg.app.leave_with_bill'), t('ui.app.leave_title'), true, { confirmLabel: t('ui.app.leave') });
             if (ok) leave();
             return;

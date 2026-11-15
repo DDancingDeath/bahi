@@ -102,14 +102,15 @@ describe('back button returns to the previous tab (F17)', () => {
         const { UIManager } = await import('../ui/ui-manager.js');
         const ask = jest.spyOn(UIManager, 'showModal').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
         const app = { minimizeApp: jest.fn() };
-        AppState.billItems = [{ item: 'Wheat' }];
+        const { PurchaseManager } = await import('../modules/billing.js');
+        PurchaseManager.setBillItems([{ itemId: 'w', name: 'Wheat', qty: 10, rate: 20, total: 200 }]);
         NavigationManager.showTab('billing');
         await NavigationManager.handleBackButton(app);
         expect(ask).toHaveBeenCalledTimes(1);
         expect(app.minimizeApp).not.toHaveBeenCalled();
         await NavigationManager.handleBackButton(app);
         expect(app.minimizeApp).toHaveBeenCalledTimes(1);
-        AppState.billItems = [];
+        PurchaseManager.setBillItems([]);
         ask.mockRestore();
     });
 
