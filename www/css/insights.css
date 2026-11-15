@@ -24,7 +24,15 @@
     .ins-head > .ins-period { order: 2; }
     .ins-head > .ins-more { order: 3; }
     .ins-head > .ins-abbar { order: 4; }
+
+    /* Scrolled under the header (U-71): only the tabs stay; scroll to the top for the period */
+    .ins-head.ins-compact > .ins-period,
+    .ins-head.ins-compact > .ins-more,
+    .ins-head.ins-compact > .ins-abbar { display: none; }
+    .ins-head.ins-compact { padding-bottom: var(--sp-1); }
 }
+
+.ins-head-mark { height: 1px; }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
 
