@@ -197,15 +197,15 @@
             </div>
             <div class="nav-group" data-biz="rentals" role="group" aria-labelledby="navGroupRentals">
                 <h3 class="nav-group-title" id="navGroupRentals" data-i18n="ui.biz.rentals">Rentals</h3>
-                <a href="#" data-biz="rentals" data-rent-nav="rent" data-onclick="rentals.open('rent', event)">
+                <a href="#" data-biz="rentals" data-rent-nav="rent" data-bar data-onclick="rentals.open('rent', event)">
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-coins"/></svg></span>
                     <span data-i18n="ui.nav.rent">Rent</span>
                 </a>
-                <a href="#" data-biz="rentals" data-rent-nav="tenants" data-onclick="rentals.open('tenants', event)">
+                <a href="#" data-biz="rentals" data-rent-nav="tenants" data-bar data-onclick="rentals.open('tenants', event)">
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-users"/></svg></span>
                     <span data-i18n="ui.nav.tenants">Tenants</span>
                 </a>
-                <a href="#" data-biz="rentals" data-rent-nav="properties" data-onclick="rentals.open('properties', event)">
+                <a href="#" data-biz="rentals" data-rent-nav="properties" data-bar data-onclick="rentals.open('properties', event)">
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-building"/></svg></span>
                     <span data-i18n="ui.nav.properties">Properties</span>
                 </a>
@@ -226,10 +226,10 @@
         <a href="#" class="bottom-nav-item" data-tab="history" data-onclick="nav.showTab('history', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-history"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.history">History</span></a>
         <a href="#" class="bottom-nav-item" data-tab="due" data-onclick="nav.showTab('due', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.outstanding_short">Dues</span></a>
         <!-- Rentals (U-65): its own pages on the same bar; navigation.css shows one set per business -->
-        <button type="button" class="bottom-nav-item" data-rent-bar="rent" data-onclick="rentals.page('rent')"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.rent">This month</span></button>
-        <button type="button" class="bottom-nav-item" data-rent-bar="tenants" data-onclick="rentals.page('tenants')"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-users"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.tenants">Tenants</span></button>
-        <button type="button" class="bottom-nav-item" data-rent-bar="properties" data-onclick="rentals.page('properties')"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-building"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.properties">Properties</span></button>
-        <button type="button" class="bottom-nav-item" data-rent-bar="reports" hidden data-onclick="rentals.page('reports')"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-trend"/></svg></span><span class="bottom-nav-label" data-i18n="ui.rent.reports">Reports</span></button>
+        <button type="button" class="bottom-nav-item" data-rent-bar="rent" data-onclick="rentals.open('rent', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.rent">This month</span></button>
+        <button type="button" class="bottom-nav-item" data-rent-bar="tenants" data-onclick="rentals.open('tenants', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-users"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.tenants">Tenants</span></button>
+        <button type="button" class="bottom-nav-item" data-rent-bar="properties" data-onclick="rentals.open('properties', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-building"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.properties">Properties</span></button>
+        <button type="button" class="bottom-nav-item" data-rent-bar="reports" hidden data-onclick="rentals.open('reports', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-trend"/></svg></span><span class="bottom-nav-label" data-i18n="ui.rent.reports">Reports</span></button>
         <button type="button" class="bottom-nav-item" data-tab="more" data-onclick="nav.toggleMenu()" aria-controls="sideNav" aria-expanded="false"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.more">More</span></button>
     </nav>
     <div class="pull-refresh" id="pullRefresh" hidden aria-hidden="true"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span class="pull-refresh-pull" data-i18n="ui.nav.pull_refresh">Pull to refresh</span><span class="pull-refresh-release" data-i18n="ui.nav.release_refresh">Release to refresh</span></div>
