@@ -97,16 +97,15 @@
                     </div>
                 </div>
 
-                <div class="field">
-                    <label for="itemModalContactPerson" data-i18n="ui.modals.contact_person">Contact person</label>
-                    <input type="text" id="itemModalContactPerson" class="input"
-                           placeholder="Enter contact person name (optional)" data-i18n-placeholder="ui.modals.enter_contact_person_name">
-                </div>
-
                 <div id="itemModalHistorySection" class="field" hidden>
                     <label data-i18n="ui.modals.change_history">Change history</label>
                     <button type="button" id="itemModalHistoryBtn" class="btn btn-sm" data-onclick="items.loadModalHistory()" data-i18n="ui.modals.show_rate_name_changes">Show rate &amp; name changes</button>
                     <div id="itemModalHistoryList"></div>
+                </div>
+                <div class="field">
+                    <label for="itemModalContactPerson" data-i18n="ui.modals.contact_person">Usual supplier</label>
+                    <input type="text" id="itemModalContactPerson" class="input"
+                           placeholder="Who you usually buy it from (optional)" data-i18n-placeholder="ui.modals.enter_contact_person_name">
                 </div>
                 <div class="item-danger-zone">
                     <button type="button" class="btn btn-danger btn-sm" id="itemModalArchiveBtn" data-onclick="items.archiveFromModal()" hidden data-i18n="ui.items.archive_item">Archive item</button>
