@@ -214,10 +214,11 @@ export const DayManager = {
         this.updateElement('todayTotalIn', moneyText(s.totalIn));
         this.updateElement('todayTotalOut', moneyText(s.totalOut));
         
-        // Net outflow with color coding
+        // Nothing in or out yet: a neutral line, not "More went out" over ₹0 (N-18)
         const cashFlowLabel = document.getElementById('todayCashFlowLabel');
         if (cashFlowLabel) {
-            cashFlowLabel.textContent = t(s.isOutflow ? 'ui.today.net_outflow' : 'ui.today.net_inflow');
+            const key = !s.totalIn && !s.totalOut ? 'ui.today.net_none' : s.isOutflow ? 'ui.today.net_outflow' : 'ui.today.net_inflow';
+            cashFlowLabel.textContent = t(key);
         }
         
         this.updateElement('todayNetCashFlow', moneyText(s.netAmount));
