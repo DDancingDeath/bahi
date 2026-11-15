@@ -127,8 +127,8 @@
 
 /* Drawn inside the button: the sheet edge would cut an outer ring (N-14) */
 .nav-close:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 3px var(--focus-ring);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
 }
 
 .nav-menu {

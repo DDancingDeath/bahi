@@ -3569,8 +3569,8 @@
     ],
     "csv": {
       "title": "Export CSV · 1 Jan 2027 – 1 Jan 2027",
-      "share": "Export CSV · 1 Jan 2027 – 1 Jan 2027\n2 lines from 1 bills are ready. Tap CSV to download.",
-      "text": "Export CSV · 1 Jan 2027 – 1 Jan 20272 lines from 1 bills are ready. Tap CSV to download.",
+      "share": "Export CSV · 1 Jan 2027 – 1 Jan 2027\n2 lines from 1 bill are ready. Tap CSV to download.",
+      "text": "Export CSV · 1 Jan 2027 – 1 Jan 20272 lines from 1 bill are ready. Tap CSV to download.",
       "rows": 2,
       "first": [
         [

@@ -269,7 +269,7 @@ describe('Receive payment dialog', () => {
         answer(500, 'cash');
         await OutstandingManager.receiveFromParty(normalizePartyName('Ravi'));
         expect(server.r1.payment.due).toBe(1500);
-        expect(UIManager.showToast).toHaveBeenLastCalledWith('✓ ₹500 recorded on 1 bills');
+        expect(UIManager.showToast).toHaveBeenLastCalledWith('✓ ₹500 recorded on 1 bill');
         // The listener brings the landed payment; the customer pays ₹500 again
         AppState.retailSalesHistory = [server.r1, server.r2];
         answer(500, 'cash');
@@ -300,7 +300,7 @@ describe('Receive payment dialog', () => {
         await OutstandingManager.receiveFromParty(normalizePartyName('Ravi'));
         expect(server.r1.payments).toHaveLength(1);
         expect(Object.keys(audits)).toHaveLength(1);
-        expect(UIManager.showToast).toHaveBeenLastCalledWith('✓ ₹500 recorded on 1 bills');
+        expect(UIManager.showToast).toHaveBeenLastCalledWith('✓ ₹500 recorded on 1 bill');
     });
 
     test('D-1: the lost payment reaches this phone first; the same payment again is reported, not sent', async () => {

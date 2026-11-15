@@ -863,7 +863,7 @@ const ItemsManager = {
         // Its version when opened: saving over a newer one from another phone is refused (#113)
         this.editStartRev = Number(item.rev) || 0;
         this.resetModalHistory(this.canUseHistory());
-        if (this.canUseHistory()) this.showLastChange(item.id);
+        if (this.canUseHistory()) this.showLastChange(item.id).catch(e => console.warn('Last rate change failed:', e));
         
         this.renderModalRates();
         UIManager.openSheet(document.getElementById('itemEditOverlay'));
