@@ -15,6 +15,9 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const strip = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const variables = strip(read('www/css/variables.css'));
 
+/** A page's dark-mode copy of the tokens: :root inside @media (prefers-color-scheme: dark). */
+const DARK_ROOT = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([^{}]*)\}/;
+
 const PAGES = [
     ['/download', strip(read('www/download.html').match(/<style>([\s\S]*?)<\/style>/)[1])],
     ['/r rent history', strip(read('www/r/rent-history.css'))]
@@ -42,7 +45,17 @@ describe.each(PAGES)('%s', (_, style) => {
     });
 
     test('the page rules use tokens, not raw colours', () => {
-        const rules = style.replace(/:root\s*\{[^}]*\}/, '');
+        const rules = style.replace(DARK_ROOT, '').replace(/:root\s*\{[^}]*\}/, '');
         expect(rules.match(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/gi)).toBeNull();
+    });
+
+    test('dark tokens (when the page has them) equal variables.css [data-mode="dark"]', () => {
+        const dark = DARK_ROOT.exec(style);
+        if (!dark) return;
+        const source = Object.fromEntries([...variables.match(/\[data-mode="dark"\]\s*\{([^{}]*)\}/)[1]
+            .matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((d) => [d[1], d[2].trim()]));
+        const page = [...dark[1].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)];
+        expect(page.length).toBeGreaterThan(5);
+        for (const [, name, value] of page) expect([name, value.trim()]).toEqual([name, source[name]]);
     });
 });
