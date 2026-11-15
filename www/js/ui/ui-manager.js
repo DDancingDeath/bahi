@@ -24,6 +24,33 @@ function attachToBody(el) {
 let toastTimer = null;
 let loadingShown = false;
 let loadingHolds = 0;
+let loadingSpeak = null;
+
+/** The blocking spinner: the page behind is aria-busy and the spinner's live region says "Please wait…" (U-10). */
+function showLoadingOverlay() {
+    const overlay = attachToBody(document.getElementById('loadingOverlay'));
+    if (!overlay) return;
+    const wasActive = overlay.classList.contains('active');
+    overlay.classList.add('active');
+    document.getElementById('appContent')?.setAttribute('aria-busy', 'true');
+    const text = overlay.querySelector('#loadingText');
+    if (!text || wasActive) return;
+    clearTimeout(loadingSpeak);
+    // A live region that only now joined the screen is not read out: fill it a moment later
+    loadingSpeak = setTimeout(() => {
+        if (overlay.classList.contains('active')) text.textContent = t('ui.common.please_wait');
+    }, 50);
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (!overlay) return;
+    clearTimeout(loadingSpeak);
+    overlay.classList.remove('active');
+    document.getElementById('appContent')?.removeAttribute('aria-busy');
+    const text = overlay.querySelector('#loadingText');
+    if (text) text.textContent = '';
+}
 
 /** Confirm button of #modalOverlay: "OK", or a verb (and danger) for this one dialog. */
 function setConfirmButton({ confirmLabel = '', danger = false } = {}) {
@@ -280,8 +307,7 @@ const UIManager = {
      */
     showLoading() {
         loadingShown = true;
-        const overlay = attachToBody(document.getElementById('loadingOverlay'));
-        if (overlay) overlay.classList.add('active');
+        showLoadingOverlay();
     },
 
     /**
@@ -291,8 +317,7 @@ const UIManager = {
     hideLoading() {
         loadingShown = false;
         if (loadingHolds > 0) return;
-        const overlay = document.getElementById('loadingOverlay');
-        if (overlay) overlay.classList.remove('active');
+        hideLoadingOverlay();
     },
 
     /**
@@ -302,16 +327,14 @@ const UIManager = {
      */
     holdLoading() {
         loadingHolds++;
-        const overlay = attachToBody(document.getElementById('loadingOverlay'));
-        if (overlay) overlay.classList.add('active');
+        showLoadingOverlay();
         let released = false;
         return () => {
             if (released) return;
             released = true;
             loadingHolds--;
             if (loadingHolds > 0 || loadingShown) return;
-            const el = document.getElementById('loadingOverlay');
-            if (el) el.classList.remove('active');
+            hideLoadingOverlay();
         };
     },
 
@@ -368,6 +391,11 @@ const UIManager = {
         }
         
         attachToBody(toast);
+        // TalkBack (U-10): an error interrupts as an alert, anything else is a polite status
+        const urgent = type === 'error';
+        toast.setAttribute('role', urgent ? 'alert' : 'status');
+        toast.setAttribute('aria-live', urgent ? 'assertive' : 'polite');
+        toast.setAttribute('aria-atomic', 'true');
         if (type === 'error') {
             const ref = errorRef(message);
             toast.textContent = `${message} · ${t('msg.common.error_ref', { ref })}`;
