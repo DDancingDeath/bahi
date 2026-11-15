@@ -489,6 +489,9 @@ in `.github/review-rules-examples/`.
   artifacts.
 - **`android-release.yml`** (PRs and pushes to `main` that touch the Android
   build; every `v*` tag): a debug APK build, or on a tag the signed release.
+  The APK is built for the Firebase project of `config/targets/<target>.json`
+  (default `bahi-happa`, swapped in by `happa-config.js target` in the runner
+  only); the committed `happa.config.json` stays the web deploy's `happa-bfc07`.
   The `main` build keeps the Gradle cache that tag runs restore (a tag run can
   only read caches from its own ref or `main`); Gradle itself is fetched with
   retries.

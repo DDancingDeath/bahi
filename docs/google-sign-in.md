@@ -6,7 +6,12 @@ done the console steps below. Off means no button, and its code is never loaded.
 
 Target projects: `bahi-happa` (live) and `bahi-happa-dev` (test); the Android package stays
 `com.happa` (owner decision). No Google sign-in is planned on the current project `happa-bfc07`
-(owner decision). The `GOOGLE_SERVICES_JSON` secret is not set yet, so the APK has no Google sign-in.
+(owner decision). From **v1.0.0-rc14** (15 Nov 2026) the APK is built for `bahi-happa`
+(`config/targets/bahi-happa.json`, README "Releasing") and the `GOOGLE_SERVICES_JSON` secret holds
+`bahi-happa`'s Android app config, so the APK *can* start Google sign-in; the button still stays off
+until `"googleSignIn": { "web": false, "android": true }` is added to `config/targets/bahi-happa.json`
+(step 7). On 15 Nov 2026 `bahi-happa` already had the Google provider enabled, the Android app
+`com.happa` with both release fingerprints, and its Android and web OAuth clients in that file.
 The earlier pair `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026 (hosting disabled; project
 deletion pending); don't set anything up there.
 
@@ -163,7 +168,9 @@ new projects. Nothing here goes in the repo except the last step.
    production. Only the `openid`, `email` and `profile` scopes are used, so no Google review is needed.
 7. **Switch it on** (a small PR): `happa.config.json` → `"googleSignIn": { "web": true }` (live after
    the merge's deploy), then `"android": true` with the next APK release built with the secret;
-   run `npm run apply:happa-config`. Before switching on, check in Admin › Users that every approved
+   run `npm run apply:happa-config`. While `main` still names `happa-bfc07`, the APK's switch goes in
+   `config/targets/bahi-happa.json` instead (`"googleSignIn": { "web": false, "android": true }`; the
+   target replaces the whole block). Before switching on, check in Admin › Users that every approved
    person's email really is theirs (see Risks).
 
 ## Real-device check (Android, before `android: true` ships)
