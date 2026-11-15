@@ -210,8 +210,10 @@
 .auth-lang-link {
   background: none;
   border: none;
-  padding: var(--sp-1) var(--sp-2);
-  font-size: var(--fs-sm);
+  min-height: calc(var(--control-h) + var(--sp-1));
+  min-width: calc(var(--control-h) + var(--sp-1));
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-body);
   color: var(--ink-2);
   cursor: pointer;
 }
@@ -241,4 +243,31 @@ body {
   touch-action: manipulation;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+/* The password rule stays under the field while typing (U-57) */
+.auth-field-hint {
+  margin: var(--sp-1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+/* Waiting for approval (U-24): the card replaces the sign-in forms */
+.auth-form[hidden],
+.auth-switch[hidden] {
+  display: none;
+}
+
+.auth-pending p {
+  margin: 0 0 var(--sp-3);
+  color: var(--ink-2);
+}
+
+.auth-pending .auth-pending-name {
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
+
+.auth-pending .auth-pending-name:empty {
+  display: none;
 }

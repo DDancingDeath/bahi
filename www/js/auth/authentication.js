@@ -7,7 +7,8 @@ import { t } from '../i18n/index.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { canOpenPage, hiddenPermissionClasses } from '../utils/role-access.js';
 import { shopRoleOf, rentRoleOf } from '../utils/settings-sections.js';
-import { userProfile, createProfileIfMissing } from '../firebase/repos/users.js';
+import { userProfile, createProfileIfMissing, workerEmailDomain } from '../firebase/repos/users.js';
+import { loginEmailFor } from '../utils/worker-accounts.js';
 import { afterLoginFailure, isStaleBackoff, loginWaitMs, waitParts } from '../utils/login-backoff.js';
 import { safeSetItem } from '../utils/storage-full.js';
 
@@ -164,6 +165,21 @@ const AuthManager = {
     clearMessage(form) {
         const el = document.getElementById(`${form}Message`);
         if (el) el.textContent = '';
+    },
+
+    /**
+     * The browser's own (English) bubbles are off (novalidate, U-57): empty or wrong fields are
+     * marked for screen readers and the first one gets focus; the message says what to do.
+     * @param {Array<?HTMLInputElement>} inputs
+     * @param {boolean} [all] mark every given input, not only the empty ones
+     */
+    markEmpty(inputs, all = false) {
+        const bad = inputs.filter(el => el && (all || !el.value.trim()));
+        bad.forEach(el => {
+            el.setAttribute('aria-invalid', 'true');
+            el.addEventListener('input', () => el.removeAttribute('aria-invalid'), { once: true });
+        });
+        bad[0]?.focus();
     },
 
     /**
@@ -334,8 +350,8 @@ const AuthManager = {
             // profile so the person isn't stuck between "please register" and "email already in use".
             const created = await this.createPendingProfile(user, name, email);
             if (created) {
-                await firebase.auth().signOut();
                 this.showMessage(form, t(createdKey), createdKind);
+                if (!this.showPending(user, name)) await firebase.auth().signOut();
                 return 'created';
             }
             // The profile exists on the server; the first read came from a stale cache.
@@ -350,8 +366,8 @@ const AuthManager = {
         const userData = userDoc.data;
 
         if (userData.status === 'pending') {
-            await firebase.auth().signOut();
             this.showMessage(form, t('msg.common.account_pending_approval_wait_admin'), 'info');
+            if (!this.showPending(user, userData.name)) await firebase.auth().signOut();
             return 'pending';
         }
 
@@ -479,13 +495,16 @@ const AuthManager = {
             return;
         }
         
-        const email = emailInput.value.trim();
+        // An email, or the username of a worker account the owner made (U-56)
+        const typed = emailInput.value.trim();
         const password = passwordInput.value;
         
-        if (!email || !password) {
+        if (!typed || !password) {
             this.showMessage('login', t('msg.auth.enter_email_password'));
+            this.markEmpty([emailInput, passwordInput]);
             return;
         }
+        const email = loginEmailFor(typed, workerEmailDomain());
         
         // Too many wrong tries on this phone: wait first (#105)
         const wait = loginWaitMs(readBackoff(), Date.now());
@@ -526,6 +545,12 @@ const AuthManager = {
         
         if (!name || !email || !password) {
             this.showMessage('register', t('msg.auth.fill_all_fields'));
+            this.markEmpty(['registerName', 'registerEmail', 'registerPassword'].map(id => document.getElementById(id)));
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            this.showMessage('register', t('msg.auth.enter_valid_email_address'));
+            this.markEmpty([document.getElementById('registerEmail')], true);
             return;
         }
         
@@ -560,9 +585,9 @@ const AuthManager = {
                 throw profileError;
             }
             
-            await firebase.auth().signOut();
-            
             doneOnLoginCard(t('msg.auth.registration_successful_wait_admin_approval'));
+            // Signed in and waiting for the owner (U-24)
+            if (!this.showPending(userCredential.user, name)) await firebase.auth().signOut();
             
         } catch (error) {
             console.error('Registration error:', error?.code, error?.message);
@@ -616,6 +641,11 @@ const AuthManager = {
             this.showMessage('login', t('msg.auth.enter_email_address'));
             return;
         }
+        // A worker account has no mailbox (U-56): only the owner can help
+        if (!email.includes('@')) {
+            this.showMessage('login', t('msg.auth.worker_forgot_pin'), 'info');
+            return;
+        }
         
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -652,6 +682,87 @@ const AuthManager = {
      */
     showLoginNotice(text, kind = 'error') {
         this.showMessage('login', text, kind);
+    },
+
+    /** The signed-in user waiting for approval (U-24), while the waiting card shows. */
+    pendingUser: null,
+
+    /**
+     * Waiting for approval (U-24): the person stays signed in and sees what happens next, with
+     * Check again and Sign out, instead of being signed out with a one-line message.
+     * @param {Object} user - the Firebase user
+     * @param {string} [name]
+     */
+    showPending(user, name = '') {
+        const card = document.getElementById('pendingCard');
+        if (!card) return false;
+        this.pendingUser = user;
+        document.querySelectorAll('#authScreen .auth-switch, #loginForm, #registerForm').forEach(el => { /** @type {HTMLElement} */ (el).hidden = true; });
+        const google = document.getElementById('googleSignIn');
+        if (google && !google.hidden) {
+            google.dataset.wasShown = '1';
+            google.hidden = true;
+        }
+        const who = document.getElementById('pendingName');
+        if (who) who.textContent = name ? t('ui.auth.pending_hello', { name }) : '';
+        const msg = document.getElementById('pendingMessage');
+        if (msg) msg.textContent = '';
+        card.hidden = false;
+        const screen = document.getElementById('authScreen');
+        if (screen) screen.style.display = 'flex';
+        return true;
+    },
+
+    /** Back to the sign-in forms (signed out). */
+    hidePending() {
+        this.pendingUser = null;
+        const card = document.getElementById('pendingCard');
+        if (card) card.hidden = true;
+        document.querySelectorAll('#authScreen .auth-switch, #loginForm, #registerForm').forEach(el => { /** @type {HTMLElement} */ (el).hidden = false; });
+        const google = document.getElementById('googleSignIn');
+        if (google?.dataset.wasShown) {
+            delete google.dataset.wasShown;
+            google.hidden = false;
+        }
+    },
+
+    /** Check again: the same checks as a sign-in (profile from the server); approved starts the app. */
+    async checkPending() {
+        const user = this.pendingUser || firebase.auth().currentUser;
+        if (!user) {
+            this.hidePending();
+            return 'signed-out';
+        }
+        const btn = document.getElementById('pendingCheckBtn');
+        if (btn) btn.disabled = true;
+        try {
+            const result = await this.completeSignIn(user, { email: user.email || '', name: user.displayName || '' });
+            if (result === 'pending' || result === 'created') {
+                const msg = document.getElementById('pendingMessage');
+                if (msg) msg.textContent = t('msg.auth.still_waiting');
+            } else {
+                this.hidePending();
+            }
+            return result;
+        } catch (error) {
+            console.warn('Approval not checked:', error?.code || error);
+            const msg = document.getElementById('pendingMessage');
+            if (msg) msg.textContent = t('msg.auth.err_network');
+            return 'error';
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    },
+
+    /** Sign out from the waiting card, to sign in with another account. */
+    async leavePending() {
+        this.hidePending();
+        try {
+            await firebase.auth().signOut();
+        } catch (error) {
+            console.warn('Sign-out failed:', error?.code || error);
+        }
+        this.showAuthTab('login');
     },
 
     // Handle logout
@@ -790,6 +901,15 @@ const AuthManager = {
                 btn.disabled = true;
                 btn.title = t('ui.auth.manager_only_export');
             }
+        });
+
+        // One-item leftovers (U-87): a menu group with nothing left to open goes, and its
+        // heading goes when a single link is left
+        document.querySelectorAll('.nav-menu .nav-group').forEach(group => {
+            const shown = [...group.querySelectorAll('a')].filter(a => !a.hidden).length;
+            group.hidden = shown === 0;
+            const title = group.querySelector('.nav-group-title');
+            if (title) title.hidden = shown === 1;
         });
     }
 };

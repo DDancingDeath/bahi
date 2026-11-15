@@ -261,12 +261,13 @@ describe('Stock', () => {
         expect(text[2]).toContain('Unmatched');
     });
 
-    test('staff see "Available" instead of quantity/value above 100 kg', async () => {
+    test('members see the real kg; the value only with Stock value on (U-09)', async () => {
         AppState.userRole = 'staff';
         jest.spyOn(FirebaseService, 'getStock').mockResolvedValue(cloneStock());
         await StockManager.renderStock();
-        expect(rows()[0].textContent).toContain('Available');
-        expect(rows()[0].textContent).not.toContain('₹4800');
+        expect(rows()[0].textContent).toContain('150 kg');
+        expect(rows()[0].textContent).not.toContain('Available');
+        expect(rows()[0].querySelector('[data-perm="stockValue"]')).not.toBeNull();
         expect(rows()[1].textContent).toContain('40 kg');
     });
 
@@ -446,14 +447,21 @@ describe('Admin → Users', () => {
             { id: 'legacy1', name: 'Legacy', email: 'l@x', role: 'manager' },           // no status, no createdAt
             { id: 'norole', name: 'NoRole', email: 'r@x', createdAt: 2 }               // no role → pending
         ]);
-        document.body.innerHTML = '<div id="adminTabsContainer"></div><div id="adminContainer"></div>';
+        document.body.innerHTML = '<div id="adminTabsContainer"></div><div id="adminContainer"></div><div id="teamPeopleCard" hidden><div id="teamPeople"></div></div>';
     });
     afterEach(() => { delete window.firebase; delete global.firebase; });
 
-    test('admin users tab splits pending (status pending or no role) from active users', async () => {
+    test('Admin › Users points to Settings › Team, where people are managed (U-54)', async () => {
         AdminManager.activeTab = 'users';
         await AdminManager.init();
-        await new Promise((r) => setTimeout(r)); // init() starts loadUsers without awaiting it
+        await new Promise((r) => setTimeout(r));
+        expect(document.querySelector('#adminTeamLink button').getAttribute('data-onclick')).toContain("settings-team");
+        expect(document.querySelector('#adminContainer #adminPendingUsers')).toBeNull();
+    });
+
+    test('Settings › Team splits pending (status pending or no role) from active users', async () => {
+        await AdminManager.renderTeam();
+        expect(document.getElementById('teamPeopleCard').hidden).toBe(false);
         const pending = document.getElementById('adminPendingUsers').textContent;
         const active = document.getElementById('adminActiveUsers').textContent;
         expect(pending).toContain('Newbie');
@@ -464,9 +472,7 @@ describe('Admin → Users', () => {
     });
 
     test('approve writes role from the picker, active status and approver', async () => {
-        AdminManager.activeTab = 'users';
-        await AdminManager.init();
-        await new Promise((r) => setTimeout(r)); // init() starts loadUsers without awaiting it
+        await AdminManager.renderTeam();
         document.getElementById('role-new1').value = 'manager';
         await AdminManager.approveUser('new1');
         expect(fake.raw('users').get('new1')).toMatchObject({ role: 'manager', status: 'active', approvedBy: 'owner1' });
@@ -646,11 +652,19 @@ describe('Settings', () => {
         expect(document.getElementById('roleAccessGrid').textContent).not.toMatch(/staff/i);
         // Personal expenses: totals still count (#98); History days is enforced by the app only.
         const notes = [...document.querySelectorAll('#roleAccessGrid .role-access-note')]
-            .map(n => [n.closest('tr').querySelector('input').id, n.textContent]);
+            .map(n => [n.closest('.role-toggle, .role-days').querySelector('input').id, n.textContent]);
+        const totals = 'Totals still count in the cash drawer and month summaries; individual entries and notes are hidden.';
+        const phoneOnly = 'Hidden on the phone only: someone with technical skill could still read it.';
         expect(notes).toEqual([
-            ['ra-manager-personalExpenses', 'Totals still count in the cash drawer and month summaries; individual entries and notes are hidden.'],
-            ['ra-manager-historyDays', 'Hidden in the app; full database protection comes later.']
+            ['ra-manager-personalExpenses', totals], ['ra-manager-historyDays', phoneOnly],
+            ['ra-staff-personalExpenses', totals], ['ra-staff-historyDays', phoneOnly]
         ]);
+        // On a phone one role shows at a time (U-52): Member first, Manager on the picker
+        expect(document.querySelector('[data-role-list="staff"]').hidden).toBe(false);
+        expect(document.querySelector('[data-role-list="manager"]').hidden).toBe(true);
+        RolesAccessManager.showRole('manager');
+        expect(document.querySelector('[data-role-list="manager"]').hidden).toBe(false);
+        expect(document.querySelector('[data-role-pick="manager"]').getAttribute('aria-pressed')).toBe('true');
 
         // Personal expenses start off (#98); what the owner saves here is a choice (marked)
         expect(document.getElementById('ra-manager-personalExpenses').checked).toBe(false);

@@ -14,7 +14,8 @@ import { installStickyFocus } from './ui/sticky-focus.js';
 import { ThemeManager, CHOICE_AT_LOAD } from './ui/theme.js';
 import { AuthManager } from './auth/authentication.js';
 import { FirebaseService } from './firebase/firestore-service.js';
-import { userProfile, saveOwnSavedRanges } from './firebase/repos/users.js';
+import { userProfile, saveOwnSavedRanges, saveOwnLang, pendingProfileCount } from './firebase/repos/users.js';
+import { setPendingJoins, resetOwnerAlerts } from './utils/owner-alerts.js';
 import { syncSavedRangesOnSignIn } from './utils/saved-ranges.js';
 import { on, REFRESH, READS_ALERT } from './utils/events.js';
 import { backgroundReadsAllowed, getQuotaStatus } from './firebase/firestore-meter.js';
@@ -163,6 +164,9 @@ let workers = null;
 const loadWorkers = onDemand(() => import('./modules/workers.js').then(m => (workers = m.WorkersManager)));
 let recurring = null;
 const loadRecurring = onDemand(() => import('./modules/recurring-bills.js').then(m => (recurring = m.RecurringBillsManager)));
+// Phone lock (U-55): imported after the first screen for the owner and managers, or with Settings
+let appLock = null;
+const loadAppLock = onDemand(() => import('./ui/app-lock.js').then(m => (appLock = m.AppLock)));
 const ownerRefreshes = new Map();
 /**
  * An owner reminder kept on this phone (salaries #373 WP-11, bills #437 RB-11): once per session on the
@@ -180,6 +184,14 @@ function scheduleOwnerRefresh(name, isStale, refresh) {
     }, { minDelayMs: 20000 });
 }
 function scheduleOwnerReminders() {
+    // U-24: how many people wait for the owner's approval (one small query a session, after the first screen)
+    if (AppState.userRole === 'owner') {
+        const uid = AppState.currentUser?.uid;
+        whenIdle(() => {
+            if (AppState.currentUser?.uid !== uid || navigator.onLine === false) return;
+            pendingProfileCount().then(setPendingJoins).catch(e => console.warn('Waiting-to-join count not read:', e?.code || e));
+        }, { minDelayMs: 15000 });
+    }
     scheduleOwnerRefresh('Salaries due', payDueStale, () => loadWorkers().then(m => m.refreshPayDue()));
     scheduleOwnerRefresh('Bills due', billsDueStale, () => loadRecurring().then(m => m.refreshBillsDue()));
 }
@@ -494,9 +506,10 @@ async function initializeUserData() {
                 // Check if user is approved
                 if (userData.status === 'pending') {
                     notShown();
-                    await firebase.auth().signOut();
                     UIManager.hideLoading();
                     AuthManager.showLoginNotice(t('msg.common.account_pending_approval_wait_admin'), 'info');
+                    // Stays signed in on the waiting card, with Check again (U-24)
+                    if (!AuthManager.showPending(firebase.auth().currentUser, userData.name)) await firebase.auth().signOut();
                     document.getElementById('authScreen').style.display = 'flex';
                     return;
                 }
@@ -513,6 +526,10 @@ async function initializeUserData() {
                 AppState.userRole = userData.role || 'staff';
                 AppState.rentRole = userData.rentRole || null;
                 AppState.userName = userData.name || 'User';
+                // U-86: the language follows the person; this phone's choice stays the fallback
+                if ((userData.lang === 'en' || userData.lang === 'hi') && userData.lang !== getLang()) {
+                    await Promise.resolve(setLang(userData.lang)).catch(e => console.warn('Language not applied:', e?.message || e));
+                }
                 // #140: saved period ranges follow the person (their profile, already read here)
                 try {
                     const up = syncSavedRangesOnSignIn(localStorage, userId, userData.savedRanges);
@@ -685,6 +702,10 @@ async function initializeUserData() {
         tip.start('SessionReads').complete({ startupReads: getQuotaStatus().reads - readsAtStart });
         noteStartup('listeners', FirebaseService.getStartupListenerInfo?.() || {});
         logStartupTimings();
+        if (AppState.userRole === 'owner' || AppState.userRole === 'manager') {
+            const lockUid = AppState.currentUser?.uid;
+            loadAppLock().then(l => l.start(lockUid)).catch(e => console.warn('Phone lock not started:', e?.message || e));
+        }
         // Shop | Rentals switch (#149): Rentals code loads only when opened
         BusinessSwitcher.init();
         // Offline / waiting-to-sync pill (#70)
@@ -783,6 +804,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 FirebaseService.forgetPeopleCaches();
                 NotificationsManager.stop();
                 ManualReminders.reset();
+                resetOwnerAlerts();
+                appLock?.stop();
                 ask?.reset();
                 workers?.reset();
                 recurring?.reset();
@@ -989,12 +1012,19 @@ window.app = {
         togglePassword: (inputId, btn) => AuthManager.togglePassword(inputId, btn),
         google: () => AuthManager.signInWithGoogle(),
         googleLink: () => AuthManager.linkGoogle(),
-        googleLinkCancel: () => AuthManager.cancelGoogleLink()
+        googleLinkCancel: () => AuthManager.cancelGoogleLink(),
+        checkPending: () => AuthManager.checkPending(),
+        leavePending: () => AuthManager.leavePending()
     },
     
     // App language (#143): Settings switch + login card links
     i18n: {
-        setLang: (lang) => setLang(lang),
+        setLang: (lang) => {
+            const done = setLang(lang);
+            const uid = AppState.currentUser?.uid;
+            if (uid && (lang === 'en' || lang === 'hi')) saveOwnLang(uid, lang).catch(e => console.warn('Language not saved to the profile:', e?.code || e));
+            return done;
+        },
         getLang: () => getLang()
     },
 
@@ -1045,6 +1075,7 @@ window.app = {
         markAllRead: () => NotificationsManager.markAllRead(),
         openNotification: (id) => NotificationsManager.openNotification(id),
         openReminder: (page) => NotificationsManager.openReminder(page),
+        openOwnerItem: (key) => NotificationsManager.openOwnerItem(key),
         toggleSystem: (checked) => NotificationsManager.toggleSystem(checked),
         refreshSettings: () => NotificationsManager.refreshSettings()
     },
@@ -1441,6 +1472,7 @@ window.app = {
     day: {
         init: () => DayManager.init(),
         showSubTab: (tab) => DayManager.showSubTab(tab),
+        hideFirstRun: () => DayManager.hideFirstRun(),
         loadTodayData: () => DayManager.loadTodayData(),
         openDues: (kind) => DayManager.openDues(kind),
         openBackupCheck: () => DayManager.openBackupCheck(),
@@ -1481,6 +1513,7 @@ window.app = {
     settings: {
         load: (section) => {
             AppUpdatesManager.renderSettings();
+            loadAppLock().then(l => l.renderSettings()).catch(e => console.warn('Phone lock settings not shown:', e?.message || e));
             SettingsManager.open(section);
         },
         save: () => SettingsManager.saveSettings(),
@@ -1522,8 +1555,27 @@ window.app = {
     },
 
     // Settings → Roles & access (owner, #84)
+    // Phone lock (U-55)
+    appLock: {
+        setup: () => loadAppLock().then(l => l.setup()),
+        turnOff: () => loadAppLock().then(l => l.turnOff()),
+        unlock: () => loadAppLock().then(l => l.unlock()),
+        dismissOffer: () => loadAppLock().then(l => l.dismissOffer())
+    },
+
+    // Settings › Team (U-54, U-56): people and worker accounts; admin.js is imported on first use
+    team: {
+        render: () => loadAdmin().then(a => a.renderTeam()),
+        addWorker: () => loadAdmin().then(a => a.addWorker()),
+        // From the waiting-to-join alerts (U-24): Team with its people shown
+        openWaiting: () => Promise.resolve(NavigationManager.showTabFromNav('settings-team'))
+            .then(() => new Promise(resolve => setTimeout(resolve, 150)))
+            .then(() => loadAdmin()).then(a => a.renderTeam())
+    },
+
     roles: {
         render: () => RolesAccessManager.render(),
+        showRole: (role) => RolesAccessManager.showRole(role),
         save: () => RolesAccessManager.saveForm(),
         loadPeople: () => RolesAccessManager.loadPeople(),
         setRentRole: (userId, role) => RolesAccessManager.setRentRole(userId, role)

@@ -85,7 +85,7 @@ const STEPS = [
     { name: 'App health', route: 'health', page: 'health', roles: OM },
     { name: 'Workers', route: 'workers', page: 'workers', roles: O, expect: '#workersBody .wp-metrics' },
     { name: 'Recurring bills', route: 'recurring', page: 'recurring', roles: O, expect: '#recurringBody .rb-metrics' },
-    { name: 'Admin › Users', route: 'admin', page: 'admin', act: "window.app.admin.showTab('users')", roles: O, expect: '#adminActiveUsers' },
+    { name: 'Admin › Users', route: 'admin', page: 'admin', act: "window.app.admin.showTab('users')", roles: O, expect: '#adminTeamLink' },
     { name: 'Admin › Data', route: 'admin', page: 'admin', act: "window.app.admin.showTab('data')", roles: O, expect: '#adminContainer .danger-zone' },
     { name: 'Diagnostics › Number checks', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('numbers')", roles: OM, expect: '#diagnosticsContainer .diag-numchecks-intro' },
     { name: 'Diagnostics › Errors', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('errors')", roles: O, expect: '#diagTypeFilter' },

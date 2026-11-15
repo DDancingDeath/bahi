@@ -59,7 +59,7 @@ afterEach(() => {
 
 describe('login gate', () => {
     test.each([
-        ['pending', 'Your account is pending approval. Please wait for admin approval.'],
+        ['pending', "Your account is waiting for the owner's approval."],
         ['rejected', 'Your account has been rejected. Please contact admin.'],
         ['disabled', 'This account has been removed. Please contact the owner.']
     ])('%s user is signed out and kept on the login screen', async (status, message) => {
@@ -116,7 +116,7 @@ describe('login gate', () => {
         loginForm('', '');
         await AuthManager.handleLogin();
         expect(auth.signInWithEmailAndPassword).not.toHaveBeenCalled();
-        expect(inline('login')).toBe('Please enter email and password');
+        expect(inline('login')).toBe('Enter your email or username, and your password');
     });
 });
 
@@ -135,7 +135,7 @@ describe('registration', () => {
         expect(profile).toMatchObject({ name: 'Ravi', email: 'a@x.com', role: 'staff', status: 'pending' });
         expect(Object.keys(profile).sort()).toEqual(['createdAt', 'email', 'name', 'role', 'status']);
         expect(auth.signOut).toHaveBeenCalled();
-        expect(inline('login')).toBe('Registration successful! Please wait for admin approval.');
+        expect(inline('login')).toBe('Account made. Now the owner needs to approve it.');
     });
 
     test('never overwrites an existing (possibly approved) profile', async () => {
