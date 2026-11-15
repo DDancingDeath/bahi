@@ -204,6 +204,10 @@ builds from the chosen branch, signs with the same key, uses the `GOOGLE_SERVICE
 DEV badge on the launcher icon (`android/dev-icon`), checks the package, name and bundled project, and
 publishes a GitHub **pre-release** `dev-YYYYMMDD-N` with only `bahi-dev.apk`. It is never marked latest,
 so `releases/latest`, the update banner and /download stay on the shop's APK (the run fails if latest moved).
+It also moves the rolling pre-release **`dev-latest`** to the same commit (asset and notes replaced): the
+target's optional `download` block (`apkDownloadUrl`, `latestReleaseApi`, page `name` en/hi) points the test
+app's update check and the bahi-happa-dev site's /download at it, so that page offers "Bahi Dev (test app)",
+its version and its notes. Without the block, /download and the app use `releases/latest`.
 
 Installed Android apps check `releases/latest` (at most every 12 h) and show an "Update available" banner;
 https://myhappa.web.app/download (site from `happa.config.json`; happaapp.web.app and happa-bfc07.web.app redirect there) always links to the latest APK. After updating, each user sees a one-time

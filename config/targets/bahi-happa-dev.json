@@ -3,6 +3,14 @@
   "appNameHi": "Bahi Dev",
   "androidPackage": "com.happa.dev",
   "apkName": "bahi-dev",
+  "download": {
+    "apkDownloadUrl": "https://github.com/DDancingDeath/happa/releases/download/dev-latest/bahi-dev.apk",
+    "latestReleaseApi": "https://api.github.com/repos/DDancingDeath/happa/releases/tags/dev-latest",
+    "name": {
+      "en": "Bahi Dev (test app)",
+      "hi": "Bahi Dev (टेस्ट ऐप)"
+    }
+  },
   "appCheck": {
     "siteKey": "6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd"
   },
