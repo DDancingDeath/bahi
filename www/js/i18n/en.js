@@ -770,6 +770,8 @@ export default {
     'ui.history.apply': "Apply",
     'ui.history.badge_cash': "Cash ₹{amount}",
     'ui.history.badge_due': "Due ₹{amount}",
+    'ui.history.chip_paid': "Paid ₹{amount}",
+    'ui.history.record_details': "Details: bill no., who saved it, times",
     'ui.history.old_app_chip': "Old app",
     'ui.history.bad_date': "Date?",
     'ui.history.bad_date_title': "This bill's date can't be read",

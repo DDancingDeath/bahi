@@ -32,7 +32,7 @@ import { voidBlocker } from '../utils/bill-edits.js';
 import { buildReprintPayload, buildBillShareText } from '../utils/bill-share.js';
 import { billTimes, refusedForClock } from '../utils/clock-skew.js';
 import { todayLocalISO } from '../utils/dates.js';
-import { paymentBreakdown } from '../utils/due-payments.js';
+import { paymentBreakdown, paidSoFar } from '../utils/due-payments.js';
 import { whatsAppShareUrl } from '../utils/release-info.js';
 import { openExternal } from '../utils/open-external.js';
 import { billTraceId } from '../utils/status-report.js';
@@ -573,35 +573,14 @@ export class HistoryManager {
         const content = `
             <div class="bill-view${isPurchase ? '' : ' is-sale'}">
                 ${voidedBannerHtml(bill)}
-                <div class="panel bill-view-info">
-                    <div class="row bill-view-row">
-                        <span class="row-main">${L('ui.history.bill_no')}</span>
-                        <strong class="bill-view-no">#${Helpers.escapeHtml(billNumber)}</strong>
+                <div class="panel panel-pad bill-view-head">
+                    ${bill.customerName ? `<div class="bill-view-party"><span class="row-meta">${L(isPurchase ? 'ui.common.supplier' : 'ui.common.customer')}</span> <strong>${Helpers.escapeHtml(bill.customerName)}</strong></div>` : ''}
+                    <div class="bill-view-sum hero-num">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</div>
+                    <div class="bill-view-chips">
+                        ${paidSoFar(parts) > 0 ? `<span class="tag pos">${L('ui.history.chip_paid', { amount: formatAmount(paidSoFar(parts)) })}</span>` : ''}
+                        ${parts.due > 0 ? `<span class="tag warn">${L('ui.history.badge_due', { amount: formatAmount(parts.due) })}</span>` : ''}
                     </div>
-                    <div class="row bill-view-row">
-                        <span class="row-main">${L('ui.history.date_label')}</span>
-                        <span>${Helpers.escapeHtml(shownDate.text)}${shownDate.bad ? badDateBadgeHtml() : ''}</span>
-                    </div>
-                    ${bill.createdByName || bill.userName ? `
-                        <div class="row bill-view-row">
-                            <span class="row-main">${L('ui.history.created_by')}</span>
-                            <span>${Helpers.escapeHtml(bill.createdByName || bill.userName)}</span>
-                        </div>
-                    ` : ''}
-                    ${bill.customerName ? `
-                        <div class="row bill-view-row">
-                            <span class="row-main">${L(isPurchase ? 'ui.common.supplier' : 'ui.common.customer')}</span>
-                            <strong>${Helpers.escapeHtml(bill.customerName)}</strong>
-                        </div>
-                    ` : ''}
-                    ${billTimesHtml(bill)}
-                    ${billTraceId(bill, type) ? `
-                        <div class="row bill-view-row bill-trace-row">
-                            <span class="row-main">${L('ui.status.trace_id')}</span>
-                            <span class="bill-trace"><code lang="zxx" translate="no">${Helpers.escapeHtml(billTraceId(bill, type))}</code>
-                                <button type="button" class="btn btn-ghost btn-sm bill-trace-copy" data-onclick="history.copyTraceId()">${L('ui.status.copy_short')}</button></span>
-                        </div>
-                    ` : ''}
+                    <div class="row-meta">${Helpers.escapeHtml(shownDate.text)}${shownDate.bad ? badDateBadgeHtml() : ''}</div>
                 </div>
                 
                 ${bill.comments ? `
@@ -663,6 +642,29 @@ export class HistoryManager {
                 
                 ${paymentHTML}
                 ${editsRowHtml(bill, 'history.showEdits()')}
+                <details class="panel bill-view-more">
+                    <summary class="row bill-view-row">${L('ui.history.record_details')}</summary>
+                    <div class="bill-view-info">
+                    <div class="row bill-view-row">
+                        <span class="row-main">${L('ui.history.bill_no')}</span>
+                        <strong class="bill-view-no">#${Helpers.escapeHtml(billNumber)}</strong>
+                    </div>
+                    ${bill.createdByName || bill.userName ? `
+                        <div class="row bill-view-row">
+                            <span class="row-main">${L('ui.history.created_by')}</span>
+                            <span>${Helpers.escapeHtml(bill.createdByName || bill.userName)}</span>
+                        </div>
+                    ` : ''}
+                    ${billTimesHtml(bill)}
+                    ${billTraceId(bill, type) ? `
+                        <div class="row bill-view-row bill-trace-row">
+                            <span class="row-main">${L('ui.status.trace_id')}</span>
+                            <span class="bill-trace"><code lang="zxx" translate="no">${Helpers.escapeHtml(billTraceId(bill, type))}</code>
+                                <button type="button" class="btn btn-ghost btn-sm bill-trace-copy" data-onclick="history.copyTraceId()">${L('ui.status.copy_short')}</button></span>
+                        </div>
+                    ` : ''}
+                    </div>
+                </details>
             </div>
         `;
         

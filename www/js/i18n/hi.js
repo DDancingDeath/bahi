@@ -770,6 +770,8 @@ export default {
     'ui.history.apply': "लागू करें",
     'ui.history.badge_cash': "नकद ₹{amount}",
     'ui.history.badge_due': "उधार ₹{amount}",
+    'ui.history.chip_paid': "चुकाया ₹{amount}",
+    'ui.history.record_details': "जानकारी: बिल नंबर, किसने बनाया, समय",
     'ui.history.old_app_chip': "पुराना ऐप",
     'ui.history.bad_date': "तारीख?",
     'ui.history.bad_date_title': "इस बिल की तारीख पढ़ी नहीं जा सकती",

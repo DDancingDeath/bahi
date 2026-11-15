@@ -797,3 +797,33 @@
     display: none;
   }
 }
+
+/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end */
+.bill-view-head {
+  display: grid;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.bill-view-party {
+  overflow-wrap: anywhere;
+}
+
+.bill-view-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.bill-view-chips:empty {
+  display: none;
+}
+
+.bill-view-more {
+  margin-top: var(--sp-3);
+}
+
+.bill-view-more > summary {
+  color: var(--ink-2);
+  cursor: pointer;
+}
