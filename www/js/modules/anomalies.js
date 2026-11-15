@@ -74,6 +74,18 @@ function loadedBills() {
     };
 }
 
+const TYPE_GROUPS = ['rates', 'stock', 'payments', 'edits', 'cash', 'other'];
+
+/** @param {string} id anomaly type @returns {string} one of TYPE_GROUPS */
+function typeGroup(id) {
+    if (/^(rate-|bag-weight|below-cost|cost-unknown|qty-invalid)/.test(id)) return 'rates';
+    if (/^(oversell|stock-|numcheck-ac[18]$)/.test(id)) return 'stock';
+    if (/^(payment-|party-required|due-|numcheck-ac[235]$)/.test(id)) return 'payments';
+    if (/^(cash-|numcheck-ac6$)/.test(id)) return 'cash';
+    if (/^(duplicate|date-|override|bill-|expense-|old-bill|numcheck-)/.test(id)) return 'edits';
+    return 'other';
+}
+
 const VOIDED_COLLECTIONS = { purchase: 'purchases', retail: 'retailSales', wholesale: 'wholesaleSales' };
 
 /** Voided bills (#75) and expenses (#99) the listeners already hold, by kind: no read. */
@@ -733,8 +745,11 @@ export const AnomaliesManager = {
         if (!sel || (sel.dataset.filled && !force)) return;
         const cur = sel.value;
         sel.dataset.filled = '1';
-        sel.innerHTML = `<option value="all">${esc(t('ui.anom.all_types'))}</option>` + Object.entries(ANOMALY_TYPES)
-            .map(([id, label]) => `<option value="${esc(id)}">${loc(label)}</option>`).join('');
+        // Types in a few plain groups (U-74)
+        const groups = new Map(TYPE_GROUPS.map(g => [g, []]));
+        Object.entries(ANOMALY_TYPES).forEach(([id, label]) => groups.get(typeGroup(id)).push(`<option value="${esc(id)}">${loc(label)}</option>`));
+        sel.innerHTML = `<option value="all">${esc(t('ui.anom.all_types'))}</option>`
+            + [...groups].filter(([, opts]) => opts.length).map(([g, opts]) => `<optgroup label="${esc(t(`ui.anom.group_${g}`))}">${opts.join('')}</optgroup>`).join('');
         if (cur) sel.value = cur;
     },
 
