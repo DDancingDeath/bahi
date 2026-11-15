@@ -2,6 +2,8 @@
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [today.hi.md](today.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
+The owner opens the app on Today (managers and members open on Billing).
+
 Today's figures, from today's bills, expenses and cash sessions.
 
 The page opens with the net figure for the day (T12) and total in / out (T10, T11). Below it comes what needs attention: the cash drawer prompt, the reminders and, for owners and managers, the Day report. Then the day's figures, the bills and the items. On a computer the reminders and the Day report stand in a column on the right.

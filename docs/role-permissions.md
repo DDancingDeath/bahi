@@ -163,6 +163,36 @@ Code: `www/js/utils/role-access.js` (pure: defaults, `normalizeRoleAccess`, `acc
   void check use `canEditBillWith` / `canVoidBillWith`, the same conditions as the rules. A refused
   edit says the window has closed (with the number of days).
 
+### Start page
+
+Code: `www/js/utils/start-page.js` (`chooseStartPage`), used by `initializeUserData()` in
+`www/js/main.js` after every sign-in and app open (browser, installed web app, Android app).
+
+| Role | Opens on |
+|---|---|
+| Owner | Today (`day`) |
+| Manager | Billing |
+| Member (`staff`) | Billing |
+| Rentals-only (`none` + `rentRole`) and anything else | Billing, as before (the app always starts on Aadhat; Rentals opens from the switch) |
+
+- **Order:** a launch link, else the page this browser tab showed before a reload, else the
+  role's page. If the role may not open its page, the first it may open of Billing, Today,
+  History, Outstanding, Settings (`START_FALLBACKS`). Today and Billing have no Roles & access
+  switch today, so this only matters if one is added.
+- **Launch links win:** a home-screen shortcut (`?shortcut=sale|purchase|history`, #151) or a
+  `#route` hash naming a page or route (`#history`, `#settings-printing`, `#money-cash`, …). The
+  link is removed from the URL once read. An unknown hash (e.g. `#main`) is ignored; a page
+  the role may not open is refused with the usual message and fallback. Rentals is never opened
+  from a link. In-app links (notifications, Settings group links, a page's links) are unchanged.
+- **Reload vs. new launch:** `history.state.happaTab` survives a reload of the same browser tab
+  but not a new launch (new tab, home-screen icon, the Android app started again), so a reload
+  mid-bill stays on Billing and a fresh launch opens the role's page. Sign-out forgets it
+  (`NavigationManager.forgetRoute()`), so the next sign-in opens the role's page. A bill left
+  unsaved is never lost either way: the auto-save banner waits on Billing (Restore / Discard), and
+  typing a new bill first moves it to Drafts.
+- **Back:** the role's page is home (`NavigationManager.homeTab`): the Android Back button leaves
+  the app from there; for the owner, Back on Billing returns to Today.
+
 ## How the rules enforce it
 
 `firestore.rules`:

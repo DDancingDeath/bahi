@@ -96,6 +96,50 @@ describe('back button returns to the previous tab (F17)', () => {
         expect(addListener).toHaveBeenCalledWith('backButton', expect.any(Function));
         delete window.Capacitor;
     });
+
+    test('owner home is Today: Back from Billing goes back, Back on Today leaves', () => {
+        const back = jest.spyOn(history, 'back').mockImplementation(() => {});
+        const app = { exitApp: jest.fn() };
+        document.body.insertAdjacentHTML('beforeend', '<div class="tab" id="day"></div>');
+        NavigationManager.homeTab = 'day';
+        try {
+            NavigationManager.showTab('day');
+            NavigationManager.showTabFromNav('billing');
+            NavigationManager.handleBackButton(app);
+            expect(back).toHaveBeenCalledTimes(1);
+            NavigationManager.handlePopState({ state: {} });
+            expect(activeTab()).toBe('day');
+            NavigationManager.handleBackButton(app);
+            expect(app.exitApp).toHaveBeenCalledTimes(1);
+        } finally {
+            NavigationManager.homeTab = 'billing';
+            back.mockRestore();
+        }
+    });
+
+    test('a reload showing the same page adds no history entry; sign-out forgets the page', () => {
+        history.replaceState({ happaTab: 'history', other: 1 }, '');
+        const len = history.length;
+        expect(NavigationManager.restoredRoute()).toBe('history');
+        NavigationManager.showTab('history');
+        expect(history.length).toBe(len);
+        NavigationManager.forgetRoute();
+        expect(NavigationManager.currentTab).toBeNull();
+        expect(history.state).toEqual({ other: 1 });
+        expect(NavigationManager.restoredRoute()).toBeNull();
+    });
+
+    test('canOpenRoute: known pages the role may open; not unknown ids, Rentals or refused pages', () => {
+        document.body.insertAdjacentHTML('beforeend', '<div class="tab" id="admin"></div><div id="main"></div><div class="tab" id="rentals"></div>');
+        expect(NavigationManager.canOpenRoute('history')).toBe(true);
+        expect(NavigationManager.canOpenRoute('admin')).toBe(true);
+        expect(NavigationManager.isKnownRoute('main')).toBe(false);
+        expect(NavigationManager.isKnownRoute('nope')).toBe(false);
+        expect(NavigationManager.isKnownRoute('rentals')).toBe(false);
+        AppState.userRole = 'staff';
+        expect(NavigationManager.canOpenRoute('admin')).toBe(false);
+        expect(NavigationManager.canOpenRoute('billing')).toBe(true);
+    });
 });
 
 describe('Android Back closes the Item dialog in Hindi (not the page under it)', () => {
