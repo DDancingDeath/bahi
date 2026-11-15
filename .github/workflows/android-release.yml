@@ -2,6 +2,10 @@
 #  - The APK talks to the build target's Firebase project (input "target", default bahi-happa):
 #    config/targets/<target>.json is put over happa.config.json in the runner only. The web deploy
 #    keeps the committed happa.config.json (happa-bfc07).
+#  - A target with its own androidPackage (bahi-happa-dev: "Bahi Dev", com.happa.dev) is a test app
+#    that installs next to the shop's: a manual run publishes it as a GitHub pre-release
+#    dev-YYYYMMDD-N with <apkName>.apk only, never marked latest, with GOOGLE_SERVICES_JSON_DEV
+#    and a DEV badge on its launcher icon (android/dev-icon).
 #  - Tag push v<version> (or manual re-run with a tag): signed release APK,
 #    verified against the production signing cert, published as a GitHub Release
 #    marked latest. A v<version>-rc<n> tag is published the same way: the shop
@@ -42,7 +46,7 @@ on:
         required: false
         type: string
       target:
-        description: 'Firebase project the APK uses (config/targets/<target>.json).'
+        description: 'Firebase project the APK uses (config/targets/<target>.json). bahi-happa-dev = the "Bahi Dev" test app, published as a pre-release.'
         required: false
         default: 'bahi-happa'
         type: string
@@ -77,6 +81,8 @@ jobs:
     timeout-minutes: 45
     outputs:
       release: ${{ steps.mode.outputs.release }}
+      dev: ${{ steps.mode.outputs.dev }}
+      sha: ${{ steps.mode.outputs.sha }}
       tag: ${{ steps.mode.outputs.tag }}
       version: ${{ steps.mode.outputs.version }}
       version_code: ${{ steps.tag.outputs.version_code }}
@@ -93,7 +99,41 @@ jobs:
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           INPUT_TAG: ${{ inputs.tag }}
+          TARGET: ${{ inputs.target || 'bahi-happa' }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
+          # A target with its own androidPackage is a side-by-side test app (Bahi Dev, com.happa.dev):
+          # every manual run publishes a pre-release dev-YYYYMMDD-N that is never "latest".
+          if [[ -f "config/targets/$TARGET.json" && -n "$(jq -r '.androidPackage // empty' "config/targets/$TARGET.json")" ]]; then
+            if [[ "$EVENT" != "workflow_dispatch" ]]; then
+              echo "::error::Target $TARGET is a side-by-side test app; run it by hand."
+              exit 1
+            fi
+            if [[ -n "$INPUT_TAG" ]]; then
+              tag="$INPUT_TAG"
+            else
+              day="$(TZ=Asia/Kolkata date +%Y%m%d)"
+              last="$(gh api "repos/$GH_REPO/git/matching-refs/tags/dev-$day-" --jq '.[].ref' | sed 's|.*-||' | sort -n | tail -n 1)"
+              tag="dev-$day-$(( ${last:-0} + 1 ))"
+            fi
+            if [[ ! "$tag" =~ ^dev-([0-9]{8})-([1-9][0-9]?)$ ]]; then
+              echo "::error::Target $TARGET publishes dev-YYYYMMDD-N tags, N from 1 to 99 (leave the tag empty for a new one), not '$tag'."
+              exit 1
+            fi
+            day="${BASH_REMATCH[1]}"
+            n="${BASH_REMATCH[2]}"
+            echo "Dev pre-release $tag for $TARGET"
+            {
+              echo "release=true"
+              echo "dev=true"
+              echo "sha=$(git rev-parse HEAD)"
+              echo "tag=$tag"
+              echo "version=$(jq -r .version package.json)-dev.$day.$n"
+              echo "version_code=$(( ${day:2} * 100 + n ))"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           tag=""
           if [[ "$EVENT" == "push" && "$REF" == refs/tags/* ]]; then
             tag="$REF_NAME"
@@ -143,6 +183,10 @@ jobs:
           node scripts/happa-config.js target "$TARGET"
           echo "APK target: $TARGET (project $(node scripts/happa-config.js get projectId), site $(node scripts/happa-config.js get siteUrl))" | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Mark the test app's launcher icon (DEV badge)
+        if: steps.mode.outputs.dev == 'true'
+        run: cp -r android/dev-icon/res/. android/app/src/main/res/
+
       - name: Check Happa config (no placeholders, owner confirmed)
         if: steps.mode.outputs.release == 'true'
         run: npm run check:happa-config
@@ -153,7 +197,24 @@ jobs:
         env:
           TAG: ${{ steps.mode.outputs.tag }}
           BASE: ${{ steps.mode.outputs.base }}
+          DEV: ${{ steps.mode.outputs.dev }}
+          DEV_VERSION_CODE: ${{ steps.mode.outputs.version_code }}
+          DEV_VERSION: ${{ steps.mode.outputs.version }}
+          DEV_SHA: ${{ steps.mode.outputs.sha }}
+          TARGET: ${{ inputs.target }}
         run: |
+          if [[ "$DEV" == "true" ]]; then
+            echo "Android versionCode $DEV_VERSION_CODE, versionName $DEV_VERSION"
+            echo "version_code=$DEV_VERSION_CODE" >> "$GITHUB_OUTPUT"
+            mkdir -p dist
+            {
+              echo "Test app **$(node scripts/happa-config.js get appName)** (\`$(node scripts/happa-config.js get androidPackage)\`) for Firebase project \`$(node scripts/happa-config.js get projectId)\`, built from $DEV_SHA."
+              echo
+              echo "It installs next to the shop's Bahi app and never replaces it. Not for the shop. Target \`$TARGET\`, version $DEV_VERSION."
+            } > dist/release-notes.md
+            cat dist/release-notes.md
+            exit 0
+          fi
           # A release candidate (v1.3.0-rc1) is built from the commit whose version is 1.3.0.
           pkg_version="$(node -p "require('./package.json').version")"
           if [[ "$pkg_version" != "$BASE" ]]; then
@@ -226,7 +287,13 @@ jobs:
       - name: Add google-services.json (if configured)
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
+          DEV: ${{ steps.mode.outputs.dev }}
         run: |
+          if [[ "$DEV" == "true" ]]; then
+            GOOGLE_SERVICES_JSON="$GOOGLE_SERVICES_JSON_DEV"
+          fi
+          unset GOOGLE_SERVICES_JSON_DEV
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
             want="$(node scripts/happa-config.js get projectId)"
@@ -281,6 +348,7 @@ jobs:
           EXPECTED_CERT_SHA256: ${{ vars.HAPPA_CERT_SHA256 }}
           VERSION_CODE: ${{ steps.tag.outputs.version_code }}
           VERSION: ${{ steps.mode.outputs.version }}
+          DEV: ${{ steps.mode.outputs.dev }}
         run: |
           apk=android/app/build/outputs/apk/release/app-release.apk
           if [[ ! -f "$apk" ]]; then
@@ -327,13 +395,28 @@ jobs:
             exit 1
           fi
           echo "Bundled web config: project $want_project."
+          if [[ "$DEV" == "true" ]]; then
+            want_label="$(node scripts/happa-config.js get appName)"
+            if ! "$build_tools/aapt2" dump badging "$apk" | grep -qx "application-label:'$want_label'"; then
+              echo "::error::The test app's launcher name is not '$want_label'."
+              exit 1
+            fi
+            echo "Test app: $pkg, named $want_label." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Stage release files
         if: steps.mode.outputs.release == 'true'
         env:
           VERSION: ${{ steps.mode.outputs.version }}
+          DEV: ${{ steps.mode.outputs.dev }}
         run: |
           name="$(node -p "require('./happa.config.json').apkName")"
+          if [[ "$DEV" == "true" ]]; then
+            cp android/app/build/outputs/apk/release/app-release.apk "dist/$name.apk"
+            echo "$name" > dist/apk-name.txt
+            (cd dist && sha256sum ./*.apk)
+            exit 0
+          fi
           cp android/app/build/outputs/apk/release/app-release.apk "dist/$name.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "dist/$name-v$VERSION.apk"
           # The APK was happa.apk up to rc14: keep that name too, for old links, bookmarks and old apps
@@ -471,6 +554,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        if: needs.build.outputs.dev != 'true'
         with:
           ref: refs/tags/${{ needs.build.outputs.tag }}
           sparse-checkout: scripts/android-version-code.js
@@ -489,8 +573,27 @@ jobs:
           TAG: ${{ needs.build.outputs.tag }}
           VERSION: ${{ needs.build.outputs.version }}
           VERSION_CODE: ${{ needs.build.outputs.version_code }}
+          DEV: ${{ needs.build.outputs.dev }}
+          SHA: ${{ needs.build.outputs.sha }}
         run: |
           name="$(cat dist/apk-name.txt)"
+          if [[ "$DEV" == "true" ]]; then
+            # A pre-release, never latest: releases/latest (update banner, /download) stays on the shop's APK.
+            before="$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)"
+            if gh release view "$TAG" > /dev/null 2>&1; then
+              gh release upload "$TAG" "dist/$name.apk" --clobber
+              gh release edit "$TAG" --notes-file dist/release-notes.md --prerelease --latest=false
+            else
+              gh release create "$TAG" "dist/$name.apk" --target "$SHA" --title "$name $VERSION" --notes-file dist/release-notes.md --prerelease --latest=false
+            fi
+            after="$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)"
+            if [[ "$after" != "$before" || "$after" == "$TAG" ]]; then
+              echo "::error::The latest release moved from $before to $after."
+              exit 1
+            fi
+            echo "Published pre-release: https://github.com/$GH_REPO/releases/tag/$TAG (latest stays $after)" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           title="$name v$VERSION"
           files=("dist/$name.apk" "dist/$name-v$VERSION.apk")
           [[ ! -f dist/happa.apk || "$name" == "happa" ]] || files+=("dist/happa.apk")

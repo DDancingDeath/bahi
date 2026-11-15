@@ -16,6 +16,11 @@ release, v1.0.0, also follows [happa-go-live.md](happa-go-live.md)):
 4. All good: tag `v<x.y.z>` on the same commit, after shop hours (section 8).
 5. Section 6 (blocking old versions) only later, once every phone has the new APK.
 
+To try a build first without touching the shop, use the **Bahi Dev** test app (README,
+"Test app"): Actions → Android release → Run workflow with `target` = `bahi-happa-dev`.
+It publishes a pre-release `dev-YYYYMMDD-N` with `bahi-dev.apk` (project `bahi-happa-dev`,
+package `com.happa.dev`) that installs next to Bahi and is never offered to phones.
+
 ## 1. Before you start
 
 - [ ] `main` is green: *CI* (lint, Jest, rules tests) and *Playwright E2E (emulators)*.
