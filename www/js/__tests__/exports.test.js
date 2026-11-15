@@ -94,7 +94,7 @@ describe('Exporter.run (#103)', () => {
         expect(await Exporter.run(job)).toBe(false);
         expect(produce).not.toHaveBeenCalled();
         expect(await Exporter.run(job)).toBe(true);
-        expect(modal.mock.calls[0][0]).toMatch(/customer and supplier names/);
+        expect(modal.mock.calls[0][0]).toMatch(/customer names and amounts/);
         expect(produce.mock.calls[0][0]).toMatchObject({ shop: 'Gupta Traders', user: 'Asha', from: '2026-10-01', to: '2026-11-01' });
         expect(note.mock.calls.map(c => c[1].exportStatus)).toEqual(['started', 'done']);
         expect(note.mock.calls[0][1]).toMatchObject({ exportKind: 'party', format: 'print', from: '2026-10-01', to: '2026-11-01', rows: 3 });
