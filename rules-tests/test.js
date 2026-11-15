@@ -853,6 +853,19 @@ function defineSuite(prefix) {
         await assertSucceeds(app('legacyOwner').set({ businessName: 'Owner set' }, { merge: true }));
     });
 
+    t('settings/app.upiId (U-62): empty or name@handle, a string of at most 60; an old bad one does not block other saves', async () => {
+        const app = () => as('legacyOwner').collection(`${prefix}settings`).doc('app');
+        await assertSucceeds(app().set({ upiId: 'ram.traders-1@okaxis' }, { merge: true }));
+        await assertSucceeds(app().set({ upiId: '' }, { merge: true }));
+        await assertFails(app().set({ upiId: 'ram traders' }, { merge: true }));
+        await assertFails(app().set({ upiId: 'ram@ok.axis' }, { merge: true }));
+        await assertFails(app().set({ upiId: '<b>@x' }, { merge: true }));
+        await assertFails(app().set({ upiId: `${'a'.repeat(55)}@okaxis` }, { merge: true }));
+        await assertFails(app().set({ upiId: 42 }, { merge: true }));
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(`${prefix}settings`).doc('app').set({ upiId: 'old bad' }, { merge: true }));
+        await assertSucceeds(app().set({ businessName: 'Ram Traders' }, { merge: true }));
+    });
+
     // ---- Printed bill shared by every phone (#107): settings/app.receipt ----
 
     t('settings/app section stamps: <x>UpdatedAt an int, <x>UpdatedBy a string of at most 128; the shapes every app writes pass', async () => {

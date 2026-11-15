@@ -400,6 +400,7 @@ export default {
     'msg.settings.appearance_set': "दिखावट: {name}",
     'msg.settings.theme_set': "थीम: {name}",
     'msg.settings.theme_reset_done': "थीम और रूप डिफ़ॉल्ट पर लौट आए",
+    'msg.settings.bad_upi': "यह यूपीआई आईडी सही नहीं है। इसमें @ के बाद बैंक का नाम लिखें।",
     'msg.settings.receipt_logo_failed': "यह तस्वीर लोगो के लिए इस्तेमाल नहीं हो सकी।",
     'msg.settings.receipt_already_shared': "छपे बिल के विकल्प पहले से सभी के लिए सेव थे; अब यह फ़ोन भी वही इस्तेमाल करता है।",
     'msg.settings.receipt_share_offer': "छपे बिल के विकल्प अभी सभी के लिए सेव नहीं हुए हैं। क्या इस फ़ोन की नीचे की लाइन, क्यूआर कोड, बिल की भाषा, छपाई का गहरापन और लोगो सभी फ़ोन पर लगाएँ?",

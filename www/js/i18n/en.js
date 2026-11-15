@@ -400,6 +400,7 @@ export default {
     'msg.settings.appearance_set': "Appearance: {name}",
     'msg.settings.theme_set': "Theme: {name}",
     'msg.settings.theme_reset_done': "Theme and appearance are back to the default",
+    'msg.settings.bad_upi': "This UPI ID is not right. Type it like shopname@okaxis.",
     'msg.settings.receipt_logo_failed': "Could not use this picture as the logo.",
     'msg.settings.receipt_already_shared': "Printed-bill choices were already saved for everyone; this phone now uses them.",
     'msg.settings.receipt_share_offer': "No printed-bill choices are saved for everyone yet. Use this phone's bottom line, QR code, bill language, print darkness and logo on every phone?",

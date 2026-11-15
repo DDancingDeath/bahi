@@ -650,8 +650,10 @@ service cloud.firestore {
     function settingsStampsOk(docId) {
       let d = request.resource.data;
       let keys = resource == null ? d.keys() : d.diff(resource.data).affectedKeys();
+      let u = d.get('upiId', '');
       return docId != 'app'
-        || (stampAtOk(d, keys, 'labourUpdatedAt') && stampByOk(d, keys, 'labourUpdatedBy')
+        || ((!('upiId' in keys) || (u is string && u.size() <= 60 && u.matches('^([A-Za-z0-9._-]{2,}@[A-Za-z]{2,})?$')))
+            && stampAtOk(d, keys, 'labourUpdatedAt') && stampByOk(d, keys, 'labourUpdatedBy')
             && stampAtOk(d, keys, 'checksUpdatedAt') && stampByOk(d, keys, 'checksUpdatedBy')
             && stampAtOk(d, keys, 'businessUpdatedAt') && stampByOk(d, keys, 'businessUpdatedBy')
             && stampAtOk(d, keys, 'receiptUpdatedAt') && stampByOk(d, keys, 'receiptUpdatedBy')
