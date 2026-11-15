@@ -28,6 +28,7 @@ import { OutstandingManager } from './outstanding.js';
 import { billParty, legAmount as dueLegAmount } from '../utils/due-payments.js';
 import { partyNameKey, sameParty } from '../utils/parties.js';
 import { t, tn, getLang } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { pickLang } from '../i18n/localize.js';
 import { can } from '../utils/role-access.js';
 import { tip } from '../tip/index.js';
@@ -718,7 +719,7 @@ export class CashManagementManager {
             UIManager.showToast(t('msg.cash.count_saved', { amount: formatAmount(amount, { exact: true }) }));
         } catch (error) {
             console.error('Late count error:', error);
-            UIManager.showToast(t('msg.cash.failed_save_count', { message: error.message }));
+            UIManager.showToast(t('msg.cash.failed_save_count', { message: friendlyError(error) }));
         }
     }
 
@@ -808,7 +809,7 @@ export class CashManagementManager {
             console.error('Sign in error:', error);
             UIManager.showToast(error?.code === CASH_NEEDS_INTERNET
                 ? t('msg.cash.open_needs_internet')
-                : t('msg.cash.failed_sign_in', { message: error.message }));
+                : t('msg.cash.failed_sign_in', { message: friendlyError(error) }));
         }
     }
 
@@ -900,7 +901,7 @@ export class CashManagementManager {
             clearTimeout(waiting);
             console.error('Sign out error:', error);
             run.completeAndFail('write_failed', { code: String(error?.code || 'unknown').slice(0, 40) });
-            UIManager.showToast(t('msg.cash.failed_sign_out', { message: error.message }));
+            UIManager.showToast(t('msg.cash.failed_sign_out', { message: friendlyError(error) }));
         }
     }
 
@@ -964,7 +965,7 @@ export class CashManagementManager {
                         .then(() => this.updateUI())
                         .catch(e => console.error('Cash refresh failed:', e));
                     this.renderHistory();
-                    UIManager.showToast(t('msg.cash.failed_add_deposit', { message: error.message }));
+                    UIManager.showToast(t('msg.cash.failed_add_deposit', { message: friendlyError(error) }));
                 });
                 await this.calculateTodayTransactions();
                 this.updateUI();
@@ -977,7 +978,7 @@ export class CashManagementManager {
                 document.getElementById('transactionNotes').value = '';
             } catch (error) {
                 console.error('Add deposit error:', error);
-                UIManager.showToast(t('msg.cash.failed_add_deposit', { message: error.message }));
+                UIManager.showToast(t('msg.cash.failed_add_deposit', { message: friendlyError(error) }));
             }
         } else {
             // Due payment (received or paid)
@@ -1046,7 +1047,7 @@ export class CashManagementManager {
                         .then(() => this.updateUI())
                         .catch(e => console.error('Cash refresh failed:', e));
                     this.renderHistory();
-                    UIManager.showToast(t('msg.cash.failed_record_payment', { message: error.message }));
+                    UIManager.showToast(t('msg.cash.failed_record_payment', { message: friendlyError(error) }));
                 });
                 await this.calculateTodayTransactions();
                 this.updateUI();
@@ -1061,7 +1062,7 @@ export class CashManagementManager {
                 this.populateDueBills();
             } catch (error) {
                 console.error('Record payment error:', error);
-                UIManager.showToast(t('msg.cash.failed_record_payment', { message: error.message }));
+                UIManager.showToast(t('msg.cash.failed_record_payment', { message: friendlyError(error) }));
             }
         }
     }

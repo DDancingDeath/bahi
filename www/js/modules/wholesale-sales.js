@@ -26,6 +26,7 @@ import { OutstandingManager } from './outstanding.js';
 import { partyNameKey } from '../utils/parties.js';
 import { partyDues } from '../utils/due-payments.js';
 import { getLang, t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
@@ -592,7 +593,7 @@ export class WholesaleSalesManager {
             return saleData;
         } catch (error) {
             console.error('Error completing sale:', error);
-            UIManager.showToast(saveFailedText(error, t('msg.common.error', { message: error.message })), 'error');
+            UIManager.showToast(saveFailedText(error, t('msg.common.error', { message: friendlyError(error) })), 'error');
         }
     }
 
@@ -620,7 +621,7 @@ export class WholesaleSalesManager {
             });
         } catch (error) {
             console.error('Print error:', error);
-            UIManager.showToast(t('msg.common.error_2', { value: error?.message || error }));
+            UIManager.showToast(t('msg.common.error_2', { value: friendlyError(error) }));
         }
     }
 

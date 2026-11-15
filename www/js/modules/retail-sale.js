@@ -19,6 +19,7 @@ import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
 import { t, tn } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { icon } from '../ui/icons.js';
 import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
@@ -674,7 +675,7 @@ const RetailSaleManager = {
                 await this.billingManager?.offerSavedBill?.(error.bill, 'retail', { items: saleItems });
                 return undefined;
             }
-            UIManager.showToast(saveFailedText(error, t('msg.retail.failed_complete_sale', { message: error.message })), 'error');
+            UIManager.showToast(saveFailedText(error, t('msg.retail.failed_complete_sale', { message: friendlyError(error) })), 'error');
             console.error('Complete sale error:', error);
             throw error;
         }
@@ -827,7 +828,7 @@ const RetailSaleManager = {
             });
         } catch (error) {
             console.error('Print sale error:', error);
-            UIManager.showToast(saveFailedText(error, t('msg.common.error_2', { value: error?.message || error })), 'error');
+            UIManager.showToast(saveFailedText(error, t('msg.common.error_2', { value: friendlyError(error) })), 'error');
         }
     },
 

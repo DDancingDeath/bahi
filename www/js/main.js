@@ -57,6 +57,7 @@ import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
+import { friendlyError } from './utils/friendly-error.js';
 
 // #59: only the app language's catalogue is loaded before the first screen (DOMContentLoaded waits for it)
 const langReady = loadCatalogue(getLang()).catch(e => console.error('Language catalogue not loaded:', e));
@@ -737,7 +738,7 @@ async function initializeUserData() {
         console.error('Error initializing app:', error);
         appStart.complete({ loadFailed: true });
         UIManager.hideLoading();
-        UIManager.showToast(t('msg.app.failed_load_data', { message: error.message }));
+        UIManager.showToast(t('msg.app.failed_load_data', { message: friendlyError(error) }));
     }
 }
 

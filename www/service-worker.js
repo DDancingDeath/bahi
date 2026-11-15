@@ -213,6 +213,7 @@ const STATIC_ASSETS = [
     '/js/utils/render-memo.js',
     '/js/utils/startup-timings.js',
     '/js/utils/storage-full.js',
+    '/js/utils/friendly-error.js',
     '/js/utils/state.js',
     '/js/utils/security-flags.js',
     '/js/services/security-monitor.js',

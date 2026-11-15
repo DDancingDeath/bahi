@@ -22,6 +22,7 @@ import { TIME_MS, AUTO_SAVE_DELAY } from '../utils/constants.js';
 import { PurchaseManager } from './purchase.js';
 import { RetailSaleManager } from './retail-sale.js';
 import { t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { emptyState } from '../ui/components.js';
 import { refusedForClock } from '../utils/clock-skew.js';
 import { isStorageFullError, saveFailedText, STORAGE_FULL_KEY, SAVED_ON_PHONE_KEY } from '../utils/storage-full.js';
@@ -2008,7 +2009,7 @@ const BillingManager = {
                 UIManager.showToast(t(await refusedForClock(error) ? 'msg.common.phone_clock_wrong_save' : 'msg.billing.edit_refused'), 'error');
                 return undefined;
             }
-            UIManager.showToast(t('msg.billing.failed_update_bill', { message: error.message }));
+            UIManager.showToast(t('msg.billing.failed_update_bill', { message: friendlyError(error) }));
             throw error;
         }
     },
