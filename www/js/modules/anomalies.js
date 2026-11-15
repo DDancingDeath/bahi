@@ -746,10 +746,11 @@ export const AnomaliesManager = {
         const cur = sel.value;
         sel.dataset.filled = '1';
         // Types in a few plain groups (U-74)
-        const groups = new Map(TYPE_GROUPS.map(g => [g, []]));
-        Object.entries(ANOMALY_TYPES).forEach(([id, label]) => groups.get(typeGroup(id)).push(`<option value="${esc(id)}">${loc(label)}</option>`));
-        sel.innerHTML = `<option value="all">${esc(t('ui.anom.all_types'))}</option>`
-            + [...groups].filter(([, opts]) => opts.length).map(([g, opts]) => `<optgroup label="${esc(t(`ui.anom.group_${g}`))}">${opts.join('')}</optgroup>`).join('');
+        const types = Object.entries(ANOMALY_TYPES);
+        sel.innerHTML = `<option value="all">${esc(t('ui.anom.all_types'))}</option>` + TYPE_GROUPS.map(g => {
+            const inGroup = types.filter(([id]) => typeGroup(id) === g);
+            return inGroup.length ? `<optgroup label="${esc(t(`ui.anom.group_${g}`))}">${inGroup.map(([id, label]) => `<option value="${esc(id)}">${loc(label)}</option>`).join('')}</optgroup>` : '';
+        }).join('');
         if (cur) sel.value = cur;
     },
 
