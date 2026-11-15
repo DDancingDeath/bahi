@@ -134,7 +134,8 @@
             </div>
             <div id="moneyLinkedCard" hidden>
                 <h3 class="section-title" data-i18n="ui.money.linked_title">Worker pay and regular bills</h3>
-                <div class="panel">
+                <button type="button" class="btn btn-tonal btn-block" id="moneyLinkedLoad" hidden data-onclick="money.loadLinked()" data-i18n="ui.money.linked_load">Include worker pay and regular bills</button>
+                <div class="panel" id="moneyLinkedRows">
                     <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_workers">Worker pay</span><span class="row-meta" data-metric-ref="M22" id="moneyLinkedWorkersSplit"></span></span><span class="row-amt" data-metric="M22" id="moneyLinkedWorkers">—</span></div>
                     <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_bills">Regular bills paid</span><span class="row-meta" data-metric-ref="M23" id="moneyLinkedBillsSplit"></span></span><span class="row-amt" data-metric="M23" id="moneyLinkedBills">—</span></div>
                     <div class="row ins-total"><span class="row-main" data-i18n="ui.money.linked_total">Total</span><span class="row-amt" data-metric="M24" id="moneyLinkedTotal">—</span></div>

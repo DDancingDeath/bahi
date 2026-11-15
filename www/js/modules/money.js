@@ -54,7 +54,6 @@ const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
 const TM = { trueMinus: true };
 const SECTIONS = ['profit', 'cash', 'spending', 'worth'];
 const SESSION_TTL_MS = 10 * 60 * 1000;
-const LINKED_MAX_AGE_MS = 10 * 60 * 1000;
 const ACCOUNTS_KEY = 'financeCustomAccounts';
 const listIds = new WeakMap();
 let nextListId = 1;
@@ -473,22 +472,28 @@ export const MoneyManager = {
 
     /**
      * M22–M26 (U-22): worker pay and recurring-bill payments next to profit, spending and cash.
-     * Owner only (the rules let only the owner read workers and recurring bills).
+     * Owner only (the rules let only the owner read workers and recurring bills). Opening Money reads
+     * nothing more: the lists come from the Workers / Recurring bills pages on this phone, or one tap here.
      */
     renderLinked({ m, r }) {
-        const ids = ['moneyLinkedProfit', 'moneyLinkedCash', 'moneyLinkedCard'];
-        const hide = () => ids.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
-        if (AppState.userRole !== 'owner') { hide(); return; }
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
+        const owner = AppState.userRole === 'owner';
         const src = linkedSource();
-        if (!src.workers || !src.billItems || Date.now() - src.at > LINKED_MAX_AGE_MS) this.loadLinked();
-        if (!src.workers?.length && !src.billItems?.length) { hide(); return; }
+        const loaded = !!src.workers && !!src.billItems;
+        const has = loaded && (src.workers.length > 0 || src.billItems.length > 0);
+        show('moneyLinkedCard', owner && (!loaded || has));
+        show('moneyLinkedLoad', owner && !loaded);
+        show('moneyLinkedRows', owner && has);
+        if (!owner || !has) {
+            show('moneyLinkedProfit', false);
+            show('moneyLinkedCash', false);
+            return;
+        }
         const out = linkedOutflows(src.workers, src.billItems, r.from, r.to);
         const split = (o) => t('ui.money.cash_online', { cash: formatRupees(o.cash), online: formatRupees(o.online) });
-        const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
         const any = out.total.count > 0;
         show('moneyLinkedProfit', any && m.M6.total !== null);
         show('moneyLinkedCash', any);
-        show('moneyLinkedCard', true);
         this.html('moneyLinkedProfitTerm', moneyHtml(-out.total.total, TM));
         if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(afterLinked(m.M6.total, out), TM));
         this.html('moneyLinkedCashOut', moneyHtml(out.total.total, TM));
@@ -501,9 +506,9 @@ export const MoneyManager = {
         this.html('moneyLinkedTotal', moneyHtml(out.total.total, TM));
     },
 
-    /** Reads workers and recurring bills once (one read per document), then redraws. */
+    /** "Include worker pay and regular bills": reads workers and recurring bills (one read per document), then redraws. */
     loadLinked() {
-        if (this.linkedLoading) return;
+        if (this.linkedLoading || AppState.userRole !== 'owner') return;
         this.linkedLoading = (async () => {
             try {
                 const [w, b] = await Promise.all([import('../firebase/repos/workers.js'), import('../firebase/repos/recurring-bills.js')]);
@@ -513,8 +518,7 @@ export const MoneyManager = {
                 if (document.getElementById('money')?.classList.contains('active')) this.render();
             } catch (e) {
                 console.warn('Money: worker pay / recurring bills not loaded:', e?.code || e);
-                setLinkedSource('workers', linkedSource().workers || []);
-                setLinkedSource('billItems', linkedSource().billItems || []);
+                UIManager.showToast(t('msg.money.linked_failed'));
             } finally {
                 this.linkedLoading = null;
             }

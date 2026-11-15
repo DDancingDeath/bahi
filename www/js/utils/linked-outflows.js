@@ -66,9 +66,9 @@ export const afterLinked = (/** @type {number} */ value, /** @type {{total: Outf
  */
 const source = { workers: null, billItems: null, at: 0 };
 
-/** @param {'workers'|'billItems'} kind @param {Array<*>} list @param {number} [at] */
+/** @param {'workers'|'billItems'} kind @param {?Array<*>} list null = not loaded on this phone @param {number} [at] */
 export function setLinkedSource(kind, list, at = Date.now()) {
-    source[kind] = Array.isArray(list) ? list : [];
+    source[kind] = list === null ? null : (Array.isArray(list) ? list : []);
     source.at = at;
 }
 

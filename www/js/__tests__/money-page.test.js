@@ -979,6 +979,18 @@ describe('worker pay and regular bills on Money (M22–M26, U-22)', () => {
         MoneyManager.init('spending');
         ['moneyLinkedCard', 'moneyLinkedProfit', 'moneyLinkedCash'].forEach(id => expect(document.getElementById(id).hidden).toBe(true));
     });
+
+    test('owner, nothing loaded on this phone yet: opening Money reads nothing; one tap includes them', () => {
+        setLinkedSource('workers', null);
+        setLinkedSource('billItems', null);
+        const load = jest.spyOn(MoneyManager, 'loadLinked').mockImplementation(() => {});
+        MoneyManager.init('spending');
+        expect(load).not.toHaveBeenCalled();
+        expect(document.getElementById('moneyLinkedLoad').hidden).toBe(false);
+        expect(document.getElementById('moneyLinkedRows').hidden).toBe(true);
+        expect(document.getElementById('moneyLinkedProfit').hidden).toBe(true);
+        load.mockRestore();
+    });
 });
 
 describe('labour on Money › Spending (T-LAB-1, T-LAB-2 for the period)', () => {
