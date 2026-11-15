@@ -39,7 +39,7 @@ async function billWithFill(page) {
     await page.press('#newWeight', 'Enter');
     await page.evaluate(() => window.app.billing.addToBill());
     await expect(page.locator('#billTable tbody tr.bill-line')).toHaveCount(1);
-    await expect(page.locator('#cashCheckbox')).toHaveAccessibleName(/^(Fill|पूरा) \(\S/);
+    await expect(page.locator('#cashCheckbox')).toHaveAccessibleName(/^(Fill|सब यहाँ) \(\S/);
     await page.locator('#purchaseSection .pay-fill', { has: page.locator('#cashCheckbox') }).click();
     await expect(page.locator('#cashCheckbox')).toBeChecked();
     await expect(page.locator('#cashCheckbox')).toHaveAccessibleName(/^(Filled|भरा) \(\S/);

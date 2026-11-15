@@ -157,7 +157,7 @@ export class StockManager {
             const div = document.createElement("div");
             div.className = "row";
             div.dataset.stockItem = '';
-            const rateLine = txMoney('ui.stock.rate_per_kg', { rate: formatAmount(item.rate, 'rate') }, item.rate, 'rate');
+            const rateLine = txMoney('ui.stock.avg_cost_per_kg', { rate: formatAmount(item.rate, 'rate') }, item.rate, 'rate');
 
             if (item.isOrphan) {
                 // Orphan rows: highlight in red so the user can spot the

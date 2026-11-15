@@ -99,7 +99,7 @@ describe.each([
         expect($('loginMessage').classList.contains('error')).toBe(true);
         expect(toast).not.toHaveBeenCalled();
         expect(loginBtn().disabled).toBe(false);
-        expect(loginBtn().textContent).toBe(lang === 'hi' ? 'लॉगिन' : 'Login');
+        expect(loginBtn().textContent).toBe(lang === 'hi' ? 'लॉगिन' : 'Log in');
     });
 
     test('an error without a code still names it', async () => {
@@ -110,7 +110,7 @@ describe.each([
 });
 
 describe.each([
-    ['en', 'Your account is pending approval. Please wait for admin approval.', 'Your account has been rejected. Please contact admin.'],
+    ['en', 'Your account is waiting for the owner to approve it.', 'Your account was not approved. Please talk to the owner.'],
     ['hi', 'आपका खाता मंज़ूरी के लिए रुका है। मालिक की मंज़ूरी का इंतज़ार करें।', 'आपका खाता मंज़ूर नहीं हुआ। मालिक से बात करें।']
 ])('after sign-in (%s)', (lang, pending, rejected) => {
     beforeEach(() => setLang(lang, { store: null }));
@@ -138,7 +138,7 @@ describe('behaviour', () => {
         await first;
         expect(loginBtn().disabled).toBe(false);
         expect(loginBtn().hasAttribute('aria-busy')).toBe(false);
-        expect(loginBtn().textContent).toBe('Login');
+        expect(loginBtn().textContent).toBe('Log in');
     });
 
     test('editing a field clears the message', async () => {
@@ -192,7 +192,7 @@ describe('register card', () => {
     });
 
     test.each([
-        ['en', 'Registration successful! Please wait for admin approval.'],
+        ['en', 'Registered. Please wait for the owner to approve you.'],
         ['hi', 'रजिस्टर हो गया! मालिक की मंज़ूरी का इंतज़ार करें।']
     ])('(%s) success moves to the Login card with the result shown there', async (lang, text) => {
         setLang(lang, { store: null });

@@ -59,8 +59,8 @@ afterEach(() => {
 
 describe('login gate', () => {
     test.each([
-        ['pending', 'Your account is pending approval. Please wait for admin approval.'],
-        ['rejected', 'Your account has been rejected. Please contact admin.'],
+        ['pending', 'Your account is waiting for the owner to approve it.'],
+        ['rejected', 'Your account was not approved. Please talk to the owner.'],
         ['disabled', 'This account has been removed. Please contact the owner.']
     ])('%s user is signed out and kept on the login screen', async (status, message) => {
         fake.seed('users', [{ id: 'u1', name: 'A', email: 'a@x.com', role: 'staff', status }]);
@@ -135,7 +135,7 @@ describe('registration', () => {
         expect(profile).toMatchObject({ name: 'Ravi', email: 'a@x.com', role: 'staff', status: 'pending' });
         expect(Object.keys(profile).sort()).toEqual(['createdAt', 'email', 'name', 'role', 'status']);
         expect(auth.signOut).toHaveBeenCalled();
-        expect(inline('login')).toBe('Registration successful! Please wait for admin approval.');
+        expect(inline('login')).toBe('Registered. Please wait for the owner to approve you.');
     });
 
     test('never overwrites an existing (possibly approved) profile', async () => {

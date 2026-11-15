@@ -7,7 +7,7 @@
             </div>
             
             <div class="tabs auth-switch" role="tablist">
-                <button type="button" class="on" role="tab" aria-selected="true" aria-controls="loginForm" data-auth-tab="login" data-onclick="auth.showTab('login'); return false;" data-i18n="ui.auth.login">Login</button>
+                <button type="button" class="on" role="tab" aria-selected="true" aria-controls="loginForm" data-auth-tab="login" data-onclick="auth.showTab('login'); return false;" data-i18n="ui.auth.login">Log in</button>
                 <button type="button" role="tab" aria-selected="false" aria-controls="registerForm" data-auth-tab="register" data-onclick="auth.showTab('register'); return false;" data-i18n="ui.auth.register">Register</button>
             </div>
             
@@ -27,7 +27,7 @@
                         </div>
                     </div>
                     <div id="loginMessage" class="notice auth-message" role="alert" aria-live="assertive" aria-atomic="true"></div>
-                    <button type="submit" class="btn btn-primary btn-block auth-submit" data-i18n="ui.auth.login">Login</button>
+                    <button type="submit" class="btn btn-primary btn-block auth-submit" data-i18n="ui.auth.login">Log in</button>
                 </form>
                 <button type="button" class="btn btn-ghost btn-block auth-aside" id="resetToggle" aria-expanded="false" aria-controls="resetForm" data-onclick="auth.forgotPassword(); return false;" data-i18n="ui.auth.forgot_password">Forgot password?</button>
                 <form id="resetForm" class="auth-reset-form" hidden data-onsubmit="auth.sendPasswordReset(); return false;">
@@ -68,7 +68,7 @@
                     <div id="registerMessage" class="notice auth-message" role="alert" aria-live="assertive" aria-atomic="true"></div>
                     <button type="submit" class="btn btn-primary btn-block auth-submit" data-i18n="ui.auth.create_account">Create account</button>
                 </form>
-                <p class="auth-link"><span data-i18n="ui.auth.already_have_an_account">Already have an account?</span> <a href="#" data-onclick="auth.showTab('login'); return false;" data-i18n="ui.auth.login">Login</a></p>
+                <p class="auth-link"><span data-i18n="ui.auth.already_have_an_account">Already have an account?</span> <a href="#" data-onclick="auth.showTab('login'); return false;" data-i18n="ui.auth.login">Log in</a></p>
             </div>
 
             <!-- Google sign-in (docs/google-sign-in.md): shown only when happa.config.json switches it on -->

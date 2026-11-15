@@ -216,7 +216,8 @@ In order:
   languages (`t(key, p, 'en')`, `{ en, hi }` records) that can run before that awaits
   `loadAllCatalogues()` (the anomaly flags, receipts and Diagnostics do). Add every new key to
   both catalogues — `i18n-catalogue.test.js` fails on missing keys or on
-  "staff"/"स्टाफ". Escape `t()` output that goes into `innerHTML`. Show one
+  "staff"/"स्टाफ", and on a Latin word in a Hindi value outside its allow-list. Use the
+  words in `docs/glossary.md` (one word per idea in both languages). Escape `t()` output that goes into `innerHTML`. Show one
   language at a time, never "English / हिंदी" together:
   `single-language-guard.test.js` (scanner: `node scripts/mixed-language-scan.js`)
   fails on any literal, template or template text mixing Latin and Devanagari

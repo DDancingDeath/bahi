@@ -227,7 +227,7 @@ const DiagnosticsManager = {
      */
     readStatsHtml() {
         const s = getQuotaStatus();
-        const rows = s.top.map(t => `<tr><td>${Helpers.escapeHtml(t.source)}</td><td class="num">${Helpers.escapeHtml(String(t.reads))}</td></tr>`).join('');
+        const rows = s.top.map(t => `<tr><td class="diag-code" lang="zxx" translate="no">${Helpers.escapeHtml(t.source)}</td><td class="num">${Helpers.escapeHtml(String(t.reads))}</td></tr>`).join('');
         const quota = s.quota.count
             ? `<p class="notice warn">${icon('alert', 'i-sm')}<span class="grow">${tx('ui.diag.quota_hit', { count: s.quota.count, at: formatDateTimeIN(new Date(s.quota.firstAt)), source: s.quota.lastSource })}</span></p>`
             : '';
@@ -250,8 +250,8 @@ const DiagnosticsManager = {
         if (!marks.length) return '';
         const rows = startupRows(marks).map((r, i) => {
             const detail = marks[i].detail ? JSON.stringify(marks[i].detail) : '';
-            return `<tr><td>${Helpers.escapeHtml(r.name)}</td><td class="num">${Helpers.escapeHtml(r.at)}</td>` +
-                `<td class="num">+${Helpers.escapeHtml(r.delta)}</td><td class="diag-code">${Helpers.escapeHtml(detail)}</td></tr>`;
+            return `<tr><td class="diag-code" lang="zxx" translate="no">${Helpers.escapeHtml(r.name)}</td><td class="num">${Helpers.escapeHtml(r.at)}</td>` +
+                `<td class="num">+${Helpers.escapeHtml(r.delta)}</td><td class="diag-code" lang="zxx" translate="no">${Helpers.escapeHtml(detail)}</td></tr>`;
         }).join('');
         const listeners = Object.entries(info.listeners || {}).map(([label, l]) =>
             `${label}: ${l.first} (${l.docs} docs) → ${l.readyBy || '?'}`).join('; ');
@@ -262,7 +262,7 @@ const DiagnosticsManager = {
                     <thead><tr><th>${tx('ui.diag.col_step')}</th><th class="num">${tx('ui.diag.col_at')}</th><th class="num">${tx('ui.diag.col_step_time')}</th><th>${tx('ui.diag.col_details')}</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table></div>
-                ${listeners ? `<p class="diag-hint diag-code">${tx('ui.diag.listeners', { list: listeners })}</p>` : ''}
+                ${listeners ? `<p class="diag-hint">${tx('ui.diag.listeners', { list: '' })}<span class="diag-code" lang="zxx" translate="no">${Helpers.escapeHtml(listeners)}</span></p>` : ''}
             </details>
         `;
     },

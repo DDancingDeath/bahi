@@ -155,7 +155,7 @@ describe('web popup', () => {
         expect(auth.signOut).toHaveBeenCalled();
         expect(window.initializeApp).not.toHaveBeenCalled();
         expect(AppState.currentUser).toBeNull();
-        expect(text('googleMessage')).toBe('Registration successful! Please wait for admin approval.');
+        expect(text('googleMessage')).toBe('Registered. Please wait for the owner to approve you.');
         expect(AuthManager.authFlowInProgress).toBe(false);
     });
 
@@ -171,8 +171,8 @@ describe('web popup', () => {
     });
 
     test.each([
-        ['pending', 'Your account is pending approval. Please wait for admin approval.'],
-        ['rejected', 'Your account has been rejected. Please contact admin.'],
+        ['pending', 'Your account is waiting for the owner to approve it.'],
+        ['rejected', 'Your account was not approved. Please talk to the owner.'],
         ['disabled', 'This account has been removed. Please contact the owner.']
     ])('a %s profile is signed straight back out', async (status, message) => {
         fake.seed('users', [{ id: 'g1', name: 'Asha', email: 'asha@gmail.com', role: 'owner', status }]);
@@ -319,7 +319,7 @@ describe('an email that already has a password: link after one password sign-in'
         expect(passwordUser.linkWithCredential).toHaveBeenCalled();
         expect(auth.signOut).toHaveBeenCalled();
         expect(window.initializeApp).not.toHaveBeenCalled();
-        expect(text('googleMessage')).toBe('Your account is pending approval. Please wait for admin approval.');
+        expect(text('googleMessage')).toBe('Your account is waiting for the owner to approve it.');
     });
 
     test('Google already linked to another account: signed out, told so', async () => {

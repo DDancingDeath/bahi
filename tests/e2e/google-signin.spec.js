@@ -49,7 +49,7 @@ test('a new Google account waits for the owner (pending profile), then gets in o
     await expect(page.locator('#googleSignInBtn')).toHaveText(/Continue with Google/);
 
     await googlePopup(page, { email, name: 'New Google' });
-    await expect(page.locator('#googleMessage')).toHaveText('Registration successful! Please wait for admin approval.');
+    await expect(page.locator('#googleMessage')).toHaveText('Registered. Please wait for the owner to approve you.');
     await expect(page.locator('#authScreen')).toBeVisible();
     const pending = await profileOf(email);
     expect(pending).toMatchObject({ name: 'New Google', email, role: 'staff', status: 'pending' });
@@ -57,7 +57,7 @@ test('a new Google account waits for the owner (pending profile), then gets in o
 
     // Still pending: signed straight back out
     await googlePopup(page, { email });
-    await expect(page.locator('#googleMessage')).toHaveText('Your account is pending approval. Please wait for admin approval.');
+    await expect(page.locator('#googleMessage')).toHaveText('Your account is waiting for the owner to approve it.');
 
     // The owner approves (Admin › Users does this write)
     const { _id: pendingUid, ...pendingProfile } = pending;
