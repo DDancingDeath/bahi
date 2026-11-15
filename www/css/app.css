@@ -7065,6 +7065,17 @@ tr.bill-check-line .bill-check-msg {
   white-space: nowrap;
 }
 
+/* Phone (U-70): bill no., party and amount fit the screen; date, items and payment are in the list view and the bill */
+@media (max-width: 599.98px) {
+  [data-bill-table] :is(.bill-table__date, .bill-table__items, .bill-table__chips) {
+    display: none;
+  }
+
+  [data-bill-table] .bill-table__party {
+    overflow-wrap: anywhere;
+  }
+}
+
 .bill-table__by {
   font-size: var(--fs-sm);
   color: var(--ink-2);
