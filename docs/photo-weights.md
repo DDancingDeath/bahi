@@ -57,10 +57,14 @@ free tier's own limit is the cap.
 - **Photos are never stored:** not in Firestore, Storage or on the phone. The full photo is
   dropped as soon as it is shrunk; the small one lives in memory while the sheet is open.
   Only the weights the user adds end up in the bill, as when typed.
-- **App Check:** used only when `happa.config.json` has `appCheck.siteKey` (the same
-  reCAPTCHA v3 key as `js/services/app-check.js`); without one the call goes without a token.
-  `PHOTO_APP_CHECK_REQUIRED` in `photo-weights-ai.js` makes it required (then no token =
-  "not working right now").
+- **App Check (required):** AI Logic enforces App Check (since 2 Nov 2026), so
+  `PHOTO_APP_CHECK_REQUIRED` is true: without `appCheck.siteKey` in `happa.config.json`, or when
+  reCAPTCHA can't start, Gemini is never called and the photo button says "not working right
+  now"; nothing else in the app changes. With a key the photo app gets App Check with
+  `ReCaptchaEnterpriseProvider` (the same reCAPTCHA Enterprise key as `js/services/app-check.js`,
+  which loads `enterprise.js` first) and token auto-refresh, and `getAI(…, { useLimitedUseAppCheckTokens: true })`
+  sends a limited-use token with every call. Today only bahi-happa-dev has a key (docs/security.md,
+  "App Check"); myhappa and bahi-happa (and so the APK) can't read photos until theirs is set.
 - **Headers (web only; the APK gets none):** `connect-src` has
   `https://firebasevertexai.googleapis.com`. `Permissions-Policy` is `camera=(self)` on the
   app site (frames, the tenant page and the redirect sites keep `camera=()`). A file input
@@ -83,13 +87,12 @@ follows whichever project the build's Firebase config points at. (The earlier pa
    Get started › **Gemini Developer API**. It enables the Firebase AI Logic API
    (`firebasevertexai.googleapis.com`) and the Gemini API, and allows AI Logic on the web
    API key. Do **not** create or add a Gemini API key to the app.
-2. **App Check (recommended; can come later).** Firebase console › Security › App Check:
-   register the web app with **reCAPTCHA v3** (the same provider the app already uses in
-   monitor mode, #89) for the app's domain, and put the site key in `happa.config.json`
-   (`appCheck.siteKey`) for that build. Then in App Check › APIs, **Firebase AI Logic**:
-   leave it unenforced until the APK works too (reCAPTCHA can't attest the APK's
-   `https://localhost`; enforcing would block the Android app until a native Play Integrity
-   provider is added). Never enforce Firestore here (#89 is separate).
+2. **App Check (required: AI Logic enforces it).** Google Cloud console › the project ›
+   Security › reCAPTCHA › create a **score** website key (domains: the app's `*.web.app` site and
+   `localhost`, which the APK's WebView uses). Firebase console › Security › App Check › the web app ›
+   **reCAPTCHA Enterprise** › that site key (v3 is no longer accepted). Put the site key in that
+   build's config (`appCheck.siteKey`; for the APK, `config/targets/<target>.json`). Never enforce
+   Firestore here (#89 is separate). Done on bahi-happa-dev (15 Nov 2026); bahi-happa needs its own key.
 3. **Check the free limit.** AI Studio (signed in as the owner) › the project › rate limits:
    note the requests per day for `gemini-3.5-flash-lite`.
 4. **Then in the app** (as owner): Settings › Billing tools › Photo of weights › on. Test a few
@@ -103,4 +106,4 @@ follows whichever project the build's Firebase config points at. (The earlier pa
 - A test on real phones: the camera opening in the Android app and in Chrome, rotation,
   the free limit message.
 - Retail and Wholesale (add them to `PHOTO_FORMS` and `TARGETS`).
-- App Check for the Android app (native Play Integrity provider) before enforcing it.
+- Optional: a native Play Integrity provider for the APK (it uses the web reCAPTCHA key on `localhost` today).

@@ -80,7 +80,7 @@ runs fail instead of deploying. After rebasing on `main` they preview to happa.
 | `appName` / `appNameHi` | ✅ `happa`: all lowercase wherever it is shown, the same in English and Hindi |
 | `apkName` | ✅ `happa` → `happa.apk` / `happa-vX.Y.Z.apk`, release "happa vX.Y.Z" |
 | `ownerConfirmed` | ✅ `true` |
-| `appCheck.siteKey` | empty = App Check off. A reCAPTCHA v3 site key turns it on in monitor mode ([security.md](security.md), "App Check") |
+| `appCheck.siteKey` | empty = App Check off. A reCAPTCHA Enterprise (score) site key from the same project turns it on in monitor mode (AI Logic enforces it) ([security.md](security.md), "App Check") |
 
 All values are filled and `npm run check:happa-config` passes. The commands below are
 only needed if a value changes again. `apply` also moves `MainActivity.java` to the
