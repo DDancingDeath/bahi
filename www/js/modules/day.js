@@ -19,7 +19,8 @@ import { drillReminder } from '../utils/backup-verify.js';
 import { billsForKind } from '../utils/party-due.js';
 import { rentalsRole } from '../ui/business-switcher.js';
 import { formatRate, moneyText } from '../utils/money.js';
-import { ManualReminders } from '../ui/manual-reminders.js';
+import { ManualReminders, TODAY_REMINDERS_KEY } from '../ui/manual-reminders.js';
+import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
 import { icon } from '../ui/icons.js';
 import { payDueReminder, billsDueReminder } from '../utils/pay-reminder.js';
 
@@ -301,12 +302,23 @@ export const DayManager = {
             + (r.more ? `<div class="today-reminder-more">${e(t('ui.today.reminder_more', { count: r.more }))}</div>` : '')
             + `<button type="button" class="btn btn-sm" data-onclick="${open}">${e(t('ui.today.reminder_open_dues'))}</button></div></div>`;
         const parts = [];
+        // The closed card's one line: a short chip per reminder; `late` marks something overdue
+        const chips = [];
+        let late = false;
         // Manual reminders (#86) first: what someone asked to be done today
         const manual = ManualReminders.html(toLocalISODate(now));
-        if (manual) parts.push(manual);
+        if (manual) {
+            parts.push(manual);
+            const m = ManualReminders.summary(toLocalISODate(now));
+            if (m.count) chips.push(t('ui.today.rem_chip_todo', { count: m.count }));
+            late = late || m.late;
+        }
         const add = (kind, bills, open) => {
             const r = overdueReminder(bills, { today: now });
-            if (r.parties.length) parts.push(block(kind, r, open));
+            if (!r.parties.length) return;
+            parts.push(block(kind, r, open));
+            chips.push(t(`ui.today.rem_chip_${kind}`, { amount: moneyText(r.total) }));
+            late = late || r.overdue > 0;
         };
         // Outstanding lists retail customers and suppliers; wholesale dues live on the Wholesale page.
         if (canDue) add('collect', AppState.retailSalesHistory || [], "day.openDues('retail')");
@@ -316,6 +328,8 @@ export const DayManager = {
             let rent = null;
             try { rent = rentReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { rent = null; }
             if (rent) {
+                chips.push(t('ui.today.rem_chip_rent', { amount: moneyText(rent.due) }));
+                late = late || rent.late > 0;
                 parts.push(`${reminderOpen('rent')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_rent'))}</strong> ${e(moneyText(rent.due))}</div>`
                     + `<div>${e(t('ui.today.reminder_rent_units', { count: rent.dueUnits, late: rent.late }))}</div>`
                     + `<div class="today-reminder-more">${e(t('ui.today.reminder_as_of', { time: formatDayTime(rent.at, { lang: getLang() }) }))}</div>`
@@ -325,6 +339,7 @@ export const DayManager = {
             let leases = null;
             try { leases = leaseReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { leases = null; }
             if (leases) {
+                chips.push(t('ui.today.rem_chip_leases', { count: leases.items.length + (leases.more || 0) }));
                 parts.push(`${reminderOpen('leases')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_leases'))}</strong></div>`
                     + `<ul>${leases.items.map(x => `<li class="today-reminder-party"><span>${e([x.place, x.tenant].filter(Boolean).join(' · '))}</span> <span class="today-reminder-days">${e(leaseReminderText(x))}</span></li>`).join('')}</ul>`
                     + (leases.more ? `<div class="today-reminder-more">${e(t('ui.today.reminder_more', { count: leases.more }))}</div>` : '')
@@ -338,6 +353,7 @@ export const DayManager = {
             let pay = null;
             try { pay = payDueReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { pay = null; }
             if (pay) {
+                chips.push(t('ui.today.rem_chip_salaries', { amount: moneyText(pay.due) }));
                 parts.push(`${reminderOpen('salaries')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_salaries'))}</strong> ${e(moneyText(pay.due))}</div>`
                     + `<div>${e(tn('ui.today.reminder_salaries_workers', pay.count))}</div>`
                     + `<div class="today-reminder-more">${e(t('ui.today.reminder_salaries_as_of', { time: formatDayTime(pay.at, { lang: getLang() }) }))}</div>`
@@ -347,6 +363,7 @@ export const DayManager = {
             let bills = null;
             try { bills = billsDueReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now)); } catch (_) { bills = null; }
             if (bills) {
+                chips.push(t('ui.today.rem_chip_bills', { count: bills.count }));
                 parts.push(`${reminderOpen('bills')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_bills', { count: bills.count, amount: moneyText(bills.due) }))}</strong></div>`
                     + (bills.nobill ? `<div>${e(t('ui.today.reminder_bills_nobill', { count: bills.nobill }))}</div>` : '')
                     + `<div class="today-reminder-more">${e(t('ui.today.reminder_bills_as_of', { time: formatDayTime(bills.at, { lang: getLang() }) }))}</div>`
@@ -355,13 +372,33 @@ export const DayManager = {
             let drill = null;
             try { drill = drillReminder(localStorage, AppState.currentUser?.uid || '', now.getTime()); } catch (_) { drill = null; }
             if (drill?.due) {
+                chips.push(t('ui.today.rem_chip_backup'));
                 parts.push(`${reminderOpen('backup')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_backup'))}</strong></div>`
                     + `<div>${e(drill.lastAt === null ? t('ui.today.reminder_backup_never') : t('ui.today.reminder_backup_days', { count: drill.days }))}</div>`
                     + `<button type="button" class="btn btn-sm" data-onclick="day.openBackupCheck()">${e(t('ui.today.reminder_open_backup'))}</button></div></div>`);
             }
         }
-        host.hidden = parts.length === 0;
-        host.innerHTML = parts.length ? `<h3 class="today-reminders-title section-title">${e(t('ui.today.reminders'))}</h3><div class="panel today-reminder-list">${parts.join('')}</div>` : '';
+        const manage = ManualReminders.canManage();
+        const addBtn = manage && !ManualReminders.formOpen
+            ? `<button type="button" class="btn btn-ghost btn-icon today-reminders-add" title="${e(t('ui.reminders.add_label'))}" aria-label="${e(t('ui.reminders.add_label'))}" data-onclick="day.reminderForm(true)">${icon('plus')}</button>`
+            : '';
+        if (!parts.length) {
+            // Nothing to remind: only the small link for those who add reminders
+            host.hidden = !manage;
+            host.innerHTML = manage ? `<button type="button" class="btn btn-ghost btn-sm today-reminders-link" data-onclick="day.reminderForm(true)">${e(t('ui.reminders.add'))}</button>` : '';
+            return;
+        }
+        const hadFocus = document.activeElement?.id === 'todayRemindersToggle';
+        host.hidden = false;
+        host.innerHTML = `<div class="panel today-reminder-list">${disclosureHtml({
+            key: TODAY_REMINDERS_KEY, id: 'todayReminders', lead: `<span class="lead-icon">${icon('list')}</span>`,
+            title: `<span class="today-reminders-title">${e(t('ui.today.reminders'))}</span>`,
+            summary: chips.map(c => `<span>${e(c)}</span>`).join('<span>·</span>'),
+            alert: late ? e(t('ui.today.rem_late')) : '',
+            tools: addBtn,
+            body: parts.join('')
+        })}</div>`;
+        refocusDisclosure('todayReminders', hadFocus);
         ManualReminders.restoreFocus();
     },
 

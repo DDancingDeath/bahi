@@ -30,6 +30,7 @@ import { SettingsManager } from './modules/settings.js';
 import { CashManagementManager } from './modules/cash-management.js';
 import { DayManager, loadAnomalies, loadedAnomalies } from './modules/day.js';
 import { ManualReminders } from './ui/manual-reminders.js';
+import { toggleDisclosure } from './ui/disclosure.js';
 import { RolesAccessManager } from './modules/roles-access.js';
 import { tip, configureTip, startTipReporting, tipDeviceId } from './tip/index.js';
 import { dayKeyOf } from './tip/tip.js';
@@ -66,7 +67,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108gg-billing-float';
+const BUILD_ID = '20261108gi-today-collapse';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1435,6 +1436,11 @@ window.app = {
         ...Object.fromEntries(['selectItem', 'setRange', 'setPeriod', 'setView', 'setWeeks', 'setCompareKind', 'setBudget',
             'startBackfill', 'continueBackfill', 'setTrafficMonth', 'setTrafficItem', 'setTrafficWeeks']
             .map(name => [name, (...args) => loadRateTrends().then(m => m[name](...args))]))
+    },
+
+    // Disclosure cards (ui/disclosure.js): Today's Reminders and Day report
+    disclosure: {
+        toggle: (key) => toggleDisclosure(key)
     },
 
     // Day (Today's Summary + Cash Management)

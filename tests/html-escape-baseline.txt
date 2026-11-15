@@ -3,6 +3,7 @@
 www/js/modules/admin.js: col.id
 www/js/modules/admin.js: t('ui.admin.type_word_to_confirm', { word: `<strong>${Helpers.escapeHtml(DELETE_CONFIRM_WORD)}</strong>` })
 www/js/modules/anomalies.js: colorOf(ty) ← TYPE_COLORS[Math.max(0, p.types.indexOf(type)) % TYPE_COLORS.length] {TYPE_COLORS = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed', '#db2777', '#0891b2', '#}
+www/js/modules/anomalies.js: disclosureHtml({ key: DAY_REPORT_KEY, id: 'dayReport', lead: `<span class="lead-icon${s.bySeverity.high ? ' neg' : ''}">${icon('flag')}</spa (sink)
 www/js/modules/anomalies.js: title
 www/js/modules/ask.js: a.answer (markup via this.answerHtml .page)
 www/js/modules/ask.js: a.page
@@ -15,6 +16,7 @@ www/js/modules/ask.js: this.answers (markup via map(a => `<div class="ask-answer
 www/js/modules/cash-management.js: SyncStatus.chipHtml(session.id)
 www/js/modules/cash-management.js: date ← (parseAnyBillDate(session.date) || new Date(NaN)).toLocaleDateString(displayLoca
 www/js/modules/day.js: REMINDER_ICONS[kind] ← REMINDER_ICONS = { collect: icon('arrIn'), collect_wholesale: icon('truck'), pay: icon('arrOut'),
+www/js/modules/day.js: disclosureHtml({ key: TODAY_REMINDERS_KEY, id: 'todayReminders', lead: `<span class="lead-icon">${icon('list')}</span>`, title: `<span class
 www/js/modules/day.js: item.count
 www/js/modules/day.js: itemsArray (markup via map(item => ` <div class="row day-item"> <div class="row-main"> <div class="row-title">${Helpers.escapeHtml(item.name)}</div> <div class="row-me) .count)
 www/js/modules/day.js: kind
@@ -22,7 +24,6 @@ www/js/modules/day.js: kind (markup via block)
 www/js/modules/day.js: kind (markup via reminderOpen)
 www/js/modules/day.js: open
 www/js/modules/day.js: open (markup via block)
-www/js/modules/day.js: parts.join('') ← ManualReminders.html(toLocalISODate(now))
 www/js/modules/day.js: rows (markup via map(({ type, bill, at, total }) => { const party = bill.customerName || bill.seller || bill.buyer || (type === 'retail' ? t('ui.today.walk_in') ))
 www/js/modules/day.js: rows (markup via map(({ type, bill, at, total }) => { const party = bill.customerName || bill.seller || bill.buyer || (type === 'retail' ? t('ui.today.walk_in') ))
 www/js/modules/day.js: s.dayBills ← s = todaySummary({ bills: { purchase: AppState.purchaseHistory, wholesale: AppState. (markup via this.renderDayBills)
@@ -410,6 +411,18 @@ www/js/ui/bill-row.js: st.s ← st = printStatusOf(bill)
 www/js/ui/bill-row.js: tag.cls ← tag = TYPE_TAGS[type]
 www/js/ui/bill-status.js: REASON_MAX
 www/js/ui/bill-status.js: onclick
+www/js/ui/disclosure.js: bodyId ← o.id
+www/js/ui/disclosure.js: bodyId ← o.id
+www/js/ui/disclosure.js: o.alert
+www/js/ui/disclosure.js: o.body
+www/js/ui/disclosure.js: o.id
+www/js/ui/disclosure.js: o.key
+www/js/ui/disclosure.js: o.key
+www/js/ui/disclosure.js: o.lead || '' ← o.lead (concatenated)
+www/js/ui/disclosure.js: o.summary
+www/js/ui/disclosure.js: o.title (concatenated)
+www/js/ui/disclosure.js: o.tools || '' ← o.tools (concatenated)
+www/js/ui/disclosure.js: open ← o.open
 www/js/ui/finance-breakdown-sheet.js: g (markup via opt)
 www/js/ui/finance-breakdown-sheet.js: groupOptions(b.rows) (markup via map(g => opt(g, `ui.finance.group_${g}`, this.state.group)))
 www/js/ui/finance-breakdown-sheet.js: value
