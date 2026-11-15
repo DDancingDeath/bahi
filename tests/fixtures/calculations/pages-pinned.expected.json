@@ -2424,17 +2424,41 @@
   },
   "statements.first": {
     "day": {
-      "title": "Day book · 1 Nov 2026",
-      "share": "Day book · 1 Nov 2026",
-      "text": "For today, see Today ›Day book · 1 Nov 2026TimeWhatDetailsAmountDueNothing in this period.",
-      "rows": 0,
-      "first": [],
-      "last": []
+      "title": "Day book · 31 Oct 2026",
+      "share": "Day book · 31 Oct 2026\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹288\nOld dues paid: ₹0",
+      "text": "Day book · 31 Oct 2026TimeWhatDetailsAmountDue1:42 pmDue receivedSita₹288Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹288Old dues paid₹0",
+      "rows": 1,
+      "first": [
+        [
+          "2026-10-31 13:42",
+          "Due received",
+          "",
+          "Sita",
+          "",
+          288,
+          288,
+          0,
+          0
+        ]
+      ],
+      "last": [
+        [
+          "2026-10-31 13:42",
+          "Due received",
+          "",
+          "Sita",
+          "",
+          288,
+          288,
+          0,
+          0
+        ]
+      ]
     },
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay before",
       "rows": 0,
       "first": [],
       "last": []
@@ -2522,17 +2546,41 @@
   },
   "statements.jan31": {
     "day": {
-      "title": "Day book · 31 Jan 2027",
-      "share": "Day book · 31 Jan 2027",
-      "text": "For today, see Today ›Day book · 31 Jan 2027TimeWhatDetailsAmountDueNothing in this period.",
-      "rows": 0,
-      "first": [],
-      "last": []
+      "title": "Day book · 30 Jan 2027",
+      "share": "Day book · 30 Jan 2027\nSales: ₹1,518\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
+      "text": "Day book · 30 Jan 2027TimeWhatDetailsAmountDue12:00 amRetail saleKamla Devi₹1,518₹444Sales (1)₹1,518Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "rows": 1,
+      "first": [
+        [
+          "2027-01-30 00:00",
+          "Retail sale",
+          "",
+          "Kamla Devi",
+          "",
+          1518,
+          1074,
+          0,
+          444
+        ]
+      ],
+      "last": [
+        [
+          "2027-01-30 00:00",
+          "Retail sale",
+          "",
+          "Kamla Devi",
+          "",
+          1518,
+          1074,
+          0,
+          444
+        ]
+      ]
     },
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay before",
       "rows": 0,
       "first": [],
       "last": []
@@ -2774,7 +2822,7 @@
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay before",
       "rows": 0,
       "first": [],
       "last": []
@@ -3092,7 +3140,7 @@
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay before",
       "rows": 0,
       "first": [],
       "last": []
@@ -3454,7 +3502,7 @@
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay before",
       "rows": 0,
       "first": [],
       "last": []

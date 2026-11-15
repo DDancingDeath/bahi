@@ -6444,6 +6444,45 @@ tr.bill-check-line .bill-check-msg {
   color: var(--negative);
 }
 
+/* History top on one row (U-73): date choice and search side by side, the "Date" label for screen readers only */
+.history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.history-controls > .history-date-filter {
+  flex: 1 1 calc(3 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls > .history-search {
+  flex: 2 1 calc(5 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls .history-date-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.history-search > .search-clear[hidden] {
+  display: none;
+}
+
+/* Table view needs a wide screen (U-70): phones keep the cards */
+@media (max-width: 599.98px) {
+  .history-table-toggle {
+    display: none;
+  }
+}
+
 /* ---- css/outstanding.css ---- */
 /* Outstanding (redesign 5.3, DIRECTION 3.6): Purchases | Sales, search, kind chips, the owed hero with its
    aging meter and legend, who to chase, party rows and the bill list (#46, #77, #125, #166). Tokens only. */
@@ -9571,6 +9610,10 @@ div.ins-wide,
   .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
   .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
 }
+
+/* Day book: ‹ day › with a date box for a jump (U-94) */
+.st-day-step { flex-wrap: wrap; }
+.st-day-pick { flex: 0 1 auto; width: auto; }
 
 /* ---- css/desktop.css ---- */
 /* ==================== DESKTOP LAYOUT (wide screens only) ====================

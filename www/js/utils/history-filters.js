@@ -10,7 +10,7 @@
 
 import { toJsDate, parseLocalDate, formatDate } from './dates.js';
 import { t } from '../i18n/index.js';
-import { billTotal, hasBillAmount, sumMoney } from './money.js';
+import { billTotal, hasBillAmount, sumMoney, outstandingDue } from './money.js';
 
 export const HISTORY_TYPES = ['purchase', 'sale'];
 export const HISTORY_PRESETS = ['all', 'today', 'yesterday', 'week', 'month', 'lastMonth', 'custom'];
@@ -242,7 +242,7 @@ export function filterHistoryBills(bills, { type = 'all', range = null, search =
 export function historyListTotal(bills) {
     const list = bills || [];
     const known = list.filter(b => hasBillAmount(b));
-    return { count: list.length, total: sumMoney(known, billTotal), unknown: list.length - known.length };
+    return { count: list.length, total: sumMoney(known, billTotal), unknown: list.length - known.length, due: sumMoney(list, outstandingDue) };
 }
 
 /**

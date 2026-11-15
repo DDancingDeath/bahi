@@ -758,3 +758,42 @@
   background: var(--negative-soft);
   color: var(--negative);
 }
+
+/* History top on one row (U-73): date choice and search side by side, the "Date" label for screen readers only */
+.history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.history-controls > .history-date-filter {
+  flex: 1 1 calc(3 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls > .history-search {
+  flex: 2 1 calc(5 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls .history-date-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.history-search > .search-clear[hidden] {
+  display: none;
+}
+
+/* Table view needs a wide screen (U-70): phones keep the cards */
+@media (max-width: 599.98px) {
+  .history-table-toggle {
+    display: none;
+  }
+}

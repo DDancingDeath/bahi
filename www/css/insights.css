@@ -215,3 +215,7 @@ div.ins-wide,
   .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
   .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
 }
+
+/* Day book: ‹ day › with a date box for a jump (U-94) */
+.st-day-step { flex-wrap: wrap; }
+.st-day-pick { flex: 0 1 auto; width: auto; }

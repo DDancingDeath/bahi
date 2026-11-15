@@ -81,7 +81,7 @@ export const StatementsManager = {
         if (list) list.hidden = true;
         if (view) view.hidden = false;
         const now = new Date();
-        if (!this.day) this.day = todayLocalISO();
+        if (!this.day) this.day = this.defaultDay();
         if (!this.month) {
             const m = /^month:(\d{4}-\d{2})$/.exec(getInsightsContext().preset);
             this.month = m ? m[1] : monthKeyOf(now.getTime());
@@ -92,6 +92,22 @@ export const StatementsManager = {
         this.renderControls();
         this.renderCsvOption();
         this.render();
+    },
+
+    /** Today when it has entries, else yesterday: an empty "today" is a wasted first view (U-94). */
+    defaultDay() {
+        const today = todayLocalISO();
+        const d = /** @type {Date} */ (parseLocalDate(today));
+        const { rows } = dayBook(this.src(), { from: d.getTime(), to: endOfLocalDayExclusive(d).getTime() }, { personal: false, sessions: [] });
+        return rows.length ? today : toLocalISODate(/** @type {Date} */ (addLocalDays(d, -1)));
+    },
+
+    /** Day book ‹ › : one day back or forward, never after today. */
+    stepDay(dir) {
+        const d = parseLocalDate(this.day) || new Date();
+        const next = toLocalISODate(/** @type {Date} */ (addLocalDays(d, dir < 0 ? -1 : 1)));
+        if (next > todayLocalISO()) return;
+        this.set('day', next);
     },
 
     /** Chooses the party the ledger opens on next (Insights › Parties row). */
@@ -165,7 +181,12 @@ export const StatementsManager = {
         if (h) h.textContent = t(heading);
         let html = '';
         if (this.kind === 'day') {
-            html = `<label>${esc(t('ui.statements.pick_day'))} <input type="date" class="form-control" value="${esc(this.day)}" data-onchange="statements.set('day', this.value)"></label>`;
+            const atToday = this.day >= todayLocalISO();
+            html = `<div class="ins-period st-day-step">`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(-1)" aria-label="${esc(t('ui.statements.day_before'))}">${icon('chevL')}</button>`
+                + `<span class="ins-period-label">${esc(formatDay(parseLocalDate(this.day) || new Date(), { lang }))}</span>`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(1)" aria-label="${esc(t('ui.statements.day_after'))}"${atToday ? ' disabled' : ''}>${icon('chevR')}</button>`
+                + `<input type="date" class="form-control st-day-pick" value="${esc(this.day)}" max="${esc(todayLocalISO())}" aria-label="${esc(t('ui.statements.pick_day'))}" data-onchange="statements.set('day', this.value)"></div>`;
         } else if (this.kind === 'month') {
             const now = new Date();
             const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
@@ -263,8 +284,9 @@ export const StatementsManager = {
         const html = (isToday ? `<p class="ins-hint"><button type="button" class="btn btn-ghost btn-sm" data-onclick="nav.showTab('day')">${esc(t('ui.statements.today_link'))} ›</button></p>` : '')
             + `<h3 class="st-title">${esc(title)}</h3>`
             + this.duesCaveat(sessions)
-            + `<div class="ins-scroll"><table class="table"><thead><tr><th>${esc(t('ui.statements.time'))}</th><th>${esc(t('ui.statements.what'))}</th><th>${esc(t('ui.statements.details'))}</th><th class="num">${esc(t('ui.money.amount'))}</th><th class="num">${esc(t('ui.statements.due'))}</th></tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`
-            + (isToday ? '' : `<div class="st-totals">${tot.map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.statements.t_sales' ? 'M1' : k === 'ui.statements.t_purchases' ? 'M16' : 'M4'}">${Number.isFinite(Number(v)) ? esc(formatRupees(Number(v))) : '—'}</span></div>`).join('')}</div>`);
+            + (body ? `<div class="ins-scroll"><table class="table"><thead><tr><th>${esc(t('ui.statements.time'))}</th><th>${esc(t('ui.statements.what'))}</th><th>${esc(t('ui.statements.details'))}</th><th class="num">${esc(t('ui.money.amount'))}</th><th class="num">${esc(t('ui.statements.due'))}</th></tr></thead><tbody>${body}</tbody></table></div>`
+                : emptyState({ icon: 'file', title: t('ui.statements.nothing_on_day'), action: { onclick: 'statements.stepDay(-1)', label: t('ui.statements.day_before') } }))
+            + (isToday || !body ? '' : `<div class="st-totals">${tot.map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.statements.t_sales' ? 'M1' : k === 'ui.statements.t_purchases' ? 'M16' : 'M4'}">${Number.isFinite(Number(v)) ? esc(formatRupees(Number(v))) : '—'}</span></div>`).join('')}</div>`);
         let share = [title, ...tot.map(([k, v]) => `${t(k)}: ${formatRupees(v)}`)].join('\n');
         // Today's totals have one home (Today); today's day book lists the bills only.
         if (isToday) share = [title, ...rows.map(r => [timeOf(r), this.kindLabel(r.kind), r.billNo, r.party, r.note, formatRupees(r.amount)].filter(Boolean).join(' · '))].join('\n');

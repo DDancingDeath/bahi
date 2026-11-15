@@ -1288,6 +1288,7 @@ window.app = {
         showEdits: () => HistoryManager.showEdits(),
         filterHistory: (type, event) => HistoryManager.filterHistory(type, event),
         searchHistory: (searchTerm) => HistoryManager.searchHistory(searchTerm),
+        clearSearch: () => HistoryManager.clearSearch(),
         toggleView: () => HistoryManager.toggleView(),
         setDatePreset: (preset) => HistoryManager.setDatePreset(preset),
         setCustomRange: (from, to) => HistoryManager.setCustomRange(from, to),

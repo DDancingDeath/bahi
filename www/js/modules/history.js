@@ -15,7 +15,7 @@ import { Helpers } from '../utils/helpers.js';
 import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import { PrinterService } from '../services/printer.js';
 import {
-    ensureHistoryFrom, isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, findBillIndex,
+    ensureHistoryFrom, isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, findBillIndex, syncAllDatesLabel,
     renderStaleHistoryHint, rangeStatus, retryRange, applyRangeState, needsHistoryFrom, loadOlderHistory, monthStart
 } from '../utils/history-window.js';
 import {
@@ -212,6 +212,7 @@ export class HistoryManager {
         const filter = this.getFilter();
         type = filter.type;
         this.syncFilterUi();
+        syncAllDatesLabel(/** @type {?HTMLSelectElement} */ (document.getElementById('historyDatePreset')));
 
         const range = resolveHistoryRange(filter.preset, new Date(), filter);
         this.activeRange = range;
@@ -278,7 +279,8 @@ export class HistoryManager {
         }
 
         if (sortedBills.length === 0 && !showOpenings && !showVoided) {
-            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm) });
+            const searching = !!(searchTerm || '').trim();
+            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm), action: searching ? { onclick: 'history.clearSearch()', label: t('ui.common.clear_search') } : null });
             this.renderShowMore(container);
             this.updateOlderHistoryUi();
             return;
@@ -851,7 +853,18 @@ export class HistoryManager {
     }
 
     static searchHistory(searchTerm) {
+        const clear = document.getElementById('historySearchClear');
+        if (clear) clear.hidden = !String(searchTerm || '').trim();
         this.renderHistory(this.getFilter().type, searchTerm);
+    }
+
+    static clearSearch() {
+        const input = /** @type {?HTMLInputElement} */ (document.getElementById('historySearch'));
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        this.searchHistory('');
     }
 
     static refreshHistory() {
@@ -1033,10 +1046,13 @@ export class HistoryManager {
     static updateRangeLabel(range, count, sum = null) {
         const label = document.getElementById('historyRangeLabel');
         if (!label) return;
-        const text = formatHistoryRange(range);
-        const parts = text || this.activeSearch ? [text, t(count === 1 ? 'ui.outstanding.bills_one' : 'ui.outstanding.bills_many', { count })] : [];
+        // One line for the list shown, whatever the filter (U-73): period · N bills · ₹ total · Due ₹
+        const text = formatHistoryRange(range) || (isFullHistoryLoaded() ? t('ui.history.all_dates')
+            : t('ui.history.since_date', { date: formatWindowDate(historyLoadedFrom()) }));
+        const parts = count > 0 || this.activeSearch ? [text, t(count === 1 ? 'ui.outstanding.bills_one' : 'ui.outstanding.bills_many', { count })] : [];
         if (parts.length && sum && sum.count > 0) {
             parts.push(sum.unknown > 0 ? t('ui.history.list_total_unknown', { total: formatRupees(sum.total), n: sum.unknown }) : formatRupees(sum.total));
+            if (sum.due > 0) parts.push(t('ui.history.list_due', { amount: formatRupees(sum.due) }));
         }
         label.textContent = parts.filter(Boolean).join(' · ');
         label.hidden = !parts.length;
@@ -1142,7 +1158,8 @@ export class HistoryManager {
         if (bills.length === 0 && this.pageOpenings.length === 0 && this.pageVoided.length === 0) {
             const searchInput = document.getElementById('historySearch');
             const searchTerm = searchInput ? searchInput.value : '';
-            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm) });
+            const searching = !!(searchTerm || '').trim();
+            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm), action: searching ? { onclick: 'history.clearSearch()', label: t('ui.common.clear_search') } : null });
             return;
         }
 
