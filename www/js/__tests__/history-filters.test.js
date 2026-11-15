@@ -7,7 +7,7 @@
 import {
     billDateOf, billTimeMs, matchesHistoryType, resolveHistoryRange, isBillInRange,
     matchesHistorySearch, filterHistoryBills, normalizeHistoryFilter, formatHistoryRange,
-    validateCustomRange, olderMonthsToLoad, normalizeHistoryTab, isWholesaleHistoryLink
+    validateCustomRange, olderMonthsToLoad, normalizeHistoryTab, isWholesaleHistoryLink, historyListTotal
 } from '../utils/history-filters.js';
 
 const local = (y, m, d, h = 0, min = 0) => new Date(y, m - 1, d, h, min).getTime();
@@ -165,4 +165,15 @@ describe('validateCustomRange / olderMonthsToLoad (quota guard)', () => {
         expect(olderMonthsToLoad(local(2026, 1, 1), window)).toBe(8);
         expect(olderMonthsToLoad(local(2020, 1, 1), 0)).toBe(0);
     });
+});
+
+test('historyListTotal: the list total and its open dues (voided and cleared bills owe nothing, U-73)', () => {
+    const bills = [
+        { total: 100, payment: { cash: 60, online: 0, due: 40 } },
+        { total: 50, payment: { cash: 0, online: 0, due: 50 }, cleared: true },
+        { total: 70, payment: { cash: 0, online: 0, due: 70 }, voided: true },
+        { total: 30, payment: { cash: 30, online: 0, due: 0 } }
+    ];
+    expect(historyListTotal(bills)).toMatchObject({ count: 4, due: 40 });
+    expect(historyListTotal([])).toMatchObject({ count: 0, total: 0, due: 0 });
 });

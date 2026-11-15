@@ -62,7 +62,7 @@ describe('Rates page (items list)', () => {
         ['RICE', ['Rice']],
         ['गेहूं', ['Wheat']],
         ['सरसों', ['Mustard']],
-        ['xyz', ['No items found']]
+        ['xyz', ['Nothing matches “xyz”Clear search']]
     ])('search %s (English or Hindi)', (q, expected) => {
         ItemsManager.renderItemsTable(q);
         expect(rowNames()).toEqual(expected);

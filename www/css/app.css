@@ -13,9 +13,11 @@
   --surface-3: #e8e8ed;
   --line: #e6e6eb;
   --line-strong: #d4d4dc;
+  /* Edges of fields, buttons and chips: 3:1 on the page and panels (WCAG 1.4.11) */
+  --line-control: #858591;
   --ink: #16161d;
   --ink-2: #4a4a56;
-  --ink-3: #686875;
+  --ink-3: #5c5c69;
   --ink-placeholder: #737380;
   --scrim: rgba(16, 16, 24, 0.32);
 
@@ -59,7 +61,6 @@
   --e2: 0 1px 2px rgba(16, 16, 29, 0.06), 0 6px 16px -4px rgba(16, 16, 29, 0.12);
   --e3: 0 2px 6px rgba(16, 16, 29, 0.08), 0 24px 48px -12px rgba(16, 16, 29, 0.24);
   --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  --focus: 0 0 0 3px rgba(79, 70, 229, 0.24);
   --state-hover: rgba(16, 16, 29, 0.05);
 
   /* System faces only (the CSP has no font origin); Devanagari faces before the generic family */
@@ -96,14 +97,22 @@
   --mode-purchase: var(--accent);
   --mode-purchase-soft: var(--accent-soft);
   --panel-bg: var(--surface);
-  --panel-border: var(--line);
+  --panel-border: var(--line-strong);
   --panel-shadow: none;
   --input-bg: var(--surface);
-  --input-border: var(--line-strong);
+  --input-border: var(--line-control);
   --bar-bg: var(--surface);
   --bar-border: var(--line);
   --seg-track: var(--surface-2);
   --seg-on: var(--surface);
+  /* The chosen segment shows by a 2 px edge and its ink, not only by a lighter fill */
+  --seg-on-line: var(--accent-text);
+  --seg-on-ink: var(--accent-text);
+  --seg-on-ring: inset 0 0 0 2px var(--seg-on-line);
+  --chip-on-ring: inset 0 0 0 1px var(--seg-on-line);
+  /* A solid focus ring at 3:1 or more on every surface */
+  --focus-ring: var(--accent-text);
+  --focus: 0 0 0 3px var(--focus-ring);
   --table-rule: var(--line);
   --toast-bg: #1d1d24;
   --toast-ink: #f4f4f7;
@@ -119,6 +128,9 @@
   --btn-danger-bg: var(--negative-fill);
   --btn-danger-ink: #ffffff;
   --preview-apply-line: transparent;
+  /* Sign-in header: the deep accent in light; a dark surface with an accent stripe in dark (no bright block, U-48) */
+  --auth-head-bg: var(--accent-strong);
+  --auth-head-ink: var(--on-accent-strong);
   --r-md: calc(var(--r-control) + 2px);
   --r-lg: calc(var(--r-panel) + 2px);
 }
@@ -128,15 +140,17 @@
   [data-mode="dark"] {
     color-scheme: dark;
     --bg: #0d0d10;
-    --surface: #15151a;
-    --surface-2: #1c1c22;
-    --surface-3: #24242b;
+    /* Cards lifted off the page (U-48) */
+    --surface: #1e1e24;
+    --surface-2: #26262d;
+    --surface-3: #2f2f37;
     --line: rgba(255, 255, 255, 0.07);
-    --line-strong: rgba(255, 255, 255, 0.12);
+    --line-strong: rgba(255, 255, 255, 0.14);
+    --line-control: rgba(255, 255, 255, 0.38);
     --ink: #ececf1;
     --ink-2: #a8a8b5;
-    --ink-3: #8c8c99;
-    --ink-placeholder: #80808d;
+    --ink-3: #9a9aa7;
+    --ink-placeholder: #8c8c99;
     --scrim: rgba(0, 0, 0, 0.56);
 
     --accent: #5b54e8;
@@ -170,10 +184,11 @@
     --e2: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 24px -6px rgba(0, 0, 0, 0.6);
     --e3: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 56px -12px rgba(0, 0, 0, 0.75);
     --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-    --focus: 0 0 0 3px rgba(124, 120, 248, 0.4);
     --state-hover: rgba(255, 255, 255, 0.06);
     --seg-on: var(--surface-3);
     --toast-bg: #2a2a32;
+    --auth-head-bg: var(--surface-2);
+    --auth-head-ink: var(--ink);
   }
 }
 
@@ -218,8 +233,9 @@
 /* Layout, type scale, density and motion: the same in every theme */
 :root {
   --w-label: 600;
-  --fs-caption: 12px;
-  --fs-sm: 13px;
+  /* 14 px is the least for text people read (U-15); 13 px only for short labels: dates, tags, tab names */
+  --fs-caption: 13px;
+  --fs-sm: 14px;
   --fs-body: 15px;
   --fs-lead: 17px;
   --fs-title: 20px;
@@ -229,7 +245,9 @@
   --fs-input: 16px;
   /* Floating field labels (.field-float): the 14 px minimum text size (#68) */
   --fs-label: 14px;
-  --fs-cur: 0.78em;
+  /* The ₹ beside bill totals and the action bar (U-29): at least 0.9 of the digits, never under the caption size */
+  --fs-cur-bill: max(var(--fs-caption), 0.9em);
+  --fs-cur: max(12px, 0.9em);
   --lh-body: 1.45;
   --sp-1: 4px;
   --sp-2: 8px;
@@ -243,10 +261,15 @@
   --section-gap: 24px;
   --row-h: 56px;
   --appbar-h: 52px;
+  --bottomnav-h: 56px;
   --phone-col-max: 480px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
-  --control-h: 44px;
-  --control-h-sm: 32px;
+  /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
+  --tap-min: 48px;
+  /* The clear border round a switch's 22 px track that makes its tap area 48 px */
+  --switch-hit: 13px;
+  --control-h: 48px;
+  --control-h-sm: 40px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-1: 120ms;
   --dur-2: 200ms;
@@ -276,13 +299,21 @@
   --ring-danger: 0 0 0 2px rgba(220, 38, 38, 0.25);
   --ring-warning: 0 0 0 2px rgba(217, 119, 6, 0.25);
 
-  --text-xs: 12px;
-  --text-sm: 13px;
+  --text-xs: 13px;
+  --text-sm: 14px;
   --text-base: 14px;
   --text-md: 15px;
   --text-lg: 17px;
   --text-xl: 20px;
   --text-2xl: 24px;
+}
+
+/* A phone on its side: lower app and tab bars leave room for the bill */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  :root {
+    --appbar-h: 44px;
+    --bottomnav-h: 48px;
+  }
 }
 
 /* Android app: Roboto has a Medium face, the native emphasis (600 would render as Bold); before html[lang="hi"] so Hindi labels stay 400 */
@@ -294,6 +325,7 @@ html.platform-android {
 /* Devanagari: larger type, more leading, regular labels (Nirmala UI / Noto Sans Devanagari have no 500 or 600) */
 html[lang="hi"] {
   --w-label: 400;
+  --fs-caption: 14px;
   --fs-sm: 14px;
   --fs-body: 16px;
   --lh-body: 1.6;
@@ -382,6 +414,97 @@ input[type="number"],
   color: var(--info);
 }
 
+/* ---- css/themes/sunlight.css ---- */
+/* High contrast / Sunlight (U-83): for the counter in bright sun. Black on white with dark edges and deep colours;
+   in dark, white on black with a yellow accent. Colours are screen-only, so printing uses the Modern light values. */
+@media screen {
+  [data-theme="sunlight"]:not([data-mode="dark"]) {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #ededed;
+    --surface-3: #dcdcdc;
+    --line: #8c8c8c;
+    --line-strong: #4d4d4d;
+    --line-control: #1f1f1f;
+    --ink: #000000;
+    --ink-2: #1a1a1a;
+    --ink-3: #333333;
+    --ink-placeholder: #4d4d4d;
+    --accent: #0038b8;
+    --accent-hover: #002d94;
+    --accent-strong: #002d94;
+    --accent-text: #00309e;
+    --accent-soft: #dde6ff;
+    --accent-line: #0038b8;
+    --mode-sale: #005c33;
+    --mode-sale-soft: #d6f0e2;
+    --mode-wholesale: #4b1aa8;
+    --mode-wholesale-soft: #e8defc;
+    --mode-rentals: #005566;
+    --positive: #005c33;
+    --positive-soft: #d6f0e2;
+    --negative: #a3001b;
+    --negative-soft: #ffe0e5;
+    --negative-fill: #a3001b;
+    --warning: #7a3d00;
+    --warning-soft: #ffeccc;
+    --info: #00477a;
+    --info-soft: #dcefff;
+    --e1: 0 0 0 1px #4d4d4d;
+    --seg-track: #dcdcdc;
+    --toast-bg: #000000;
+    --toast-ink: #ffffff;
+  }
+
+  [data-theme="sunlight"][data-mode="dark"] {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #0d0d0d;
+    --surface-2: #1a1a1a;
+    --surface-3: #262626;
+    --line: rgba(255, 255, 255, 0.4);
+    --line-strong: rgba(255, 255, 255, 0.6);
+    --line-control: rgba(255, 255, 255, 0.85);
+    --ink: #ffffff;
+    --ink-2: #f0f0f0;
+    --ink-3: #d6d6d6;
+    --ink-placeholder: #bdbdbd;
+    --accent: #ffd60a;
+    --accent-hover: #ffe14d;
+    --accent-strong: #3d3300;
+    --accent-text: #ffd60a;
+    --accent-soft: rgba(255, 214, 10, 0.18);
+    --accent-line: #ffd60a;
+    --on-accent: #000000;
+    --mode-sale: #4ef08f;
+    --on-mode-sale: #000000;
+    --mode-sale-soft: rgba(78, 240, 143, 0.18);
+    --mode-wholesale: #d2b4ff;
+    --on-mode-wholesale: #000000;
+    --mode-wholesale-soft: rgba(210, 180, 255, 0.18);
+    --mode-rentals: #6fe3f5;
+    --positive: #4ef08f;
+    --positive-soft: rgba(78, 240, 143, 0.18);
+    --negative: #ff9a9a;
+    --negative-soft: rgba(255, 154, 154, 0.18);
+    --negative-fill: #b00020;
+    --warning: #ffd60a;
+    --warning-soft: rgba(255, 214, 10, 0.18);
+    --info: #8fd6ff;
+    --info-soft: rgba(143, 214, 255, 0.18);
+    --caution-soft: rgba(255, 170, 80, 0.2);
+    --on-caution-soft: #ffc58a;
+    --seg-on: #262626;
+    --toast-bg: #ffffff;
+    --toast-ink: #000000;
+    --toast-pos: #005c33;
+    --toast-neg: #a3001b;
+    --toast-warn: #7a3d00;
+    --toast-info: #00309e;
+  }
+}
+
 /* ---- css/themes/vintage.css ---- */
 /* Vintage (redesign 3.4, DIRECTION 4.2): parchment, sepia ink, oxblood; serif titles and figures,
    italic section titles (not in Hindi), dashed ledger rules. Screen-only, so print stays Modern. */
@@ -407,6 +530,7 @@ input[type="number"],
     --surface-3: #e6d9bd;
     --line: #ddcfb1;
     --line-strong: #c4b18b;
+    --line-control: #8c7a5c;
     --ink: #2e2418;
     --ink-2: #57472f;
     --ink-3: #6a5840;
@@ -431,7 +555,6 @@ input[type="number"],
     --warning: #87560a;
     --warning-soft: #f6e6c2;
     --warning-dot: #c98a1b;
-    --focus: 0 0 0 3px rgba(143, 58, 34, 0.25);
     --e1: 0 1px 0 rgba(90, 60, 20, 0.12);
     --panel-shadow: 0 1px 0 #d6c6a4, 0 2px 0 rgba(90, 60, 20, 0.06);
     --input-bg: #fffdf6;
@@ -606,7 +729,6 @@ input[type="number"],
     --panel-border: transparent;
     --panel-shadow: 0 1px 2px rgba(30, 50, 60, 0.04);
     --input-bg: #f7f9f9;
-    --input-border: #cbd5d7;
     --seg-on: #fdfefe;
     --btn-primary-shadow: none;
   }
@@ -644,7 +766,6 @@ input[type="number"],
     --warning: #e6c07a;
     --warning-soft: rgba(230, 192, 122, 0.12);
     --input-bg: #1d2329;
-    --input-border: rgba(220, 235, 245, 0.18);
     --seg-on: #39434d;
     --toast-bg: #313a43;
   }
@@ -689,12 +810,9 @@ input[type="number"],
     --negative-soft: #fde9ee;
     --warning: #8a4204;
     --warning-soft: #fdf0dc;
-    --focus: 0 0 0 3px rgba(99, 102, 241, 0.3);
     --e1: 0 1px 2px rgba(30, 40, 100, 0.08);
-    --panel-border: #ffffff;
     --panel-shadow: 0 10px 30px -14px rgba(30, 40, 100, 0.25);
     --input-bg: #fdfdff;
-    --input-border: #d6d6ec;
     --bar-bg: #f6f6fe;
     --seg-track: #e4e3f6;
     --seg-on: #fbfbff;
@@ -732,10 +850,8 @@ input[type="number"],
     --negative-soft: rgba(251, 113, 133, 0.16);
     --warning: #fcd34d;
     --warning-soft: rgba(251, 191, 36, 0.14);
-    --panel-border: rgba(255, 255, 255, 0.12);
     --panel-shadow: 0 10px 30px -14px rgba(0, 0, 0, 0.6);
     --input-bg: #11132a;
-    --input-border: rgba(255, 255, 255, 0.16);
     --bar-bg: #12142b;
     --seg-track: #11132a;
     --seg-on: #2c3058;
@@ -790,12 +906,11 @@ input[type="number"],
     --negative-fill: #b3261e;
     --warning: #8f4a00;
     --warning-soft: #ffdcc0;
-    --focus: 0 0 0 3px rgba(103, 80, 164, 0.3);
     --e1: 0 1px 2px rgba(0, 0, 0, 0.12);
-    --panel-border: transparent;
     --panel-shadow: none;
     --input-bg: #fffbff;
-    --input-border: #79747e;
+    --line-control: #79747e;
+    --panel-border: #cac4d0;
     --bar-bg: #f3edf7;
     --seg-track: #ece6f0;
     --seg-on: #e8def8;
@@ -836,10 +951,10 @@ input[type="number"],
     --negative-soft: rgba(242, 184, 181, 0.14);
     --warning: #f0c36a;
     --warning-soft: rgba(240, 195, 106, 0.14);
-    --panel-border: transparent;
     --panel-shadow: none;
     --input-bg: #36343b;
-    --input-border: #938f99;
+    --line-control: #938f99;
+    --panel-border: #49454f;
     --bar-bg: #211f26;
     --seg-track: #2b2930;
     --seg-on: #4a4458;
@@ -899,10 +1014,8 @@ input[type="number"],
     --warning-soft: #fff4ce;
     --focus: 0 0 0 2px #ffffff, 0 0 0 4px #1a1a1a;
     --e1: 0 1px 2px rgba(0, 0, 0, 0.06);
-    --panel-border: #e5e5e5;
     --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     --input-bg: #ffffff;
-    --input-border: #d1d1d1;
     --bar-bg: #f3f3f3;
     --seg-track: #ececec;
     --seg-on: #ffffff;
@@ -942,10 +1055,8 @@ input[type="number"],
     --warning: #fce100;
     --warning-soft: rgba(252, 225, 0, 0.1);
     --focus: 0 0 0 2px #000000, 0 0 0 4px #ffffff;
-    --panel-border: rgba(255, 255, 255, 0.06);
     --panel-shadow: none;
     --input-bg: #2d2d2d;
-    --input-border: rgba(255, 255, 255, 0.14);
     --bar-bg: #202020;
     --seg-track: #323232;
     --seg-on: #3a3a3a;
@@ -995,7 +1106,6 @@ input[type="number"],
     --warning: #85570c;
     --warning-soft: #f3e5c3;
     --warning-dot: #c9932a;
-    --panel-border: #e6e0cf;
     --panel-shadow: 0 2px 10px -6px rgba(60, 50, 20, 0.18);
     --seg-on: #fbfaf5;
     --toast-bg: #24301f;
@@ -1035,7 +1145,6 @@ input[type="number"],
     --negative-soft: rgba(240, 154, 140, 0.13);
     --warning: #e7c06c;
     --warning-soft: rgba(231, 192, 108, 0.12);
-    --panel-border: rgba(220, 235, 200, 0.07);
     --panel-shadow: none;
     --seg-on: #2c3a29;
     --toast-bg: #273425;
@@ -1088,8 +1197,6 @@ input[type="number"],
     --warning: #85580a;
     --warning-soft: #f5ead0;
     --warning-dot: #c9a65a;
-    --focus: 0 0 0 3px rgba(201, 166, 90, 0.45);
-    --panel-border: #ebe5d9;
     --panel-shadow: 0 1px 2px rgba(60, 40, 10, 0.04), 0 12px 32px -20px rgba(60, 40, 10, 0.25);
     --seg-on: #fffdf9;
     --btn-primary-shadow: inset 0 0 0 1px #3a3128, 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -1133,7 +1240,6 @@ input[type="number"],
     --negative-soft: rgba(238, 154, 146, 0.12);
     --warning: #e6c47c;
     --warning-soft: rgba(230, 196, 124, 0.12);
-    --panel-border: rgba(212, 176, 106, 0.1);
     --panel-shadow: none;
     --bar-bg: #13110e;
     --seg-on: #2e2922;
@@ -1243,7 +1349,6 @@ input[type="number"],
     --e1: 0 1px 2px rgba(0, 0, 0, 0.5);
     --e2: 0 0 0 1px rgba(148, 180, 255, 0.1), 0 12px 32px -8px rgba(0, 0, 0, 0.8);
     --e3: 0 0 0 1px rgba(148, 180, 255, 0.12), 0 24px 56px -12px rgba(0, 0, 0, 0.85);
-    --focus: 0 0 0 3px rgba(124, 196, 250, 0.35);
     --input-bg: #080d1b;
     --seg-on: #1c2946;
     --toast-bg: #18233d;
@@ -1304,10 +1409,8 @@ input[type="number"],
     --e3: 0 0 0 1px rgba(255, 43, 214, 0.3), 0 24px 56px -12px rgba(0, 0, 0, 0.9);
     --highlight: 0 0 #0000;
     --focus: 0 0 0 2px #07070d, 0 0 0 4px #00f0ff;
-    --panel-border: rgba(0, 240, 255, 0.18);
     --panel-shadow: none;
     --input-bg: #0a0a14;
-    --input-border: rgba(0, 240, 255, 0.3);
     --bar-bg: #0a0a14;
     --seg-track: #0a0a14;
     --seg-on: #1e1e36;
@@ -1368,7 +1471,7 @@ input[type="number"],
   color: var(--toast-ink);
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
-  line-height: 18px;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1493,9 +1596,9 @@ html[data-updating] .updating-mark {
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0 var(--sp-4);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r-control);
   background-color: var(--surface);
   color: var(--ink);
@@ -1548,14 +1651,15 @@ html[data-updating] .updating-mark {
   font-size: var(--fs-sm);
 }
 
-/* Tap targets (#68): every button, also .btn-sm and the Outstanding / Cash payment actions, is at least 44 px tall */
+/* Tap targets (#68, U-14): every button, also .btn-sm and the Outstanding / Cash payment actions, is --tap-min tall
+   (48 px on phones) */
 [data-record-payment],
 [data-mark-cleared] {
-  min-height: 44px;
+  min-height: var(--tap-min);
 }
 
 .btn-icon {
-  width: 44px;
+  width: var(--tap-min);
   padding: 0;
 }
 
@@ -1653,6 +1757,7 @@ select,
 input[type="number"],
 input[type="text"] {
   width: 100%;
+  min-height: var(--tap-min);
   padding: 13px 15px;
   border: 1px solid var(--input-border);
   border-radius: var(--r-control);
@@ -1798,16 +1903,33 @@ input[type="radio"] {
   accent-color: var(--accent);
 }
 
+/* 24 px boxes (WCAG 2.5.8); a label holding one is a 48 px row, so the whole line takes the tap (U-14) */
+:where(input[type="checkbox"]:not(.switch), input[type="radio"]) {
+  width: 24px;
+  height: 24px;
+}
+
+:where(label):has(> input[type="checkbox"], > input[type="radio"]) {
+  min-height: var(--tap-min);
+  align-items: center;
+}
+
+/* The switch draws 36 × 22 but takes taps on 62 × 48: a clear border around the track that the negative margin
+   gives back to the layout */
 input[type="checkbox"].switch,
 .checkbox-label input[type="checkbox"].switch {
   -webkit-appearance: none;
   appearance: none;
   flex: none;
+  box-sizing: content-box;
   width: 36px;
   height: 22px;
-  margin: 0;
+  margin: calc(-1 * var(--switch-hit));
+  border: var(--switch-hit) solid transparent;
   border-radius: var(--r-full);
   background: radial-gradient(circle at 11px 50%, var(--surface) 8px, transparent 8.5px), var(--ink-3);
+  background-clip: content-box;
+  background-origin: content-box;
   cursor: pointer;
   transition: background var(--dur-1) var(--ease);
 }
@@ -1815,12 +1937,15 @@ input[type="checkbox"].switch,
 input[type="checkbox"].switch:checked,
 .checkbox-label input[type="checkbox"].switch:checked {
   background: radial-gradient(circle at 25px 50%, var(--on-accent) 8px, transparent 8.5px), var(--accent);
+  background-clip: content-box;
+  background-origin: content-box;
 }
 
 input[type="checkbox"].switch:focus-visible,
 .checkbox-label input[type="checkbox"].switch:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -12px;
+  box-shadow: none;
 }
 
 /* ---------- Segmented control: .seg, aria-pressed (modes and filters) ---------- */
@@ -1839,8 +1964,8 @@ input[type="checkbox"].switch:focus-visible,
   gap: var(--sp-2);
   flex: 1;
   min-width: 0;
-  min-height: 44px;
-  padding: 0 var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-3);
   border: none;
   border-radius: var(--r-control);
   background-color: transparent;
@@ -1849,20 +1974,24 @@ input[type="checkbox"].switch:focus-visible,
   font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+  line-height: 1.25;
+  overflow-wrap: break-word;
   cursor: pointer;
 }
 
+/* The chosen option: its fill, a 2 px edge at 3:1 on the track and the accent ink (U-16) */
 .seg > .on,
 .seg > [aria-pressed="true"],
 .seg > [aria-selected="true"] {
   background-color: var(--seg-on);
-  color: var(--ink);
-  box-shadow: var(--e1);
+  color: var(--seg-on-ink);
+  box-shadow: var(--seg-on-ring), var(--e1);
 }
 
 .seg > button:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+  box-shadow: none;
 }
 
 /* These set display, which would otherwise beat the hidden attribute */
@@ -1881,8 +2010,8 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 .tabs > button {
-  min-height: 44px;
-  padding: 0 var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-3);
   margin-bottom: -1px;
   border: none;
   border-bottom: 2px solid transparent;
@@ -1892,6 +2021,7 @@ input[type="checkbox"].switch:focus-visible,
   font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+  line-height: 1.25;
   cursor: pointer;
   transition: color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
@@ -1902,15 +2032,17 @@ input[type="checkbox"].switch:focus-visible,
 
 .tabs > .on,
 .tabs > [aria-selected="true"] {
-  border-bottom-color: var(--ink);
-  color: var(--ink);
+  border-bottom-color: var(--seg-on-line);
+  color: var(--seg-on-ink);
 }
 
-/* ---------- Chips: .chip + aria-pressed (on/off), and tags ---------- */
+/* ---------- Chips: .chip + aria-pressed (on/off), and tags ----------
+   A chip draws 40 px; its tap area reaches 48 px (the ::after), so rows of chips stay compact (U-14) */
 .chip {
-  min-height: 32px;
+  position: relative;
+  min-height: var(--control-h-sm);
   padding: 0 14px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r-chip);
   background-color: var(--surface);
   color: var(--ink);
@@ -1918,11 +2050,55 @@ input[type="checkbox"].switch:focus-visible,
   font-weight: var(--w-label);
 }
 
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--control-h-sm) - var(--tap-min)) / 2) 0;
+}
+
+/* The chosen chip looks like the chosen segment (U-61): one "selected" look across segments, chips and tabs */
 .chip.on,
 .chip[aria-pressed="true"] {
-  border-color: var(--ink);
-  background-color: var(--ink);
-  color: var(--bg);
+  border-color: var(--seg-on-line);
+  background-color: var(--accent-soft);
+  box-shadow: var(--chip-on-ring);
+  color: var(--seg-on-ink);
+}
+
+/* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
+   .period is the component; .ins-period and .wp-month are its old hooks */
+:is(.period, .ins-period, .wp-month) {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+:is(.period, .ins-period, .wp-month) > .btn {
+  flex: none;
+  width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+}
+
+:is(.period-label, .ins-period-label),
+.wp-month > b {
+  flex: 1 0 auto;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: var(--w-strong);
+  text-align: center;
+}
+
+/* At large text the preset gives way first; the month name wraps only between words */
+:is(.period-preset, .ins-preset) {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: 45%;
+  border-color: var(--line-control);
+  border-radius: var(--r-chip);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
 }
 
 .tag {
@@ -1941,6 +2117,32 @@ input[type="checkbox"].switch:focus-visible,
 .tag.neg { background: var(--negative-soft); color: var(--negative); }
 .tag.warn { background: var(--warning-soft); color: var(--warning); }
 .tag.info { background: var(--info-soft); color: var(--info); }
+
+/* ---------- Tap floor (U-14): small controls keep their look but take taps on --tap-min ---------- */
+/* A disclosure line is a full row */
+:where(summary) {
+  min-height: var(--tap-min);
+  padding-block: var(--sp-3);
+}
+
+/* Text buttons and the list's Load more / Retry get the button height */
+.infinite-scroll-more,
+.history-range-retry {
+  min-height: var(--tap-min);
+}
+
+/* A link-like button inside a line of text (a bill number): an invisible 48 px tap area round the words */
+.due-bill-link,
+.bill-edits__view {
+  position: relative;
+}
+
+.due-bill-link::after,
+.bill-edits__view::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
+}
 
 /* -------------------- UTILITIES -------------------- */
 button, a, input[type="checkbox"] {
@@ -2062,11 +2264,14 @@ a.row:active {
   min-width: 0;
 }
 
+/* Large text (U-17): a title or subtitle takes up to two lines before it is cut */
 .row-title,
 .row-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .row-title {
@@ -2247,9 +2452,21 @@ a.row:active {
   height: 100%;
 }
 
-/* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ---------- */
-.page-head {
-  display: none;
+/* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ----------
+   On the phone its h2 stays for screen readers, so headings go h1 (app bar) > h2 (page) > h3 (sections) (U-47) */
+@media (max-width: 1023.98px) {
+  .page-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .page-head > :not(h2) {
+    display: none;
+  }
 }
 
 /* ---------- Notice ---------- */
@@ -2626,10 +2843,15 @@ a.row:active {
 }
 
 .auth-header {
-  background: var(--accent-strong);
-  color: var(--on-accent-strong);
+  border-top: 4px solid var(--accent);
+  background: var(--auth-head-bg);
+  color: var(--auth-head-ink);
   padding: var(--sp-8) var(--sp-6);
   text-align: center;
+}
+
+.auth-mark {
+  margin-bottom: var(--sp-3);
 }
 
 .auth-header h1 {
@@ -2795,15 +3017,19 @@ a.row:active {
 }
 
 .auth-lang-link {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
   background: none;
-  border: none;
-  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  padding: 0 var(--sp-4);
   font-size: var(--fs-sm);
   color: var(--ink-2);
   cursor: pointer;
 }
 
 .auth-lang-link[aria-pressed="true"] {
+  border-color: var(--seg-on-line);
   color: var(--accent-text);
   font-weight: var(--w-strong);
 }
@@ -2875,8 +3101,8 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: var(--tap-min);
+    height: var(--tap-min);
     padding: 0;
     border: 0;
     border-radius: var(--r-full);
@@ -3052,8 +3278,8 @@ body {
   background: none;
   border: none;
   color: var(--ink-2);
-  width: 40px;
-  height: 40px;
+  width: var(--tap-min);
+  height: var(--tap-min);
   border-radius: var(--r-full);
   cursor: pointer;
   display: flex;
@@ -3086,7 +3312,7 @@ body {
 .nav-menu a {
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--tap-min);
   box-sizing: border-box;
   padding: var(--sp-2) var(--sp-6);
   color: var(--ink);
@@ -3120,9 +3346,41 @@ body {
   content: ' · ';
 }
 
-/* The business mark and the Alt+N hints are desktop only (desktop.css) */
-.nav-mark,
+/* The Alt+N hints are desktop only (desktop.css) */
 .nav-kbd {
+  display: none;
+}
+
+/* The Bahi mark (U-90): white B with the sage corner on the charcoal tile, the same in every theme */
+.nav-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: linear-gradient(var(--brand-tile-top), var(--brand-tile) 55%);
+  box-shadow: var(--brand-tile-ring);
+  color: var(--brand-ink);
+}
+
+.nav-mark-bahi {
+  width: 100%;
+  height: 100%;
+  fill: var(--brand-corner);
+}
+
+/* The shop's own name under "Bahi" */
+.nav-shop {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+  overflow-wrap: anywhere;
+}
+
+.nav-shop[hidden] {
   display: none;
 }
 
@@ -3143,7 +3401,7 @@ body {
   margin-top: var(--sp-3);
 }
 .biz-switch button {
-  min-height: 40px;
+  min-height: var(--tap-min);
   padding: var(--sp-1) var(--sp-3);
   border-radius: var(--r-sm);
   font-size: var(--fs-body);
@@ -3196,9 +3454,9 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
 
   .nav-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    column-gap: var(--sp-2);
+    column-gap: var(--sp-3);
     padding: var(--sp-1) var(--sp-2) var(--sp-3) var(--gutter);
   }
 
@@ -3206,22 +3464,29 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
     display: contents;
   }
 
-  .nav-header h2 {
+  .nav-mark {
     grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .nav-header h2 {
+    grid-column: 2;
     font-size: var(--fs-lead);
   }
 
+  .nav-shop,
   .nav-user {
-    grid-column: 1;
+    grid-column: 2;
+  }
+
+  .nav-user {
     margin-top: 0;
     color: var(--ink-3);
   }
 
   .nav-close {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    width: 44px;
-    height: 44px;
+    grid-column: 3;
+    grid-row: 1 / span 3;
   }
 
   /* Not "all": an inherited visibility change would be animated too, and the sheet's controls could not take focus as it opens */
@@ -3270,9 +3535,11 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
     margin: 0;
     padding: var(--sp-1) 0 var(--sp-2);
     font-size: var(--fs-caption);
+    font-weight: var(--w-label);
     line-height: 1.25;
     text-align: center;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
   .nav-menu a:hover,
@@ -3317,8 +3584,9 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
   }
 }
 
-/* A short screen (a phone on its side): the whole sheet scrolls, not only the page grid between the header and Settings */
-@media (max-width: 1023.98px) and (max-height: 480px) {
+/* One scroll for the whole sheet (U-63): the header, the page groups and Settings as the last tile move together,
+   so nothing is hidden in an inner scroll at large text or on a phone on its side */
+@media (max-width: 1023.98px) {
   .side-nav {
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -3351,19 +3619,20 @@ body {
 .bottom-nav-item {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 56px;
+  min-height: var(--bottomnav-h);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: var(--sp-1) 0;
+  padding: var(--sp-1) var(--sp-1);
   border: none;
   background: none;
   color: var(--ink-2);
   font: inherit;
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
 }
@@ -3375,11 +3644,15 @@ body {
   transition: background var(--dur-2) var(--ease);
 }
 
+/* Large text (U-17): a label wraps to two lines instead of being cut */
 .bottom-nav-label {
   max-width: 100%;
-  white-space: nowrap;
+  text-align: center;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .bottom-nav-item.active {
@@ -3398,6 +3671,18 @@ body {
 body.biz-rentals .bottom-nav,
 body.typing .bottom-nav {
   display: none;
+}
+
+/* On its side the label sits beside the icon, so the bar is one line high */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  .bottom-nav-item {
+    flex-direction: row;
+    gap: var(--sp-2);
+  }
+
+  .bottom-nav-icon {
+    padding: var(--sp-1) var(--sp-2);
+  }
 }
 
 .pull-refresh {
@@ -3471,6 +3756,11 @@ body.typing .bottom-nav {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
+}
+
+.rates-unit {
+  color: var(--ink-2);
+  font-weight: var(--w-regular);
 }
 
 .rates-table .rates-name {
@@ -3598,8 +3888,72 @@ body.typing .bottom-nav {
   font-style: italic;
 }
 
+.rates-tools .search-field {
+  position: relative;
+}
+
+.rates-tools .search-field > .search-clear {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-1);
+  transform: translateY(-50%);
+}
+
+.rates-tools .search-field > .search-clear[hidden] {
+  display: none;
+}
+
+/* Phones (U-70): one block per item, its rates labelled underneath (Buy · Retail · Wholesale), no hidden column */
+@media (max-width: 599.98px) {
+  .rates-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .rates-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px var(--rule-style) var(--line);
+  }
+
+  .rates-table tbody td {
+    display: block;
+    height: auto;
+    padding: 0;
+    border: none;
+  }
+
+  .rates-table tbody .rates-name {
+    flex: 1 1 100%;
+  }
+
+  .rates-table tbody .rates-figs[data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--ink-3);
+    font-size: var(--fs-sm);
+  }
+
+  .rates-table tbody td[colspan] {
+    flex: 1 1 100%;
+  }
+}
+
 /* ---- css/billing.css ---- */
 /* ---------- Bill lines (#billTable, #saleTable, .bill-lines) ---------- */
+/* A line's bag / packet weights: one small line under the item (U-18) */
+.bill-line-weights {
+  display: block;
+  color: var(--ink-3);
+  font-family: var(--font-num);
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+}
 #billTable, :is(#saleTable, .bill-lines) {
   width: 100%;
   margin-top: var(--sp-4);
@@ -3732,15 +4086,18 @@ body.typing .bottom-nav {
   #billTable tbody tr.bill-line > td:nth-child(1), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(1) {
     grid-column: 1 / 4;
     grid-row: 1;
+    color: var(--ink);
+    font-size: var(--fs-body);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  tr.bill-line .bill-line-name {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    color: var(--ink);
-    font-size: var(--fs-body);
-    line-height: 1.3;
-    overflow-wrap: anywhere;
   }
 
   #billTable tbody tr.bill-line > :is(td:nth-child(2), td:nth-child(3)),
@@ -4057,6 +4414,13 @@ input[type="number"] {
 
 .bill-menu-list > .bill-clear {
   color: var(--negative);
+}
+
+/* Clear is last, after a line, away from Save draft (U-06) */
+.bill-menu-sep {
+  margin: var(--sp-1) 0;
+  border: 0;
+  border-top: 1px solid var(--line);
 }
 
 .bill-count {
@@ -4527,10 +4891,23 @@ input[type="number"] {
   min-height: 48px;
 }
 
-/* Expenses and the live profit (WS-PROFIT) */
+/* Expenses and the live profit (WS-PROFIT): folded under "Expenses and profit" (U-36), so the margin is not on show at the counter */
 .ws-profit {
   margin-bottom: var(--sp-3);
   padding: var(--sp-1) var(--sp-4);
+}
+
+.ws-margin-toggle {
+  min-height: 44px;
+  padding: var(--sp-3) 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.ws-recent-title[hidden],
+.ws-more[hidden] {
+  display: none;
 }
 
 .ws-profit .pay-line > span {
@@ -4675,6 +5052,20 @@ input[type="number"] {
 
 .bill-line-remove:hover {
   color: var(--negative);
+}
+
+/* The name is needed once anything is in Due (U-34): the label says so */
+.bill-customer:not(.party-needed) .party-needed-note {
+  display: none;
+}
+
+.party-needed-note {
+  margin-left: var(--sp-1);
+  color: var(--warning);
+}
+
+.party-needed-note::before {
+  content: "· " / "";
 }
 
 /* ---- css/voice.css ---- */
@@ -5019,6 +5410,17 @@ input[type="number"] {
   border-bottom: none;
 }
 
+/* Rows that only repeat another figure stay out (U-18): Total paid with one way of paying, Retail's Sale total */
+.pay-line[hidden],
+.total-line[hidden] {
+  display: none;
+}
+
+/* A shorter bill on the phone (U-18): payment rows closer together */
+.bill-totals .pay-line {
+  padding: var(--sp-2) 0;
+}
+
 .pay-line label {
   margin: 0;
   font-weight: var(--w-label);
@@ -5127,7 +5529,7 @@ input[type="number"] {
 /* The shared .cur (surfaces.css), over the older span rules above */
 :is(#billing, .bill-page) .money > .cur {
   color: var(--ink-3);
-  font-size: var(--fs-cur);
+  font-size: var(--fs-cur-bill);
   font-weight: var(--w-regular);
 }
 
@@ -5463,11 +5865,43 @@ input[type="number"] {
   min-width: min-content;
 }
 
-/* Share is an icon (its words stay for screen readers and the tooltip) */
+/* Share is an icon with a visible "Draft" under it (the bill is not saved yet, U-27); shown once the bill has a line */
 .bill-actions > .bill-share {
   flex: none;
+  flex-direction: column;
+  gap: 0;
   width: 48px;
+  padding: 0;
   color: var(--positive);
+  line-height: 1.1;
+}
+
+.bill-actions > .bill-share[hidden] {
+  display: none;
+}
+
+/* "Back-dated: 12 Nov" beside the total when the bill's day is not today (U-78) */
+.bill-backdated:not([hidden]) {
+  display: inline-block;
+  margin-top: var(--sp-1);
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--fs-caption);
+  font-weight: var(--w-label);
+  white-space: nowrap;
+}
+
+.bill-date-back {
+  color: var(--warning);
+  font-weight: var(--w-label);
+}
+
+.bill-share-tag {
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+  font-weight: var(--w-regular);
 }
 
 .bill-actions > .bill-share .i {
@@ -5505,6 +5939,15 @@ input[type="number"] {
 @media (max-width: 399.98px), (min-width: 1024px) {
   .bill-actions > .bill-print > .i {
     display: none;
+  }
+}
+
+/* "Save & print" may wrap to two lines on a narrow phone rather than squeeze Save */
+@media (max-width: 399.98px) {
+  .bill-actions > .bill-print {
+    white-space: normal;
+    line-height: 1.1;
+    text-align: center;
   }
 }
 
@@ -5547,6 +5990,37 @@ input[type="number"] {
   }
 }
 
+/* A phone on its side: Save stays pinned above the low tab bar unless the keyboard is open
+   (.bill-actions is only on the Billing and Wholesale bill pages) */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  body:not(.typing) .tab .bill-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--bottomnav-h);
+    z-index: calc(var(--z-appbar) - 10);
+    margin: 0;
+    padding: var(--sp-2) var(--sp-4);
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  body.biz-rentals:not(.typing) .tab .bill-actions {
+    bottom: 0;
+  }
+
+  body:not(.typing) .tab:has(.bill-actions) {
+    animation-name: bill-fade-in;
+    padding-bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-10));
+    scroll-padding-bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-4));
+  }
+
+  body:not(.typing):has(.tab.active .bill-actions) .toast,
+  body:not(.biz-rentals):not(.typing):has(.tab.active .bill-actions) .app-update {
+    bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-4));
+  }
+}
+
 @keyframes bill-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -5563,6 +6037,63 @@ input[type="number"] {
   border: 2px solid var(--line);
   margin: 0;
   accent-color: var(--accent-text);
+}
+
+/* "Last saved" strip above the form after a save (U-05): bill no., party, total, due; Print / WhatsApp / Open */
+.last-saved {
+  display: grid;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--positive);
+}
+
+.last-saved[hidden] {
+  display: none;
+}
+
+.last-saved-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--positive);
+  font-weight: var(--w-strong);
+}
+
+.last-saved-facts {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.last-saved-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.last-saved-actions > .last-saved-close {
+  margin-left: auto;
+}
+
+/* Undo after a removal (U-06): the toast with a button, which takes taps */
+.undo-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  text-align: left;
+}
+
+.undo-bar.show {
+  pointer-events: auto;
+}
+
+.undo-bar-btn {
+  flex: none;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
 }
 
 /* ---- css/bill-checks.css ---- */
@@ -5672,9 +6203,11 @@ tr.bill-check-line .bill-check-msg {
     margin: 0 0 var(--sp-1);
 }
 
-.bill-check-save-blocked {
-    opacity: 0.55;
-    cursor: not-allowed;
+/* A red problem: Save reads "Fix 2" in the danger colour and takes the user to it (U-33); never pale, it still works */
+.btn-primary.bill-check-save-blocked {
+    border-color: transparent;
+    background: var(--btn-danger-bg);
+    color: var(--btn-danger-ink);
 }
 
 .bill-check-save-override {
@@ -6481,6 +7014,75 @@ tr.bill-check-line .bill-check-msg {
   color: var(--negative);
 }
 
+/* History top on one row (U-73): date choice and search side by side, the "Date" label for screen readers only */
+.history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.history-controls > .history-date-filter {
+  flex: 1 1 calc(3 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls > .history-search {
+  flex: 2 1 calc(5 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls .history-date-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.history-search > .search-clear[hidden] {
+  display: none;
+}
+
+/* Table view needs a wide screen (U-70): phones keep the cards */
+@media (max-width: 599.98px) {
+  .history-table-toggle {
+    display: none;
+  }
+}
+
+/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end */
+.bill-view-head {
+  display: grid;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.bill-view-party {
+  overflow-wrap: anywhere;
+}
+
+.bill-view-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.bill-view-chips:empty {
+  display: none;
+}
+
+.bill-view-more {
+  margin-top: var(--sp-3);
+}
+
+.bill-view-more > summary {
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
 /* ---- css/outstanding.css ---- */
 /* Outstanding (redesign 5.3, DIRECTION 3.6): Purchases | Sales, search, kind chips, the owed hero with its
    aging meter and legend, who to chase, party rows and the bill list (#46, #77, #125, #166). Tokens only. */
@@ -6913,6 +7515,125 @@ tr.bill-check-line .bill-check-msg {
     padding: var(--sp-1) var(--sp-2);
 }
 
+/* ---------- Compact Outstanding (U-19, U-20, U-68, U-69, U-72) ---------- */
+.due-seg-total {
+    color: var(--ink-3);
+    font-size: var(--fs-caption);
+}
+
+.due-search > .search-clear {
+    position: absolute;
+    top: 50%;
+    right: var(--sp-1);
+    transform: translateY(-50%);
+}
+
+.due-search > .search-clear[hidden] {
+    display: none;
+}
+
+.aging-chase li {
+    padding: 0;
+}
+
+.aging-chase-tap {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    min-height: var(--control-h);
+    padding: var(--sp-2) var(--sp-4);
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aging-party-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: var(--control-h);
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aging-chase-tap:focus-visible,
+.aging-party-main:focus-visible,
+.aging-bills-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+}
+
+.aging-more > summary {
+    list-style: none;
+}
+
+.aging-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.aging-more[open] {
+    flex-basis: 100%;
+}
+
+.aging-more-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+}
+
+.aging-bills-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    min-height: var(--control-h);
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.aging-bills-toggle[aria-expanded="true"] > .i {
+    transform: rotate(180deg);
+}
+
+.due-bill-more > summary {
+    margin-top: var(--sp-2);
+    list-style: none;
+}
+
+.due-bill-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.due-pp-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+}
+
+.due-pp-billno {
+    color: var(--ink-3);
+    white-space: nowrap;
+}
+
+.due-dlg .field-error {
+    color: var(--negative);
+    font-size: var(--fs-sm);
+}
+
 /* ---- css/stock.css ---- */
 /* Stock page (5.6): Current stock, Not selling and Adjustment on the shared components */
 .stock-seg {
@@ -7047,6 +7768,11 @@ tr.bill-check-line .bill-check-msg {
 .stock-now {
   border-radius: var(--r-control);
   background: var(--surface-2);
+}
+
+/* Shown once an item is chosen (U-77) */
+.stock-now[hidden] {
+  display: none;
 }
 
 /* [data-history-item] is the hook (tests) */
@@ -7196,6 +7922,20 @@ tr.bill-check-line .bill-check-msg {
   font-size: var(--fs-lead);
   font-weight: var(--w-strong);
   color: var(--ink);
+}
+
+/* Print preview (U-66): the receipt picture keeps its own black on white; the frame is an app dialog */
+.print-preview-img {
+  display: block;
+  max-width: 100%;
+  max-height: 62vh;
+  margin: 0 auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+.print-preview-hint {
+  margin: var(--sp-3) 0 0;
 }
 
 .dialog-body {
@@ -7567,8 +8307,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 .role-table input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .role-table input[type="number"] {
@@ -7985,8 +8725,9 @@ body.no-perm-contacts [data-perm~="contacts"] {
 /* ---- css/day.css ---- */
 /* ==================== DAY PAGE STYLES ==================== */
 
+/* The page's own gutter comes from .tab (--gutter); no second side padding here (U-64) */
 .day-container {
-  padding: var(--sp-5);
+  padding: 0;
 }
 
 .day-tabs {
@@ -8207,6 +8948,24 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .cash-entry-meta, .cash-note { color: var(--ink-3); font-size: var(--fs-caption); }
 .cash-note + .cash-note { margin-top: var(--sp-1); }
 .cash-note strong { color: var(--ink-2); }
+
+/* Day details fold (U-35): open for the owner and manager, folded for Members */
+.today-more > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h);
+  list-style: none;
+  cursor: pointer;
+}
+
+.today-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.today-more[open] > summary > .i {
+  transform: rotate(180deg);
+}
 
 /* ---- css/anomalies.css ---- */
 /* Anomalies (#187, #40; 5.8a): Today's Day report card and the Anomalies page on the shared components */
@@ -8506,6 +9265,28 @@ body.no-perm-contacts [data-perm~="contacts"] {
   margin: 0;
   padding-left: var(--sp-5);
   font-size: var(--fs-sm);
+}
+
+/* Results first (U-74): the six filters fold behind one "Filters · Last 7 days" chip */
+.anom-filter-box {
+  margin-bottom: var(--sp-3);
+}
+
+.anom-filter-box > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h);
+  list-style: none;
+  cursor: pointer;
+}
+
+.anom-filter-box > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anom-filter-box[open] > summary {
+  margin-bottom: var(--sp-2);
 }
 
 /* ---- css/finance.css ---- */
@@ -8847,22 +9628,18 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 /* ---- css/app-updates.css ---- */
-/* What's new notes (an app dialog), Android update banner, Settings → App updates */
+/* What's new notes (an app dialog), Android update card, Settings → App updates */
 
 .whats-new-notes {
   margin: 0;
   padding-left: var(--sp-5);
 }
 
+/* Android update card: in the page at the top of Today, so it never covers a control */
 .app-update {
-  position: fixed;
-  left: var(--sp-2);
-  right: var(--sp-2);
-  bottom: calc(var(--sp-2) + env(safe-area-inset-bottom, 0px));
-  z-index: calc(var(--z-sheet) - 1);
   flex-wrap: wrap;
   align-items: center;
-  box-shadow: var(--e3);
+  margin-bottom: var(--sp-3);
 }
 
 .app-update-text {
@@ -9298,7 +10075,15 @@ body.no-perm-contacts [data-perm~="contacts"] {
     .ins-head > .ins-period { order: 2; }
     .ins-head > .ins-more { order: 3; }
     .ins-head > .ins-abbar { order: 4; }
+
+    /* Scrolled under the header (U-71): only the tabs stay; scroll to the top for the period */
+    .ins-head.ins-compact > .ins-period,
+    .ins-head.ins-compact > .ins-more,
+    .ins-head.ins-compact > .ins-abbar { display: none; }
+    .ins-head.ins-compact { padding-bottom: var(--sp-1); }
 }
+
+.ins-head-mark { height: 1px; }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
 
@@ -9317,7 +10102,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
     text-align: center;
 }
 
-.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: 44px; padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
+.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: var(--tap-min); padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
 
 .ins-more { align-self: flex-end; margin-top: var(--sp-1); }
 .ins-more[aria-expanded="true"] .ins-cmp-chev { transform: rotate(180deg); }
@@ -9474,6 +10259,26 @@ div.ins-wide,
 .ins-cmp-table .ins-cmp-up { color: var(--positive); }
 .ins-cmp-table .ins-cmp-down { color: var(--negative); }
 
+/* Party ledger on phones (U-21): one stacked row per entry, the balance always in view on the right */
+@media screen and (max-width: 599.98px) {
+  .st-ledger-wrap { overflow-x: visible; }
+  .st-ledger { width: 100%; }
+  .st-ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .st-ledger tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "when what bal" "sold paid bal"; column-gap: var(--sp-2); align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px var(--rule-style) var(--line); }
+  .st-ledger td { display: block; height: auto; padding: 0; border: none; }
+  .st-ledger .st-when { grid-area: when; color: var(--ink-3); white-space: nowrap; }
+  .st-ledger .st-what { grid-area: what; overflow-wrap: anywhere; }
+  .st-ledger .st-sold { grid-area: sold; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-paid { grid-area: paid; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-sold:not(:empty)::before,
+  .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
+  .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
+}
+
+/* Day book: ‹ day › with a date box for a jump (U-94) */
+.st-day-step { flex-wrap: wrap; }
+.st-day-pick { flex: 0 1 auto; width: auto; }
+
 /* ---- css/desktop.css ---- */
 /* ==================== DESKTOP LAYOUT (wide screens only) ====================
    Everything here is inside min-width media queries so phones (<1024px) are
@@ -9492,6 +10297,7 @@ div.ins-wide,
     --desktop-gutter: max(var(--sp-8), calc((100vw - var(--desktop-nav-width) - var(--desktop-content-max)) / 2));
     /* Desktop density (DIRECTION §5): 36 px controls, 44 px rows */
     --control-h: 36px;
+    --tap-min: 44px;
     --row-h: 44px;
     /* Desktop type scale (DIRECTION §3.2); html[lang="hi"] keeps its larger --fs-sm / --fs-body */
     --fs-body: 14px;
@@ -9837,8 +10643,9 @@ div.ins-wide,
     align-items: start;
   }
 
-  /* Live bill-check banner (#188) spans both columns */
-  .bill-check-notice {
+  /* Live bill-check banner (#188) and the Last saved strip (U-05) span both columns */
+  .bill-check-notice,
+  .last-saved {
     grid-column: 1 / -1;
   }
 

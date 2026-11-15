@@ -1,7 +1,8 @@
 /* ==================== DAY PAGE STYLES ==================== */
 
+/* The page's own gutter comes from .tab (--gutter); no second side padding here (U-64) */
 .day-container {
-  padding: var(--sp-5);
+  padding: 0;
 }
 
 .day-tabs {
@@ -222,3 +223,21 @@
 .cash-entry-meta, .cash-note { color: var(--ink-3); font-size: var(--fs-caption); }
 .cash-note + .cash-note { margin-top: var(--sp-1); }
 .cash-note strong { color: var(--ink-2); }
+
+/* Day details fold (U-35): open for the owner and manager, folded for Members */
+.today-more > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h);
+  list-style: none;
+  cursor: pointer;
+}
+
+.today-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.today-more[open] > summary > .i {
+  transform: rotate(180deg);
+}

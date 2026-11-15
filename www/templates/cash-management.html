@@ -64,13 +64,13 @@
                     <label for="cashSignInAmount" data-i18n="ui.cash.opening_cash_amount">Opening cash</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" min="0" id="cashSignInAmount" placeholder="0 if empty" data-i18n-placeholder="ui.cash.enter_cash_amount_you"/>
+                        <input type="number" class="input" inputmode="decimal" min="0" id="cashSignInAmount" enterkeyhint="next" placeholder="0 if empty" data-i18n-placeholder="ui.cash.enter_cash_amount_you"/>
                     </div>
                     <div id="cashSignInSuggestion" class="cash-hint cash-off"></div>
                 </div>
                 <div class="field">
                     <label for="cashSignInNotes" data-i18n="ui.cash.opening_note_optional">Opening note (optional)</label>
-                    <input type="text" class="input" id="cashSignInNotes" maxlength="200" placeholder="e.g., Counted by Ramesh" data-i18n-placeholder="ui.cash.counted_ramesh"/>
+                    <input type="text" class="input" id="cashSignInNotes" enterkeyhint="done" maxlength="200" placeholder="e.g., Counted by Ramesh" data-i18n-placeholder="ui.cash.counted_ramesh"/>
                 </div>
                 <button type="button" class="btn btn-primary btn-block" data-cash-save="open" data-onclick="cashManagement.signIn()">
                     <svg class="i" aria-hidden="true" focusable="false"><use href="#i-check"/></svg><span data-i18n="ui.cash.sign_in_today">Open cash for today</span>
@@ -95,13 +95,13 @@
                     <label id="amountLabel" for="transactionAmount" data-i18n="ui.cash.amount_added">Amount added</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="transactionAmount" placeholder="Enter amount" data-i18n-placeholder="ui.cash.enter_amount"/>
+                        <input type="number" class="input" inputmode="decimal" id="transactionAmount" enterkeyhint="next" placeholder="Enter amount" data-i18n-placeholder="ui.cash.enter_amount"/>
                     </div>
                 </div>
 
                 <div class="field cash-off" id="customerNameRow">
                     <label for="partyName" data-i18n="ui.cash.customer_supplier_name">Customer / supplier name</label>
-                    <input type="text" class="input" id="partyName" list="customerOptionsForDue" placeholder="Enter customer name" data-i18n-placeholder="ui.common.enter_customer_name"/>
+                    <input type="text" class="input" id="partyName" enterkeyhint="next" list="customerOptionsForDue" placeholder="Enter customer name" data-i18n-placeholder="ui.common.enter_customer_name"/>
                     <datalist id="customerOptionsForDue"></datalist>
                 </div>
 
@@ -113,7 +113,7 @@
 
                 <div class="field">
                     <label id="notesLabel" for="transactionNotes" data-i18n="ui.cash.reason_optional">Reason (optional)</label>
-                    <input type="text" class="input" id="transactionNotes" placeholder="e.g., Cash low, Bill reference, etc." data-i18n-placeholder="ui.cash.cash_low_bill_reference"/>
+                    <input type="text" class="input" id="transactionNotes" enterkeyhint="done" placeholder="e.g., Cash low, Bill reference, etc." data-i18n-placeholder="ui.cash.cash_low_bill_reference"/>
                 </div>
 
                 <button type="button" class="btn btn-tonal btn-block" data-cash-save="entry" data-onclick="cashManagement.recordTransaction()">
@@ -156,7 +156,7 @@
                     <label for="cashSignOutAmount" data-i18n="ui.cash.cash_in_hand">Cash in hand</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="cashSignOutAmount" min="0" placeholder="0 if empty" data-i18n-placeholder="ui.cash.enter_actual_cash_0"/>
+                        <input type="number" class="input" inputmode="decimal" id="cashSignOutAmount" enterkeyhint="next" min="0" placeholder="0 if empty" data-i18n-placeholder="ui.cash.enter_actual_cash_0"/>
                     </div>
                 </div>
 
@@ -164,7 +164,7 @@
 
                 <div class="field">
                     <label for="cashSignOutNotes" data-i18n="ui.cash.closing_note_optional">Closing note (optional)</label>
-                    <input type="text" class="input" id="cashSignOutNotes" maxlength="200" placeholder="e.g., Took ₹2,000 home" data-i18n-placeholder="ui.cash.took_2_000_home"/>
+                    <input type="text" class="input" id="cashSignOutNotes" enterkeyhint="done" maxlength="200" placeholder="e.g., Took ₹2,000 home" data-i18n-placeholder="ui.cash.took_2_000_home"/>
                 </div>
 
                 <button type="button" class="btn btn-primary btn-block" data-cash-save="close" data-onclick="cashManagement.signOut()">

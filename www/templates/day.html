@@ -61,125 +61,10 @@
                     <div class="metric-value" id="todayBusinessExpenses">₹0</div>
                     <div class="metric-sub" id="todayBusinessExpenseCount"><span data-i18n="ui.day.0_entries">0 entries</span></div>
                 </div>
-                <div class="metric">
+                <div class="metric" data-perm="personalExpenses">
                     <div class="metric-label" data-i18n="ui.today.personal_exp">Personal exp.</div>
                     <div class="metric-value" id="todayPersonalExpenses">₹0</div>
                     <div class="metric-sub" id="todayPersonalExpenseCount"><span data-i18n="ui.day.0_entries">0 entries</span></div>
-                </div>
-            </div>
-
-            <!-- LABOUR: deducted from farmers (T-LAB-1), paid to labourers (T-LAB-4), the difference (T-LAB-5) and the estimate to pay (T-LAB-2); tap for bill-wise breakdown -->
-            <h3 class="section-title" data-i18n="ui.today.labor">Labour</h3>
-            <div id="todayLabourCard" class="panel panel-tap today-labour" role="button" tabindex="0"
-                data-onclick="day.showLabourBreakdown()">
-                <div class="today-labour-line">
-                    <span data-i18n="ui.today.labour_deducted">Deducted from farmers</span>
-                    <strong id="todayLaborCost">₹0</strong>
-                    <span class="today-labour-sub" id="todayLabourDeductedBills"></span>
-                </div>
-                <div class="today-labour-line">
-                    <span data-i18n="ui.today.labour_paid">Paid to labourers</span>
-                    <strong id="todayLabourPaid">₹0</strong>
-                    <span class="today-labour-sub" id="todayLabourPaidCount"></span>
-                </div>
-                <div class="today-labour-diff" id="todayLabourPaidDiff"></div>
-                <div class="today-labour-line">
-                    <span data-i18n="ui.today.labour_to_pay">To pay labour (estimate)</span>
-                    <strong id="todayLabourToPay">₹0</strong>
-                    <span class="today-labour-sub" id="todayLabourToPayCalc"></span>
-                </div>
-                <div class="today-labour-diff" id="todayLabourDiff"></div>
-                <div class="today-labour-hint" data-i18n="ui.today.labour_tap_hint">Tap for each bill</div>
-            </div>
-
-            <!-- Cash and online in (T6, T7) and out (T8, T9) -->
-            <h3 class="section-title" data-i18n="ui.today.payment_breakdown">Payment breakdown</h3>
-            <div class="panel metrics">
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.today.cash_out">Cash out</div>
-                    <div class="metric-value" id="todayCashPaid">₹0</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.today.cash_in">Cash in</div>
-                    <div class="metric-value" id="todayCashReceived">₹0</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.today.online_out">Online out</div>
-                    <div class="metric-value" id="todayOnlinePaid">₹0</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.today.online_in">Online in</div>
-                    <div class="metric-value" id="todayOnlineReceived">₹0</div>
-                </div>
-            </div>
-
-            <!-- Dues settled (T13, T14) and new today (T15, T16) -->
-            <h3 class="section-title" data-i18n="ui.today.due_summary">Due summary</h3>
-            <div class="panel metrics">
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.common.due_received">Due received</div>
-                    <div class="metric-value" id="todayDueReceived">₹0</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.common.due_paid">Due paid</div>
-                    <div class="metric-value" id="todayDuePaid">₹0</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.today.due_receive">New udhaar today</div>
-                    <div class="metric-value" id="todayDueToReceive">₹0</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.today.due_pay">New to pay today</div>
-                    <div class="metric-value" id="todayDueToPay">₹0</div>
-                </div>
-            </div>
-
-            <!-- BY BILL TYPE (T18): cash / online at save, due still open -->
-            <h3 class="section-title" data-i18n="ui.today.ch_title">By bill type</h3>
-            <div class="panel" id="todayChannelsCard">
-                <div class="today-channels">
-                    <div class="today-channel" id="todayChRetail">
-                        <div class="today-channel-head">
-                            <span class="today-channel-name" data-i18n="ui.finance.bill_retail">Retail sale</span>
-                            <span class="today-channel-count" id="todayChRetailCount"></span>
-                            <strong class="today-channel-total" id="todayChRetailTotal">₹0</strong>
-                        </div>
-                        <div class="today-channel-split">
-                            <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChRetailCash">₹0</strong></div>
-                            <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChRetailOnline">₹0</strong></div>
-                            <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChRetailPaidLater">₹0</strong></div>
-                            <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChRetailDue">₹0</strong></div>
-                            <div class="today-channel-writeoff" id="todayChRetailWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChRetailWrittenOff">₹0</strong></div>
-                        </div>
-                    </div>
-                    <div class="today-channel" id="todayChWholesale">
-                        <div class="today-channel-head">
-                            <span class="today-channel-name" data-i18n="ui.finance.bill_wholesale">Wholesale sale</span>
-                            <span class="today-channel-count" id="todayChWholesaleCount"></span>
-                            <strong class="today-channel-total" id="todayChWholesaleTotal">₹0</strong>
-                        </div>
-                        <div class="today-channel-split">
-                            <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChWholesaleCash">₹0</strong></div>
-                            <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChWholesaleOnline">₹0</strong></div>
-                            <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChWholesalePaidLater">₹0</strong></div>
-                            <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChWholesaleDue">₹0</strong></div>
-                            <div class="today-channel-writeoff" id="todayChWholesaleWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChWholesaleWrittenOff">₹0</strong></div>
-                        </div>
-                    </div>
-                    <div class="today-channel" id="todayChPurchase">
-                        <div class="today-channel-head">
-                            <span class="today-channel-name" data-i18n="ui.reports.pdf_purchase">Purchase</span>
-                            <span class="today-channel-count" id="todayChPurchaseCount"></span>
-                            <strong class="today-channel-total" id="todayChPurchaseTotal">₹0</strong>
-                        </div>
-                        <div class="today-channel-split">
-                            <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChPurchaseCash">₹0</strong></div>
-                            <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChPurchaseOnline">₹0</strong></div>
-                            <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChPurchasePaidLater">₹0</strong></div>
-                            <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChPurchaseDue">₹0</strong></div>
-                            <div class="today-channel-writeoff" id="todayChPurchaseWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChPurchaseWrittenOff">₹0</strong></div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -190,20 +75,138 @@
                 <button type="button" id="todayBillsMore" class="btn btn-ghost btn-block today-bills-more" hidden data-onclick="day.toggleAllBills()"></button>
             </div>
 
-            <!-- ITEM DETAILS (T17) -->
-            <h3 class="section-title" data-i18n="ui.today.purchase_details">Purchase details</h3>
-            <div class="panel">
-                <div id="todayPurchaseItems" class="items-grid">
-                    <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.today.no_purchases_today">No purchases today</b></div>
+            <details class="today-more" id="todayMore">
+                <summary class="section-title today-more-title"><span data-i18n="ui.today.day_details">Day details</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></summary>
+                <!-- LABOUR: deducted from farmers (T-LAB-1), paid to labourers (T-LAB-4), the difference (T-LAB-5) and the estimate to pay (T-LAB-2); tap for bill-wise breakdown -->
+                <h3 class="section-title" data-i18n="ui.today.labor">Labour</h3>
+                <div id="todayLabourCard" class="panel panel-tap today-labour" role="button" tabindex="0"
+                    data-onclick="day.showLabourBreakdown()">
+                    <div class="today-labour-line">
+                        <span data-i18n="ui.today.labour_deducted">Deducted from farmers</span>
+                        <strong id="todayLaborCost">₹0</strong>
+                        <span class="today-labour-sub" id="todayLabourDeductedBills"></span>
+                    </div>
+                    <div class="today-labour-line">
+                        <span data-i18n="ui.today.labour_paid">Paid to labourers</span>
+                        <strong id="todayLabourPaid">₹0</strong>
+                        <span class="today-labour-sub" id="todayLabourPaidCount"></span>
+                    </div>
+                    <div class="today-labour-diff" id="todayLabourPaidDiff"></div>
+                    <div class="today-labour-line">
+                        <span data-i18n="ui.today.labour_to_pay">To pay labour (estimate)</span>
+                        <strong id="todayLabourToPay">₹0</strong>
+                        <span class="today-labour-sub" id="todayLabourToPayCalc"></span>
+                    </div>
+                    <div class="today-labour-diff" id="todayLabourDiff"></div>
+                    <div class="today-labour-hint" data-i18n="ui.today.labour_tap_hint">Tap for each bill</div>
                 </div>
-            </div>
 
-            <h3 class="section-title" data-i18n="ui.today.sale_details">Sale details</h3>
-            <div class="panel">
-                <div id="todaySaleItems" class="items-grid">
-                    <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.today.no_sales_today">No sales today</b></div>
+                <!-- Cash and online in (T6, T7) and out (T8, T9) -->
+                <h3 class="section-title" data-i18n="ui.today.payment_breakdown">Payment breakdown</h3>
+                <div class="panel metrics">
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.today.cash_out">Cash out</div>
+                        <div class="metric-value" id="todayCashPaid">₹0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.today.cash_in">Cash in</div>
+                        <div class="metric-value" id="todayCashReceived">₹0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.today.online_out">Online out</div>
+                        <div class="metric-value" id="todayOnlinePaid">₹0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.today.online_in">Online in</div>
+                        <div class="metric-value" id="todayOnlineReceived">₹0</div>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Dues settled (T13, T14) and new today (T15, T16) -->
+                <h3 class="section-title" data-i18n="ui.today.due_summary">Due summary</h3>
+                <div class="panel metrics">
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.common.due_received">Due received</div>
+                        <div class="metric-value" id="todayDueReceived">₹0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.common.due_paid">Due paid</div>
+                        <div class="metric-value" id="todayDuePaid">₹0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.today.due_receive">New udhaar today</div>
+                        <div class="metric-value" id="todayDueToReceive">₹0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label" data-i18n="ui.today.due_pay">New to pay today</div>
+                        <div class="metric-value" id="todayDueToPay">₹0</div>
+                    </div>
+                </div>
+
+                <!-- BY BILL TYPE (T18): cash / online at save, due still open -->
+                <h3 class="section-title" data-i18n="ui.today.ch_title">By bill type</h3>
+                <div class="panel" id="todayChannelsCard">
+                    <div class="today-channels">
+                        <div class="today-channel" id="todayChRetail">
+                            <div class="today-channel-head">
+                                <span class="today-channel-name" data-i18n="ui.finance.bill_retail">Retail sale</span>
+                                <span class="today-channel-count" id="todayChRetailCount"></span>
+                                <strong class="today-channel-total" id="todayChRetailTotal">₹0</strong>
+                            </div>
+                            <div class="today-channel-split">
+                                <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChRetailCash">₹0</strong></div>
+                                <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChRetailOnline">₹0</strong></div>
+                                <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChRetailPaidLater">₹0</strong></div>
+                                <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChRetailDue">₹0</strong></div>
+                                <div class="today-channel-writeoff" id="todayChRetailWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChRetailWrittenOff">₹0</strong></div>
+                            </div>
+                        </div>
+                        <div class="today-channel" id="todayChWholesale">
+                            <div class="today-channel-head">
+                                <span class="today-channel-name" data-i18n="ui.finance.bill_wholesale">Wholesale sale</span>
+                                <span class="today-channel-count" id="todayChWholesaleCount"></span>
+                                <strong class="today-channel-total" id="todayChWholesaleTotal">₹0</strong>
+                            </div>
+                            <div class="today-channel-split">
+                                <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChWholesaleCash">₹0</strong></div>
+                                <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChWholesaleOnline">₹0</strong></div>
+                                <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChWholesalePaidLater">₹0</strong></div>
+                                <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChWholesaleDue">₹0</strong></div>
+                                <div class="today-channel-writeoff" id="todayChWholesaleWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChWholesaleWrittenOff">₹0</strong></div>
+                            </div>
+                        </div>
+                        <div class="today-channel" id="todayChPurchase">
+                            <div class="today-channel-head">
+                                <span class="today-channel-name" data-i18n="ui.reports.pdf_purchase">Purchase</span>
+                                <span class="today-channel-count" id="todayChPurchaseCount"></span>
+                                <strong class="today-channel-total" id="todayChPurchaseTotal">₹0</strong>
+                            </div>
+                            <div class="today-channel-split">
+                                <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChPurchaseCash">₹0</strong></div>
+                                <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChPurchaseOnline">₹0</strong></div>
+                                <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChPurchasePaidLater">₹0</strong></div>
+                                <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChPurchaseDue">₹0</strong></div>
+                                <div class="today-channel-writeoff" id="todayChPurchaseWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChPurchaseWrittenOff">₹0</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ITEM DETAILS (T17) -->
+                <h3 class="section-title" data-i18n="ui.today.purchase_details">Purchase details</h3>
+                <div class="panel">
+                    <div id="todayPurchaseItems" class="items-grid">
+                        <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.today.no_purchases_today">No purchases today</b></div>
+                    </div>
+                </div>
+
+                <h3 class="section-title" data-i18n="ui.today.sale_details">Sale details</h3>
+                <div class="panel">
+                    <div id="todaySaleItems" class="items-grid">
+                        <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.today.no_sales_today">No sales today</b></div>
+                    </div>
+                </div>
+            </details>
             </div>
 
         </div>

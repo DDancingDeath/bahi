@@ -1,0 +1,89 @@
+/* High contrast / Sunlight (U-83): for the counter in bright sun. Black on white with dark edges and deep colours;
+   in dark, white on black with a yellow accent. Colours are screen-only, so printing uses the Modern light values. */
+@media screen {
+  [data-theme="sunlight"]:not([data-mode="dark"]) {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #ededed;
+    --surface-3: #dcdcdc;
+    --line: #8c8c8c;
+    --line-strong: #4d4d4d;
+    --line-control: #1f1f1f;
+    --ink: #000000;
+    --ink-2: #1a1a1a;
+    --ink-3: #333333;
+    --ink-placeholder: #4d4d4d;
+    --accent: #0038b8;
+    --accent-hover: #002d94;
+    --accent-strong: #002d94;
+    --accent-text: #00309e;
+    --accent-soft: #dde6ff;
+    --accent-line: #0038b8;
+    --mode-sale: #005c33;
+    --mode-sale-soft: #d6f0e2;
+    --mode-wholesale: #4b1aa8;
+    --mode-wholesale-soft: #e8defc;
+    --mode-rentals: #005566;
+    --positive: #005c33;
+    --positive-soft: #d6f0e2;
+    --negative: #a3001b;
+    --negative-soft: #ffe0e5;
+    --negative-fill: #a3001b;
+    --warning: #7a3d00;
+    --warning-soft: #ffeccc;
+    --info: #00477a;
+    --info-soft: #dcefff;
+    --e1: 0 0 0 1px #4d4d4d;
+    --seg-track: #dcdcdc;
+    --toast-bg: #000000;
+    --toast-ink: #ffffff;
+  }
+
+  [data-theme="sunlight"][data-mode="dark"] {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #0d0d0d;
+    --surface-2: #1a1a1a;
+    --surface-3: #262626;
+    --line: rgba(255, 255, 255, 0.4);
+    --line-strong: rgba(255, 255, 255, 0.6);
+    --line-control: rgba(255, 255, 255, 0.85);
+    --ink: #ffffff;
+    --ink-2: #f0f0f0;
+    --ink-3: #d6d6d6;
+    --ink-placeholder: #bdbdbd;
+    --accent: #ffd60a;
+    --accent-hover: #ffe14d;
+    --accent-strong: #3d3300;
+    --accent-text: #ffd60a;
+    --accent-soft: rgba(255, 214, 10, 0.18);
+    --accent-line: #ffd60a;
+    --on-accent: #000000;
+    --mode-sale: #4ef08f;
+    --on-mode-sale: #000000;
+    --mode-sale-soft: rgba(78, 240, 143, 0.18);
+    --mode-wholesale: #d2b4ff;
+    --on-mode-wholesale: #000000;
+    --mode-wholesale-soft: rgba(210, 180, 255, 0.18);
+    --mode-rentals: #6fe3f5;
+    --positive: #4ef08f;
+    --positive-soft: rgba(78, 240, 143, 0.18);
+    --negative: #ff9a9a;
+    --negative-soft: rgba(255, 154, 154, 0.18);
+    --negative-fill: #b00020;
+    --warning: #ffd60a;
+    --warning-soft: rgba(255, 214, 10, 0.18);
+    --info: #8fd6ff;
+    --info-soft: rgba(143, 214, 255, 0.18);
+    --caution-soft: rgba(255, 170, 80, 0.2);
+    --on-caution-soft: #ffc58a;
+    --seg-on: #262626;
+    --toast-bg: #ffffff;
+    --toast-ink: #000000;
+    --toast-pos: #005c33;
+    --toast-neg: #a3001b;
+    --toast-warn: #7a3d00;
+    --toast-info: #00309e;
+  }
+}

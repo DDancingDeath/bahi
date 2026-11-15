@@ -75,6 +75,8 @@ www/js/modules/money.js: c.dir
 www/js/modules/money.js: card
 www/js/modules/money.js: change(now, then) (markup via compareHtml)
 www/js/modules/money.js: compareTableHtml(this.compareRows(m, b), { a, b: labels.b }) (sink via this.html)
+www/js/modules/money.js: doubtfulRatesNoticeHtml(['purchase', 'retail', 'wholesale']) (sink via this.html)
+www/js/modules/money.js: doubtfulRatesNoticeHtml(['purchase']) (sink via this.html)
 www/js/modules/money.js: figuresFromSnapshot(this.snapshots[lyKey(k)])?.M6 (markup via map(v => (v === null ? NaN : v)))
 www/js/modules/money.js: formatDay(k, { lang, year: false }) (markup via barsSvg)
 www/js/modules/money.js: formatDay(x.from, { lang, year }) (markup via this.renderCash)
@@ -192,17 +194,18 @@ www/js/modules/money.js: v (markup via barsSvg)
 www/js/modules/money.js: value (sink)
 www/js/modules/outstanding.js: Helpers.formatDate(transaction.date)
 www/js/modules/outstanding.js: by
-www/js/modules/outstanding.js: chaseFirst(aging.parties) (markup via map(p => ` <li class="row aging-b${p.bucket}"><span class="row-main"><strong>${partyName(p)}</strong> — ${moneyHtml(p.total)} · ${withMoney(t('u) .bucket)
+www/js/modules/outstanding.js: chaseFirst(aging.parties) (markup via map(p => ` <li class="row aging-b${p.bucket}"><button type="button" class="aging-chase-tap" data-onclick="${esc(chaseTap(p))}"><span class="row-) .bucket)
 www/js/modules/outstanding.js: i
 www/js/modules/outstanding.js: i
 www/js/modules/outstanding.js: label
 www/js/modules/outstanding.js: p.bucket
 www/js/modules/outstanding.js: p.bucket
 www/js/modules/outstanding.js: p.bucket
-www/js/modules/outstanding.js: sortParties(aging.parties, this.agingSort) (markup via map(p => ` <div class="aging-party row aging-b${p.bucket}"> <span class="lead-icon aging-avatar" data-initials="${esc(initials(p.name))}" aria-h) .bucket)
+www/js/modules/outstanding.js: sortParties(aging.parties, this.agingSort) (markup via map(p => { const phone = normalizePhone(p.phone); const more = `${isPayable ? '' : `<button type="button" class="btn btn-sm btn-ghost aging-remi) .bucket)
 www/js/modules/purchase.js: i
 www/js/modules/purchase.js: index
 www/js/modules/purchase.js: index
+www/js/modules/purchase.js: lineNameHtml(lineLabel(item), item.weights)
 www/js/modules/rate-trends.js: READ_BUDGET_OPTIONS (markup via map(v => `<option value="${v}"${v === budget ? ' selected' : ''}>${v.toLocaleString('en-IN')}</option>`))
 www/js/modules/rate-trends.js: YEAR_COLORS[i] ← YEAR_COLORS = ['#dc2626', '#2563eb', '#059669', '#7c3aed', '#d97706']
 www/js/modules/rate-trends.js: d.days ← d = dailyTraffic(loadedBills(), AppState.items || [], itemId, month) (markup via map(x => `<tr><td>${esc(`${Number(x.day.slice(8, 10))} ${monthLabel(month, lang, false)}`)}</td>${cells(x)}</tr>`))
@@ -218,8 +221,8 @@ www/js/modules/rate-trends.js: kgText(s.kg) ← Math.round(Number(n) || 0).toLoc
 www/js/modules/rate-trends.js: kgText(s.kg) ← Math.round(Number(n) || 0).toLocaleString('en-IN')
 www/js/modules/rate-trends.js: n
 www/js/modules/rate-trends.js: new Set(Object.keys(series).map(m => Number(m.slice(0, 4)))) (markup via map((y, i) => `<span><i class="rt-sw-year" style="--c:${YEAR_COLORS[i]}"></i>${y}</span>`))
-www/js/modules/rate-trends.js: o.confidence ← o = this.outlookFor(kind)
-www/js/modules/rate-trends.js: o.direction ← o = this.outlookFor(kind)
+www/js/modules/rate-trends.js: o.confidence ← o = outlooks[i]
+www/js/modules/rate-trends.js: o.direction ← o = outlooks[i]
 www/js/modules/rate-trends.js: r ? r.bills : 0 ← r.bills {r = byPeriod.get(p)}
 www/js/modules/rate-trends.js: r.bills
 www/js/modules/rate-trends.js: r[k] (markup via cell .bills)
@@ -235,6 +238,7 @@ www/js/modules/rate-trends.js: y
 www/js/modules/retail-sale.js: i
 www/js/modules/retail-sale.js: index
 www/js/modules/retail-sale.js: index
+www/js/modules/retail-sale.js: lineNameHtml(lineLabel(item), item.weights)
 www/js/modules/roles-access.js: CONFIGURABLE_ROLES (markup via map(r => ` <td><input type="checkbox" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMISSION_LABEL_KEYS[p])} – ${t(ROLE_LABEL_KEYS[r])}`)}"${acce))
 www/js/modules/roles-access.js: CONFIGURABLE_ROLES (markup via map(r => ` <td><input type="number" inputmode="numeric" min="0" max="${DAY_LIMITS[p]}" step="1" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMI))
 www/js/modules/roles-access.js: CONFIGURABLE_ROLES (markup via map(r => r !== 'manager' ? '<td>–</td>' : ` <td><input type="checkbox" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMISSION_LABEL_KEYS[p])} – $))
@@ -299,10 +303,13 @@ www/js/modules/statements.js: totals.purchases ← totals from dayBook(this.src(
 www/js/modules/statements.js: totals.sales ← totals from dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions:  (markup via map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.stat))
 www/js/modules/statements.js: totals.salesCount ← totals from dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions:  (markup via map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.stat))
 www/js/modules/statements.js: totals.withdrawals ← totals from dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions:  (markup via map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.stat))
+www/js/modules/stock.js: doubtfulRatesNoticeHtml(['purchase']) (sink)
 www/js/modules/voice-billing.js: value
 www/js/modules/wholesale-sales.js: billTableHtml(bills, { openings: this.historyOpenings, voided: this.historyVoided, onclickFor: (sale) => `wholesaleSales.reprintSaleById('${ (sink)
 www/js/modules/wholesale-sales.js: editsRowHtml(sale, 'history.showEdits()')
 www/js/modules/wholesale-sales.js: index
+www/js/modules/wholesale-sales.js: index
+www/js/modules/wholesale-sales.js: lineNameHtml(lineItemIdentity(item, AppState.items, AppState.settings.showHindi).label)
 www/js/modules/wholesale-sales.js: voidedBannerHtml(sale)
 www/js/rentals/rent-advanced.js: actions ← c.payBtns(lease.id) | c.receiptsBtn(lease.tenantId)
 www/js/rentals/rent-advanced.js: args
@@ -416,6 +423,7 @@ www/js/ui/finance-breakdown-sheet.js: groupOptions(b.rows) (markup via map(g => 
 www/js/ui/finance-breakdown-sheet.js: value
 www/js/ui/icons.js: name
 www/js/ui/icons.js: size ? ` ${size}` : '' ← size
+www/js/ui/last-saved.js: iconHtml (sink)
 www/js/ui/manual-reminders.js: REMINDER_PARTY_MAX
 www/js/ui/manual-reminders.js: REMINDER_TITLE_MAX
 www/js/ui/period-compare.js: Object.freeze(['last-month', 'this-month', 'last-year', 'this-year', 'last-fy', 'this-fy', 'last-30']) (markup via map(p => [p, t(PRESET_KEYS[p])]))

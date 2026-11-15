@@ -12,6 +12,7 @@ import { SyncStatus } from './ui/sync-status.js';
 import { startClockCheck } from './ui/clock-banner.js';
 import { installStickyFocus } from './ui/sticky-focus.js';
 import { ThemeManager, CHOICE_AT_LOAD } from './ui/theme.js';
+import { watchSystemBars, keepFocusInView } from './utils/native-shell.js';
 import { AuthManager } from './auth/authentication.js';
 import { FirebaseService } from './firebase/firestore-service.js';
 import { userProfile, saveOwnSavedRanges } from './firebase/repos/users.js';
@@ -775,6 +776,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await injectTemplates();
     markStartup('shell');
     bootStep(t('ui.boot.signing_in'));
+    watchSystemBars();
+    keepFocusInView();
     
     // STEP 2: Initialize auth tabs after templates are loaded
     AuthManager.initAuthTabs();
@@ -1083,6 +1086,7 @@ window.app = {
         renderTable: () => ItemsManager.renderItemsTable(),
         refreshTable: () => ItemsManager.refreshTable(),
         search: (query) => ItemsManager.renderItemsTable(query),
+        clearSearch: () => ItemsManager.clearSearch(),
         openAddModal: () => ItemsManager.openAddModal(),
         openEditModal: (id) => ItemsManager.openEditModal(id),
         closeItemModal: () => ItemsManager.closeItemModal(),
@@ -1277,6 +1281,7 @@ window.app = {
         loadItemDetails: () => withWholesale(m => m.loadItemDetails()),
         addToWholesaleBill: () => withWholesale(m => m.addToWholesaleBill()),
         removeWholesaleItem: (index) => withWholesale(m => m.removeWholesaleItem(index)),
+        editWholesaleItem: (index) => withWholesale(m => m.editWholesaleItem(index)),
         completeSale: () => withWholesale(m => m.completeSale()),
         printWholesaleSale: () => withWholesale(m => m.printWholesaleSale()),
         shareViaWhatsApp: () => withWholesale(m => m.shareViaWhatsApp()),
@@ -1299,7 +1304,13 @@ window.app = {
         fillReceivableAmount: (type) => withWholesale(m => m.fillReceivableAmount(type)),
         putRestInDue: () => withWholesale(m => m.putRestInDue()),
         pickContact: () => withWholesale(m => m.pickContact()),
-        clearOutstandingParty: () => withWholesale(m => m.clearOutstandingParty())
+        clearOutstandingParty: () => withWholesale(m => m.clearOutstandingParty()),
+        // Edit a saved sale (U-30): the page is put in first when it was never opened (#66)
+        openEditor: async (bill) => {
+            await NavigationManager.showTab('wholesale-sales');
+            return withWholesale(m => m.openEditor(bill));
+        },
+        cancelEdit: () => withWholesale(m => m.cancelEdit())
     },
     
     // History
@@ -1316,6 +1327,7 @@ window.app = {
         showEdits: () => HistoryManager.showEdits(),
         filterHistory: (type, event) => HistoryManager.filterHistory(type, event),
         searchHistory: (searchTerm) => HistoryManager.searchHistory(searchTerm),
+        clearSearch: () => HistoryManager.clearSearch(),
         toggleView: () => HistoryManager.toggleView(),
         setDatePreset: (preset) => HistoryManager.setDatePreset(preset),
         setCustomRange: (from, to) => HistoryManager.setCustomRange(from, to),
@@ -1341,6 +1353,14 @@ window.app = {
     // Outstanding
     outstanding: {
         filterDue: (filter, evt) => OutstandingManager.filterDue(filter, evt),
+        currentFilter: () => OutstandingManager.dueFilter(),
+        toggleBills: () => OutstandingManager.toggleBills(),
+        billMoreToggled: (id, open) => OutstandingManager.billMoreToggled(id, open),
+        openParty: (partyKey) => OutstandingManager.openParty(partyKey),
+        callParty: (partyKey) => OutstandingManager.callParty(partyKey),
+        clearSearch: () => OutstandingManager.clearSearch(),
+        partyPayQuick: (what) => OutstandingManager.partyPayQuick(what),
+        partyPaySplitShow: () => OutstandingManager.partyPaySplitShow(),
         render: () => OutstandingManager.renderDue(),
         renderDue: () => OutstandingManager.renderDue(),
         searchOutstanding: () => OutstandingManager.searchOutstanding(),
@@ -1392,7 +1412,7 @@ window.app = {
     
     // Anomalies (#187, #40): Day report card on Today + Anomalies page (anomalies.js is imported on first use)
     anomalies: {
-        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'review',
+        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'correctRate', 'review',
             'shareDayReport', 'printDayReport', 'refreshNow']
             .map(name => [name, (...args) => loadAnomalies().then(m => m[name](...args))])),
         // The cash-close screen's line, when the code is loaded (owner/manager phones load it after the first screen)
@@ -1424,7 +1444,7 @@ window.app = {
             .catch(e => console.warn('Money not loaded:', e?.message || e)),
         ...Object.fromEntries(['setSection', 'setPreset', 'step', 'loadOlder', 'buildHistory', 'toggleWithdrawalForm',
             'saveWithdrawal', 'saveAccount', 'removeAccount', 'useThisPhonesAccounts', 'render',
-            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare']
+            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare', 'loadLinked']
             .map(name => [name, (...args) => loadMoney().then(m => m[name](...args))]))
     },
     // Insights (redesign §5.3): insights.js is imported on first use
@@ -1452,7 +1472,7 @@ window.app = {
     statements: {
         init: (route) => loadStatements().then(m => m.init(route))
             .catch(e => console.warn('Statements not loaded:', e?.message || e)),
-        ...Object.fromEntries(['open', 'back', 'set', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
+        ...Object.fromEntries(['open', 'back', 'set', 'stepDay', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
             .map(name => [name, (...args) => loadStatements().then(m => m[name](...args))]))
     },
 

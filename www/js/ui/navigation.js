@@ -14,6 +14,15 @@ const isSheet = () => typeof window === 'undefined' || !window.matchMedia || !wi
 
 const shown = (el) => !!el && el.isConnected && el.getClientRects().length > 0;
 
+/** The shop's own name under the Bahi mark in the More sheet / sidebar head (U-90); hidden while it has none. */
+export function showShopName() {
+    const el = document.getElementById('navShopName');
+    if (!el) return;
+    const name = String(AppState.settings?.shopName || '').trim();
+    el.textContent = name;
+    el.hidden = !name;
+}
+
 /**
  * Focus back after the sheet closes: what opened it if it still shows, else the opener showing now
  * (switching business swaps More for the bar's menu button), else the page title.
@@ -126,6 +135,7 @@ const NavigationManager = {
         const wasOpen = this.isMenuOpen();
         if (sideNav) sideNav.classList.toggle('active', open);
         if (overlay) overlay.classList.toggle('active', open);
+        if (open) showShopName();
         document.querySelectorAll('.bottom-nav-item[data-tab="more"], .app-bar .hamburger').forEach(b => b.setAttribute('aria-expanded', String(!!open)));
         if (!sideNav || open === wasOpen || !isSheet()) return;
         // Phone: the menu is a modal bottom sheet (redesign 4.1); focus goes in, and back to what opened it
@@ -267,7 +277,8 @@ const NavigationManager = {
         
         // Render outstanding when Due tab is shown
         if (tabId === 'due' && window.app?.outstanding) {
-            setTimeout(() => window.app.outstanding.filterDue('purchase'), 100);
+            // Sales first (collecting is the daily job, U-69), or the list last opened this session
+            setTimeout(() => window.app.outstanding.filterDue(window.app.outstanding.currentFilter?.() || 'sale'), 100);
         }
         
         // Wholesale page: Sales (entry) tab, or History for 'wholesale-history'
@@ -463,6 +474,8 @@ const NavigationManager = {
     // Closes the menu, the notifications panel or the top dialog; true when something was open
     closeOverlay() {
         if (this.isMenuOpen()) { this.setMenuOpen(false); return true; }
+        const menu = /** @type {HTMLDetailsElement|null} */ (document.querySelector('details.bill-menu[open]'));
+        if (menu) { menu.open = false; return true; }
         const notif = document.getElementById('notifPanel');
         if (notif && !notif.hidden && window.app?.notifications?.close) {
             window.app.notifications.close();
@@ -489,8 +502,31 @@ const NavigationManager = {
             else this.showTabFromNav(HOME_TAB, null);
             return;
         }
-        appPlugin?.exitApp?.();
+        return this.leaveApp(appPlugin);
     },
+
+    /**
+     * Back on home: a bill with lines asks first; otherwise a second Back within 2 s leaves. The app is
+     * minimised (it opens again warm, the bill as it was); exitApp only on an APK without minimizeApp.
+     */
+    async leaveApp(appPlugin) {
+        const leave = () => (appPlugin?.minimizeApp ? appPlugin.minimizeApp() : appPlugin?.exitApp?.());
+        if ((AppState.billItems?.length || 0) > 0 || (AppState.salesItems?.length || 0) > 0) {
+            const ok = await UIManager.showModal(t('msg.app.leave_with_bill'), t('ui.app.leave_title'), true, { confirmLabel: t('ui.app.leave') });
+            if (ok) leave();
+            return;
+        }
+        const now = Date.now();
+        if (now - this.backPressedAt < BACK_AGAIN_MS) {
+            this.backPressedAt = 0;
+            leave();
+            return;
+        }
+        this.backPressedAt = now;
+        UIManager.showToast(t('msg.app.back_again_to_leave'), BACK_AGAIN_MS);
+    },
+
+    backPressedAt: 0,
 
     initBackNavigation() {
         if (typeof window === 'undefined' || window.__happaBackNavBound) return;
@@ -504,6 +540,7 @@ const NavigationManager = {
 };
 
 const HOME_TAB = 'billing';
+const BACK_AGAIN_MS = 2000;
 
 // Export NavigationManager
 export { NavigationManager, resolveRoute };

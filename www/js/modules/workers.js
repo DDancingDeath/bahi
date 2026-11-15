@@ -2,7 +2,7 @@
  * @fileoverview Workers / Salaries (#373 phase 1): the owner's monthly pay tracker. Each worker's
  * month is paid, part-paid or due, with payments and advances and the balance carried to the next
  * month (docs/calculations.md WP-1 … WP-10). Imported on first open; one read per worker per open.
- * Not linked to Money yet (owner decision pending).
+ * Payments show in Money (M22–M24, utils/linked-outflows.js).
  * @module modules/workers
  */
 
@@ -11,6 +11,7 @@ import { Helpers } from '../utils/helpers.js';
 import { AppState } from '../utils/state.js';
 import { t, getLang } from '../i18n/index.js';
 import { emptyState } from '../ui/components.js';
+import { icon } from '../ui/icons.js';
 import { formatRupees, moneyText } from '../utils/money.js';
 import { formatMonth, formatDay, todayLocalISO } from '../utils/dates.js';
 import * as repo from '../firebase/repos/workers.js';
@@ -19,6 +20,7 @@ import {
     paySummary, balanceParts, checkEntry, checkWorker, isMonthKey, payDueMonths
 } from '../utils/worker-pay.js';
 import { savePayDue } from '../utils/pay-reminder.js';
+import { setLinkedSource } from '../utils/linked-outflows.js';
 import { ageInDays, dueTone } from '../utils/aging.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
@@ -75,9 +77,9 @@ function metric(id, key, amount) {
 function renderSummary(sum) {
     const latest = state.month >= thisMonth();
     return `<div class="wp-month">
-            <button type="button" class="btn btn-ghost btn-sm" data-onclick="workers.step(-1)" aria-label="${et('ui.workers.prev_month')}">‹</button>
+            <button type="button" class="btn btn-icon" data-onclick="workers.step(-1)" aria-label="${et('ui.workers.prev_month')}">${icon('chevL')}</button>
             <b id="workersMonth">${monthText(state.month)}</b>
-            <button type="button" class="btn btn-ghost btn-sm" data-onclick="workers.step(1)" aria-label="${et('ui.workers.next_month')}"${latest ? ' disabled' : ''}>›</button>
+            <button type="button" class="btn btn-icon" data-onclick="workers.step(1)" aria-label="${et('ui.workers.next_month')}"${latest ? ' disabled' : ''}>${icon('chevR')}</button>
         </div>
         <div class="panel metrics wp-metrics">
             ${metric('WP-7', 'ui.workers.pay_month', sum.pay)}
@@ -246,6 +248,7 @@ function ensureCss() {
 
 /** Keeps WP-11 for Today from the loaded workers (no reads). */
 function noteDue(list = state.workers, uid = AppState.currentUser?.uid) {
+    setLinkedSource('workers', list);
     if (!uid) return;
     try { savePayDue(localStorage, { uid, months: payDueMonths(list, thisMonth()) }); } catch (_) { /* never break the page */ }
 }

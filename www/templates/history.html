@@ -6,6 +6,7 @@
             <button type="button" class="filter-sale" aria-pressed="false" data-type="sale" data-onclick="history.filterHistory('sale')"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.history.tab_sale">Sale</span></button>
         </div>
 
+        <div class="history-controls">
         <div class="history-date-filter">
             <label for="historyDatePreset" class="history-date-label" data-i18n="ui.history.date">Date</label>
             <select id="historyDatePreset" data-onchange="history.setDatePreset(this.value)">
@@ -24,15 +25,17 @@
                 <button type="button" class="btn btn-primary btn-sm history-apply-range" data-onclick="history.applyCustomRange()" data-i18n="ui.history.apply">Apply</button>
             </div>
             <div id="historyRangeHint" class="history-range-hint" role="alert" hidden></div>
-            <div id="historyRangeLabel" class="history-range-label" hidden></div>
         </div>
 
         <div class="history-search">
             <svg class="i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
             <input type="text" id="historySearch" class="input" placeholder="Search by bill number, customer, or item…" aria-label="Search by bill number, customer, or item…"
                    data-oninput="history.searchHistory(this.value)" data-i18n-placeholder="ui.history.search_bill_number_customer" data-i18n-aria-label="ui.history.search_bill_number_customer"/>
-            <button type="button" data-onclick="history.toggleView()" id="historyViewToggle" class="btn btn-sm" data-i18n="ui.history.table_view">Table view</button>
+            <button type="button" class="btn btn-icon btn-ghost search-clear" id="historySearchClear" hidden aria-label="Clear search" data-i18n-aria-label="ui.common.clear_search" data-onclick="history.clearSearch()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
+            <button type="button" data-onclick="history.toggleView()" id="historyViewToggle" class="btn btn-sm history-table-toggle" data-i18n="ui.history.table_view">Table view</button>
         </div>
+        </div>
+        <div id="historyRangeLabel" class="history-range-label" hidden></div>
 
         <div id="historyList">
             <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.history.no_billing_history_yet">No billing history yet</b></div>

@@ -46,6 +46,14 @@ describe('stockRows (S1, S2): buckets merged onto the catalogue', () => {
         expect(stockRows({}, ITEMS)).toEqual({ rows: [], orphanKeys: [] });
         expect(stockRows(null, null)).toEqual({ rows: [], orphanKeys: [] });
     });
+
+    test('below-zero catalogue items: hidden by default, listed first with includeBelowZero (U-12)', () => {
+        const stock = { 'i-rice': { quantity: -25, rate: 30 }, 'i-wheat': { quantity: 10, rate: 20 }, 'i-zero': { quantity: -0.0004, rate: 1 } };
+        expect(stockRows(stock, ITEMS).rows.map(r => r.name)).toEqual(['Wheat']);
+        const { rows } = stockRows(stock, ITEMS, { includeBelowZero: true });
+        expect(rows.map(r => [r.name, r.quantity, !!r.belowZero])).toEqual([['Rice', -25, true], ['Wheat', 10, false]]);
+        expect(stockSummary(rows)).toEqual({ items: 1, kg: 10 });
+    });
 });
 
 describe('itemValue (S3) and stockValue (S4 = F6)', () => {

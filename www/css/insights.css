@@ -24,7 +24,15 @@
     .ins-head > .ins-period { order: 2; }
     .ins-head > .ins-more { order: 3; }
     .ins-head > .ins-abbar { order: 4; }
+
+    /* Scrolled under the header (U-71): only the tabs stay; scroll to the top for the period */
+    .ins-head.ins-compact > .ins-period,
+    .ins-head.ins-compact > .ins-more,
+    .ins-head.ins-compact > .ins-abbar { display: none; }
+    .ins-head.ins-compact { padding-bottom: var(--sp-1); }
 }
+
+.ins-head-mark { height: 1px; }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
 
@@ -43,7 +51,7 @@
     text-align: center;
 }
 
-.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: 44px; padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
+.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: var(--tap-min); padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
 
 .ins-more { align-self: flex-end; margin-top: var(--sp-1); }
 .ins-more[aria-expanded="true"] .ins-cmp-chev { transform: rotate(180deg); }
@@ -199,3 +207,23 @@ div.ins-wide,
 .ins-ab-saved { max-width: 100%; }
 .ins-cmp-table .ins-cmp-up { color: var(--positive); }
 .ins-cmp-table .ins-cmp-down { color: var(--negative); }
+
+/* Party ledger on phones (U-21): one stacked row per entry, the balance always in view on the right */
+@media screen and (max-width: 599.98px) {
+  .st-ledger-wrap { overflow-x: visible; }
+  .st-ledger { width: 100%; }
+  .st-ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .st-ledger tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "when what bal" "sold paid bal"; column-gap: var(--sp-2); align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px var(--rule-style) var(--line); }
+  .st-ledger td { display: block; height: auto; padding: 0; border: none; }
+  .st-ledger .st-when { grid-area: when; color: var(--ink-3); white-space: nowrap; }
+  .st-ledger .st-what { grid-area: what; overflow-wrap: anywhere; }
+  .st-ledger .st-sold { grid-area: sold; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-paid { grid-area: paid; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-sold:not(:empty)::before,
+  .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
+  .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
+}
+
+/* Day book: ‹ day › with a date box for a jump (U-94) */
+.st-day-step { flex-wrap: wrap; }
+.st-day-pick { flex: 0 1 auto; width: auto; }

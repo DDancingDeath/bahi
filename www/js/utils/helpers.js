@@ -10,6 +10,7 @@
  */
 import { t, getLang } from '../i18n/index.js';
 import { formatAmount } from './money.js';
+import { groupIndianText, normalizeNumberText, parseNumberText } from './number-text.js';
 import { formatDay, formatDayTime, formatTimeOfDay } from './dates.js';
 import { dayCounter } from '../firebase/repos/counters.js';
 import { pickPhoneContact } from './contact-picker.js';
@@ -201,7 +202,8 @@ export class Helpers {
      */
     static getInputNumber(elementId, defaultValue = 0) {
         const el = /** @type {HTMLInputElement|null} */ (document.getElementById(elementId));
-        const value = parseFloat(/** @type {string} */ (el?.value));
+        // Hindi digits and Indian commas read as typed (U-84, U-29)
+        const value = parseNumberText(el?.value);
         return isNaN(value) ? defaultValue : value;
     }
 
@@ -213,7 +215,7 @@ export class Helpers {
      */
     static getInputInt(elementId, defaultValue = 0) {
         const el = /** @type {HTMLInputElement|null} */ (document.getElementById(elementId));
-        const value = parseInt(/** @type {string} */ (el?.value), 10);
+        const value = parseInt(normalizeNumberText(el?.value), 10);
         return isNaN(value) ? defaultValue : value;
     }
 
@@ -450,7 +452,7 @@ export class Helpers {
         if (!ids[type] || !/** @type {HTMLInputElement|null} */ (document.getElementById(ids[type][1]))?.checked) return;
         Object.entries(ids).forEach(([key, [inputId, checkboxId]]) => {
             const input = /** @type {HTMLInputElement|null} */ (document.getElementById(inputId));
-            if (input) input.value = values[key];
+            if (input) input.value = input.hasAttribute('data-money') ? groupIndianText(values[key]) : values[key];
             if (key !== type) {
                 const box = /** @type {HTMLInputElement|null} */ (document.getElementById(checkboxId));
                 if (box) box.checked = false;
