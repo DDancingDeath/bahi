@@ -93,7 +93,7 @@ export const ANOMALY_TYPES = Object.freeze({
     'cash-mismatch-high': { en: 'Big cash difference', hi: 'नकद में बड़ा अंतर', severity: 'high' },
     'cash-expected-negative': { en: 'Expected cash below ₹0', hi: 'अपेक्षित नकद ₹0 से कम', severity: 'medium' },
     'cash-not-counted': { en: 'Cash not counted at close', hi: 'बंद करते समय नकद नहीं गिना', severity: 'medium' },
-    'due-written-off': { en: 'Due written off', hi: 'उधार माफ़ किया', severity: 'medium' },
+    'due-written-off': { en: 'Due written off', hi: 'बकाया माफ़ किया', severity: 'medium' },
     'stock-adjust-large': { en: 'Large stock adjustment', hi: 'बड़ा स्टॉक बदलाव', severity: 'medium' },
     'stock-adjust-no-reason': { en: 'Stock adjusted without reason', hi: 'बिना कारण स्टॉक बदला', severity: 'low' },
     'bill-old-edit': { en: 'Old bill edited', hi: 'पुराना बिल बदला', severity: 'medium' },
@@ -112,7 +112,7 @@ export const ANOMALY_TYPES = Object.freeze({
     'numcheck-ac2': { en: 'Number check: bill split', hi: 'आँकड़ों की जाँच: बिल का बँटवारा', severity: 'high' },
     'numcheck-ac3': { en: 'Number check: payments', hi: 'आँकड़ों की जाँच: भुगतान', severity: 'high' },
     'numcheck-ac4': { en: 'Number check: bill dates', hi: 'आँकड़ों की जाँच: बिल की तारीख़', severity: 'medium' },
-    'numcheck-ac5': { en: 'Number check: due in two places', hi: 'आँकड़ों की जाँच: दो जगह उधार', severity: 'high' },
+    'numcheck-ac5': { en: 'Number check: due in two places', hi: 'आँकड़ों की जाँच: दो जगह बकाया', severity: 'high' },
     'numcheck-ac6': { en: 'Number check: cash drawer', hi: 'आँकड़ों की जाँच: गल्ला', severity: 'high' },
     'numcheck-ac8': { en: 'Number check: stock below zero', hi: 'आँकड़ों की जाँच: शून्य से कम स्टॉक', severity: 'medium' }
 });
@@ -167,6 +167,12 @@ export function anomalyText(a) {
             en: `Entered at ${formatTimeOfDay(wall)} (outside shop hours)`,
             hi: `${formatTimeOfDay(wall, { lang: 'hi' })} पर एंट्री (दुकान के समय के बाहर)`
         };
+    }
+    // Saved before U-74 as a failed rule ("No item below zero stock: expected 0 kg, found -25 kg"): said as a finding
+    const old = a?.type === 'numcheck-ac8' && a.item ? /found (-?[\d,.]+ kg)\s*$/.exec(String(a.en || '')) : null;
+    if (old) {
+        const params = { item: String(a.item), qty: screenKgText(old[1]) };
+        return { ...a, en: t('ui.numchecks.find_ac8', params, 'en'), hi: t('ui.numchecks.find_ac8', params, 'hi') };
     }
     const rates = RATE_TEXT_TYPES.has(a?.type);
     const fix = (/** @type {*} */ s) => (s == null ? s : screenKgText(rates ? screenRateText(s) : s));
@@ -621,7 +627,7 @@ export function detectAnomalies({ bills = {}, sessions = [], adjustments = [], a
                     add(makeAnomaly('bill-edit-after-payment', ref, {
                         at: editedAt, ...editRef,
                         en: 'Bill edited after a due payment was recorded on it',
-                        hi: 'उधार का भुगतान लिखने के बाद बिल बदला गया'
+                        hi: 'बकाया का भुगतान लिखने के बाद बिल बदला गया'
                     }));
                 }
             }
@@ -634,7 +640,7 @@ export function detectAnomalies({ bills = {}, sessions = [], adjustments = [], a
                     at: timeOf(last.at ?? last.date), amount,
                     userId: String(last.recordedById || ''), user: nameOf(last.recordedById, last.recordedBy),
                     en: `${formatRupees(amount, 'exact')} due written off${reason ? ` — ${reason}` : ''}`,
-                    hi: `${formatRupees(amount, 'exact')} उधार माफ़${reason ? ` — ${reason}` : ''}`
+                    hi: `${formatRupees(amount, 'exact')} बकाया माफ़${reason ? ` — ${reason}` : ''}`
                 }));
             }
         });

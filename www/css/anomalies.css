@@ -209,6 +209,11 @@
   overflow-x: auto;
 }
 
+.anom-scroll:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
 .anom-heat,
 .anom-table {
   font-size: var(--fs-caption);

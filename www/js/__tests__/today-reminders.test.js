@@ -364,7 +364,7 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
     test('Hindi chips', () => {
         setLang('hi');
         DayManager.renderReminders(TODAY);
-        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('उधार ₹250·किराया ₹68,000·बैकअप');
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('बकाया ₹250·किराया ₹68,000·बैकअप');
         expect(document.querySelector('.today-reminders-add').getAttribute('aria-label')).toBe('याद जोड़ें');
     });
 

@@ -147,6 +147,12 @@ describe('bill rules', () => {
         expect(anomalyText({ type: 'cash-short', en: 'Short ₹12.00', hi: '' }).en).toBe('Short ₹12.00');
     });
 
+    test('U-74: an item below zero saved as a failed rule is shown as a finding', () => {
+        const stored = { type: 'numcheck-ac8', item: 'Rice', en: 'No item below zero stock: expected 0 kg, found -25 kg', hi: 'x' };
+        expect(anomalyText(stored).en).toBe('Rice is at −25 kg: sold more than bought. Enter the missing purchase or count the stock.');
+        expect(anomalyText(stored).hi).not.toMatch(/expected|found/);
+    });
+
     test('a stored negative weight shows the minus sign on screen; the stored text keeps ASCII', () => {
         const stored = { type: 'numcheck-ac8', en: 'No item below zero stock: expected 0 kg, found -25 kg', hi: 'होना था 0 kg, मिला -1,250.5 kg' };
         expect(anomalyText(stored)).toEqual({ ...stored, en: 'No item below zero stock: expected 0 kg, found −25 kg', hi: 'होना था 0 kg, मिला −1,250.5 kg' });

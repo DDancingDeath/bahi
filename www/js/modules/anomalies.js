@@ -847,7 +847,8 @@ export const AnomaliesManager = {
     filtered() {
         const f = this.page.filters;
         const range = this.page.range || presetRange(f.preset, todayKey());
-        return filterAnomalies(this.page.docs, { ...range, type: f.type, severity: f.severity, status: f.status, user: f.user, item: f.item });
+        // A voided bill's checks are not findings any more (U-28)
+        return withoutVoidedBillChecks(filterAnomalies(this.page.docs, { ...range, type: f.type, severity: f.severity, status: f.status, user: f.user, item: f.item }), loadedVoided());
     },
 
     renderPage() {
@@ -899,7 +900,7 @@ export const AnomaliesManager = {
                 heat.innerHTML = emptyState({ icon: 'box', title: t('ui.anom.no_item_data') });
             } else {
                 const max = Math.max(1, ...p.heat.items.flatMap(i => p.heat.types.map(ty => p.heat.cells[i][ty] || 0)));
-                heat.innerHTML = `<div class="anom-scroll"><table class="table anom-heat"><thead><tr><th>${esc(t('ui.anom.th_item'))}</th>${p.heat.types.map(ty => `<th title="${loc(typeLabel(ty))}">${loc(typeLabel(ty))}</th>`).join('')}</tr></thead><tbody>${p.heat.items.map(i => `<tr><td>${esc(i)}</td>${p.heat.types.map(ty => {
+                heat.innerHTML = `<div class="anom-scroll" role="region" tabindex="0" aria-label="${esc(t('ui.anom.h_item_type'))}"><table class="table anom-heat"><thead><tr><th>${esc(t('ui.anom.th_item'))}</th>${p.heat.types.map(ty => `<th title="${loc(typeLabel(ty))}">${loc(typeLabel(ty))}</th>`).join('')}</tr></thead><tbody>${p.heat.items.map(i => `<tr><td>${esc(i)}</td>${p.heat.types.map(ty => {
                     const n = p.heat.cells[i][ty] || 0;
                     return `<td${n / max > 0.5 ? ' class="hot"' : ''} style="--a:${n ? (0.15 + 0.75 * n / max).toFixed(2) : 0}">${esc(n || '')}</td>`;
                 }).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -909,7 +910,7 @@ export const AnomaliesManager = {
         const users = document.getElementById('anomalyByUser');
         if (users) {
             users.innerHTML = p.byUser.length
-                ? `<div class="anom-scroll"><table class="table anom-table"><thead><tr><th>${esc(t('ui.anom.th_user'))}</th><th>${esc(t('ui.anom.th_total'))}</th><th>${esc(t('ui.anom.th_high'))}</th><th>${esc(t('ui.anom.th_most_common'))}</th></tr></thead><tbody>${p.byUser.map(u => {
+                ? `<div class="anom-scroll" role="region" tabindex="0" aria-label="${esc(t('ui.anom.h_by_user'))}"><table class="table anom-table"><thead><tr><th>${esc(t('ui.anom.th_user'))}</th><th>${esc(t('ui.anom.th_total'))}</th><th>${esc(t('ui.anom.th_high'))}</th><th>${esc(t('ui.anom.th_most_common'))}</th></tr></thead><tbody>${p.byUser.map(u => {
                     const top = Object.entries(u.byType).sort((a, b) => b[1] - a[1])[0];
                     return `<tr><td>${esc(u.name)}</td><td>${esc(u.count)}</td><td>${esc(u.high)}</td><td>${top ? `${loc(typeLabel(top[0]))} (${esc(top[1])})` : ''}</td></tr>`;
                 }).join('')}</tbody></table></div>`
