@@ -69,7 +69,9 @@ export class AuditService {
         
         // Auth
         LOGIN: 'LOGIN',
-        LOGOUT: 'LOGOUT'
+        LOGOUT: 'LOGOUT',
+        // Signed out with changes not sent to the server yet (U-03)
+        LOGOUT_WITH_UNSENT: 'LOGOUT_WITH_UNSENT'
     };
 
     /**

@@ -1483,6 +1483,43 @@ input[type="number"],
   display: none;
 }
 
+/* Something is waiting (or offline): the pill opens the list of what is not sent yet (U-04) */
+.sync-pill[tabindex] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h-sm);
+  font-size: var(--fs-sm);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.sync-pill[tabindex] .i {
+  flex: none;
+}
+
+.sync-pill[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+/* The waiting list (sync sheet) */
+.sync-sheet-list {
+  margin: var(--sp-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sync-sheet-list li {
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.sync-sheet-meta {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
 .sync-pill[data-state="pending"] {
   background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--panel-bg);
   color: var(--warning);

@@ -12,7 +12,7 @@ import { t, LANG_CHANGE_EVENT } from '../i18n/index.js';
 export const BAR_TABS = Object.freeze(['billing', 'day', 'history', 'due']);
 
 const TITLE_KEYS = Object.freeze({
-    day: 'ui.nav.today', 'cash-management': 'ui.nav.today', items: 'ui.nav.rates', stock: 'ui.nav.stocks',
+    day: 'ui.nav.today', 'cash-management': 'ui.today.cash_management', items: 'ui.nav.rates', stock: 'ui.nav.stocks',
     'wholesale-sales': 'ui.nav.sales', due: 'ui.nav.outstanding', rentals: 'ui.biz.rentals'
 });
 const SAME_NAME = new Set(['billing', 'history', 'expenses', 'money', 'insights', 'statements', 'anomalies', 'health', 'admin', 'diagnostics', 'settings', 'ask', 'workers', 'recurring']);

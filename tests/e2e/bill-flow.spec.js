@@ -59,7 +59,8 @@ test('bill → History → due payment → cash close', async ({ page, problems 
     expect(paid.payments).toHaveLength(1);
 
     // ---- 4. open and close the cash drawer ----
-    await showTab(page, 'cash-management');
+    // One Cash screen (U-32): Today › Cash
+    await showTab(page, 'day-cash');
     await page.fill('#cashSignInAmount', '1000');
     await clickAfterTyping(page, 'button[data-onclick="cashManagement.signIn()"]');
     await expectToast(page, /Cash opened for today/);

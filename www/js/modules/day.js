@@ -22,6 +22,7 @@ import { formatRate, moneyText } from '../utils/money.js';
 import { ManualReminders } from '../ui/manual-reminders.js';
 import { icon } from '../ui/icons.js';
 import { payDueReminder, billsDueReminder } from '../utils/pay-reminder.js';
+import { SyncStatus } from '../ui/sync-status.js';
 
 // Use helper functions
 const formatDate = (date) => Helpers.formatDate(date);
@@ -413,7 +414,7 @@ export const DayManager = {
                 const ref = Helpers.escapeJsAttr(`id:${bill.id}`);
                 return `<button type="button" class="today-bill-${type}" data-today-bill data-onclick="history.viewBill('${ref}', '${type}')" aria-label="${esc(t('ui.today.bill_open_aria', { bill: [t(BILL_KIND_KEYS[type]), no, party].filter(Boolean).join(' ') }))}">
                     <span class="today-bill-time">${esc(at ? Helpers.formatTime(new Date(at)) : '')}</span>
-                    <span class="today-bill-main"><span class="today-bill-party">${esc(party || no)}</span><span class="today-bill-kind">${esc([t(BILL_KIND_KEYS[type]), party ? no : ''].filter(Boolean).join(' · '))}</span></span>
+                    <span class="today-bill-main"><span class="today-bill-party">${esc(party || no)}</span><span class="today-bill-kind">${esc([t(BILL_KIND_KEYS[type]), party ? no : '']                    .filter(Boolean).join(' · '))}</span>${SyncStatus.chipHtml(bill.id)}</span>
                     <strong class="today-bill-total">${esc(moneyText(total))}</strong>
                 </button>`;
             }).join('');

@@ -29,7 +29,7 @@ const THEME_WORKER = {
     name: 'Theme Worker', startMonth: MONTH, active: true, pays: [{ from: MONTH, amount: 9000 }],
     entries: [{ id: 'e2e-theme-entry', amount: 3000, kind: 'advance', month: MONTH, date: `${MONTH}-01`, mode: 'cash' }],
 };
-const PAGES = [['Billing', 'billing'], ['Today', 'day'], ['Outstanding', 'due'], ['Cash', 'cash-management'], ['Money', 'money'], ['Insights', 'insights'], ['Statements', 'statements']];
+const PAGES = [['Billing', 'billing'], ['Today', 'day'], ['Outstanding', 'due'], ['Cash', 'day-cash'], ['Money', 'money'], ['Insights', 'insights'], ['Statements', 'statements']];
 
 /** Billing with a line in the row list and the whole bill put in Cash with its "Fill" (3.5), so axe sees both. */
 async function billWithFill(page) {
@@ -115,7 +115,7 @@ for (const [theme, appearance, lang = 'en'] of COMBOS) {
             await showTab(page, route);
             expect(await settle(page), `${name} finished loading`).toBe(true);
             if (route === 'billing') await billWithFill(page);
-            if (route === 'cash-management') await openCashWithCount(page);
+            if (route === 'day-cash') await openCashWithCount(page);
             const result = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
             for (const v of result.violations) {
                 for (const n of v.nodes) found.push(`${name}: ${n.target.join(' ')} — ${(n.any[0]?.message || v.help).replace(/\s+/g, ' ')}`);
