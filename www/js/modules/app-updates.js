@@ -6,6 +6,7 @@
 
 import { APP_VERSION } from '../version.js';
 import { UIManager, buildSheet } from '../ui/ui-manager.js';
+import { icon } from '../ui/icons.js';
 import { openExternal } from '../utils/open-external.js';
 import { getLang, t, LANG_CHANGE_EVENT } from '../i18n/index.js';
 import {
@@ -183,7 +184,8 @@ export class AppUpdatesManager {
         const howTo = el('a', 'btn btn-sm btn-ghost', t('ui.updates.how_to_install'));
         howTo.href = DOWNLOAD_PAGE_URL;
         howTo.addEventListener('click', (e) => { e.preventDefault(); this.openExternal(DOWNLOAD_PAGE_URL); });
-        const close = el('button', 'btn btn-sm btn-ghost btn-icon', '✕');
+        const close = el('button', 'btn btn-sm btn-ghost btn-icon');
+        close.innerHTML = icon('x');
         close.type = 'button';
         close.setAttribute('aria-label', t('ui.updates.dismiss'));
         close.addEventListener('click', () => {
