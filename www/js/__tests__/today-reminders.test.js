@@ -161,6 +161,9 @@ describe('REM-3 backup check (#63)', () => {
         AppState.salesHistory = [];
         AppState.purchaseHistory = [];
         localStorage.clear();
+        // The first-run list (U-58) and the phone-lock offer (U-55) are done / answered here
+        localStorage.setItem('happa.firstRun.hidden.u1', '1');
+        localStorage.setItem('happa.appLockAsked.u1', '1');
     });
     afterEach(() => { AppState.userRole = null; });
     const card = () => document.querySelector('[data-reminder="backup"]');

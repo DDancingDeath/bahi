@@ -219,3 +219,8 @@
     grid-column: 2;
   }
 }
+/* Members: one choice left, so no switch (U-87) */
+.stock-seg[hidden] {
+  display: none;
+}
+

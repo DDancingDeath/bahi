@@ -326,7 +326,7 @@ describe('Stock screen == oracle (S1, S2, S3, S5)', () => {
         expect(document.getElementById('stockSummaryValue').textContent).toBe(`≈ ₹${rupee(want.closing).toLocaleString('en-IN')}`);
     });
 
-    test('summary card for a member: the item count only (no kg, no value)', async () => {
+    test('summary card for a member: items and kg; the value only with Stock value on (U-09)', async () => {
         const role = AppState.userRole;
         AppState.userRole = 'staff';
         try {
@@ -335,7 +335,7 @@ describe('Stock screen == oracle (S1, S2, S3, S5)', () => {
             AppState.userRole = role;
         }
         expect(document.getElementById('stockSummary').hidden).toBe(false);
-        expect(document.getElementById('stockSummaryKgCell').hidden).toBe(true);
+        expect(document.getElementById('stockSummaryKgCell').hidden).toBe(false);
         expect(document.getElementById('stockSummaryValueCell').hidden).toBe(true);
     });
 

@@ -22,6 +22,10 @@ import { formatRate, moneyText } from '../utils/money.js';
 import { ManualReminders } from '../ui/manual-reminders.js';
 import { icon } from '../ui/icons.js';
 import { payDueReminder, billsDueReminder } from '../utils/pay-reminder.js';
+import { getPendingJoins, writeOffsByOthers } from '../utils/owner-alerts.js';
+import { firstRunSteps, showFirstRun, appLockOfferDue, FIRST_RUN_HIDDEN_KEY, FIRST_RUN_TEAM_KEY } from '../utils/first-run.js';
+import { normalizePrinterSettings } from '../utils/printer-settings.js';
+import { safeSetItem } from '../utils/storage-full.js';
 import { SyncStatus } from '../ui/sync-status.js';
 
 // Use helper functions
@@ -31,9 +35,11 @@ const LABOUR_PAID_KEYS = { same: 'ui.today.labour_paid_same', more: 'ui.today.la
 const CHANNELS = { retail: 'Retail', wholesale: 'Wholesale', purchase: 'Purchase' };
 const BILL_KIND_KEYS = { retail: 'ui.finance.bill_retail', wholesale: 'ui.finance.bill_wholesale', purchase: 'ui.reports.pdf_purchase' };
 const BILLS_SHOWN = 8;
+/** Bills in memory by kind, for the owner's write-off reminder (U-08). */
+const loadedBillsByKind = () => ({ purchase: AppState.purchaseHistory || [], retail: AppState.retailSalesHistory || [], wholesale: AppState.salesHistory || [] });
 const REMINDER_ICONS = {
     collect: icon('arrIn'), collect_wholesale: icon('truck'), pay: icon('arrOut'), rent: icon('home'), leases: icon('file'),
-    salaries: icon('users'), bills: icon('receipt'), backup: icon('clipCheck')
+    salaries: icon('users'), bills: icon('receipt'), backup: icon('clipCheck'), join: icon('user'), writeoff: icon('alert'), firstrun: icon('clipCheck'), lock: icon('lock')
 };
 /** Opens a Today reminder: its icon tile and body (the caller closes both divs). */
 const reminderOpen = (kind) => `<div class="today-reminder" data-reminder="${kind}"><span class="lead-icon">${REMINDER_ICONS[kind]}</span><div class="today-reminder-body">`;
@@ -342,6 +348,30 @@ export const DayManager = {
         }
         // REM-3 (#63): the owner checks a backup file at least every 30 days
         if (AppState.userRole === 'owner') {
+            // U-58: a new shop's first steps, until done or hidden
+            const firstRun = this.firstRunHtml();
+            if (firstRun) parts.unshift(firstRun);
+            // U-55: offer the phone lock once (off until the owner sets a PIN)
+            let lockDue = false;
+            try { lockDue = appLockOfferDue(localStorage, AppState.currentUser?.uid || '', AppState.userRole); } catch (_) { lockDue = false; }
+            if (lockDue) {
+                parts.push(`${reminderOpen('lock')}<div class="today-reminder-head"><strong>${e(t('ui.applock.offer_title'))}</strong></div><div>${e(t('ui.applock.offer_text'))}</div>`
+                    + `<button type="button" class="btn btn-sm btn-tonal" data-onclick="appLock.setup()">${e(t('ui.applock.set_up'))}</button> `
+                    + `<button type="button" class="btn btn-sm btn-ghost" data-onclick="appLock.dismissOffer()">${e(t('ui.applock.no_thanks'))}</button></div></div>`);
+            }
+            // U-24: people waiting for the owner's approval
+            const waiting = getPendingJoins();
+            if (waiting > 0) {
+                parts.unshift(`${reminderOpen('join')}<div class="today-reminder-head"><strong>${e(tn('ui.today.reminder_join', waiting))}</strong></div>`
+                    + `<button type="button" class="btn btn-sm btn-tonal" data-onclick="team.openWaiting()">${e(t('ui.today.reminder_open_join'))}</button></div></div>`);
+            }
+            // U-08: dues someone else wrote off this week
+            const writeOffs = writeOffsByOthers(loadedBillsByKind(), AppState.currentUser?.uid || '', now.getTime());
+            if (writeOffs.length) {
+                parts.push(`${reminderOpen('writeoff')}<div class="today-reminder-head"><strong>${e(tn('ui.today.reminder_writeoffs', writeOffs.length))}</strong></div>`
+                    + `<ul>${writeOffs.slice(0, 3).map(w => `<li class="today-reminder-party"><span>${e([w.billNumber ? `#${w.billNumber}` : '', w.party].filter(Boolean).join(' '))}</span> <strong>${e(moneyText(w.amount))}</strong> <span class="today-reminder-days">${e(t('ui.today.reminder_writeoff_by', { name: w.by || t('ui.reports.unknown') }))}</span></li>`).join('')}</ul>`
+                    + `<button type="button" class="btn btn-sm" data-onclick="history.viewBill('${Helpers.escapeJsAttr(`id:${writeOffs[0].billId}`)}', '${Helpers.escapeJsAttr(writeOffs[0].billType)}')">${e(t('ui.today.reminder_open_writeoff'))}</button></div></div>`);
+            }
             // WP-11 (#373): salaries due, as the Workers page last worked them out on this phone
             let pay = null;
             try { pay = payDueReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { pay = null; }
@@ -371,6 +401,36 @@ export const DayManager = {
         host.hidden = parts.length === 0;
         host.innerHTML = parts.length ? `<h3 class="today-reminders-title section-title">${e(t('ui.today.reminders'))}</h3><div class="panel today-reminder-list">${parts.join('')}</div>` : '';
         ManualReminders.restoreFocus();
+    },
+
+    /**
+     * U-58: the owner's first-run checklist (business name, items and rates, team, printer) with
+     * where to do each and Help; hidden for good with "Hide this list".
+     * @returns {string} HTML ('' when there is nothing to show)
+     */
+    firstRunHtml() {
+        const uid = AppState.currentUser?.uid || '';
+        const read = (key) => { try { return localStorage.getItem(`${key}.${uid}`); } catch (_) { return null; } };
+        const printer = normalizePrinterSettings(AppState.printerSettings);
+        const steps = firstRunSteps({
+            shopName: AppState.settings?.shopName,
+            itemCount: (AppState.items || []).length,
+            teamSeen: read(FIRST_RUN_TEAM_KEY) === '1',
+            printerSet: !!printer.deviceId || printer.printers.length > 0
+        });
+        if (!showFirstRun(steps, { isOwner: AppState.userRole === 'owner', hidden: read(FIRST_RUN_HIDDEN_KEY) === '1' })) return '';
+        const e = Helpers.escapeHtml;
+        const rows = steps.map(s => `<li class="first-run-step${s.done ? ' done' : ''}">${s.done ? icon('check', 'i-sm') : ''}<span>${e(t(`ui.firstrun.step_${s.id}`))}</span>`
+            + (s.done ? '' : ` <button type="button" class="btn btn-sm btn-ghost" data-onclick="nav.showTab('${s.route}', event)">${e(t('ui.firstrun.do_it'))}</button>`) + '</li>').join('');
+        return `${reminderOpen('firstrun')}<div class="today-reminder-head"><strong>${e(t('ui.firstrun.title'))}</strong></div>`
+            + `<ul class="first-run-list">${rows}</ul>`
+            + `<button type="button" class="btn btn-sm" data-onclick="nav.showTab('settings-help', event)">${e(t('ui.firstrun.help'))}</button> `
+            + `<button type="button" class="btn btn-sm btn-ghost" data-onclick="day.hideFirstRun()">${e(t('ui.firstrun.hide'))}</button></div></div>`;
+    },
+
+    hideFirstRun() {
+        safeSetItem(`${FIRST_RUN_HIDDEN_KEY}.${AppState.currentUser?.uid || ''}`, '1');
+        this.renderReminders();
     },
 
     /** Admin › Data, where the owner checks a backup file (REM-3, #63). */

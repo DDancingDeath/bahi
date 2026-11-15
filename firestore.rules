@@ -807,8 +807,9 @@ service cloud.firestore {
         || (request.auth != null
             && request.auth.uid == userId
             && !(resource.data.get('status', '') in ['disabled', 'rejected'])
-            && d.diff(resource.data).affectedKeys().hasOnly(['name', 'savedRanges'])
+            && d.diff(resource.data).affectedKeys().hasOnly(['name', 'savedRanges', 'lang'])
             && d.get('name', '') is string && d.get('name', '').size() <= 100
+            && d.get('lang', 'en') in ['en', 'hi']
             && (!('savedRanges' in d)
                 || (d.savedRanges is string && d.savedRanges.size() <= 600
                     && d.savedRanges.matches('^(' + e + '(;' + e + '){0,9})?$'))));

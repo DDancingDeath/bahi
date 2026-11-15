@@ -38,10 +38,10 @@ setting is missing or invalid.
 | `analytics` | Insights page (stored id of the old Analytics page; its Seasons section hosts Rate trends and Product traffic, so it also keeps their owner/manager rule, and `reports` opens Seasons too; to-do cards with ₹ lost or ₹ per ₹100 need `profit`) | कारोबार पेज | on | off | client; **rules** for withdrawals |
 | `wholesale` | Wholesale page, and the wholesale dues on Outstanding › Sales (All / Wholesale, #125) | थोक पेज | on | off | client |
 | `personalExpenses` | Personal expenses | निजी खर्च | **off** | **off** | client + **rules** (#98, see "Personal expenses"; on only when the owner turned it on) |
-| `profit` | Profit and average cost | मुनाफा और औसत लागत | on | on | client |
-| `stockValue` | Stock ₹ value | स्टॉक की ₹ कीमत | on | on | client |
-| `oldCashSessions` | Past cash days | पिछले दिनों का कैश | on | on | client (rules: phase 2) |
-| `purchaseRates` | See purchase rates | खरीद रेट देखें | on | on | client (Rates page only) |
+| `profit` | Profit and average cost | मुनाफा और औसत लागत | on | **off** (U-09) | client |
+| `stockValue` | Stock ₹ value (Stock shows every role the real kg; the ₹ value only with this on, U-09) | स्टॉक की ₹ कीमत | on | **off** (U-09) | client |
+| `oldCashSessions` | Past cash days | पिछले दिनों का कैश | on | **off** (U-09) | client (rules: phase 2) |
+| `purchaseRates` | See purchase rates | खरीद रेट देखें | on | **off** (U-09) | client (Rates page only) |
 | `contacts` | Pick names from phone contacts (Q52 of #111) | फ़ोन के संपर्कों से नाम चुनें | on | on | client (the three 👤 pick-contact buttons on Billing and Wholesale; the phone's contacts never reach the database; the Android app asks for the Contacts permission on the first tap, #495) |
 | `shopSettings` | Change Aadhat settings (labour, bill checks, business name, printed bill) | आढ़त की सेटिंग बदलें | off | – (managers only) | **client + rules** |
 | `historyDays` | History: days back (0 = all) | इतिहास: कितने दिन पीछे तक (0 = सभी) | 0 | 0 | client only (see "Server-side read rules") |
@@ -112,8 +112,8 @@ roleAccess: {
              oldCashSessions: true, purchaseRates: true, contacts: true, shopSettings: false,
              historyDays: 0, editDays: 2 },
   staff:   { finance: false, reports: false, analytics: false, wholesale: false,
-             personalExpenses: false, personalExpensesChosen: true, profit: true, stockValue: true,
-             oldCashSessions: true, purchaseRates: true, contacts: true, shopSettings: false,
+             personalExpenses: false, personalExpensesChosen: true, profit: false, stockValue: false,
+             oldCashSessions: false, purchaseRates: false, contacts: true, shopSettings: false,
              historyDays: 0, editDays: 2 }
 },
 roleAccessUpdatedAt: <ms>, roleAccessUpdatedBy: <uid>
@@ -644,6 +644,7 @@ The owner may write any of these (repairs, backup restore). Everyone else:
 | other `settings` docs (none in use) | **owner** (#64) | **owner** (#64) | **owner** (#64) |
 | `users/{uid}/preferences` (never used by the app) | nobody (#64) | nobody | nobody |
 | `users/{uid}.savedRanges` (#140, saved period ranges) | the person themself (`savedRangesOk`: "a\|b;a\|b", at most 10 pairs of the app's period presets, ≤ 600 characters); the owner as for any profile | same | owner (with the profile) |
+| `users/{uid}.lang` (U-86, app language) | the person themself (`en` or `hi`); the owner as for any profile | same | owner (with the profile) |
 | bills (`purchases`, `retailSales`, `wholesaleSales`) | approved user, own `userId`, and `createdAt` = the server time (#115: every happa version sends it; the edit window counts from it) | see "Bill edit window" | owner |
 
 Legacy timestamp backfill (`expenses`, `withdrawals`, `stockAdjustments`, `personalExpenses`, and bills

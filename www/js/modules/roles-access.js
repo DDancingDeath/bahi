@@ -58,11 +58,16 @@ export class RolesAccessManager {
         AuthManager.applyRoleBasedRestrictions();
     }
 
-    /** Draws the owner-only grid in Settings. */
+    /** The role whose switches show (U-52: one role at a time, full-width rows on a phone). */
+    static shownRole = 'staff';
+
+    /** Draws the owner-only Roles & access card in Settings: pick a role, then one row per permission. */
     static render() {
         const card = document.getElementById('roleAccessCard');
         if (!card) return;
         const isOwner = AppState.userRole === 'owner';
+        const peopleCard = document.getElementById('teamPeopleCard');
+        if (peopleCard) peopleCard.hidden = !isOwner;
         card.hidden = !isOwner;
         card.style.display = isOwner ? '' : 'none';
         const grid = document.getElementById('roleAccessGrid');
@@ -72,35 +77,40 @@ export class RolesAccessManager {
         }
         const e = Helpers.escapeHtml;
         const access = this.current();
-        const head = `<tr><th>${e(t('ui.roles.permission'))}</th>${CONFIGURABLE_ROLES.map(r => `<th>${e(t(ROLE_LABEL_KEYS[r]))}</th>`).join('')}</tr>`;
-        const group = (key) => `<tr class="role-access-group"><td colspan="${CONFIGURABLE_ROLES.length + 1}">${e(t(key))}</td></tr>`;
-        const label = (p) => `<td>${e(t(PERMISSION_LABEL_KEYS[p]))}${NOTE_KEYS[p] ? `<small class="role-access-note">${e(t(NOTE_KEYS[p]))}</small>` : ''}</td>`;
-        const switchRow = (p) => `<tr>${label(p)}${CONFIGURABLE_ROLES.map(r => `
-            <td><input type="checkbox" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMISSION_LABEL_KEYS[p])} – ${t(ROLE_LABEL_KEYS[r])}`)}"${access[r][p] ? ' checked' : ''}></td>`).join('')}</tr>`;
-        // Settings switches are for managers only (members never see the Aadhat settings).
-        const managerRow = (p) => `<tr><td>${e(t(PERMISSION_LABEL_KEYS[p]))}</td>${CONFIGURABLE_ROLES.map(r => r !== 'manager' ? '<td>–</td>' : `
-            <td><input type="checkbox" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMISSION_LABEL_KEYS[p])} – ${t(ROLE_LABEL_KEYS[r])}`)}"${access[r][p] ? ' checked' : ''}></td>`).join('')}</tr>`;
-        const daysRow = (p) => `<tr>${label(p)}${CONFIGURABLE_ROLES.map(r => `
-            <td><input type="number" inputmode="numeric" min="0" max="${DAY_LIMITS[p]}" step="1" id="${fieldId(r, p)}" aria-label="${e(`${t(PERMISSION_LABEL_KEYS[p])} – ${t(ROLE_LABEL_KEYS[r])}`)}" value="${e(access[r][p])}"></td>`).join('')}</tr>`;
+        const shown = CONFIGURABLE_ROLES.includes(this.shownRole) ? this.shownRole : 'staff';
+        const name = (p) => `${e(t(PERMISSION_LABEL_KEYS[p]))}${NOTE_KEYS[p] ? `<small class="role-access-note">${e(t(NOTE_KEYS[p]))}</small>` : ''}`;
+        const aria = (r, p) => e(`${t(PERMISSION_LABEL_KEYS[p])} – ${t(ROLE_LABEL_KEYS[r])}`);
+        const toggle = (r, p) => `<label class="set-toggle role-toggle"><span>${name(p)}</span>
+            <input type="checkbox" class="switch" id="${fieldId(r, p)}" aria-label="${aria(r, p)}"${access[r][p] ? ' checked' : ''}></label>`;
+        const days = (r, p) => `<div class="field role-days"><label for="${fieldId(r, p)}">${name(p)}</label>
+            <input type="number" class="input" inputmode="numeric" min="0" max="${DAY_LIMITS[p]}" step="1" id="${fieldId(r, p)}" value="${e(access[r][p])}"></div>`;
+        const group = (key) => `<h4 class="set-subtitle role-access-group">${e(t(key))}</h4>`;
+        const list = (r) => `<div class="role-list" data-role-list="${r}"${r === shown ? '' : ' hidden'}>
+                ${group('ui.roles.group_pages')}${PAGE_PERMISSIONS.map(p => toggle(r, p)).join('')}
+                ${group('ui.roles.group_numbers')}${SECTION_PERMISSIONS.map(p => toggle(r, p)).join('')}
+                ${r === 'manager' ? `${group('ui.roles.group_settings')}${SETTINGS_PERMISSIONS.map(p => toggle(r, p)).join('')}` : ''}
+                ${group('ui.roles.group_days')}${days(r, 'historyDays')}${days(r, 'editDays')}
+            </div>`;
         grid.innerHTML = `
-            <table class="table role-table">
-                <thead>${head}</thead>
-                <tbody>
-                    ${group('ui.roles.group_pages')}
-                    ${PAGE_PERMISSIONS.map(switchRow).join('')}
-                    ${group('ui.roles.group_numbers')}
-                    ${SECTION_PERMISSIONS.map(switchRow).join('')}
-                    ${group('ui.roles.group_settings')}
-                    ${SETTINGS_PERMISSIONS.map(managerRow).join('')}
-                    ${group('ui.roles.group_days')}
-                    ${daysRow('historyDays')}
-                    ${daysRow('editDays')}
-                </tbody>
-            </table>
+            <div class="seg role-pick" role="group" aria-label="${e(t('ui.roles.pick_role'))}">
+                ${CONFIGURABLE_ROLES.map(r => `<button type="button" data-role-pick="${r}" aria-pressed="${r === shown}" data-onclick="roles.showRole('${r}')">${e(t(ROLE_LABEL_KEYS[r]))}</button>`).join('')}
+            </div>
+            ${CONFIGURABLE_ROLES.map(list).join('')}
             <p class="setting-description">${e(t('ui.roles.history_days_hint'))}</p>
             <p class="setting-description">${e(t('ui.roles.edit_days_hint', { max: MAX_EDIT_DAYS }))}</p>`;
         const status = document.getElementById('roleAccessStatus');
         if (status) status.textContent = '';
+    }
+
+    /**
+     * Shows one role's switches; the other role's stay in the form, so Save keeps both.
+     * @param {string} role
+     */
+    static showRole(role) {
+        if (!CONFIGURABLE_ROLES.includes(role)) return;
+        this.shownRole = role;
+        document.querySelectorAll('#roleAccessGrid [data-role-list]').forEach(el => { /** @type {HTMLElement} */ (el).hidden = el.getAttribute('data-role-list') !== role; });
+        document.querySelectorAll('#roleAccessGrid [data-role-pick]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-role-pick') === role)));
     }
 
     /** Values on the screen, normalized (missing/invalid → defaults, days clamped). */

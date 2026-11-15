@@ -224,6 +224,27 @@
 .cash-note + .cash-note { margin-top: var(--sp-1); }
 .cash-note strong { color: var(--ink-2); }
 
+/* First-run checklist on Today (U-58) */
+.first-run-list {
+  margin: var(--sp-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.first-run-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--control-h);
+}
+
+.first-run-step > span {
+  flex: 1;
+}
+
+.first-run-step.done {
+  color: var(--ink-3);
+}
 /* Day details fold (U-35): open for the owner and manager, folded for Members */
 .today-more > summary {
   display: flex;

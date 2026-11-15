@@ -553,3 +553,10 @@ body.typing .bottom-nav {
     bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* A menu group or heading left with nothing to show for the role (U-87) */
+.nav-group[hidden],
+.nav-group-title[hidden] {
+  display: none;
+}
+

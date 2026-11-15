@@ -3023,7 +3023,7 @@ a.row:active {
   border: 1px solid transparent;
   border-radius: var(--r-full);
   padding: 0 var(--sp-4);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-body);
   color: var(--ink-2);
   cursor: pointer;
 }
@@ -3054,6 +3054,33 @@ body {
   touch-action: manipulation;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+/* The password rule stays under the field while typing (U-57) */
+.auth-field-hint {
+  margin: var(--sp-1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+/* Waiting for approval (U-24): the card replaces the sign-in forms */
+.auth-form[hidden],
+.auth-switch[hidden] {
+  display: none;
+}
+
+.auth-pending p {
+  margin: 0 0 var(--sp-3);
+  color: var(--ink-2);
+}
+
+.auth-pending .auth-pending-name {
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
+
+.auth-pending .auth-pending-name:empty {
+  display: none;
 }
 
 /* ---- css/hamburger.css ---- */
@@ -3722,6 +3749,12 @@ body.typing .bottom-nav {
   body:not(.biz-rentals) .app-update {
     bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
+}
+
+/* A menu group or heading left with nothing to show for the role (U-87) */
+.nav-group[hidden],
+.nav-group-title[hidden] {
+  display: none;
 }
 
 /* ---- css/items.css ---- */
@@ -7856,6 +7889,10 @@ tr.bill-check-line .bill-check-msg {
     grid-column: 2;
   }
 }
+/* Members: one choice left, so no switch (U-87) */
+.stock-seg[hidden] {
+  display: none;
+}
 
 /* ---- css/charts.css ---- */
 /* -------------------- ANIMATIONS -------------------- */
@@ -8722,6 +8759,71 @@ body.no-perm-contacts [data-perm~="contacts"] {
   border-color: var(--preview-apply-line);
 }
 
+/* Roles & access on a phone (U-52): one role at a time, a full-width row per permission */
+.role-pick {
+  margin-bottom: var(--sp-3);
+}
+
+.role-list[hidden] {
+  display: none;
+}
+
+.role-toggle {
+  border-bottom: 1px solid var(--line);
+  padding: var(--sp-2) 0;
+}
+
+.role-toggle .switch {
+  flex: none;
+}
+
+.role-list .role-access-group {
+  margin: var(--sp-4) 0 var(--sp-1);
+  color: var(--ink-3);
+}
+
+.role-days {
+  margin-top: var(--sp-3);
+}
+
+/* Settings › Team: add a worker without email (U-56) */
+.team-add {
+  margin-top: var(--sp-4);
+}
+
+.team-add > summary {
+  list-style: none;
+}
+
+.team-add > summary::-webkit-details-marker {
+  display: none;
+}
+
+.team-add form {
+  margin-top: var(--sp-3);
+}
+
+/* The phone lock screen (U-55): over the app, under confirms and toasts */
+.app-lock {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-busy) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6);
+  background: var(--bg);
+}
+
+.app-lock-box {
+  width: 100%;
+  max-width: 360px;
+}
+
+.app-lock-box .notice[hidden] {
+  display: none;
+}
+
 /* ---- css/day.css ---- */
 /* ==================== DAY PAGE STYLES ==================== */
 
@@ -8949,6 +9051,27 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .cash-note + .cash-note { margin-top: var(--sp-1); }
 .cash-note strong { color: var(--ink-2); }
 
+/* First-run checklist on Today (U-58) */
+.first-run-list {
+  margin: var(--sp-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.first-run-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--control-h);
+}
+
+.first-run-step > span {
+  flex: 1;
+}
+
+.first-run-step.done {
+  color: var(--ink-3);
+}
 /* Day details fold (U-35): open for the owner and manager, folded for Members */
 .today-more > summary {
   display: flex;

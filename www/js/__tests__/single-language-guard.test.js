@@ -340,6 +340,10 @@ describe('Hindi mode: no English UI words', () => {
         AdminManager.renderTabs();
         await AdminManager.renderUsers();
         grab();
+        // People are managed in Settings › Team (U-54)
+        document.body.insertAdjacentHTML('beforeend', '<div id="teamPeopleCard"><div id="teamPeople"></div></div>');
+        await AdminManager.renderTeam();
+        grab();
         AdminManager.renderData();
         AdminManager.storageStats = null;
         document.getElementById('adminContainer').insertAdjacentHTML('beforeend', '<div id="adminStorageStats"></div>');
