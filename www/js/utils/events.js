@@ -38,6 +38,9 @@ export const PRINTER_CHANGED = 'printer:changed';
 
 export const REMINDERS_CHANGED = 'reminders:changed';
 
+/** Today's To do reminders (ui/manual-reminders.js) changed: listened, saved, done or the form redrawn. */
+export const TODOS_CHANGED = 'todos:changed';
+
 /** Billing's purchase or retail bill was saved or cleared (purchase.js, retail-sale.js); payload `'purchase'|'sale'`. */
 export const BILL_CLEARED = 'bill:cleared';
 

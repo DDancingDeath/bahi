@@ -25,7 +25,11 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
 - **Settings › Team** (owner only): **Roles & access** (what each role may see, edit window in days; Save for everyone)
   and **People**.
 - **Settings › Help & about** (everyone): install the app, App updates (version, What's new, share, download page),
-  About, Usage on this phone, desktop notifications; in the Android app, **Crash reports** (off
+  About, Usage on this phone, **Notifications** (this phone only: **Phone notifications** on or off, then Bell updates, To do reminders,
+  Udhaar summary (owner, managers), Rent due (Rentals) and Backup check (owner) one by one, the daily summary time
+  (9:30 am) and **Send test notification**. The phone asks to allow notifications only when you switch them on or send a
+  test; if it was refused, the card says where to allow them in the phone's settings. In the Android app reminders come at
+  their time even with the app closed; in the browser only while the app is open. docs/notifications.md); in the Android app, **Crash reports** (off
   unless this phone's user turns it on: crashes and freezes then go to the shop's Firebase with the
   phone's details; the app adds no names or amounts, but an error message can hold text; docs/error-reporting.md says exactly what is sent).
 - **Admin › Users**: approve, change role, Reset Password (emails the person a

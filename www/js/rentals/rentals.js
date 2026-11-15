@@ -266,7 +266,7 @@ const badge = (cls, key) => `<span class="tag${cls === 'paid' ? ' pos' : cls ===
 
 /** REM-2 and REM-4 for Today, the bell and Needs attention, saved from complete data only. */
 function notePage(d, ix, rows) {
-    noteRent(state, rows, store.truncatedKeys());
+    noteRent(state, rows, store.truncatedKeys(), d.leases);
     state.leaseNotes = JSON.stringify(leaseReminder(localStorage, AppState.currentUser?.uid, state.month)?.items || null);
     if (state.errors.size || store.truncatedKeys().length) return;
     void import('./rent-report.js').then((m) => {
