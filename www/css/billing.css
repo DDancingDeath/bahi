@@ -357,6 +357,13 @@ input[type="number"] {
   font-size: var(--fs-sm);
   color: var(--ink-2);
 }
+
+/* Phone and tablet: the likely next number is left out (a saved or retried bill's number stays) */
+@media (max-width: 1023.98px) {
+  .bill-no-hint[data-kind="next"] {
+    display: none;
+  }
+}
 /* Voice billing (#81): shown only when switched on in Settings */
 .btn[data-voice-mic] {
   margin-bottom: var(--sp-3);
@@ -402,8 +409,38 @@ input[type="number"] {
   font-weight: var(--w-label);
 }
 
-.bill-toolbar > .bill-clear {
+/* Save draft and Clear sit in the ⋯ menu at the end of the row (Drafts shows only when there are some) */
+.bill-menu {
+  position: relative;
   margin-left: auto;
+}
+
+.bill-menu > summary {
+  list-style: none;
+  color: var(--ink-2);
+}
+
+.bill-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bill-menu-list {
+  position: absolute;
+  right: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+}
+
+.bill-menu-list > .btn {
+  justify-content: flex-start;
+  font-weight: var(--w-label);
+}
+
+.bill-menu-list > .bill-clear {
   color: var(--negative);
 }
 

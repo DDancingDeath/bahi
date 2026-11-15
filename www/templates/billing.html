@@ -8,13 +8,18 @@
         
         <!-- Drafts -->
         <div class="bill-toolbar">
-            <button type="button" data-onclick="billing.showDrafts()" class="btn btn-ghost">
+            <button type="button" id="draftsBtn" data-onclick="billing.showDrafts()" class="btn btn-ghost" hidden>
                 <svg class="i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
                 <span data-i18n="ui.billing.drafts">Drafts</span>
                 <span class="bill-count" id="draftCount">0</span>
             </button>
-            <button type="button" id="saveDraftBtn" data-onclick="billing.saveDraft()" class="btn btn-ghost" data-i18n="ui.billing.save_draft">Save draft</button>
-            <button type="button" data-onclick="billing.clearBill()" class="btn btn-ghost bill-clear" data-i18n="ui.billing.clear">Clear</button>
+            <details class="bill-menu" id="billMenu">
+                <summary class="btn btn-ghost btn-icon" title="More" aria-label="More" data-i18n-title="ui.billing.more" data-i18n-aria-label="ui.billing.more"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg></summary>
+                <div class="panel bill-menu-list">
+                    <button type="button" id="saveDraftBtn" data-onclick="billing.saveDraft()" class="btn btn-ghost" data-i18n="ui.billing.save_draft">Save draft</button>
+                    <button type="button" id="clearBillBtn" data-onclick="billing.confirmClear()" class="btn btn-ghost bill-clear" data-i18n="ui.billing.clear">Clear</button>
+                </div>
+            </details>
         </div>
 
         <div id="autoSaveBanner" class="notice warn autosave-notice" role="status" hidden>
@@ -88,6 +93,7 @@
 
         <div id="weightBreakdownSection" class="bill-breakdown"></div>
 
+        <div class="bill-on-bill" id="purchaseLines" hidden>
         <h3 class="bill-section-title" data-i18n="ui.billing.on_this_bill">On this bill</h3>
         <table id="billTable">
             <thead>
@@ -104,6 +110,7 @@
 
         <div class="bill-items-foot">
             <span data-i18n="ui.billing.total_packets">Total packets</span> <strong id="totalPacketsInBill">0</strong>
+        </div>
         </div>
         </div>
 
@@ -167,7 +174,7 @@
                 </div>
             </div>
 
-            <div class="pay-line pay-rest">
+            <div class="pay-line pay-rest" hidden>
                 <span data-i18n="ui.billing.not_split_label">Not split yet</span>
                 <strong id="purchaseSplitRemaining">₹0</strong>
                 <button type="button" class="btn btn-tonal btn-sm" data-onclick="billing.putRestInDue('purchase')" data-i18n="ui.common.rest_due">Rest → due</button>
@@ -175,7 +182,14 @@
         </div>
 
         <div class="bill-notes-date">
-        <div class="bill-form-field field bill-notes">
+        <div class="bill-extras">
+            <span class="bill-date-line" data-date-line="billDate">
+                <span class="bill-date-text" id="billDateText"></span>
+                <button type="button" class="btn btn-ghost btn-sm bill-date-change" id="billDateChange" hidden data-onclick="billing.showDate('billDate')" data-i18n="ui.billing.change_date">Change date</button>
+            </span>
+            <button type="button" class="btn btn-ghost btn-sm bill-note-toggle" id="billNoteToggle" data-onclick="billing.showNotes('billComments')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.billing.add_note">Add note</span></button>
+        </div>
+        <div class="bill-form-field field bill-notes" hidden>
             <label for="billComments" data-i18n="ui.billing.notes_label">Notes</label>
             <input type="text" class="input" id="billComments" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
             <label class="checkbox-label bill-note-print">
@@ -184,7 +198,7 @@
             </label>
         </div>
 
-        <div class="bill-form-field field bill-date">
+        <div class="bill-form-field field bill-date" hidden>
             <label for="billDate" data-i18n="ui.billing.date_label">Date</label>
             <input type="date" id="billDate" class="bill-date-input input" />
         </div>
@@ -267,6 +281,7 @@
             <button type="button" class="btn btn-tonal btn-block" data-add-line data-onclick="billing.addToSalesBill()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.common.add_bill">Add to bill</span></button>
         </div>
 
+        <div class="bill-on-bill" id="saleLines" hidden>
         <h3 class="bill-section-title" data-i18n="ui.billing.on_this_bill">On this bill</h3>
         
         <!-- Weight Breakdown Section -->
@@ -287,6 +302,7 @@
 
         <div class="bill-items-foot">
             <span data-i18n="ui.billing.total_packets">Total packets</span> <strong id="totalSalePacketsInBill">0</strong>
+        </div>
         </div>
         </div>
 
@@ -335,7 +351,7 @@
                 </div>
             </div>
 
-            <div class="pay-line pay-rest">
+            <div class="pay-line pay-rest" hidden>
                 <span data-i18n="ui.billing.not_split_label">Not split yet</span>
                 <strong id="saleSplitRemaining">₹0</strong>
                 <button type="button" class="btn btn-tonal btn-sm" data-onclick="billing.putRestInDue('sale')" data-i18n="ui.common.rest_due">Rest → due</button>
@@ -343,7 +359,14 @@
         </div>
 
         <div class="bill-notes-date">
-        <div class="bill-form-field field bill-notes">
+        <div class="bill-extras">
+            <span class="bill-date-line" data-date-line="saleDate">
+                <span class="bill-date-text" id="saleDateText"></span>
+                <button type="button" class="btn btn-ghost btn-sm bill-date-change" id="saleDateChange" hidden data-onclick="billing.showDate('saleDate')" data-i18n="ui.billing.change_date">Change date</button>
+            </span>
+            <button type="button" class="btn btn-ghost btn-sm bill-note-toggle" id="saleNoteToggle" data-onclick="billing.showNotes('saleComments')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.billing.add_note">Add note</span></button>
+        </div>
+        <div class="bill-form-field field bill-notes" hidden>
             <label for="saleComments" data-i18n="ui.billing.notes_label">Notes</label>
             <input type="text" class="input" id="saleComments" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
             <label class="checkbox-label bill-note-print">
@@ -352,7 +375,7 @@
             </label>
         </div>
 
-        <div class="bill-form-field field bill-date">
+        <div class="bill-form-field field bill-date" hidden>
             <label for="saleDate" data-i18n="ui.billing.date_label">Date</label>
             <input type="date" id="saleDate" class="bill-date-input input" />
         </div>

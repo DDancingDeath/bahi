@@ -13,10 +13,10 @@ const ROOT = path.join(__dirname, '..', '..');
 const BILLING = fs.readFileSync(path.join(ROOT, 'www', 'templates', 'billing.html'), 'utf8');
 
 const BILLING_E2E_IDS = [
-    'amountPayable', 'amountReceivable', 'autoSaveBanner', 'barPayable', 'barReceivable', 'billComments', 'billDate', 'billItem', 'billRate', 'billTable',
+    'amountPayable', 'amountReceivable', 'autoSaveBanner', 'barPayable', 'barReceivable', 'billComments', 'billDate', 'billDateChange', 'billDateText', 'billItem', 'billNoteToggle', 'billRate', 'billTable',
     'billTotal', 'billing', 'cashCheckbox', 'cashPayment', 'customerName', 'newWeight', 'printBillBtn',
     'printSaleBtn', 'purchaseModeBtn', 'purchaseSection', 'saleCashCheckbox', 'saleCashPayment',
-    'saleCustomerName', 'saleComments', 'saleDate', 'saleDueAmount', 'saleDueCheckbox', 'saleItem', 'saleModeBtn', 'saleRate',
+    'saleCustomerName', 'saleDateText', 'saleNoteToggle', 'saleDueAmount', 'saleDueCheckbox', 'saleItem', 'saleModeBtn', 'saleRate',
     'saleSection', 'saleTotal', 'saleWeight', 'saveBillBtn', 'saveSaleBtn',
     'voiceMicPurchase', 'voiceMicSale', 'voiceTranscriptPurchase', 'voiceTranscriptSale', 'voiceUndoPurchase', 'voiceUndoSale',
 ];

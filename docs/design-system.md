@@ -121,8 +121,10 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   save sets `aria-busy` (the `runExclusive` lock). Every button, `-sm` too, and the payment actions
   (`[data-record-payment]`, `[data-mark-cleared]`) are at least 44 px tall. No page has a button class with its own
   look (C2): Billing and Wholesale use Save `-primary`, Print and Share (`-icon`) the default (the bill's action row is
-  Share, Save, Print: Print, the most used, is right-most, in DOM and tab order too), Add to bill and
-  Rest → due `-tonal`, the draft toolbar and the contact picker `-ghost`; inside `.bill-sale` (Retail sale) and
+  Share, Save, Print: Print, the most used, is right-most, in DOM and tab order too; Share is a 48 px icon and Save and Print
+  share the rest of the row in equal widths), Add to bill and
+  Rest → due `-tonal`, the draft toolbar (Drafts only when there are some; Save draft and Clear in the ⋯ `.bill-menu`, a
+  `<details>` like `.rent-menu`) and the contact picker `-ghost`; inside `.bill-sale` (Retail sale) and
   `.ws-entry` (Wholesale) the primary and tonal buttons take the mode's colour. `[data-add-line]` and
   `[data-add-weight]` are the E2E hooks. Bill details: the `.dialog-head` title "Bill #P…" with the party under it
   and the × (Close, `[data-dismiss]`); the footer has Void and Delete permanently (`-danger-outline`, left), Reprint and Share

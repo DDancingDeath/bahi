@@ -66,7 +66,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108fx-print-right';
+const BUILD_ID = '20261108fy-billing-declutter';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1159,6 +1159,9 @@ window.app = {
         loadDraft: (index) => BillingManager.loadDraft(index),
         deleteDraft: (index) => BillingManager.deleteDraft(index),
         clearBill: () => BillingManager.clearBill(),
+        confirmClear: () => BillingManager.confirmClear(),
+        showDate: (id) => BillingManager.showDate(id),
+        showNotes: (id) => BillingManager.showNotes(id),
         updateDraftCount: () => BillingManager.updateDraftCount(),
         
         // Auto-save management

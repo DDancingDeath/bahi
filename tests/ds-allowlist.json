@@ -40,7 +40,7 @@
     {"metric":"idSelector","file":"www/css/charts.css","count":6,"list":"cascade","reason":"#modalMessage (the shared modal body) and #billRate's rate-list arrow (::-webkit-calendar-picker-indicator / -list-button)"},
     {"metric":"idSelector","file":"www/css/day.css","count":2,"list":"cascade","reason":"#dayTodayContent section titles and items grid"},
     {"metric":"idSelector","file":"www/css/desktop.css","count":30,"list":"cascade","reason":"desktop billing grid on :is(#billing, .bill-page) and #purchaseSection / #saleSection"},
-    {"metric":"idSelector","file":"www/css/totals.css","count":49,"list":"cascade","reason":":is(#billing, .bill-page) totals and payment layer"},
+    {"metric":"idSelector","file":"www/css/totals.css","count":47,"list":"cascade","reason":":is(#billing, .bill-page) totals and payment layer"},
     {"metric":"inlineStyle","file":"www/js/utils/quota-guard.js","count":3,"list":"standalone","reason":"the quota banner and its close button style themselves (cssText) so they show even if app.css failed to load"},
     {"metric":"inlineStyle","file":"www/templates/billing.html","count":3,"list":"js-state","reason":"#purchaseSection / #saleSection display (billing.js toggles it, keyboard-shortcuts reads it, desktop.css matches [style*=\"none\"]) and the hidden receipt preview image"},
     {"metric":"inlineStyle","file":"www/templates/day.html","count":2,"list":"js-state","reason":"#dayReportCard and #dayCashContent start hidden; anomalies.js and day.js read and set style.display"},

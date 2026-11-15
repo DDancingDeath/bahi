@@ -278,6 +278,8 @@ const RetailSaleManager = {
         
         if (!tbody) return;
         this.billingManager?.renderBillNumber?.();
+        const lines = document.getElementById('saleLines');
+        if (lines) lines.hidden = saleItems.length === 0;
         
         if (saleItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
@@ -753,6 +755,7 @@ const RetailSaleManager = {
         if (totalReceivedEl) totalReceivedEl.textContent = '0';
         resetBillDate('saleDate');
         clearFieldError('saleRate');
+        this.billingManager?.syncNotes?.();
         this.billingManager?.focusFirstItem?.();
     },
 
