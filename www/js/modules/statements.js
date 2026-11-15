@@ -286,7 +286,7 @@ export const StatementsManager = {
             + this.duesCaveat(sessions)
             + (body ? `<div class="ins-scroll"><table class="table"><thead><tr><th>${esc(t('ui.statements.time'))}</th><th>${esc(t('ui.statements.what'))}</th><th>${esc(t('ui.statements.details'))}</th><th class="num">${esc(t('ui.money.amount'))}</th><th class="num">${esc(t('ui.statements.due'))}</th></tr></thead><tbody>${body}</tbody></table></div>`
                 : emptyState({ icon: 'file', title: t('ui.statements.nothing_on_day'), action: { onclick: 'statements.stepDay(-1)', label: t('ui.statements.day_before') } }))
-            + (isToday || !body ? '' : `<div class="st-totals">${tot.map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.statements.t_sales' ? 'M1' : k === 'ui.statements.t_purchases' ? 'M16' : 'M4'}">${Number.isFinite(Number(v)) ? esc(formatRupees(Number(v))) : '—'}</span></div>`).join('')}</div>`);
+            + (isToday ? '' : `<div class="st-totals">${tot.map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.statements.t_sales' ? 'M1' : k === 'ui.statements.t_purchases' ? 'M16' : 'M4'}">${Number.isFinite(Number(v)) ? esc(formatRupees(Number(v))) : '—'}</span></div>`).join('')}</div>`);
         let share = [title, ...tot.map(([k, v]) => `${t(k)}: ${formatRupees(v)}`)].join('\n');
         // Today's totals have one home (Today); today's day book lists the bills only.
         if (isToday) share = [title, ...rows.map(r => [timeOf(r), this.kindLabel(r.kind), r.billNo, r.party, r.note, formatRupees(r.amount)].filter(Boolean).join(' · '))].join('\n');

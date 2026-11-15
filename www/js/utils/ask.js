@@ -458,7 +458,7 @@ export function exampleNames(src = {}, { wholesale = true, hindi = false } = {})
     const top = buildAging(dueRows(src, 'sale', { wholesale })).parties
         .filter((/** @type {Rec} */ p) => p.name)
         .sort((/** @type {Rec} */ a, /** @type {Rec} */ b) => b.total - a.total)[0];
-    const rows = stockRows(src.stock || {}, (src.items || []).filter((/** @type {Rec} */ i) => i && !i.archived)).rows
+    const rows = stockRows(src.stock || {}, /** @type {*} */ ((src.items || []).filter((/** @type {Rec} */ i) => i && !i.archived))).rows
         .filter(r => !r.isOrphan && r.quantity > 0)
         .sort((a, b) => b.quantity - a.quantity);
     const item = rows[0] ? (hindi && rows[0].hindiName ? rows[0].hindiName : rows[0].name) : null;

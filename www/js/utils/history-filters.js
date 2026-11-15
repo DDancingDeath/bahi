@@ -235,9 +235,9 @@ export function filterHistoryBills(bills, { type = 'all', range = null, search =
 /**
  * H-TOTAL: the ₹ total of the bills a History list shows (the caller passes the
  * counted ones: no voided bills, no old-app carried dues). Σ BILL-TOTAL;
- * `unknown` = bills with no amount (not in the total, #80).
+ * `unknown` = bills with no amount (not in the total, #80); `due` = their open dues (BILL-DUE, U-73).
  * @param {Array<Rec>} bills
- * @returns {{count: number, total: number, unknown: number}}
+ * @returns {{count: number, total: number, unknown: number, due: number}}
  */
 export function historyListTotal(bills) {
     const list = bills || [];
