@@ -23,14 +23,14 @@
 .rent-attn > .rent-section-title { margin: 0; padding: var(--sp-3) var(--sp-4) var(--sp-1); }
 .rent-attn-more { padding: 0 var(--sp-4) var(--sp-3); }
 .rent-vacant { margin-top: var(--sp-2); }
-.rent-sticky { position: sticky; bottom: var(--sp-3); margin-top: var(--sp-4); }
+/* Record payment sits in the page under the month summary, not stuck over the list (N-19) */
+.rent-pay-any { margin-bottom: var(--sp-4); }
 
-/* Phone (U-65): the pages are on the bottom bar; the sticky button sits above the bar and the list ends clear of it */
+/* Phone (U-65): the pages are on the bottom bar and the list ends clear of it */
 @media (max-width: 1023.98px) {
     .rent-nav > .tabs { display: none; }
     .rent-nav:not(:has(> :not(.tabs, [hidden]))) { display: none; }
-    .rent-sticky { bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + var(--sp-3)); }
-    .rent-page.tab { padding-bottom: calc(var(--bottomnav-h) + var(--tap-min) + var(--sp-10) + env(safe-area-inset-bottom, 0px)); }
+    .rent-page.tab { padding-bottom: calc(var(--bottomnav-h) + var(--sp-6) + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* A row holding several lines (tenant, unit, property): title and figure on top, then details and actions */
