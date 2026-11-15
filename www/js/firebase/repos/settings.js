@@ -157,13 +157,28 @@ export const settingsMethods = {
     /**
      * Business name and details printed on bills (Settings › Aadhat). settings/app:
      * owner, or a manager allowed in Roles & access (firestore.rules).
-     * @param {{businessName: string, businessDetails: string}} details
+     * @param {{businessName: string, businessDetails: string, upiId?: string}} details upiId: the shop's UPI ID for payment reminders
      * @returns {Promise<void>}
      */
-    async saveBusinessDetails({ businessName, businessDetails }, opts) {
+    async saveBusinessDetails({ businessName, businessDetails, upiId }, opts) {
         const fields = {
             businessName: String(businessName || ''),
             businessDetails: String(businessDetails || ''),
+            ...(upiId !== undefined ? { upiId: String(upiId || '') } : {}),
+            businessUpdatedAt: Date.now(),
+            businessUpdatedBy: AppState.currentUser?.uid || 'unknown'
+        };
+        await saveSettingsSection(this, fields, 'businessUpdatedAt', opts);
+    },
+
+    /**
+     * The shop's UPI ID alone (U-62): moves a UPI ID that was kept on one phone into settings/app.
+     * @param {string} upiId
+     * @returns {Promise<void>}
+     */
+    async saveShopUpi(upiId, opts) {
+        const fields = {
+            upiId: String(upiId || ''),
             businessUpdatedAt: Date.now(),
             businessUpdatedBy: AppState.currentUser?.uid || 'unknown'
         };

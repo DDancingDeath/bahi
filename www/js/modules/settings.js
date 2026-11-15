@@ -16,7 +16,8 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { LABOUR_PACKAGE_KG_MAX, LABOUR_PACKAGE_KG_MIN, moneyText, normalizeLabourSettings, normalizePackageKg } from '../utils/money.js';
 import { DEFAULT_THRESHOLDS, normalizeThresholds } from '../utils/bill-checks.js';
 import { CHANGED_ELSEWHERE, NEEDS_INTERNET, writeErrorKey } from '../utils/write-conflict.js';
-import { t } from '../i18n/index.js';
+import { getLang, t } from '../i18n/index.js';
+import { formatTimeOfDay } from '../utils/dates.js';
 import { emptyState } from '../ui/components.js';
 import { safeSetItem, STORAGE_FULL_KEY } from '../utils/storage-full.js';
 import { groupOf, settingsView, shownGroup } from '../utils/settings-sections.js';
@@ -127,6 +128,9 @@ function storeLocalSettings(key = 'settings', value = AppState.settings) {
     if (full) UIManager.showToast(t(STORAGE_FULL_KEY), 'error');
     return ok;
 }
+
+/** A UPI ID as stored: no spaces, at most MAX_UPI characters. */
+const cleanUpi = (value) => String(value ?? '').replace(/\s+/g, '').slice(0, MAX_UPI);
 
 /** Typed package weight is blank (→ default) or within 1–200 kg. */
 export function packageKgInRange(value) {
@@ -417,6 +421,7 @@ export class SettingsManager {
         try {
             await FirebaseService.saveSharedLabourSettings(next);
             noteSettingsChange('labour', current, next);
+            this.markShopSaved();
             return true;
         } catch (error) {
             console.error('Saving shared labour settings failed:', error);
@@ -442,6 +447,7 @@ export class SettingsManager {
         // Business name/details (Settings › Aadhat): shared; a name set only on this device is kept until one is saved
         if (typeof appSettings?.businessName === 'string') AppState.settings.shopName = appSettings.businessName;
         if (typeof appSettings?.businessDetails === 'string') AppState.settings.businessDetails = appSettings.businessDetails;
+        this.applySharedUpi(appSettings).catch(() => {});
         // Photo of weights (#374): the owner's switch for every phone, off unless set
         PhotoWeights.setShared(appSettings?.photoWeights);
         storeLocalSettings();
@@ -658,6 +664,7 @@ export class SettingsManager {
             await FirebaseService.saveSharedCheckThresholds(next);
             noteSettingsChange('bill_checks', previous, next);
             UIManager.showToast(t('msg.admin.settings_saved_everyone'));
+            this.markShopSaved();
             return true;
         } catch (error) {
             console.error('Saving bill-check limits failed:', error);
@@ -675,13 +682,20 @@ export class SettingsManager {
             return false;
         }
         const clean = (id, max) => String(document.getElementById(id)?.value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
-        const details = { businessName: clean('settingBusinessName', MAX_BUSINESS_NAME), businessDetails: clean('settingBusinessDetails', MAX_BUSINESS_DETAILS) };
-        const previous = { businessName: AppState.settings.shopName || '', businessDetails: AppState.settings.businessDetails || '' };
+        const upiInput = this.group === 'shop' ? document.getElementById('settingUpiId') : null;
+        const details = {
+            businessName: clean('settingBusinessName', MAX_BUSINESS_NAME),
+            businessDetails: clean('settingBusinessDetails', MAX_BUSINESS_DETAILS),
+            upiId: upiInput ? cleanUpi(upiInput.value) : cleanUpi(AppState.settings.upiId)
+        };
+        const previous = { businessName: AppState.settings.shopName || '', businessDetails: AppState.settings.businessDetails || '', upiId: cleanUpi(AppState.settings.upiId) };
         this.applyBusinessLocally(details);
         try {
             await FirebaseService.saveBusinessDetails(details);
             noteSettingsChange('business', previous, details);
+            setField('settingUpiId', 'value', details.upiId);
             UIManager.showToast(t('msg.admin.settings_saved_everyone'));
+            this.markShopSaved();
             return true;
         } catch (error) {
             console.error('Saving business details failed:', error);
@@ -691,6 +705,7 @@ export class SettingsManager {
                 this.applyBusinessLocally(previous);
                 setField('settingBusinessName', 'value', previous.businessName);
                 setField('settingBusinessDetails', 'value', previous.businessDetails);
+                setField('settingUpiId', 'value', previous.upiId);
             });
             return false;
         }
@@ -703,10 +718,16 @@ export class SettingsManager {
         CHECK_THRESHOLD_FIELDS.forEach(([key]) => setField(`settingCheck_${key}`, 'value', thresholds[key]));
     }
 
+    /** The shop's UPI ID on this phone (the caller stores the local copy). */
+    static applyUpiLocally(upiId) {
+        AppState.settings.upiId = upiId;
+    }
+
     /** Business name and details on this phone (AppState, local copy). */
-    static applyBusinessLocally({ businessName, businessDetails }) {
+    static applyBusinessLocally({ businessName, businessDetails, upiId }) {
         AppState.settings.shopName = businessName;
         AppState.settings.businessDetails = businessDetails;
+        if (upiId !== undefined) this.applyUpiLocally(upiId);
         storeLocalSettings();
     }
 
@@ -730,14 +751,35 @@ export class SettingsManager {
         }
     }
 
-    /** UPI ID for payment reminders: this device only (as before). */
+    /** UPI ID for payment reminders: shop-wide, saved with the business details (U-62). */
     static saveUpi() {
-        const upi = String(document.getElementById('settingUpiId')?.value ?? '').replace(/\s+/g, '').slice(0, MAX_UPI);
-        AppState.settings.upiId = upi;
-        const stored = storeLocalSettings();
-        setField('settingUpiId', 'value', upi);
-        if (stored) UIManager.showToast(t('msg.settings.settings_saved_successfully'));
-        return upi;
+        return this.saveBusinessDetails();
+    }
+
+    /**
+     * The shop's UPI ID from settings/app. A UPI ID typed before it was shared (it was kept
+     * on each phone) is saved for everyone once, by someone allowed to change shop settings.
+     * @param {Object|null} appSettings
+     * @returns {Promise<void>}
+     */
+    static async applySharedUpi(appSettings) {
+        if (typeof appSettings?.upiId === 'string') {
+            this.applyUpiLocally(appSettings.upiId);
+            return;
+        }
+        const local = cleanUpi(AppState.settings.upiId);
+        if (!appSettings || !local || !this.canEditShop()) return;
+        try {
+            await FirebaseService.saveShopUpi(local, { checked: false });
+        } catch (error) {
+            console.warn('UPI ID not shared yet:', error?.code || error);
+        }
+    }
+
+    /** "Saved for everyone at 9:41 am" under the Aadhat title after a shop setting is saved. */
+    static markShopSaved() {
+        const note = document.getElementById('settingsShopSaveNote');
+        if (note) note.textContent = t('ui.settings.shop_saved_at', { time: formatTimeOfDay(new Date(), { lang: getLang() }) });
     }
 
     /** Settings › Rentals: its code is imported (and rent_settings read) only now. */
@@ -1109,7 +1151,7 @@ export class SettingsManager {
             this.updatePrinterStatus();
             UIManager.showToast(t('msg.common.printer_disconnected'));
         } catch (error) {
-            await UIManager.showModal(t('msg.common.failed_disconnect', { message: error.message }));
+            await UIManager.showModal(t('msg.common.failed_disconnect', { message: PrinterService.errorText(error) }));
         }
     }
 

@@ -142,9 +142,9 @@ describe('Settings page sections (jsdom)', () => {
         expect(document.getElementById('settingLaborRate').disabled).toBe(true);
         expect(document.getElementById('settingCheck_cashOkRs').disabled).toBe(true);
         expect(shown('settingsShopViewOnly')).toBe(true);
-        // the opening stock shortcut and the per-device UPI stay usable
+        // the shop's UPI ID is shown, and changed only by those who may change shop settings (U-62)
         expect(document.getElementById('settingUpiId').value).toBe('gupta@upi');
-        expect(document.getElementById('settingUpiId').disabled).toBe(false);
+        expect(document.getElementById('settingUpiId').disabled).toBe(true);
     });
 
     test('manager allowed in Roles & access edits the Aadhat settings', () => {
@@ -212,7 +212,8 @@ describe('Settings page sections (jsdom)', () => {
         document.getElementById('settingBusinessName').value = '  Sharma   Aadhat ';
         document.getElementById('settingBusinessDetails').value = 'Mandi road';
         expect(await SettingsManager.saveBusinessDetails()).toBe(true);
-        expect(save).toHaveBeenCalledWith({ businessName: 'Sharma Aadhat', businessDetails: 'Mandi road' });
+        expect(save).toHaveBeenCalledWith({ businessName: 'Sharma Aadhat', businessDetails: 'Mandi road', upiId: 'gupta@upi' });
+        expect(document.getElementById('settingsShopSaveNote').textContent).toMatch(/^Saved for everyone at \d/);
         expect(AppState.settings.shopName).toBe('Sharma Aadhat');
         // #85: the change is audited with before → after, only the changed field
         expect(note).toHaveBeenCalledWith('SETTINGS_CHANGE', { section: 'business', changes: 'businessName: Old Name → Sharma Aadhat' });
@@ -240,6 +241,27 @@ describe('Settings page sections (jsdom)', () => {
         expect(AppState.settings).toMatchObject({ shopName: 'Shared', businessDetails: 'Line' });
         await SettingsManager.applySharedSettings({ laborRate: 6 });
         expect(AppState.settings.shopName).toBe('Shared');
+    });
+
+    test('UPI ID is shop-wide (U-62): read from settings/app; a UPI kept on one phone is shared once', async () => {
+        const share = jest.spyOn(FirebaseService, 'saveShopUpi').mockResolvedValue();
+        as('staff');
+        await SettingsManager.applySharedSettings({ laborRate: 6 });
+        expect(share).not.toHaveBeenCalled();
+        as('owner');
+        await SettingsManager.applySharedSettings({ laborRate: 6 });
+        expect(share).toHaveBeenCalledWith('gupta@upi', { checked: false });
+        share.mockClear();
+        await SettingsManager.applySharedSettings({ laborRate: 6, upiId: 'shop@upi' });
+        expect(AppState.settings.upiId).toBe('shop@upi');
+        expect(share).not.toHaveBeenCalled();
+
+        SettingsManager.open('shop');
+        const save = jest.spyOn(FirebaseService, 'saveBusinessDetails').mockResolvedValue();
+        document.getElementById('settingUpiId').value = ' new @upi ';
+        expect(await SettingsManager.saveBusinessDetails()).toBe(true);
+        expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ upiId: 'new@upi' }));
+        expect(AppState.settings.upiId).toBe('new@upi');
     });
 });
 

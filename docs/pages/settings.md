@@ -19,6 +19,9 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   (on or off for everyone; only the owner switches it).
 - **Settings › Aadhat** (owner and managers; a manager changes them only when Roles & access allows): business name
   and details, UPI ID, labour rate and package weight, bill checks, bill numbers and this phone's code, opening stock.
+  Each change saves for everyone when you leave the box ("Saved for everyone at …" under the title); the UPI ID in
+  WhatsApp payment reminders is the shop's, the same on every phone (a UPI ID typed on one phone before is moved there
+  once). Only "Enable automatic labour charges by default" stays on each phone.
 - **Settings › Rentals** (Rentals owner and managers): defaults for new leases and the tenant page header.
 - **Settings › Team** (owner only): **Roles & access** (what each role may see, edit window in days; Save for everyone)
   and **People**.
@@ -34,7 +37,7 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   place the app uses. No amount on any screen changes (BILL-PAY); check that a recent backup is good first.
 - **Anomalies**: bills that look wrong (a possible duplicate bill, a rate far off,
   a big cash gap…) and each mismatch the daily number checks found ("Number check: …", on
-  its bill, item or cash day); tap "Mark OK" or "Mark fixed" on each.
+  its bill, item or cash day); tap "Looks right" or "I corrected it" on each.
 - **Diagnostics › Number checks**: the always-true checks run on this phone's data
   (bill split, payments, dates, dues, drawer, stock).
 - **Diagnostics › Audit logs**: CSV (in English) or Print / PDF of the entries listed;

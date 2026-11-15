@@ -668,7 +668,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
              'laborRate', 'heavyWeightThreshold', 'labourPackageKg', 'labourUpdatedAt', 'labourUpdatedBy',
              'checkThresholds', 'checksUpdatedAt', 'checksUpdatedBy',
-             'businessName', 'businessDetails', 'businessUpdatedAt', 'businessUpdatedBy',
+             'businessName', 'businessDetails', 'upiId', 'businessUpdatedAt', 'businessUpdatedBy',
              'receipt', 'receiptUpdatedAt', 'receiptUpdatedBy']);
     }
 
