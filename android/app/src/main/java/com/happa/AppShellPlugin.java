@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.print.PrintAttributes;
 import android.print.PrintManager;
 import android.provider.Settings;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -23,7 +24,8 @@ import java.util.Locale;
 
 /**
  * Small native helpers for the web app (Capacitor.Plugins.AppShell): system bar colours,
- * the app's settings page, external links that report whether an app opened them, and printing.
+ * the app's settings page, external links that report whether an app opened them, printing, and hiding the
+ * screen from recent apps while the phone lock is on.
  */
 @CapacitorPlugin(name = "AppShell")
 public class AppShellPlugin extends Plugin {
@@ -47,6 +49,17 @@ public class AppShellPlugin extends Plugin {
             if (getActivity() instanceof MainActivity) {
                 ((MainActivity) getActivity()).setBarColors(top, bottom, lightTop, lightBottom);
             }
+            call.resolve();
+        });
+    }
+
+    /** Phone lock on: the app's screen is hidden from the recent-apps preview (and screenshots). */
+    @PluginMethod
+    public void setSecure(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        getActivity().runOnUiThread(() -> {
+            if (on) getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            else getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
             call.resolve();
         });
     }

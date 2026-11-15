@@ -13,12 +13,16 @@ import { safeSetItem } from '../utils/storage-full.js';
 import { t } from '../i18n/index.js';
 import { APP_LOCK_KEY, APP_LOCK_ASKED_KEY } from '../utils/first-run.js';
 import { emit, REMINDERS_CHANGED } from '../utils/events.js';
+import { shellMethod } from '../utils/native-shell.js';
 
 export const LOCK_MINUTES = Object.freeze([2, 5, 10, 30]);
 const PIN_RE = /^\d{4,6}$/;
 const CHECK_EVERY_MS = 30 * 1000;
 const WAIT_AFTER_TRIES = 5;
 const TRIES_WAIT_MS = 30 * 1000;
+const SAVE_ACTIVE_EVERY_MS = 15 * 1000;
+/** Lock state per person (uid appended), so killing and reopening the app doesn't skip the lock. */
+export const APP_LOCK_STATE_KEY = 'happa.appLockState';
 
 /** Roles that may lock the phone (money pages). */
 export const canUseAppLock = (role) => role === 'owner' || role === 'manager';
@@ -61,6 +65,27 @@ export function readLock(uid, store = typeof localStorage !== 'undefined' ? loca
     }
 }
 
+/**
+ * @param {string} uid
+ * @param {?Storage} [store]
+ * @returns {{lastActive: number, locked: boolean, tries: number, waitUntil: number}}
+ */
+export function readLockState(uid, store = typeof localStorage !== 'undefined' ? localStorage : null) {
+    const num = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+    try {
+        const v = JSON.parse(store?.getItem(`${APP_LOCK_STATE_KEY}.${uid}`) || 'null') || {};
+        return { lastActive: num(v.lastActive), locked: v.locked === true, tries: num(v.tries), waitUntil: num(v.waitUntil) };
+    } catch (_) {
+        return { lastActive: 0, locked: false, tries: 0, waitUntil: 0 };
+    }
+}
+
+/** Hides the app from Android's recent-apps preview while the lock is on (APKs without the method: nothing). */
+function setSecureWindow(on) {
+    const set = shellMethod('setSecure');
+    if (set) Promise.resolve(set({ on })).catch(() => {});
+}
+
 export const AppLock = {
     uid: null,
     lastActive: Date.now(),
@@ -69,29 +94,63 @@ export const AppLock = {
     tries: 0,
     waitUntil: 0,
     bound: false,
+    savedAt: 0,
 
-    /** After sign-in: watches for idle time when this person turned the lock on. */
-    start(uid) {
-        this.stop();
+    /** After sign-in (and after the app was killed and reopened): locks at once if it was locked or idle too long. */
+    start(uid, now = Date.now()) {
+        this.end();
         this.uid = uid;
-        this.lastActive = Date.now();
-        if (!uid || !canUseAppLock(AppState.userRole) || !readLock(uid)) return;
+        this.lastActive = now;
+        const cfg = uid && canUseAppLock(AppState.userRole) ? readLock(uid) : null;
+        if (!cfg) return;
+        setSecureWindow(true);
+        const saved = readLockState(uid);
+        this.tries = saved.tries;
+        this.waitUntil = saved.waitUntil;
         if (!this.bound) {
             this.bound = true;
-            const touch = () => { if (!this.locked) this.lastActive = Date.now(); };
+            const touch = () => {
+                if (this.locked || !this.uid) return;
+                this.lastActive = Date.now();
+                if (this.lastActive - this.savedAt >= SAVE_ACTIVE_EVERY_MS) this.save();
+            };
             ['pointerdown', 'keydown'].forEach(type => document.addEventListener(type, touch, { passive: true, capture: true }));
-            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') this.check(); });
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') this.check();
+                else if (this.uid && !this.locked) this.save();
+            });
         }
         this.timer = setInterval(() => this.check(), CHECK_EVERY_MS);
+        if (saved.locked || (saved.lastActive && shouldLock(saved.lastActive, now, cfg.minutes))) this.lock();
+        else this.save();
     },
 
-    /** Sign-out: nothing to guard, the lock screen goes. */
-    stop() {
+    /** Writes the lock state for this person (best effort). */
+    save() {
+        if (!this.uid) return;
+        this.savedAt = Date.now();
+        safeSetItem(`${APP_LOCK_STATE_KEY}.${this.uid}`, JSON.stringify({ lastActive: this.lastActive, locked: this.locked, tries: this.tries, waitUntil: this.waitUntil }));
+    },
+
+    /** Stops watching without forgetting the saved state. */
+    end() {
         clearInterval(this.timer);
         this.timer = null;
         this.uid = null;
         this.locked = false;
+        this.tries = 0;
+        this.waitUntil = 0;
         document.getElementById('appLockScreen')?.remove();
+    },
+
+    /** Sign-out: nothing to guard, the lock screen goes; the next sign-in starts unlocked. */
+    stop() {
+        const uid = this.uid;
+        this.end();
+        if (uid) {
+            try { localStorage.removeItem(`${APP_LOCK_STATE_KEY}.${uid}`); } catch (_) { /* nothing stored */ }
+        }
+        setSecureWindow(false);
     },
 
     check(now = Date.now()) {
@@ -104,6 +163,7 @@ export const AppLock = {
 
     lock() {
         this.locked = true;
+        this.save();
         if (document.getElementById('appLockScreen')) return;
         const e = Helpers.escapeHtml;
         const box = document.createElement('div');
@@ -154,6 +214,7 @@ export const AppLock = {
             this.tries = 0;
             this.waitUntil = now + TRIES_WAIT_MS;
         }
+        this.save();
         say('msg.applock.wrong_pin');
         input?.focus();
         return false;
@@ -162,7 +223,9 @@ export const AppLock = {
     unlocked() {
         this.locked = false;
         this.tries = 0;
+        this.waitUntil = 0;
         this.lastActive = Date.now();
+        this.save();
         document.getElementById('appLockScreen')?.remove();
     },
 

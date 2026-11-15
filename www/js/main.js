@@ -758,15 +758,15 @@ async function initializeUserData() {
         setTimeout(() => startClockCheck({ toast: (m) => UIManager.showToast(m) })
             .catch(e => console.warn('Clock check failed:', e)), 10000);
         
+        if (AppState.userRole === 'owner' || AppState.userRole === 'manager') {
+            const lockUid = AppState.currentUser?.uid;
+            loadAppLock().then(l => l.start(lockUid)).catch(e => console.warn('Phone lock not started:', e?.message || e));
+        }
         UIManager.hideLoading();
         markStartup('app-shown', { online: navigator.onLine });
         tip.start('SessionReads').complete({ startupReads: getQuotaStatus().reads - readsAtStart });
         noteStartup('listeners', FirebaseService.getStartupListenerInfo?.() || {});
         logStartupTimings();
-        if (AppState.userRole === 'owner' || AppState.userRole === 'manager') {
-            const lockUid = AppState.currentUser?.uid;
-            loadAppLock().then(l => l.start(lockUid)).catch(e => console.warn('Phone lock not started:', e?.message || e));
-        }
         // Shop | Rentals switch (#149): Rentals code loads only when opened
         BusinessSwitcher.init();
         // Offline / waiting-to-sync pill (#70)

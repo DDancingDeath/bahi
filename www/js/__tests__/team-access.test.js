@@ -6,7 +6,8 @@
 import { normalizeUsername, validPin, workerDomain, workerEmail, loginEmailFor, workerUsername } from '../utils/worker-accounts.js';
 import { writeOffsByOthers } from '../utils/owner-alerts.js';
 import { firstRunSteps, showFirstRun, appLockOfferDue } from '../utils/first-run.js';
-import { hashPin, shouldLock, validLockPin, canUseAppLock } from '../ui/app-lock.js';
+import { hashPin, shouldLock, validLockPin, canUseAppLock, AppLock, APP_LOCK_STATE_KEY, readLockState } from '../ui/app-lock.js';
+import { AppState } from '../utils/state.js';
 import { webcrypto } from 'crypto';
 
 describe('worker accounts without email (U-56)', () => {
@@ -86,5 +87,46 @@ describe('phone lock (U-55)', () => {
         expect(shouldLock(0, 5 * 60000 - 1, 5)).toBe(false);
         expect(shouldLock(0, 5 * 60000, 5)).toBe(true);
         expect(shouldLock(0, 10 * 60000, 0)).toBe(false);
+    });
+
+    describe('survives killing and reopening the app', () => {
+        const uid = 'u-lock';
+        const minutes = 5;
+        beforeEach(() => {
+            localStorage.clear();
+            AppState.userRole = 'owner';
+            localStorage.setItem(`happa.appLock.${uid}`, JSON.stringify({ on: true, minutes, salt: 's', hash: 'h' }));
+        });
+        afterEach(() => {
+            AppLock.stop();
+            delete window.Capacitor;
+        });
+
+        test('a phone locked when closed opens locked, and the lock hides the app from recent apps', () => {
+            const setSecure = jest.fn(async () => {});
+            window.Capacitor = { isNativePlatform: () => true, Plugins: { AppShell: { setSecure } } };
+            localStorage.setItem(`${APP_LOCK_STATE_KEY}.${uid}`, JSON.stringify({ lastActive: Date.now(), locked: true, tries: 3, waitUntil: 0 }));
+            AppLock.start(uid);
+            expect(AppLock.locked).toBe(true);
+            expect(AppLock.tries).toBe(3);
+            expect(document.getElementById('appLockScreen')).not.toBeNull();
+            expect(setSecure).toHaveBeenCalledWith({ on: true });
+            AppLock.stop();
+            expect(setSecure).toHaveBeenLastCalledWith({ on: false });
+            expect(localStorage.getItem(`${APP_LOCK_STATE_KEY}.${uid}`)).toBeNull();
+        });
+
+        test('idle longer than the chosen minutes before it was closed: locked on open; recent use: open', () => {
+            const now = Date.now();
+            localStorage.setItem(`${APP_LOCK_STATE_KEY}.${uid}`, JSON.stringify({ lastActive: now - minutes * 60000, locked: false }));
+            AppLock.start(uid, now);
+            expect(AppLock.locked).toBe(true);
+            expect(readLockState(uid).locked).toBe(true);
+            AppLock.end();
+            localStorage.setItem(`${APP_LOCK_STATE_KEY}.${uid}`, JSON.stringify({ lastActive: now - 60000, locked: false }));
+            AppLock.start(uid, now);
+            expect(AppLock.locked).toBe(false);
+            expect(readLockState(uid).lastActive).toBe(now);
+        });
     });
 });
