@@ -65,6 +65,7 @@ test('no CSP violation on load, sign-in and the main pages', async ({ page, prob
 
     await page.goto('/download', { waitUntil: 'load' });
     await expect(page.locator('#latestVersion')).not.toHaveText('—');
+    await expect(page.locator('#latestVersion')).toHaveText('v1.0.0-rc1');
     expect(await violations(page), '/download').toEqual([]);
 
     await page.goto(`/r/${TENANT_TOKEN}?d=1&emulator=1`, { waitUntil: 'load' });
