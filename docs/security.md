@@ -27,7 +27,7 @@ Every site sends these on every path (the first `"source": "**"` entry):
 - **Privacy (voice billing):** voice audio goes to the phone's speech service
   (Google on most phones; Chrome's on the web), which turns it into text. The app keeps
   no audio and no text. The spoken readback uses only an on-device voice (`localService`),
-  never a network one, so what was understood is not sent anywhere. The in-app notice is the Settings › Voice billing hint (en/hi).
+  never a network one, so what was understood is not sent anywhere. The in-app notice is the Settings › Billing tools › Voice billing hint (en/hi).
 - The redirect-only sites (`happaapp`, `happa-bfc07`) get the same headers from
   `scripts/happa-config.js` (`REDIRECT_SECURITY_HEADERS`; `npm run apply:happa-config`
   writes them) with an enforced `default-src 'none'`, since they only answer 301s.

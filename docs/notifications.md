@@ -7,7 +7,7 @@ Functions, so nothing can wake a **closed** app (no FCM / web push). What works:
 |---|---|
 | App open (phone or desktop) | 🔔 bell with unread badge, toast for 5 s when a new notification arrives |
 | Inbox | tap the bell: newest first, 30 per page, "Show more", "Mark all read", tap a row to go to the item / bill list |
-| Desktop browser, app open in another tab/window | optional system notification — Settings → Notifications (web only, not in the Android app) |
+| Desktop browser, app open in another tab/window | optional system notification — Settings › Help & about › Notifications (web only, not in the Android app) |
 | App closed | nothing yet — needs Blaze + a Cloud Function (or a paid push service) — owner decision on #12 |
 
 Read state changes only when the inbox is opened (rows shown) or a row is

@@ -50,7 +50,7 @@ While a bill is being typed:
   The bill is for today ("Today"); the owner can tap **Change date** to pick another day. Save draft and Clear
   (which asks first when the bill has lines) are in the ⋯ menu at the top; **Drafts** shows only when there are
   drafts. On a phone the "Next bill no." hint is left out, and Save and Print are the same width.
-- **Voice** (VB-1; off until switched on in Settings › Voice billing): tap 🎤 and
+- **Voice** (VB-1; off until switched on in Settings › Billing tools › Voice billing): tap 🎤 and
   say the item, weight and rate. Several lines can be said in one go ("… and …"),
   and "customer" before a name fills the customer. The app shows what it understood
   (and reads it aloud, unless muted in the dialog) and acts only after OK: one line
@@ -60,7 +60,7 @@ While a bill is being typed:
   last voice change; Settings can add a short beep after listening. See
   [voice-billing.md](../voice-billing.md).
 - **Photo of weights** (PW-1; Purchase only; hidden until the owner switches it on in
-  Settings › Aadhat › Photo of weights): tap **Photo of weights** under the weight box
+  Settings › Billing tools › Photo of weights): tap **Photo of weights** under the weight box
   and photograph the handwritten weight sheet. The app reads the weights and shows them
   for checking: the photo with a numbered box on each weight, then the weights in the
   same order. Yellow ones were not clear; crossed-out ones are listed apart and left out.

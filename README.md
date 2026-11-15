@@ -186,7 +186,7 @@ The version lives in four places that must agree: `www/changelog.json` (top entr
 
 Installed Android apps check `releases/latest` (at most every 12 h) and show an "Update available" banner;
 https://myhappa.web.app/download (site from `happa.config.json`; happaapp.web.app and happa-bfc07.web.app redirect there) always links to the latest APK. After updating, each user sees a one-time
-"What's new" sheet (Settings → App updates reopens it and has "Share on WhatsApp" for sending the download link).
+"What's new" sheet (Settings › Help & about › App updates reopens it and has "Share on WhatsApp" for sending the download link).
 
 To re-publish an existing tag (e.g. after fixing a secret), run the workflow manually (Actions → Android release →
 Run workflow) with `tag` = `v<ver>`; assets are replaced (`--clobber`).
@@ -324,7 +324,7 @@ The app includes a service worker (`www/service-worker.js`) that:
 
 `www/manifest.webmanifest` plus the icons in `www/icons/` make the web app
 installable on desktop (Chrome/Edge) and Android/iOS home screens. In a
-browser tab, **Settings → Install App / ऐप इंस्टॉल करें** shows an install
+browser tab, **Settings › Help & about › Install app** shows an install
 button when the browser offers one, or a short hint otherwise (Safari/Firefox).
 The card is hidden inside the Capacitor Android app and when already running
 installed. New icons/manifest changes must stay in `STATIC_ASSETS`

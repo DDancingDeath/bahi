@@ -40,7 +40,7 @@ Test against the live site and the RC APK, not the emulator.
       It must install **over** it with no "App not installed" error. That error
       means the signing key changed: stop, never ask users to uninstall.
 - [ ] After opening: still signed in, the language, the printer and any
-      unsynced bills are still there; Settings → About shows the new version.
+      unsynced bills are still there; Settings › Help & about › About shows the new version.
 - [ ] The "What's new" sheet shows once, in the app language.
 - [ ] As the owner: Statements › Accountant CSV › CSV opens the share sheet with the
       file (save it to Files or Drive and open it); cancelling the sheet saves nothing.

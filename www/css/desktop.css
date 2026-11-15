@@ -146,18 +146,17 @@
     justify-content: center;
     width: var(--control-h);
     height: var(--control-h);
+    overflow: hidden;
     border-radius: var(--r-sm);
-    background: var(--accent);
-    color: var(--on-accent);
+    background: linear-gradient(var(--brand-tile-top), var(--brand-tile) 55%);
+    box-shadow: var(--brand-tile-ring);
+    color: var(--brand-ink);
   }
 
-  .nav-mark-rentals,
-  body.biz-rentals .nav-mark-shop {
-    display: none;
-  }
-
-  body.biz-rentals .nav-mark-rentals {
-    display: inline-block;
+  .nav-mark-bahi {
+    width: 100%;
+    height: 100%;
+    fill: var(--brand-corner);
   }
 
   .nav-header h2 {

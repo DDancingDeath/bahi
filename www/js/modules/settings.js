@@ -1,8 +1,8 @@
 /**
- * @fileoverview Settings: Common (language, account, notifications, printer,
- * install, about, Roles & access), Aadhat (internal id 'shop': business name,
- * UPI, labour, bill checks, bill numbers, opening stock) and Rentals (loaded on
- * demand from js/rentals). Which sections show: utils/settings-sections.js.
+ * @fileoverview Settings: a short main list (language, account, then one row per group) and
+ * a sub-page per group: Appearance, Printing & receipts, Billing tools, Aadhat (internal id
+ * 'shop'), Rentals (loaded on demand from js/rentals), Team and Help & about. Which groups
+ * show: utils/settings-sections.js.
  * @module modules/settings
  */
 
@@ -19,7 +19,8 @@ import { CHANGED_ELSEWHERE, NEEDS_INTERNET, writeErrorKey } from '../utils/write
 import { t } from '../i18n/index.js';
 import { emptyState } from '../ui/components.js';
 import { safeSetItem, STORAGE_FULL_KEY } from '../utils/storage-full.js';
-import { settingsView } from '../utils/settings-sections.js';
+import { groupOf, settingsView, shownGroup } from '../utils/settings-sections.js';
+import { NavigationManager } from '../ui/navigation.js';
 import { BusinessSwitcher } from '../ui/business-switcher.js';
 import { PhotoWeights } from '../ui/photo-weights.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
@@ -53,6 +54,11 @@ export const CHECK_THRESHOLD_FIELDS = [
 const MAX_BUSINESS_NAME = 80;
 const MAX_BUSINESS_DETAILS = 120;
 const MAX_UPI = 60;
+/** Group id → its section's element id. */
+const GROUP_IDS = Object.freeze({
+    appearance: 'settingsAppearance', printing: 'settingsPrinting', billing: 'settingsBilling', shop: 'settingsShop',
+    rentals: 'settingsRentals', team: 'settingsTeam', help: 'settingsHelp'
+});
 
 /** The gallery's sample bill: kg, rate, amount (fixed figures, nothing is computed on screen). */
 const THEME_SAMPLE_LINES = [[50, 56, 2800], [48.5, 55.5, 2691.75]];
@@ -475,68 +481,102 @@ export class SettingsManager {
         return settingsView({ userRole: AppState.userRole, rentRole: AppState.rentRole, roleAccess: AppState.settings?.roleAccess }).shop.editable;
     }
 
-    /** Section the user toggled to (null = the business open in the switcher). */
-    static sectionChoice = null;
+    /** The group open now (null = the main list). */
+    static group = null;
 
     /**
-     * Opens Settings: Common always; the Aadhat or Rentals section by the
-     * business switcher, or `section` from a settings-* route.
-     * @param {('common'|'shop'|'rentals'|'roles'|null)} [section]
+     * Opens Settings on the main list, or on the group of a settings-* route; a group
+     * the user may not see shows the list instead.
+     * @param {?string} [section] a group id, or the old 'common' / 'roles'
      */
     static open(section = null) {
-        if (section === 'shop' || section === 'rentals') this.sectionChoice = section;
         this.loadSettings();
         window.app?.roles?.render?.();
         const view = this.renderSections();
-        const target = section === 'roles' ? 'roleAccessCard'
-            : section === 'common' ? 'settingsCommon'
-            : (section === 'shop' || section === 'rentals') && view.active === section ? 'settingsBizBar' : null;
-        const el = target && document.getElementById(target);
-        if (el?.scrollIntoView) el.scrollIntoView({ block: 'start' });
+        const group = this.showGroup(shownGroup(section, view));
+        if (!group && groupOf(section)) NavigationManager.replaceRoute('settings');
         return view;
     }
 
-    /** View the other business's section (only offered when the user has a role there). */
-    static showOther() {
-        const view = this.currentView();
-        if (!view.other) return view;
-        this.sectionChoice = view.other;
-        return this.renderSections();
+    /**
+     * A row of the main list opens its group, with a history entry so the back gesture returns to the list.
+     * @param {string} group
+     * @returns {?string} the group shown
+     */
+    static openGroup(group) {
+        const shown = this.showGroup(shownGroup(group, this.currentView()));
+        if (shown) NavigationManager.noteRoute(`settings-${shown}`);
+        return shown;
+    }
+
+    /** The group's Back button: the main list, as the back gesture. */
+    static back() {
+        const tab = NavigationManager.currentTab;
+        if (tab && tab !== 'settings' && typeof history !== 'undefined' && history.state?.happaTab === tab && history.length > 1) {
+            history.back();
+            return;
+        }
+        this.showGroup(null);
+        NavigationManager.noteRoute('settings');
     }
 
     static currentView() {
-        return settingsView({
-            userRole: AppState.userRole, rentRole: AppState.rentRole,
-            business: BusinessSwitcher.current(), choice: this.sectionChoice, roleAccess: AppState.settings?.roleAccess
-        });
+        return settingsView({ userRole: AppState.userRole, rentRole: AppState.rentRole, roleAccess: AppState.settings?.roleAccess });
     }
 
-    /** Shows the active business section only; Rentals code and data load only when that section is shown. */
+    /** Shows the list rows the user may open and redraws the open group. */
     static renderSections() {
         const view = this.currentView();
-        const shop = document.getElementById('settingsShop');
-        const rentals = document.getElementById('settingsRentals');
-        if (shop) shop.hidden = view.active !== 'shop';
-        if (rentals) rentals.hidden = view.active !== 'rentals';
-        const bar = document.getElementById('settingsBizBar');
-        if (bar) bar.hidden = !view.active && !view.other;
-        const title = document.getElementById('settingsBizTitle');
-        if (title) {
-            title.hidden = !view.active;
-            title.textContent = view.active ? t(view.active === 'rentals' ? 'ui.settings.section_rentals' : 'ui.settings.section_shop') : '';
+        document.querySelectorAll('#settings [data-settings-open]').forEach(row => {
+            row.hidden = !view[/** @type {keyof typeof view} */ (row.getAttribute('data-settings-open'))]?.visible;
+        });
+        if (this.group && !view[/** @type {keyof typeof view} */ (this.group)]?.visible) this.showGroup(null);
+        else this.renderGroup(view);
+        return view;
+    }
+
+    /**
+     * Shows one group (null = the main list). Rentals code and data load only when its group shows.
+     * @param {?string} group
+     * @returns {?string} the group shown
+     */
+    static showGroup(group) {
+        const view = this.currentView();
+        const shown = group && view[/** @type {keyof typeof view} */ (group)]?.visible ? group : null;
+        const from = this.group;
+        const page = document.getElementById('settings');
+        const hadFocus = !!page && page.contains(document.activeElement);
+        this.group = shown;
+        const home = document.getElementById('settingsHome');
+        if (home) home.hidden = !!shown;
+        document.querySelectorAll('#settings [data-settings-group]').forEach(el => {
+            /** @type {HTMLElement} */ (el).hidden = el.getAttribute('data-settings-group') !== shown;
+        });
+        if (shown !== 'appearance' && ThemeManager.previewing) {
+            ThemeManager.cancelPreview();
+            this.syncTheme();
         }
-        const toggle = document.getElementById('settingsBizToggle');
-        if (toggle) {
-            toggle.hidden = !view.other;
-            toggle.textContent = view.other ? t(view.other === 'rentals' ? 'ui.settings.view_rentals' : 'ui.settings.view_shop') : '';
+        this.renderGroup(view);
+        if (shown !== from) {
+            if (shown) {
+                page?.scrollIntoView?.({ block: 'start' });
+                document.getElementById(`${GROUP_IDS[shown]}Title`)?.focus({ preventScroll: true });
+            } else if (from && hadFocus) {
+                /** @type {?HTMLElement} */ (document.querySelector(`#settings [data-settings-open="${from}"]`))?.focus();
+            }
         }
-        if (view.active === 'shop') this.renderShop(view.shop.editable);
-        if (view.active === 'rentals') this.renderRentals(view.rentals.editable).catch(e => console.warn('Rentals settings not shown:', e));
+        return shown;
+    }
+
+    /** Fills the open group from AppState (shared values were read at start-up). */
+    static renderGroup(view = this.currentView()) {
+        if (this.group === 'shop') this.renderShop(view.shop.editable);
+        if (this.group === 'billing') PhotoWeights.apply();
+        if (this.group === 'rentals') this.renderRentals(view.rentals.editable).catch(e => console.warn('Rentals settings not shown:', e));
         else {
             const body = document.getElementById('settingsRentalsBody');
             if (body) body.innerHTML = '';
         }
-        return view;
     }
 
     /** Settings › Aadhat: values from settings/app (already read at start-up) and this device. */
@@ -706,7 +746,7 @@ export class SettingsManager {
         if (!body) return;
         try {
             const mod = await BusinessSwitcher.loadSettings();
-            if (this.currentView().active !== 'rentals') return;
+            if (this.group !== 'rentals') return;
             await mod.mount(body, { editable });
         } catch (error) {
             console.error('Rentals settings failed to open:', error);

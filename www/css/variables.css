@@ -197,6 +197,22 @@
   }
 }
 
+/* The Bahi mark (docs/brand/icon-full.svg, #375): white B with the sage corner on charcoal, fixed in every theme;
+   on dark surfaces a faint ring keeps the tile's edge */
+:root {
+  --brand-tile: #16161d;
+  --brand-tile-top: #26262f;
+  --brand-ink: #ffffff;
+  --brand-corner: #89b284;
+  --brand-tile-ring: none;
+}
+
+@media screen {
+  [data-mode="dark"] {
+    --brand-tile-ring: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
+}
+
 /* Layout, type scale, density and motion: the same in every theme */
 :root {
   --w-label: 600;

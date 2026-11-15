@@ -24,7 +24,8 @@
 
 .set-panel[hidden],
 .set-printer[hidden],
-.settings-biz-bar[hidden],
+.settings-section[hidden],
+.set-groups > .row[hidden],
 .set-panel > div:empty,
 .set-printer > div:empty {
   display: none;
@@ -210,34 +211,63 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-size: var(--fs-caption);
 }
 
-/* Settings sections: Common, Aadhat, Rentals. A section title, not a page title: no .tab h2 underline */
-.tab h2.settings-section-title {
-  margin: var(--sp-2) 0 var(--sp-3);
-  padding-bottom: 0;
-  border-bottom: 0;
-  color: var(--ink-3);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-label);
+/* Settings groups: the main list's rows open a group (a sub-page with Back) */
+.set-groups {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin-bottom: var(--sp-4);
 }
 
-.tab h2.settings-section-title::after {
+.set-groups > .row {
+  min-height: 64px;
+}
+
+.set-groups > .row > .i {
+  flex: none;
+  color: var(--ink-3);
+}
+
+.set-groups .row-title,
+.set-groups .row-meta {
+  display: block;
+}
+
+/* Your name and its Save on one line */
+.set-inline {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.set-inline > .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.set-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-2) 0 var(--sp-3);
+}
+
+/* A group title, not a page title: no .tab h2 underline */
+.tab h2.set-group-title {
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+  font-size: var(--fs-lead);
+  letter-spacing: normal;
+}
+
+.tab h2.set-group-title::after {
   content: none;
 }
 
-.settings-biz-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
-  margin: var(--sp-6) 0 var(--sp-3);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--line);
+.set-group-title:focus {
+  outline: none;
 }
 
-.settings-biz-bar h2.settings-section-title {
-  margin: 0;
-}
 /* "Bluetooth permission needed" notice (#77): a .notice.float */
 .printer-perm-notice {
   z-index: var(--z-sheet);

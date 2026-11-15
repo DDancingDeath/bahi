@@ -84,10 +84,10 @@ export const ThemeManager = {
             const follow = () => { if (this.current.appearance === 'system') this.render({ ...this.current, theme: this.previewing || this.current.theme }); };
             if (query.addEventListener) query.addEventListener('change', follow);
             else if (query.addListener) query.addListener(follow);
-            // A preview never outlives Settings › Common (the gallery's section)
+            // A preview never outlives Settings › Appearance (the gallery's group)
             window.addEventListener('aadhat:tabshown', (e) => {
                 const { tabId, section } = e.detail || {};
-                if (tabId !== 'settings' || (section && section !== 'common')) this.cancelPreview();
+                if (tabId !== 'settings' || section !== 'appearance') this.cancelPreview();
             });
         }
         return this.current;
