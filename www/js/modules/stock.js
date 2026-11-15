@@ -451,13 +451,20 @@ export class StockManager {
         </div>`;
     }
 
+    /** Adjustment reason chips (U-77): the chosen one is pressed; the hidden select holds the value. */
+    static setReason(code) {
+        const select = document.getElementById('adjustReasonCode');
+        if (select) select.value = code;
+        const chosen = select ? select.value : code;
+        document.querySelectorAll('#stock [data-reason]').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.reason === chosen)));
+    }
+
     /** "Set opening stock": the adjustment form, ready for one item's opening quantity and cost per kg. */
     static startOpeningStock() {
         this.filterStockTab('adjustment');
         const type = document.getElementById('adjustType');
         if (type) type.value = 'set';
-        const reason = document.getElementById('adjustReasonCode');
-        if (reason) reason.value = 'opening';
+        this.setReason('opening');
         const rate = document.getElementById('adjustRate');
         if (rate && rate.value === '0') rate.value = '';
         this.updateAdjustmentPlaceholder();
@@ -866,8 +873,7 @@ export class StockManager {
             document.getElementById("adjustQuantity").value = "";
             document.getElementById("adjustRate").value = "";
             document.getElementById("adjustReason").value = "";
-            const reasonSelect = document.getElementById("adjustReasonCode");
-            if (reasonSelect) reasonSelect.value = "";
+            this.setReason('');
         }
 
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;

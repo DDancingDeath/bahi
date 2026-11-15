@@ -1357,6 +1357,7 @@ window.app = {
         updateAdjustmentPlaceholder: () => withStock(m => m.updateAdjustmentPlaceholder()),
         applyAdjustment: () => withStock(m => m.applyStockAdjustment()),
         startOpeningStock: () => withStock(m => m.startOpeningStock()),
+        setReason: (code) => withStock(m => m.setReason(code)),
         renderAdjustmentHistory: () => withStock(m => m.renderAdjustmentHistory()),
         renderDeadStock: () => withStock(m => m.renderDeadStock()),
         setDeadStockDays: (days) => withStock(m => m.setDeadStockDays(days)),

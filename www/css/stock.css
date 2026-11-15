@@ -224,3 +224,9 @@
   display: none;
 }
 
+/* Adjustment reasons as one-tap chips (U-77) */
+.adjust-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}

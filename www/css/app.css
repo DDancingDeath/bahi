@@ -8229,6 +8229,13 @@ tr.bill-check-line .bill-check-msg {
   display: none;
 }
 
+/* Adjustment reasons as one-tap chips (U-77) */
+.adjust-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
 /* ---- css/charts.css ---- */
 /* -------------------- ANIMATIONS -------------------- */
 @keyframes slideIn {
