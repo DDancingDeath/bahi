@@ -4,8 +4,8 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [billin
 
 While a bill is being typed:
 
-- **Customer / supplier name**: typing lists the names already on the bills on this phone
-  (purchases for a supplier, retail sales for a customer), newest first, with what is open
+- **Customer name** (Purchase and Retail sale both say "Customer"): typing lists the names already on the bills on this phone
+  (purchases on Purchase, retail sales on Retail sale), newest first, with what is open
   on them, the same amount as the "Already owes" line (PARTY). Latin and Hindi spellings
   find each other ("ramesh" finds "रमेश कुमार"). Tap a name, or pick it with ↓ ↑ and Enter
   (Esc closes the list). Nothing extra is read from the internet. After you leave the
@@ -61,9 +61,9 @@ While a bill is being typed:
   switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
   The bill is for today ("Today"); the owner can tap **Change date** to pick another day. Save draft and Clear
   (which asks first when the bill has lines) are in the ⋯ menu beside Purchase / Retail sale; **Drafts** is there too, with
-  its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Supplier / Customer, Item, Rate,
+  its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Customer, Item, Rate,
   Weight) sits on the field's top edge and stays there after typing. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
-  screen the Save / Print row starts with the bill's total (Total payable / Total receivable).
+  screen the Save / Print row starts with the bill's total: a short label (Payable / Receivable, 14 px) over the amount in large bold figures.
 - **Voice** (VB-1; off until switched on in Settings › Billing tools › Voice billing): tap 🎤 and
   say the item, weight and rate. Several lines can be said in one go ("… and …"),
   and "customer" before a name fills the customer. The app shows what it understood

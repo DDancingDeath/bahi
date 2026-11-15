@@ -59,6 +59,15 @@ describe('#166 partyDue lookup', () => {
         expect(partyDue(bills, 'Ram', { excludeId: 'f', today: TODAY })).toBeNull();
     });
 
+    test('"Name - Number" from a picked contact: nothing under it → the plain name\'s due, marked (v730)', () => {
+        expect(partyDue(bills, 'Ram - 9876543210', { today: TODAY })).toMatchObject({ total: 70, count: 1, matchedName: 'Ram' });
+        const own = [...bills, bill('n', 'Ram - 9876543210', 40)];
+        expect(partyDue(own, 'Ram - 9876543210', { today: TODAY })).toEqual(expect.objectContaining({ total: 40 }));
+        expect(partyDue(own, 'Ram - 9876543210', { today: TODAY }).matchedName).toBeUndefined();
+        expect(partyDue(bills, 'Shyam - 9876543210', { today: TODAY })).toBeNull();
+        expect(partyDue(bills, 'Ram - 12', { today: TODAY })).toBeNull();
+    });
+
     test('equals the Outstanding party total for the same bills', () => {
         const party = buildAging(bills, { today: TODAY }).parties.find(p => p.key === 'ram lal');
         expect(partyDue(bills, 'Ram Lal', { today: TODAY }).total).toBe(party.total);
@@ -184,6 +193,15 @@ describe('#166 due line under the name', () => {
             await pick('Nobody Owes');
             jest.advanceTimersByTime(CHECK_DEBOUNCE_MS);
             expect(line().hidden).toBe(true);
+
+            navigator.contacts = { select: jest.fn(async () => [{ name: ['Ram'], tel: ['+91 98765-43210'] }]) };
+            await Helpers.pickContact('saleCustomerName');
+            jest.advanceTimersByTime(CHECK_DEBOUNCE_MS);
+            expect(document.getElementById('saleCustomerName').value).toBe('Ram - 9876543210');
+            expect(line().hidden).toBe(false);
+            expect(line().dataset.party).toBe('Ram');
+            expect(line().textContent).toContain('“Ram” (older bills)');
+            expect(line().textContent).toContain('₹60 on 1 bill');
         } finally {
             delete navigator.contacts;
             delete window.ContactsManager;

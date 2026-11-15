@@ -254,15 +254,15 @@ describe('the printed bill', () => {
         expect(drawn).toContain('चावल');
     });
 
-    test('the party line says Supplier on a purchase and Customer on a sale, in the slip language', () => {
+    test('the party line says Customer on a purchase (owner: no "Supplier") and on a sale, in the slip language', () => {
         PrinterService.manager._renderBillCanvas({ ...bill, customerName: 'Ram Kisan' }, 384, {});
-        expect(drawn).toContain('Supplier: Ram Kisan');
+        expect(drawn).toContain('Customer: Ram Kisan');
         drawn = [];
         PrinterService.manager._renderBillCanvas({ ...bill, isPurchase: false, customerName: 'Sita' }, 384, {});
         expect(drawn).toContain('Customer: Sita');
         drawn = [];
         PrinterService.manager._renderBillCanvas({ ...bill, customerName: 'Ram Kisan' }, 384, { lang: 'hi' });
-        expect(drawn).toContain('विक्रेता: Ram Kisan');
+        expect(drawn).toContain('ग्राहक: Ram Kisan');
     });
 
     test('density sets how dark grey edges print', () => {

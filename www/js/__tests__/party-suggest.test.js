@@ -94,6 +94,20 @@ describe('closeParty: "Did you mean"', () => {
     });
 });
 
+describe('a picked contact, "Name - Number" (v730): older bills under the plain name are suggested, not merged', () => {
+    const entries = partyEntries([...BILLS, bill('r', 'Ramesh', 120, 4)]);
+
+    test('the list and "Did you mean" offer the plain name', () => {
+        expect(matchParties(entries, 'Ramesh - 9876543210').map(e => e.name)).toEqual(['Ramesh Kumar', 'Ramesh']);
+        expect(closeParty(entries, 'Ramesh - 9876543210')?.name).toBe('Ramesh');
+    });
+
+    test('a party already saved with the number is the exact match: no hint', () => {
+        const saved = partyEntries([bill('n', 'Ramesh - 9876543210', 0, 1), bill('r', 'Ramesh', 120, 4)]);
+        expect(closeParty(saved, 'Ramesh - 9876543210')).toBeNull();
+    });
+});
+
 describe('Billing name field (ui/party-suggest)', () => {
     let input;
     const type = (value) => {

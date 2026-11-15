@@ -84,7 +84,7 @@ test.each([
 ])('%s action row (%s) starts with the bill total #%s', (file, share, money) => {
     const html = fs.readFileSync(path.join(ROOT, 'www', 'templates', file), 'utf8');
     const row = html.slice(html.lastIndexOf('<div class="bill-actions">', html.indexOf(`.${share}()`)), html.indexOf(`.${share}()`));
-    expect(row).toMatch(new RegExp(`^<div class="bill-actions">\\s*<div class="bill-bar-total">\\s*<span class="bill-bar-label"[^>]*>[^<]+</span>\\s*<strong class="bill-bar-money money"><span class="cur">₹</span><span id="${money}">`));
+    expect(row).toMatch(new RegExp(`^<div class="bill-actions">\\s*<div class="bill-bar-total">\\s*<span class="bill-bar-label"[^>]*>[^<]+</span>(?:<span class="sr-only"[^>]*>[^<]+</span>)?\\s*<strong class="bill-bar-money money"><span class="cur">₹</span><span id="${money}">`));
 });
 
 test('no stylesheet hides the action row total, at any width', () => {

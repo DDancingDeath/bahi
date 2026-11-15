@@ -12,6 +12,17 @@
  */
 
 /**
+ * A name filled from a picked contact, "Ramesh - 9876543210", without its number ("Ramesh"); any
+ * other name as it is. For finding older bills under the plain name only, never for grouping.
+ * @param {*} name
+ * @returns {string}
+ */
+export function nameWithoutPhone(name) {
+    const s = String(name ?? '').trim();
+    return s.replace(/\s+-\s+\+?\d[\d\s]{5,}$/, '').trim() || s;
+}
+
+/**
  * The PARTY key of a name: Unicode NFC, trimmed, inner spaces collapsed to one, lower case.
  * @param {*} name
  * @returns {string} '' when there is no name
