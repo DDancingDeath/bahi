@@ -12,6 +12,13 @@ While a bill is being typed:
   field, a new name close to a known one ("Seeta Devi", "Sita Devi Ji") shows "Did you mean
   Sita Devi?": **Use** takes the known name, "Yes, it's right" keeps yours. It never stops
   the bill.
+- **Contact button** (next to the name): picks a name from the phone's contacts. In the Android
+  app the phone asks once for the Contacts permission on the first tap; if it was refused, the
+  app says where to allow it (phone Settings › Apps › this app › Permissions › Contacts). In
+  Chrome on Android it opens Chrome's contact list. Elsewhere (computer, iPhone, other browsers)
+  the tap says picking contacts isn't available and puts you in the name field. Only the name is
+  used; nothing from the contacts is saved except the name on the bill. Hidden for roles with
+  Phone contacts off (Settings › Roles & access).
 - **Line amount** (BF-LINE) = kg × rate, rounded to the rupee.
 - **Bill total** (BF-TOTAL) = the sum of the lines.
 - **Labour** (BF-LAB) = labour rate × heavy packets (above 30 kg by default),
