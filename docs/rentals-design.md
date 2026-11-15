@@ -797,7 +797,8 @@ Advanced only change what is drawn. Advanced never grants a permission (role che
 - **Mode:** `localStorage['happa.rentMode.<uid>']` = `simple` | `advanced`, per person on the phone; everyone starts
   in Simple (owner-adjustable default). Not in Firestore (rentals-only helpers can't read `users/{uid}/preferences`
   or `settings/app`, and it would cost reads). `happa.rentView` (Property wise / Unit wise) stays as Advanced's
-  sub-view; choosing one of them switches to Advanced. Module API: `setMode('simple'|'advanced')`.
+  sub-view; choosing one of them switches to Advanced. Module API: `setMode('simple'|'advanced')`. The switch is in
+  Settings › Rentals (U-65, shown to every rentals role; `settings.setRentMode`), not on the page.
 - **This month** (the first tab, route `rent`; the label was "Rent"): Simple shows RENT-2 of RENT-1 as a bar, RENT-4,
   **Needs attention** (REM-2 and REM-4 read back with `rentReminder` / `leaseReminder` from `utils/reminders.js`, the
   same records Today and the bell show, so the three always agree; a REM-4 item opens Change rent or the agreement),

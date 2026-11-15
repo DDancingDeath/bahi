@@ -100,7 +100,7 @@ const STEPS = [
     { name: 'Settings › Rentals', route: 'settings-rentals', page: 'settings', roles: OM, expect: '#settingsRentals' },
     { name: 'Settings › Team', route: 'settings-roles', page: 'settings', roles: O, expect: '#roleAccessCard' },
     { name: 'Settings › Team stays closed', route: 'settings-team', page: 'settings', roles: ['manager', 'staff'], expect: '#settingsHome', hidden: ['#settingsTeam'] },
-    { name: 'Rentals › This month (Simple)', route: null, page: 'rentals', act: "window.app.rentals.open('rent').then(() => window.app.rentals.setMode('simple'))", roles: A, expect: '#rentals [data-rent-mode="simple"].active' },
+    { name: 'Rentals › This month (Simple)', route: null, page: 'rentals', act: "window.app.rentals.open('rent').then(() => window.app.rentals.setMode('simple'))", roles: A, expect: '#rentals[data-rent-mode="simple"]' },
     { name: 'Rentals › Rent (property-wise)', route: null, page: 'rentals', act: "window.app.rentals.open('rent').then(() => window.app.rentals.setView('properties'))", roles: A, expect: `#rentalsBody .rent-viewswitch [aria-pressed="true"][data-onclick*="'properties'"]` },
     { name: 'Rentals › Rent (unit-wise)', route: null, page: 'rentals', act: "window.app.rentals.setView('units')", roles: A, expect: '#rentUnitList' },
     { name: 'Rentals › Tenants', route: null, page: 'rentals', act: "window.app.rentals.page('tenants')", roles: A, expect: '#rentals [data-rent-page="tenants"].active:visible, #bottomNav [data-rent-bar="tenants"].active:visible' },

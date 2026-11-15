@@ -1,6 +1,6 @@
 /**
  * Settings groups: a short main list for everyone; Aadhat (internal 'shop') and
- * Rentals only for their owner/manager, Team only for the owner; each group is a
+ * Rentals for anyone in Rentals (editable by its owner/manager), Team only for the owner; each group is a
  * sub-page whose Back (and the back gesture) returns to the list; old routes and
  * deep links still land on the right group; the business is called Aadhat / आढ़त.
  */
@@ -33,7 +33,7 @@ describe('settingsView (pure)', () => {
     const visible = (p) => SETTINGS_GROUPS.filter(g => settingsView(p)[g].visible);
     test.each([
         ['staff', null, undefined, ['appearance', 'printing', 'billing', 'help']],
-        ['staff', 'member', undefined, ['appearance', 'printing', 'billing', 'help']],
+        ['staff', 'member', undefined, ['appearance', 'printing', 'billing', 'rentals', 'help']],
         ['staff', 'manager', undefined, ['appearance', 'printing', 'billing', 'rentals', 'help']],
         ['manager', null, undefined, ['appearance', 'printing', 'billing', 'shop', 'help']],
         ['manager', null, { manager: { shopSettings: true } }, ['appearance', 'printing', 'billing', 'shop', 'help']],
@@ -58,7 +58,7 @@ describe('settingsView (pure)', () => {
         expect(settingsView({ userRole: 'manager', roleAccess: { manager: { shopSettings: true } } }).shop.editable).toBe(true);
         expect(settingsView({ userRole: 'staff', roleAccess: { staff: { shopSettings: true } } }).shop.editable).toBe(false);
         expect(settingsView({ userRole: 'staff', rentRole: 'manager' }).rentals.editable).toBe(true);
-        expect(settingsView({ userRole: 'staff', rentRole: 'member' }).rentals.visible).toBe(false);
+        expect(settingsView({ userRole: 'staff', rentRole: 'member' }).rentals).toEqual({ visible: true, editable: false });
         expect(settingsView({ userRole: 'manager', roleAccess: { manager: { shopSettings: true } } }).team.visible).toBe(false);
     });
 });
@@ -173,13 +173,16 @@ describe('Settings page sections (jsdom)', () => {
         expect(open()).toEqual(['team']);
     });
 
-    test('rentals manager (Aadhat member) opens Rentals; a rentals member does not', async () => {
+    test('rentals manager (Aadhat member) opens Rentals; a rentals member opens it view-only (U-65); no rentals role does not', async () => {
         as('staff', 'manager');
         SettingsManager.open('rentals');
         await new Promise(r => setTimeout(r));
         expect(open()).toEqual(['rentals']);
         expect(document.getElementById('rentMounted')).not.toBeNull();
         as('staff', 'member');
+        SettingsManager.open('rentals');
+        expect(open()).toEqual(['rentals']);
+        as('staff', null);
         jest.spyOn(NavigationManager, 'replaceRoute').mockImplementation(() => {});
         SettingsManager.open('rentals');
         expect(open()).toEqual([]);
