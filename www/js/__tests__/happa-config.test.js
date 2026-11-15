@@ -240,15 +240,53 @@ describe('Android build target (config/targets)', () => {
         }
     });
 
-    test('a target may only swap the Firebase blocks, not the app identity', () => {
+    test('a target may only swap the Firebase blocks, or give the app a whole side-by-side identity', () => {
         const dir = fs.mkdtempSync(path.join(ROOT, '.happa-test-'));
         try {
             fs.mkdirSync(path.join(dir, 'config', 'targets'), { recursive: true });
-            fs.writeFileSync(path.join(dir, 'config', 'targets', 'x.json'), JSON.stringify({ firebase: { projectId: 'happa-x' }, androidPackage: 'com.other' }));
-            expect(() => loadTarget('x', dir)).toThrow(/androidPackage/);
+            fs.writeFileSync(path.join(dir, 'config', 'targets', 'x.json'), JSON.stringify({ firebase: { projectId: 'happa-x' }, ownerConfirmed: true }));
+            expect(() => loadTarget('x', dir)).toThrow(/ownerConfirmed/);
             expect(() => loadTarget('../x', dir)).toThrow(/Bad target name/);
         } finally {
             fs.rmSync(dir, { recursive: true, force: true });
         }
+        const base = loadConfig(ROOT);
+        const own = { firebase: { projectId: 'happa-x' }, appName: 'X', appNameHi: 'X', androidPackage: 'com.happa.x', apkName: 'x' };
+        expect(() => withTarget(base, own)).not.toThrow();
+        const { apkName: _drop, ...partial } = own;
+        expect(() => withTarget(base, partial)).toThrow(/apkName/);
+        expect(() => withTarget(base, { ...own, androidPackage: 'com.other' })).toThrow(/androidPackage/);
+        expect(() => withTarget(base, { ...own, androidPackage: 'com.happa' })).toThrow(/androidPackage/);
+        expect(() => withTarget(base, { ...own, apkName: base.apkName })).toThrow(/apkName/);
+    });
+
+    test('bahi-happa-dev is the side-by-side "Bahi Dev" app; the shop APK keeps com.happa', () => {
+        const dev = withTarget(loadConfig(ROOT), loadTarget('bahi-happa-dev', ROOT));
+        expect(configProblems(dev)).toEqual([]);
+        expect(derive(dev)).toMatchObject({
+            projectId: 'bahi-happa-dev', siteUrl: 'https://bahi-happa-dev.web.app', appName: 'Bahi Dev',
+            androidPackage: 'com.happa.dev', androidNamespace: 'com.happa', apkFile: 'bahi-dev.apk',
+            appCheckSiteKey: '6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd'
+        });
+        const files = Object.fromEntries(plan(ROOT, dev).map((p) => [p.file, p.wanted]));
+        expect(files['android/app/build.gradle']).toMatch(/^\s*applicationId "com\.happa\.dev"$/m);
+        expect(files['android/app/build.gradle']).toMatch(/^\s*namespace "com\.happa"$/m);
+        expect(files['android/app/src/main/res/values/strings.xml']).toContain('<string name="app_name">Bahi Dev</string>');
+        expect(files['www/firebaseConfig.js']).toContain('"projectId": "bahi-happa-dev"');
+        for (const [file, text] of Object.entries(files)) {
+            expect({ file, other: /happa-bfc07|516108799937|myhappa|"bahi-happa"|6046579556/.test(text) }).toEqual({ file, other: false });
+        }
+
+        const prod = derive(bahi());
+        expect(prod).toMatchObject({ projectId: 'bahi-happa', appName: 'Bahi', androidPackage: 'com.happa', androidNamespace: 'com.happa', apkFile: 'bahi.apk' });
+        expect(plan(ROOT, bahi()).find((p) => p.file === 'android/app/build.gradle').wanted)
+            .toBe(fs.readFileSync(path.join(ROOT, 'android', 'app', 'build.gradle'), 'utf8').replace(/\r\n/g, '\n'));
+    });
+
+    test('the dev APK is a pre-release, never latest, with its own google-services.json', () => {
+        const android = workflow('android-release.yml');
+        expect(android).toContain('--prerelease --latest=false');
+        expect(android).toContain('GOOGLE_SERVICES_JSON="$GOOGLE_SERVICES_JSON_DEV"');
+        expect(android).toContain('--verify-tag --title "$title" --notes-file dist/release-notes.md --latest="$make_latest"');
     });
 });

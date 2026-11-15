@@ -285,7 +285,8 @@ that covers the APK:** a Play Integrity provider through a native Capacitor plug
 `6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd` (domains bahi-happa-dev.web.app, bahi-happa.web.app,
 localhost; the APK's WebView is `https://localhost`) registered as the Enterprise provider of its web
 app, AI Logic (`firebaseml.googleapis.com`) ENFORCED, Firestore and Auth unenforced (monitor). It is
-set only in the local bahi-happa-dev config branch. `bahi-happa` (prod, and the APK target) and
+set only in the local bahi-happa-dev config branch and in `config/targets/bahi-happa-dev.json` (the "Bahi
+Dev" test APK). `bahi-happa` (prod, and the APK target) and
 `happa-bfc07` have no key yet: prod gets its own key in project "Bahi", then
 `config/targets/bahi-happa.json` gets `appCheck.siteKey` for rc15.
 

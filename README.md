@@ -192,9 +192,18 @@ The version lives in four places that must agree: `www/changelog.json` (top entr
 in the runner only, before the release notes and `cap sync`. So the APK, its download links and its
 release notes point at that project and its site (bahi-happa.web.app) while `main` and the web deploy stay
 on `happa-bfc07`. A target may only swap the `firebase`, `googleSignIn` and `appCheck` blocks, never the
-package or app name. The `GOOGLE_SERVICES_JSON` secret must be the same project's Android app config:
+package or app name, except a side-by-side test app (below). The `GOOGLE_SERVICES_JSON` secret must be the same project's Android app config:
 the build stops when it isn't, and the signed APK's bundled `firebaseConfig.js` is checked too. Never
 run `target` in a checkout you commit from.
+
+**Test app "Bahi Dev"** (`config/targets/bahi-happa-dev.json`): project `bahi-happa-dev`, package
+`com.happa.dev`, so it installs next to the shop's Bahi app. A target may give the app such a whole
+identity (`appName`, `appNameHi`, `androidPackage` under the app's own package, `apkName`); the Java
+namespace stays `com.happa`. Run the workflow by hand with `target` = `bahi-happa-dev` (tag empty): it
+builds from the chosen branch, signs with the same key, uses the `GOOGLE_SERVICES_JSON_DEV` secret, puts a
+DEV badge on the launcher icon (`android/dev-icon`), checks the package, name and bundled project, and
+publishes a GitHub **pre-release** `dev-YYYYMMDD-N` with only `bahi-dev.apk`. It is never marked latest,
+so `releases/latest`, the update banner and /download stay on the shop's APK (the run fails if latest moved).
 
 Installed Android apps check `releases/latest` (at most every 12 h) and show an "Update available" banner;
 https://myhappa.web.app/download (site from `happa.config.json`; happaapp.web.app and happa-bfc07.web.app redirect there) always links to the latest APK. After updating, each user sees a one-time

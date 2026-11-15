@@ -34,20 +34,39 @@ function loadConfig(root = DEFAULT_ROOT) {
 
 const TARGETS_DIR = 'config/targets';
 const TARGET_KEYS = ['firebase', 'googleSignIn', 'appCheck'];
+// A side-by-side test app (e.g. "Bahi Dev", com.happa.dev) sets all four; see withTarget.
+const SIDE_BY_SIDE_KEYS = ['appName', 'appNameHi', 'androidPackage', 'apkName'];
 
 /** A build target (config/targets/<name>.json): another project's public web config for the same app. */
 function loadTarget(name, root = DEFAULT_ROOT) {
     if (!/^[a-z0-9-]+$/.test(String(name || ''))) throw new Error(`Bad target name "${name}"`);
     const target = JSON.parse(fs.readFileSync(path.join(root, TARGETS_DIR, `${name}.json`), 'utf8'));
-    const extra = Object.keys(target).filter((k) => !TARGET_KEYS.includes(k));
-    if (extra.length) throw new Error(`Target ${name} may only set ${TARGET_KEYS.join(', ')} (not ${extra.join(', ')})`);
+    const allowed = [...TARGET_KEYS, ...SIDE_BY_SIDE_KEYS];
+    const extra = Object.keys(target).filter((k) => !allowed.includes(k));
+    if (extra.length) throw new Error(`Target ${name} may only set ${allowed.join(', ')} (not ${extra.join(', ')})`);
     if (!target.firebase || !target.firebase.projectId) throw new Error(`Target ${name} has no firebase.projectId`);
     return target;
 }
 
-/** happa.config.json with a target's blocks swapped in whole (no field of the base project survives). */
+/**
+ * happa.config.json with a target's blocks swapped in whole (no field of the base project survives).
+ * A target keeps the app's identity, or gives it a whole new one that installs next to it: a package
+ * under the app's own (com.happa.dev), another name and another APK file. The code keeps its namespace.
+ */
 function withTarget(raw, target) {
-    return { ...raw, ...JSON.parse(JSON.stringify(target)) };
+    const own = SIDE_BY_SIDE_KEYS.filter((k) => k in target);
+    if (own.length) {
+        const missing = SIDE_BY_SIDE_KEYS.filter((k) => !own.includes(k));
+        if (missing.length) throw new Error(`A side-by-side target must also set ${missing.join(', ')}`);
+        if (!String(target.androidPackage).startsWith(`${raw.androidPackage}.`)) {
+            throw new Error(`Target androidPackage "${target.androidPackage}" must be under "${raw.androidPackage}."`);
+        }
+        const same = ['appName', 'appNameHi', 'apkName'].filter((k) => target[k] === raw[k]);
+        if (same.length) throw new Error(`A side-by-side target needs its own ${same.join(', ')}`);
+    }
+    const merged = { ...raw, ...JSON.parse(JSON.stringify(target)) };
+    if (own.length) merged.androidNamespace = raw.androidNamespace || raw.androidPackage;
+    return merged;
 }
 
 function derive(raw) {
@@ -75,6 +94,7 @@ function derive(raw) {
         appName: raw.appName,
         appNameHi: raw.appNameHi,
         androidPackage: raw.androidPackage,
+        androidNamespace: raw.androidNamespace || raw.androidPackage,
         apkName: raw.apkName,
         apkFile,
         githubRepo: raw.githubRepo,
@@ -301,7 +321,7 @@ const TARGETS = [
         file: 'android/app/build.gradle',
         write: (t, d) => replaceOrThrow(
             replaceOrThrow(t, /^(\s*applicationId\s+)"[^"]*"/m, `$1"${d.androidPackage}"`, 'applicationId'),
-            /^(\s*namespace\s+)"[^"]*"/m, `$1"${d.androidPackage}"`, 'namespace')
+            /^(\s*namespace\s+)"[^"]*"/m, `$1"${d.androidNamespace}"`, 'namespace')
     },
     {
         file: 'android/app/src/main/res/values/strings.xml',
@@ -365,10 +385,10 @@ function mainActivity(root, d) {
     if (!found.length) return null;
     if (found.length > 1) throw new Error(`More than one MainActivity.java under ${JAVA_ROOT}`);
     const rel = (p) => path.relative(root, p).split(path.sep).join('/');
-    const to = `${JAVA_ROOT}/${d.androidPackage.split('.').join('/')}/MainActivity.java`;
+    const to = `${JAVA_ROOT}/${d.androidNamespace.split('.').join('/')}/MainActivity.java`;
     const text = fs.readFileSync(found[0], 'utf8');
     const pkg = (/^package\s+([\w.]+);/m.exec(text) || [])[1];
-    return { from: pkg === d.androidPackage ? rel(found[0]) : `${rel(found[0])} (package ${pkg})`, to, file: found[0], text };
+    return { from: pkg === d.androidNamespace ? rel(found[0]) : `${rel(found[0])} (package ${pkg})`, to, file: found[0], text };
 }
 
 function moveMainActivity(root, d) {
@@ -376,7 +396,7 @@ function moveMainActivity(root, d) {
     if (!a || a.from === a.to) return null;
     const target = path.join(root, a.to);
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, a.text.replace(/^package\s+[\w.]+;/m, `package ${d.androidPackage};`));
+    fs.writeFileSync(target, a.text.replace(/^package\s+[\w.]+;/m, `package ${d.androidNamespace};`));
     if (path.resolve(a.file) !== path.resolve(target)) {
         fs.rmSync(a.file);
         let dir = path.dirname(a.file);
