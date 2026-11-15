@@ -73,6 +73,9 @@
                 <button type="button" class="btn" data-add-weight data-onclick="billing.addWeight()" data-i18n="ui.billing.add">Add</button>
             </div>
 
+            <button type="button" class="btn btn-tonal btn-block" data-photo-weights id="photoWeightsPurchase" hidden data-onclick="photoWeights.pick('purchase')" data-i18n-title="ui.photo_weights.button_title" title="Take a photo of the weight sheet"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-camera"/></svg><span data-i18n="ui.photo_weights.button">Photo of weights</span></button>
+            <input type="file" id="photoWeightsInput" accept="image/*" capture="environment" hidden data-onchange="photoWeights.picked(this)" data-i18n-aria-label="ui.photo_weights.button_title" aria-label="Take a photo of the weight sheet"/>
+
             <div id="weightsDisplay" class="weights-compact"></div>
 
             <div class="bill-line-sum">

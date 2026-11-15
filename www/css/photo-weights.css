@@ -1,0 +1,126 @@
+/* Photo of weights check sheet (#374): the photo with numbered boxes, then the weights to check */
+.pw-status {
+  margin: 0;
+  padding: var(--sp-4) 0;
+  color: var(--ink-2);
+}
+
+.pw-photo {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto var(--sp-3);
+}
+
+.pw-photo-img {
+  display: block;
+  max-width: 100%;
+  max-height: 45vh;
+  width: auto;
+  height: auto;
+  border-radius: var(--r-control);
+}
+
+.pw-boxes {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.pw-box {
+  position: absolute;
+  top: var(--pw-top);
+  left: var(--pw-left);
+  width: var(--pw-w);
+  height: var(--pw-h);
+  border: 2px solid var(--accent);
+  border-radius: var(--r-xs);
+}
+
+.pw-box::before {
+  content: attr(data-n);
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  padding: 0 var(--sp-1);
+  border-radius: var(--r-xs);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+}
+
+.pw-box.is-unclear {
+  border-color: var(--warning-dot);
+}
+
+.pw-box.is-unclear::before {
+  background: var(--surface);
+  color: var(--warning);
+}
+
+.pw-box.is-active {
+  border-width: 3px;
+  border-color: var(--positive);
+}
+
+.pw-list {
+  margin: var(--sp-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pw-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pw-row.is-unclear {
+  background: var(--warning-soft);
+}
+
+.pw-num {
+  min-width: var(--sp-6);
+  text-align: center;
+  font-weight: var(--w-strong);
+}
+
+.pw-field {
+  flex: 1 1 7rem;
+  margin: 0;
+}
+
+.pw-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.pw-tags:empty {
+  display: none;
+}
+
+.pw-crossed-title {
+  margin: var(--sp-3) 0 var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.pw-row.is-crossed s {
+  flex: 1 1 auto;
+  color: var(--ink-3);
+}
+
+.pw-summary {
+  margin: var(--sp-3) 0 var(--sp-2);
+  font-weight: var(--w-strong);
+}
+
+.pw-checks .notice {
+  margin: var(--sp-2) 0;
+}

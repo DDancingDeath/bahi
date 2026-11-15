@@ -157,6 +157,24 @@ const PurchaseManager = {
     },
 
     /**
+     * Photo of weights (#374): bag weights checked in the photo sheet, with the confirms of
+     * heavy ones, go into the chips as if typed one by one. Never adds a line or saves the bill.
+     * @param {number[]} list - weights > 0
+     * @param {Array<Object>} [records] - BF-BAGCHECK confirms for the heavy ones
+     * @returns {number} how many were added
+     */
+    addWeights(list, records = []) {
+        const kgs = (Array.isArray(list) ? list : []).filter(w => typeof w === 'number' && w > 0);
+        if (!kgs.length) return 0;
+        weights.push(...kgs);
+        weightChecks.push(...records);
+        this.renderWeights();
+        if (this.billingManager) this.billingManager.triggerAutoSave();
+        UIManager.hapticFeedback();
+        return kgs.length;
+    },
+
+    /**
      * Clear all weights
      */
     clearWeights() {

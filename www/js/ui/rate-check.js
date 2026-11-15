@@ -143,6 +143,23 @@ export async function checkBagWeight(kg, unit, weightInputId) {
 }
 
 /**
+ * Photo of weights (#374): the bag weights about to be added from one photo, each one above
+ * 100 kg asked as when it is typed. Stops at the first "Fix weight".
+ * @param {number[]} list
+ * @param {'bag'|'packet'} unit
+ * @returns {Promise<{ok: boolean, index: number, records: Array<Object>}>} index: the weight to fix
+ */
+export async function confirmBagWeights(list, unit) {
+    const records = [];
+    for (let i = 0; i < list.length; i++) {
+        if (!heavyBag(list[i])) continue;
+        if (await askBagCheck(list[i], unit) !== 'confirm') return { ok: false, index: i, records: [] };
+        records.push(weightCheckRecord({ kg: list[i], ...who() }));
+    }
+    return { ok: true, index: -1, records };
+}
+
+/**
  * Add to bill: the confirms that cover the line's heavy bags. A heavy bag with no
  * confirm yet (e.g. weights of a restored bill) is asked now.
  * @param {number[]} weights - the line's bag / packet weights

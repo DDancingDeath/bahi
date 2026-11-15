@@ -5,6 +5,7 @@ import { UIManager } from './ui/ui-manager.js';
 import { NavigationManager } from './ui/navigation.js';
 import { BottomNav } from './ui/bottom-nav.js';
 import { VoiceMic } from './ui/voice-mic.js';
+import { PhotoWeights } from './ui/photo-weights.js';
 import { CrashReports } from './services/crash-reports.js';
 import { BusinessSwitcher } from './ui/business-switcher.js';
 import { SyncStatus } from './ui/sync-status.js';
@@ -65,7 +66,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108fv-gapfix';
+const BUILD_ID = '20261108fw-photo-weights';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -253,6 +254,7 @@ const PAGE_ADDED = {
     settings: () => {
         PrinterService.updateStatus();
         VoiceMic.apply();
+        PhotoWeights.apply();
         CrashReports.render();
         const swipe = document.getElementById('settingSwipeTabs');
         if (swipe) swipe.checked = !!BottomNav.swipeOn;
@@ -596,6 +598,7 @@ async function initializeUserData() {
         // Initialize billing manager (connects purchase and retail-sale modules)
         BillingManager.init();
         VoiceMic.apply();
+        PhotoWeights.apply();
         CrashReports.apply().catch(e => console.warn('Crash reports:', e));
         
         // Show app content
@@ -1017,6 +1020,12 @@ window.app = {
         undo: (mode) => VoiceMic.undo(mode),
         editLine: (i) => VoiceMic.editLine(i),
         lineChanged: (i) => VoiceMic.lineChanged(i)
+    },
+    // Photo of weights (#374): the owner's switch (off by default) and the Purchase button
+    photoWeights: {
+        pick: (mode) => PhotoWeights.pick(mode),
+        picked: (input) => PhotoWeights.picked(input),
+        setOn: (on) => SettingsManager.savePhotoWeights(on)
     },
     
     // Business switcher (#149) and Rentals (#170): rentals.* methods are added when the section loads
