@@ -43,6 +43,7 @@ import { APP_IDENTITY } from '../config/app-identity.js';
 import { PrinterService } from '../services/printer.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
+import { linkedOutflows, linkedSource, setLinkedSource } from '../utils/linked-outflows.js';
 import {
     compareBarHtml, writeBar, compareTableHtml, compareTarget, choosePreset, chooseCompare, applyDates, applySaved,
     saveCurrentRange, removeCurrentRange, periodText, presetSelectValue, summaryLines, summaryText, summaryCanvas, toggleCompareBar
@@ -53,6 +54,7 @@ const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
 const TM = { trueMinus: true };
 const SECTIONS = ['profit', 'cash', 'spending', 'worth'];
 const SESSION_TTL_MS = 10 * 60 * 1000;
+const LINKED_MAX_AGE_MS = 10 * 60 * 1000;
 const ACCOUNTS_KEY = 'financeCustomAccounts';
 const listIds = new WeakMap();
 let nextListId = 1;
@@ -150,6 +152,7 @@ export const MoneyManager = {
     sharedAccounts: { state: 'idle', list: null, map: null },
     accountEdits: 0,
     building: false,
+    linkedLoading: null,
     lastSummary: null,
     summaryCache: { sig: null, map: new Map(), computed: 0 },
 
@@ -464,7 +467,58 @@ export const MoneyManager = {
         this.renderProfit(ctx);
         if (this.section === 'cash') this.renderCash(ctx);
         if (this.section === 'spending') this.renderSpending(ctx);
+        this.renderLinked(ctx);
         this.renderChecks(ctx);
+    },
+
+    /**
+     * M22–M26 (U-22): worker pay and recurring-bill payments next to profit, spending and cash.
+     * Owner only (the rules let only the owner read workers and recurring bills).
+     */
+    renderLinked({ m, r }) {
+        const ids = ['moneyLinkedProfit', 'moneyLinkedCash', 'moneyLinkedCard'];
+        const hide = () => ids.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
+        if (AppState.userRole !== 'owner') { hide(); return; }
+        const src = linkedSource();
+        if (!src.workers || !src.billItems || Date.now() - src.at > LINKED_MAX_AGE_MS) this.loadLinked();
+        if (!src.workers && !src.billItems) { hide(); return; }
+        const out = linkedOutflows(src.workers, src.billItems, r.from, r.to);
+        const split = (o) => t('ui.money.cash_online', { cash: formatRupees(o.cash), online: formatRupees(o.online) });
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
+        const any = out.total.count > 0;
+        show('moneyLinkedProfit', any && m.M6.total !== null);
+        show('moneyLinkedCash', any);
+        show('moneyLinkedCard', true);
+        this.html('moneyLinkedProfitTerm', moneyHtml(-out.total.total, TM));
+        if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(m.M6.total - out.total.total, TM));
+        this.html('moneyLinkedCashOut', moneyHtml(out.total.total, TM));
+        this.text('moneyLinkedCashSplit', split(out.total));
+        this.html('moneyNetAfterLinked', moneyHtml(m.M14 - out.total.total, TM));
+        this.html('moneyLinkedWorkers', moneyHtml(out.workerPay.total, TM));
+        this.text('moneyLinkedWorkersSplit', split(out.workerPay));
+        this.html('moneyLinkedBills', moneyHtml(out.bills.total, TM));
+        this.text('moneyLinkedBillsSplit', split(out.bills));
+        this.html('moneyLinkedTotal', moneyHtml(out.total.total, TM));
+    },
+
+    /** Reads workers and recurring bills once (one read per document), then redraws. */
+    loadLinked() {
+        if (this.linkedLoading) return;
+        this.linkedLoading = (async () => {
+            try {
+                const [w, b] = await Promise.all([import('../firebase/repos/workers.js'), import('../firebase/repos/recurring-bills.js')]);
+                const [workers, items] = await Promise.all([w.loadWorkers(), b.loadBillItems()]);
+                setLinkedSource('workers', workers);
+                setLinkedSource('billItems', items);
+                if (document.getElementById('money')?.classList.contains('active')) this.render();
+            } catch (e) {
+                console.warn('Money: worker pay / recurring bills not loaded:', e?.code || e);
+                setLinkedSource('workers', linkedSource().workers || []);
+                setLinkedSource('billItems', linkedSource().billItems || []);
+            } finally {
+                this.linkedLoading = null;
+            }
+        })();
     },
 
     /**

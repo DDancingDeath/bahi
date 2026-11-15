@@ -2,7 +2,7 @@
  * @fileoverview Workers / Salaries (#373 phase 1): the owner's monthly pay tracker. Each worker's
  * month is paid, part-paid or due, with payments and advances and the balance carried to the next
  * month (docs/calculations.md WP-1 … WP-10). Imported on first open; one read per worker per open.
- * Not linked to Money yet (owner decision pending).
+ * Payments show in Money (M22–M24, utils/linked-outflows.js).
  * @module modules/workers
  */
 
@@ -19,6 +19,7 @@ import {
     paySummary, balanceParts, checkEntry, checkWorker, isMonthKey, payDueMonths
 } from '../utils/worker-pay.js';
 import { savePayDue } from '../utils/pay-reminder.js';
+import { setLinkedSource } from '../utils/linked-outflows.js';
 import { ageInDays, dueTone } from '../utils/aging.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
@@ -246,6 +247,7 @@ function ensureCss() {
 
 /** Keeps WP-11 for Today from the loaded workers (no reads). */
 function noteDue(list = state.workers, uid = AppState.currentUser?.uid) {
+    setLinkedSource('workers', list);
     if (!uid) return;
     try { savePayDue(localStorage, { uid, months: payDueMonths(list, thisMonth()) }); } catch (_) { /* never break the page */ }
 }

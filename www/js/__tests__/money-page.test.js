@@ -936,6 +936,44 @@ describe('what each role sees (Roles & access)', () => {
     });
 });
 
+describe('worker pay and regular bills on Money (M22–M26, U-22)', () => {
+    let setLinkedSource;
+    beforeAll(async () => {
+        ({ setLinkedSource } = await import('../utils/linked-outflows.js'));
+    });
+    const seed = () => {
+        setLinkedSource('workers', [{ entries: [
+            { date: '2026-10-05', amount: 800, kind: 'pay', mode: 'cash' },
+            { date: '2026-09-05', amount: 999, kind: 'pay', mode: 'cash' }
+        ] }], Date.now());
+        setLinkedSource('billItems', [{ entries: [
+            { kind: 'bill', date: '2026-10-03', amount: 400 },
+            { kind: 'pay', date: '2026-10-04', amount: 400, mode: 'online' }
+        ] }], Date.now());
+    };
+
+    test('owner: Spending lists them, Profit and Cash subtract the same M24, every ₹ explained', async () => {
+        const { unexplainedValues } = await import('../utils/metric-registry.js');
+        seed();
+        MoneyManager.init('spending');
+        expect(document.getElementById('moneyLinkedCard').hidden).toBe(false);
+        expect(shown('moneyLinkedWorkers')).toBe(800);
+        expect(shown('moneyLinkedBills')).toBe(400);
+        expect(shown('moneyLinkedTotal')).toBe(1200);
+        const m = MoneyManager.lastSummary;
+        expect(shown('moneyProfitAfterLinked')).toBe(rupee(m.M6.total - 1200));
+        expect(shown('moneyNetAfterLinked')).toBe(rupee(m.M14 - 1200));
+        expect(unexplainedValues(document.getElementById('money'))).toEqual([]);
+    });
+
+    test('manager: hidden (only the owner may read workers and recurring bills)', () => {
+        seed();
+        AppState.userRole = 'manager';
+        MoneyManager.init('spending');
+        ['moneyLinkedCard', 'moneyLinkedProfit', 'moneyLinkedCash'].forEach(id => expect(document.getElementById(id).hidden).toBe(true));
+    });
+});
+
 describe('labour on Money › Spending (T-LAB-1, T-LAB-2 for the period)', () => {
     let unexplainedValuesOf;
     beforeAll(async () => {

@@ -315,6 +315,7 @@ const LAZY_ASSETS = [
     '/js/auth/google-signin.js',
     '/js/modules/workers.js',
     '/js/utils/worker-pay.js',
+    '/js/utils/linked-outflows.js',
     '/js/firebase/repos/workers.js',
     '/css/workers.css',
     '/js/modules/recurring-bills.js',
