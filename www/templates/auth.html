@@ -18,7 +18,8 @@
                 <form novalidate data-onsubmit="auth.login(); return false;">
                     <div class="field">
                         <label for="loginEmail" data-i18n="ui.auth.email_or_username">Email or username</label>
-                        <input class="input" type="text" inputmode="email" id="loginEmail" placeholder="Email, or the username the owner gave you" data-i18n-placeholder="ui.auth.enter_email_or_username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+                        <input class="input" type="text" inputmode="email" id="loginEmail" placeholder="Email or username" data-i18n-placeholder="ui.auth.enter_email_or_username" autocomplete="username" autocapitalize="none" spellcheck="false" required aria-describedby="loginEmailHint">
+                        <p class="auth-field-hint" id="loginEmailHint" data-i18n="ui.auth.username_hint">No email? Type the username the owner gave you.</p>
                     </div>
                     <div class="field">
                         <label for="loginPassword" data-i18n="ui.auth.password">Password</label>
