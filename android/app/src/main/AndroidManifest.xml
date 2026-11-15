@@ -70,4 +70,10 @@
             <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
+
+    <!-- Contact button on Billing (#495): asked at runtime only on the first tap. The
+         @capacitor-community/contacts plugin checks READ and WRITE under one "contacts" alias, so both
+         must be declared for its picker to work; the app only reads the one picked contact. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 </manifest>

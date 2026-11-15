@@ -25,6 +25,7 @@
     "audit:numbers": "node tools/audit/real-data-audit.js"
   },
   "dependencies": {
+    "@capacitor-community/contacts": "^7.2.0",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-firebase/authentication": "7.5.0",
     "@capacitor-firebase/crashlytics": "7.5.0",

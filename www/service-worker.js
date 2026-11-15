@@ -159,6 +159,7 @@ const STATIC_ASSETS = [
     '/js/utils/cash-session.js',
     '/js/utils/clock-skew.js',
     '/js/utils/constants.js',
+    '/js/utils/contact-picker.js',
     '/js/utils/data-export.js',
     '/js/utils/backup-verify.js',
     '/js/utils/data-freshness.js',
