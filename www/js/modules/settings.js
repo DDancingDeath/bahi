@@ -21,6 +21,7 @@ import { emptyState } from '../ui/components.js';
 import { safeSetItem, STORAGE_FULL_KEY } from '../utils/storage-full.js';
 import { settingsView } from '../utils/settings-sections.js';
 import { BusinessSwitcher } from '../ui/business-switcher.js';
+import { PhotoWeights } from '../ui/photo-weights.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { forgetPrinter, normalizePrinterSettings, normalizeReceiptOptions, PAPER_WIDTHS, setPaperWidth, usePrinter } from '../utils/printer-settings.js';
 import { AuthManager, authErrorMessage } from '../auth/authentication.js';
@@ -435,6 +436,8 @@ export class SettingsManager {
         // Business name/details (Settings › Aadhat): shared; a name set only on this device is kept until one is saved
         if (typeof appSettings?.businessName === 'string') AppState.settings.shopName = appSettings.businessName;
         if (typeof appSettings?.businessDetails === 'string') AppState.settings.businessDetails = appSettings.businessDetails;
+        // Photo of weights (#374): the owner's switch for every phone, off unless set
+        PhotoWeights.setShared(appSettings?.photoWeights);
         storeLocalSettings();
         const hasShared = !!appSettings && (appSettings.laborRate !== undefined || appSettings.heavyWeightThreshold !== undefined
             || appSettings.labourPackageKg !== undefined);
@@ -548,6 +551,36 @@ export class SettingsManager {
         const code = document.getElementById('settingBillDeviceCode');
         if (code) code.textContent = Helpers.getBillDeviceCode();
         this.renderCheckThresholds(editable);
+        PhotoWeights.apply();
+    }
+
+    /**
+     * Photo of weights (#374): on or off for everyone. Owner only; anyone else sees the
+     * switch as it is, greyed out.
+     * @param {boolean} on
+     * @returns {Promise<boolean>} true when saved
+     */
+    static async savePhotoWeights(on) {
+        const previous = PhotoWeights.shared();
+        if (AppState.userRole !== 'owner') {
+            PhotoWeights.apply();
+            return false;
+        }
+        const next = { enabled: on === true };
+        PhotoWeights.setShared(next);
+        try {
+            await FirebaseService.savePhotoWeightsSettings(next);
+            noteSettingsChange('photo_weights', previous, next);
+            UIManager.showToast(t('msg.admin.settings_saved_everyone'));
+            return true;
+        } catch (error) {
+            console.error('Saving photo of weights failed:', error);
+            const messageKey = writeErrorKey(error, 'msg.admin.not_saved_everyone_check_internet');
+            UIManager.showToast(t(messageKey));
+            PhotoWeights.setShared(previous);
+            await this.afterRefusedSave(error, () => PhotoWeights.setShared(previous));
+            return false;
+        }
     }
 
     /** Bill-check limits (#37): shop-wide, blank = default. */

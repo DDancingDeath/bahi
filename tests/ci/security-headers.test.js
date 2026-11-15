@@ -13,7 +13,7 @@ const hosting = JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.json'), 'ut
 const sites = Array.isArray(hosting) ? hosting : [hosting];
 const appSite = sites.find((h) => h.public === 'www');
 
-/** Every feature off: the redirect-only sites, the tenant link page; the app site differs only by its own microphone (#81). */
+/** Every feature off: the redirect-only sites, the tenant link page; the app site differs only by its own microphone (#81) and camera (#374). */
 const STRICT_POLICY = 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), hid=()';
 
 const REQUIRED = {
@@ -21,7 +21,7 @@ const REQUIRED = {
     'X-Content-Type-Options': /^nosniff$/,
     'X-Frame-Options': /^DENY$/,
     'Referrer-Policy': /^strict-origin-when-cross-origin$/,
-    'Permissions-Policy': /(^|, )camera=\(\)(, |$)[\s\S]*microphone=\((self)?\)[\s\S]*geolocation=\(\)/,
+    'Permissions-Policy': /(^|, )camera=\((self)?\)(, |$)[\s\S]*microphone=\((self)?\)[\s\S]*geolocation=\(\)/,
     'Content-Security-Policy': /(^|; )frame-ancestors 'none'(;|$)/
 };
 
@@ -131,10 +131,10 @@ describe('security headers on every Hosting site (#89)', () => {
         }
     });
 
-    test('every site sends the same values for the shared headers (the app site also allows its own microphone)', () => {
+    test('every site sends the same values for the shared headers (the app site also allows its own microphone and camera)', () => {
         const shared = Object.keys(REQUIRED).filter((k) => k !== 'Content-Security-Policy');
         const pick = (site) => Object.fromEntries(shared.map((k) => [k, everyPathHeaders(site)[k]]));
-        const appShared = { ...pick(appSite), 'Permissions-Policy': STRICT_POLICY.replace('microphone=()', 'microphone=(self)') };
+        const appShared = { ...pick(appSite), 'Permissions-Policy': STRICT_POLICY.replace('camera=()', 'camera=(self)').replace('microphone=()', 'microphone=(self)') };
         expect(pick(appSite)).toEqual(appShared);
         for (const site of sites.filter((s) => s !== appSite)) {
             expect(pick(site)).toEqual({ ...appShared, 'Permissions-Policy': STRICT_POLICY });
@@ -153,6 +153,17 @@ describe('security headers on every Hosting site (#89)', () => {
             // a later entry wins, so no '**' entry setting the policy may follow it
             const lastAll = appSite.headers.map((e, i) => (e.source === '**' && e.headers.some(isPolicy) ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
             expect(appSite.headers.indexOf(entry)).toBeGreaterThan(lastAll);
+        }
+    });
+
+    test('photo of weights (#374): only the app site allows the camera, only for itself, and not on the tenant link page', () => {
+        const isPolicy = (h) => h.key.toLowerCase() === 'permissions-policy';
+        for (const site of sites) {
+            const policy = everyPathHeaders(site)['Permissions-Policy'];
+            expect(policy).toMatch(site === appSite ? /(^|, )camera=\(self\)(,|$)/ : /(^|, )camera=\(\)(,|$)/);
+        }
+        for (const source of ['/r.html', '/r/**']) {
+            expect(appSite.headers.find((e) => e.source === source).headers.find(isPolicy)?.value).toMatch(/(^|, )camera=\(\)(,|$)/);
         }
     });
 

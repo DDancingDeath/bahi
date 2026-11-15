@@ -19,7 +19,13 @@ const { cssSources } = require('./build-css.js');
 const WWW = path.join(__dirname, '..', 'www');
 const SW_PATH = path.join(WWW, 'service-worker.js');
 // App Check SDK: loaded only when a site key is configured (js/services/app-check.js, #89).
-const RUNTIME_ONLY = ['/vendor/firebase/10.7.1/firebase-app-check-compat.js'];
+// Firebase AI Logic (modular 13.2.0): loaded only on the first photo of weights (#374), which the owner switches on.
+const RUNTIME_ONLY = [
+    '/vendor/firebase/10.7.1/firebase-app-check-compat.js',
+    '/vendor/firebase/13.2.0/firebase-app.js',
+    '/vendor/firebase/13.2.0/firebase-ai.js',
+    '/vendor/firebase/13.2.0/firebase-app-check.js'
+];
 
 function walk(dir) {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

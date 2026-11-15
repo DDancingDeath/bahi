@@ -32,6 +32,8 @@ module.exports = [
             '.stryker-tmp/**',
             'reports/**',
             'www/lib/**',
+            // Third-party SDK files (www/vendor/README.md)
+            'www/vendor/**',
             '**/*.min.js'
         ]
     },

@@ -15,14 +15,15 @@ Every site sends these on every path (the first `"source": "**"` entry):
 | `X-Frame-Options` | `DENY` | No clickjacking: the app can't be put in a frame (old browsers) |
 | `Content-Security-Policy` | the enforced policy below, ending in `frame-ancestors 'none'` | The same for current browsers (the redirect-only sites send `default-src 'none'; frame-ancestors 'none'; base-uri 'none'`) |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Other sites see only `https://myhappa.web.app`, never a path |
-| `Permissions-Policy` | `camera=(), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), hid=()` | The web app uses none of these except the microphone, for its own pages only: voice billing (#81, `docs/voice-billing.md`) is off by default and asks for the microphone only when a user switches it on and taps 🎤 (the browser then asks once per site). Frames and other sites get no microphone. The redirect-only sites and the tenant link page keep `microphone=()`. Bluetooth is left alone: printing is native-only today, but a web printer would need it |
+| `Permissions-Policy` | `camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), hid=()` | The web app uses none of these except the microphone and the camera, for its own pages only: voice billing (#81, `docs/voice-billing.md`) is off by default and asks for the microphone only when a user switches it on and taps 🎤 (the browser then asks once per site). Photo of weights (#374, `docs/photo-weights.md`) takes the photo with `<input type="file" accept="image/*" capture="environment">`, which opens the phone's own camera app and is not a camera API this header governs (`camera` covers `getUserMedia`); `camera=(self)` only keeps a later in-page camera possible on the app's own pages. Frames and other sites get neither. The redirect-only sites and the tenant link page keep `camera=()` and `microphone=()`. Bluetooth is left alone: printing is native-only today, but a web printer would need it |
 
 - The tenant link page (`/r/**`, `/r.html`) keeps its stricter
   `Referrer-Policy: no-referrer` (its entries come after the `**` one, and the
   page also has `<meta name="referrer" content="no-referrer">`), so the link's
   token never leaks.
 - The tenant link page also sends `Permissions-Policy` with every feature off,
-  microphone included (its entries come after `**`, so they win there).
+  microphone and camera included (its entries come after `**`, so they win there).
+- **Privacy (photo of weights, #374):** the photo is made smaller on the phone (at most 1600 px, JPEG) and sent only to Firebase AI Logic (Gemini) to be read; it is never stored in Firestore, Storage or on the phone and is dropped when the check sheet closes. On the free Spark plan Google may use what is sent to improve its products (owner accepted, 15 Nov 2026: the sheets carry only weights); the Settings hint asks to photograph only the weights.
 - **Privacy (voice billing):** voice audio goes to the phone's speech service
   (Google on most phones; Chrome's on the web), which turns it into text. The app keeps
   no audio and no text. The spoken readback uses only an on-device voice (`localService`),
@@ -45,7 +46,7 @@ img-src 'self' data: blob:;
 font-src 'self' data:;
 connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com
             https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com
-            https://content-firebaseappcheck.googleapis.com
+            https://content-firebaseappcheck.googleapis.com https://firebasevertexai.googleapis.com
             https://apis.google.com https://www.google.com https://api.github.com;
 worker-src 'self'; manifest-src 'self';
 frame-src 'self' https://happa-bfc07.firebaseapp.com https://www.google.com/recaptcha/;
@@ -62,6 +63,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 | `apis.google.com` (script, connect), `www.google.com` (connect), `happa-bfc07.firebaseapp.com` and `'self'` (frame) | Firebase Auth (compat) on **phones** (and Safari) loads Google's `gapi` loader at start-up and frames `<authDomain>/__/auth/iframe` (its popup/redirect helper), even when the person signs in with email + password. Found by the E2E phone runs. These scripts can't carry SRI; dropping them needs Auth without the popup/redirect resolver (modular SDK), a separate change. `'self'`: with Google sign-in on, the helper is the site's own `/__/auth/` ([google-sign-in.md](google-sign-in.md)) |
 | `firebaseinstallations.googleapis.com` | not called today; listed for the Firebase SDKs that use it |
 | `content-firebaseappcheck.googleapis.com` (connect) | App Check token exchange (monitor mode, only with a site key; see "App Check" below) |
+| `firebasevertexai.googleapis.com` (connect) | Firebase AI Logic (Gemini Developer API): photo of weights (#374), only when the owner has switched it on and someone takes a photo. The SDK is vendored (`vendor/firebase/13.2.0/`, `'self'`); no Gemini key is in the app |
 | `www.google.com/recaptcha/`, `www.gstatic.com/recaptcha/` (script), `www.google.com/recaptcha/` (frame) | reCAPTCHA v3 for App Check: `api.js`, its versioned `recaptcha__*.js` and the invisible widget's frame. Path-limited (`/recaptcha/` only), not the whole Google origins; nothing loads from there without a site key |
 | `api.github.com` | the "Update available" check |
 | `data:` / `blob:` images | receipts and bill images drawn on a canvas, the inline favicon, downloads |

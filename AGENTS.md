@@ -351,7 +351,10 @@ In order:
   hashed pre-paint `#themeBoot`, see `docs/security.md`) and no `on<event>=` attributes. The Android app doesn't get
   these headers (see `docs/security.md`, "Android app").
 - `firebase` global is the compat-SDK style — modular SDK is intentionally
-  not used.
+  not used. The one exception is Firebase AI Logic for photo of weights (#374,
+  `docs/photo-weights.md`): it exists only as the modular `firebase/ai`, so
+  `js/firebase/photo-weights-ai.js` imports the vendored 13.2.0 modules on the first
+  photo and runs them as a second Firebase app with the same config (no Firestore).
 - Many functions are async but are called without `await` — that's a real
   bug, tracked (with an inventory) in #126. Save/delete/money paths must be
   awaited; intentional fire-and-forget writes (audit log, item-frequency,

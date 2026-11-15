@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v718';
+const CACHE_NAME = 'happa-v719';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -137,6 +137,7 @@ const STATIC_ASSETS = [
     '/js/ui/themes.js',
     '/js/ui/ui-manager.js',
     '/js/ui/voice-mic.js',
+    '/js/ui/photo-weights.js',
     '/js/modules/voice-billing.js',
     '/js/utils/voice-parse.js',
     '/js/utils/voice-undo.js',
@@ -319,7 +320,10 @@ const LAZY_ASSETS = [
     '/js/utils/recurring-bills.js',
     '/js/firebase/repos/recurring-bills.js',
     '/js/firebase/repos/entry-docs.js',
-    '/css/recurring-bills.css'
+    '/css/recurring-bills.css',
+    '/js/modules/photo-weights.js',
+    '/js/utils/photo-weights.js',
+    '/js/firebase/photo-weights-ai.js'
 ];
 
 /**

@@ -321,6 +321,16 @@
             <div id="settingsChecks" class="set-fields"></div>
         </div>
 
+        <div class="panel panel-pad set-panel" id="photoWeightsCard">
+            <h3 class="set-title" data-i18n="ui.settings.photo_weights">Photo of weights</h3>
+            <label class="set-toggle">
+                <span data-i18n="ui.settings.photo_weights_toggle">Read bag weights from a photo</span>
+                <input type="checkbox" class="switch" id="settingPhotoWeights" disabled data-onchange="photoWeights.setOn(this.checked)">
+            </label>
+            <p class="setting-description" data-i18n="ui.settings.photo_weights_hint">Off unless the owner switches it on. Then everyone sees “Photo of weights” on Purchase billing: take a photo of the weight sheet, check the weights and add them to the bag weights. Nothing is saved until the bill is saved. The photo is sent to Google’s Gemini to be read and is not kept. Photograph only the weights, not names or phone numbers. Saved for everyone.</p>
+            <p class="setting-description" id="photoWeightsOwnerOnly" hidden data-i18n="ui.settings.photo_weights_owner_only">Only the owner can change this.</p>
+        </div>
+
         <div class="panel panel-pad set-panel" id="billNumbersCard">
             <h3 class="set-title" data-i18n="ui.settings.bill_numbers">Bill numbers</h3>
             <p class="setting-description" data-i18n="ui.settings.bill_numbers_hint">Bills are numbered P (purchase), S (sale) or W (wholesale), then the date and a number for the day, the same on every phone. Offline, a bill gets this phone's code too.</p>

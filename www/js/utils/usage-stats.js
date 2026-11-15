@@ -20,11 +20,14 @@
  * - `voice.miss`: a voice line was heard but nothing in it was understood (#131, C13)
  * - `voice.miss.<8 hex>`: the same, per phrase: a salted hash of the words (voicePhraseHash), never the words (Q75)
  * - `voice.undo`: the last voice change was undone; `voice.edit`: a heard line was corrected before use
+ * - `photo_weights.read`: a photo of weights was read (#374); `photo_weights.added`: its weights were added;
+ *   `photo_weights.edited`: a reading was changed, removed or added by hand before adding (in-field accuracy)
  */
 export const USAGE_EVENTS = Object.freeze([
     'bill.save.purchases', 'bill.save.retailSales', 'bill.save.wholesaleSales',
     'payment.record', 'cash.close', 'print.bill', 'share.whatsapp', 'perf.diagnostic_run',
-    'voice.miss', 'voice.undo', 'voice.edit'
+    'voice.miss', 'voice.undo', 'voice.edit',
+    'photo_weights.read', 'photo_weights.added', 'photo_weights.edited'
 ]);
 
 const PAGE_EVENT = /^page\.[a-z][a-z0-9-]{0,39}$/;
