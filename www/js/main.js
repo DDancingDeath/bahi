@@ -1019,7 +1019,9 @@ window.app = {
     
     // App language (#143): Settings switch + login card links
     i18n: {
-        setLang: (lang) => {
+        setLang: (lang) => setLang(lang),
+        // Settings › Language (U-86): the choice also goes on the person's profile, so it follows them
+        choose: (lang) => {
             const done = setLang(lang);
             const uid = AppState.currentUser?.uid;
             if (uid && (lang === 'en' || lang === 'hi')) saveOwnLang(uid, lang).catch(e => console.warn('Language not saved to the profile:', e?.code || e));
