@@ -4217,13 +4217,31 @@ body.typing .bottom-nav {
     text-align: left;
   }
 
+  /* Each line in two rows (U-18): the item, then "151 kg × ₹24 · 3 packets: 52.5 · 48 · 50.5" */
   #billTable tbody tr.bill-line > td:nth-child(1), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(1) {
+    display: contents;
+  }
+
+  tr.bill-line .bill-line-name {
     grid-column: 1 / 4;
     grid-row: 1;
     color: var(--ink);
     font-size: var(--fs-body);
     line-height: 1.3;
     overflow-wrap: anywhere;
+  }
+
+  tr.bill-line .bill-line-weights {
+    grid-column: 3;
+    grid-row: 2;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  tr.bill-line .bill-line-weights::before {
+    content: "· ";
   }
 
   tr.bill-line .bill-line-name {
@@ -4888,6 +4906,32 @@ input[type="number"] {
   text-align: right;
 }
 
+/* A shorter bill (U-18): "Total packets 8" sits on the "On this bill" title line, not under the lines */
+.bill-on-bill {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.bill-on-bill > * {
+  grid-column: 1 / -1;
+}
+
+.bill-on-bill > .bill-section-title {
+  grid-column: 1;
+}
+
+.bill-on-bill > .bill-items-foot {
+  grid-row: 1;
+  grid-column: 2;
+  margin: var(--sp-5) 0 var(--sp-2);
+  padding: 0;
+}
+
+.bill-on-bill[hidden] {
+  display: none;
+}
+
 .bill-items-foot strong {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -4962,20 +5006,32 @@ input[type="number"] {
   margin-top: 2px;
 }
 
-.draft-customer {
+/* One row under the title (U-37): when · party, then Delete and Load */
+.draft-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   margin-top: var(--sp-1);
+}
+
+.draft-row > .draft-date {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-customer {
   color: var(--ink-2);
   font-size: var(--fs-sm);
 }
 
 .draft-actions {
   display: flex;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-}
-
-.draft-actions > .btn {
-  flex: 1;
+  flex: none;
+  gap: var(--sp-1);
 }
 
 /* ---------- Wholesale (5.5): Billing's components in the wholesale (violet) mode ---------- */
@@ -5622,9 +5678,10 @@ select.voice-unclear {
 
 .bill-labour {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: var(--sp-1) 0;
   gap: var(--sp-2);
 }
 
@@ -5709,7 +5766,7 @@ select.voice-unclear {
 
 /* A shorter bill on the phone (U-18): payment rows closer together */
 .bill-totals .pay-line {
-  padding: var(--sp-2) 0;
+  padding: var(--sp-1) 0;
 }
 
 .pay-line label {
@@ -5872,7 +5929,26 @@ select.voice-unclear {
   margin: 0;
 }
 
+/* Labour in one line (N-07): "7 bags × ₹6 = ₹42" is a button; the full working and the box open under it */
 .bill-labour-calc {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bill-labour-detail {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.bill-labour-working {
   color: var(--ink-3);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
@@ -5897,12 +5973,27 @@ select.voice-unclear {
 }
 
 :is(#billing, .bill-page) .bill-pay-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
   margin-top: var(--sp-2);
   padding-top: var(--sp-3);
   border-top: 1px var(--rule-style) var(--line);
   color: var(--ink-3);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+}
+
+/* Paid one way (U-18): the other rows fold away until "Split payment" */
+.pay-line.pay-folded,
+.pay-split[hidden] {
+  display: none;
+}
+
+/* The 48 px button sits in the title's padding, so the row stays one text line high */
+.bill-pay-title > .pay-split {
+  margin-block: calc(var(--sp-3) * -1) calc(var(--sp-2) * -1);
 }
 
 :is(#billing, .bill-page) .pay-line > label {
@@ -6063,6 +6154,14 @@ select.voice-unclear {
 .bill-notes-date > .bill-date {
   flex: 1 1 10em;
   min-width: 0;
+}
+
+/* Today / Yesterday in one tap above the Date box (U-78) */
+.bill-date-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
 }
 
 :is(#billing, .bill-page) .bill-notes-date > .bill-form-field.field {
@@ -6271,7 +6370,7 @@ select.voice-unclear {
 
   /* Room under the last field (notes, date) to scroll clear of the bar, and for focus scrolling */
   :is(#billing, .bill-page).tab {
-    padding-bottom: calc(96px + 72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(80px + 56px + env(safe-area-inset-bottom, 0px));
     scroll-padding-bottom: calc(64px + 72px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -6292,7 +6391,7 @@ select.voice-unclear {
     bottom: var(--bottomnav-h);
     z-index: calc(var(--z-appbar) - 10);
     margin: 0;
-    padding: var(--sp-2) var(--sp-4);
+    padding: var(--sp-1) var(--sp-4);
     border-top: 1px solid var(--line);
     background: var(--surface);
   }
@@ -6318,6 +6417,29 @@ select.voice-unclear {
   to { opacity: 1; }
 }
 
+/* On its side (U-41): the lines left, totals and payment right, so less of the bill is below the fold */
+@media (min-width: 640px) and (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  .tab:has(.bill-actions) {
+    max-width: none;
+  }
+
+  .bill-main,
+  .bill-side {
+    display: inline-block;
+    width: 48%;
+    min-width: 0;
+    vertical-align: top;
+  }
+
+  .bill-side {
+    margin-left: 2%;
+  }
+
+  .bill-side > .bill-totals:first-child {
+    margin-top: 0;
+  }
+}
+
 /* Payment checkbox styling */
 .pay-line input[type="checkbox"] {
   width: 22px;
@@ -6331,42 +6453,81 @@ select.voice-unclear {
   accent-color: var(--accent-text);
 }
 
-/* "Last saved" strip above the form after a save (U-05): bill no., party, total, due; Print / WhatsApp / Open */
+/* "Last saved" strip above the form after a save (U-05), one compact row (N-08): bill no. and
+   "Saved · ₹total · Paid · party" (tap opens the bill), then Print, WhatsApp, × */
 .last-saved {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: var(--sp-1);
   margin-bottom: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
+  padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-2);
   border-left: 3px solid var(--positive);
+}
+
+.last-saved.last-saved-pending {
+  border-left-color: var(--warning);
 }
 
 .last-saved[hidden] {
   display: none;
 }
 
-.last-saved-head {
+.last-saved-open {
   display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  color: var(--positive);
-  font-weight: var(--w-strong);
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
+.last-saved-open:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.last-saved-head,
 .last-saved-facts {
-  color: var(--ink-2);
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.last-saved-head {
+  display: block;
+  color: var(--positive);
   font-size: var(--fs-sm);
+  font-weight: var(--w-strong);
   font-variant-numeric: tabular-nums;
 }
 
-.last-saved-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
+.last-saved-pending .last-saved-head {
+  color: var(--warning);
 }
 
-.last-saved-actions > .last-saved-close {
-  margin-left: auto;
+.last-saved-facts {
+  display: -webkit-box;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.last-saved > .btn-icon {
+  flex: none;
 }
 
 /* Undo after a removal (U-06): the toast with a button, which takes taps */

@@ -136,13 +136,31 @@
     text-align: left;
   }
 
+  /* Each line in two rows (U-18): the item, then "151 kg × ₹24 · 3 packets: 52.5 · 48 · 50.5" */
   #billTable tbody tr.bill-line > td:nth-child(1), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(1) {
+    display: contents;
+  }
+
+  tr.bill-line .bill-line-name {
     grid-column: 1 / 4;
     grid-row: 1;
     color: var(--ink);
     font-size: var(--fs-body);
     line-height: 1.3;
     overflow-wrap: anywhere;
+  }
+
+  tr.bill-line .bill-line-weights {
+    grid-column: 3;
+    grid-row: 2;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  tr.bill-line .bill-line-weights::before {
+    content: "· ";
   }
 
   tr.bill-line .bill-line-name {
@@ -807,6 +825,32 @@ input[type="number"] {
   text-align: right;
 }
 
+/* A shorter bill (U-18): "Total packets 8" sits on the "On this bill" title line, not under the lines */
+.bill-on-bill {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.bill-on-bill > * {
+  grid-column: 1 / -1;
+}
+
+.bill-on-bill > .bill-section-title {
+  grid-column: 1;
+}
+
+.bill-on-bill > .bill-items-foot {
+  grid-row: 1;
+  grid-column: 2;
+  margin: var(--sp-5) 0 var(--sp-2);
+  padding: 0;
+}
+
+.bill-on-bill[hidden] {
+  display: none;
+}
+
 .bill-items-foot strong {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -881,20 +925,32 @@ input[type="number"] {
   margin-top: 2px;
 }
 
-.draft-customer {
+/* One row under the title (U-37): when · party, then Delete and Load */
+.draft-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   margin-top: var(--sp-1);
+}
+
+.draft-row > .draft-date {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-customer {
   color: var(--ink-2);
   font-size: var(--fs-sm);
 }
 
 .draft-actions {
   display: flex;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-}
-
-.draft-actions > .btn {
-  flex: 1;
+  flex: none;
+  gap: var(--sp-1);
 }
 
 /* ---------- Wholesale (5.5): Billing's components in the wholesale (violet) mode ---------- */

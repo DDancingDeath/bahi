@@ -36,10 +36,11 @@ const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const jsAttr = (v) => Helpers.escapeJsAttr(String(v ?? ''));
 const DAY_MS = 86400000;
 
-/** Detected + stored anomalies as shown: oversells of items whose stock was never set (F15) and voids already stored under their audit entry (#75) are left out. */
+/** Detected + stored anomalies as shown: oversells of items whose stock was never set (F15), voids already stored under their audit entry (#75) and the checks of a voided bill (U-28) are left out. */
 function mergeVisible(detected, stored) {
     const stockFrom = firstStockTimes({ purchases: AppState.purchaseHistory, stockAdjustments: AppState.stockAdjustments }, AppState.items);
-    return withoutUnstockedOversell(mergeAnomalies(withoutStoredVoidTwins(detected, stored), stored), { stockFrom, catalogue: AppState.items || [], stock: AppState.stock || {} });
+    const shown = withoutUnstockedOversell(mergeAnomalies(withoutStoredVoidTwins(detected, stored), stored), { stockFrom, catalogue: AppState.items || [], stock: AppState.stock || {} });
+    return withoutVoidedBillChecks(shown, loadedVoided());
 }
 const STORED_TTL_MS = 2 * 60 * 1000;
 /** Today card: server read at most every 30 min per user/device (persisted across reopens). */

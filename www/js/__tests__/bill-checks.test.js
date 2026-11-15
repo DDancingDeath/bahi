@@ -329,6 +329,14 @@ describe('line being typed (entry)', () => {
         expect(evaluateBill(draft({ entry: { itemId: 'rice', rate: null, qty: null } }), ctx())).toEqual([]);
     });
 
+    test('the rate left in the box after Add to bill is not warned twice: its line carries the warning', () => {
+        const line = { itemId: 'rice', name: 'Rice', rate: 0, qty: 10, total: 0 };
+        const fields = (entry) => evaluateBill(draft({ items: [line], entry }), ctx()).filter(i => i.id === 'rate-invalid').map(i => i.field);
+        expect(fields({ itemId: 'rice', name: 'Rice', rate: 0, qty: null })).toEqual(['items.0']);
+        expect(fields({ itemId: 'rice', name: 'Rice', rate: 0, qty: 5 })).toEqual(['entry.rate', 'items.0']);
+        expect(fields({ itemId: 'dal', name: 'Dal', rate: 0, qty: null })).toEqual(['entry.rate', 'items.0']);
+    });
+
     test('wholesale: typed quantity over stock (with lines already on the bill) is flagged on the quantity box', () => {
         const d = draft({ kind: 'wholesale', entry: { itemId: 'rice', name: 'Rice', rate: 40, qty: 96 } });
         const issue = find(evaluateBill(d, ctx({ oversellCanBlock: true })), 'oversell');

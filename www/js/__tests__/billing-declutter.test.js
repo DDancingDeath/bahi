@@ -117,14 +117,37 @@ describe('1. "Not split yet" shows only while some of the bill is not split', ()
         Helpers.showSplitRemaining('wholesaleSplitRemaining', validatePaymentSplit(500, { cash: 100, due: 400 }));
         expect(row.hidden).toBe(true);
     });
+
+    test('shorter payment (U-18): Due folds while empty; the whole bill in one way leaves one row and "Split payment"', () => {
+        const folded = () => ['onlinePayment', 'cashPayment', 'dueAmount'].filter(id => $(id).closest('.pay-line').classList.contains('pay-folded'));
+        const split = () => document.querySelector('#purchaseSection .pay-split');
+        PurchaseManager.setBillItems([rice(10, 25)]);
+        PurchaseManager.renderBill();
+        expect(folded()).toEqual(['dueAmount']);
+        PurchaseManager.putRestInDue();
+        expect(folded()).toEqual(['onlinePayment', 'cashPayment']);
+
+        typeIn('dueAmount', '');
+        $('dueCheckbox').checked = false;
+        $('cashCheckbox').checked = true;
+        PurchaseManager.fillPayableAmount('cash');
+        expect(folded()).toEqual(['onlinePayment', 'dueAmount']);
+        expect(split().hidden).toBe(false);
+        split().click();
+        expect($('cashCheckbox').checked).toBe(false);
+        expect($('cashPayment').value).toBe('250');
+        expect(folded()).toEqual(['dueAmount']);
+        expect(split().hidden).toBe(true);
+    });
 });
 
 describe('2. the date line: "Today" and, for the owner only, "Change date"', () => {
     const field = (id) => $(id).closest('.bill-date');
+    const todayText = () => `Today · ${formatDate(toLocalISODate(new Date()), 'short')}`;
 
     test('owner: Today · Change date; the box unfolds on tap; another day shows formatted; reset folds it', () => {
         prepareBillDate('billDate');
-        expect($('billDateText').textContent).toBe('Today');
+        expect($('billDateText').textContent).toBe(todayText());
         expect($('billDateChange').hidden).toBe(false);
         expect(field('billDate').hidden).toBe(true);
 
@@ -142,14 +165,14 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
 
         resetBillDate('billDate');
         expect(field('billDate').hidden).toBe(true);
-        expect($('billDateText').textContent).toBe('Today');
+        expect($('billDateText').textContent).toBe(todayText());
         expect($('billDate').value).toBe(toLocalISODate(new Date()));
     });
 
     test.each(['manager', 'staff', 'member'])('%s: the day only, no Change date, the box stays folded', (role) => {
         AppState.userRole = role;
         prepareBillDate('saleDate');
-        expect($('saleDateText').textContent).toBe('Today');
+        expect($('saleDateText').textContent).toBe(todayText());
         expect($('saleDateChange').hidden).toBe(true);
         revealBillDate('saleDate');
         expect(field('saleDate').hidden).toBe(true);
@@ -161,6 +184,22 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
         expect($('billDateText').textContent).toBe(backdatedText(toLocalISODate(day)));
         expect($('billDateChange').hidden).toBe(true);
         expect(field('billDate').hidden).toBe(true);
+    });
+
+    test('Change date offers Today / Yesterday as day-month chips; one tap picks the day and folds the box (U-78)', () => {
+        prepareBillDate('billDate');
+        revealBillDate('billDate');
+        const chips = [...field('billDate').querySelectorAll('.bill-date-chips .chip')];
+        const yesterday = toLocalISODate(addLocalDays(new Date(), -1));
+        expect(chips.map(c => c.textContent)).toEqual([todayText(), `Yesterday · ${formatDate(yesterday, 'short')}`]);
+        expect(chips.map(c => c.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+        chips[1].click();
+        expect($('billDate').value).toBe(yesterday);
+        expect(field('billDate').hidden).toBe(true);
+        expect($('billDateText').textContent).toBe(backdatedText(yesterday));
+        revealBillDate('billDate');
+        field('billDate').querySelector('.bill-date-chips .chip').click();
+        expect($('billDateText').textContent).toBe(todayText());
     });
 
     test('a picked day is still what the bill is saved on when the box is folded', () => {
@@ -281,6 +320,25 @@ describe('6. labour: off shows only the switch', () => {
     const calc = () => $('laborCalculation');
     const box = () => $('manualLaborCharges').closest('.bill-money');
 
+    test('one line: "1 bag × ₹6 = ₹6" opens the full working and the box; turning labour off closes them (N-07)', () => {
+        PurchaseManager.setBillItems([{ ...rice(40, 25), weights: [40] }]);
+        PurchaseManager.renderBill();
+        expect(calc().textContent).toBe('1 bag × ₹6 = ₹6');
+        expect($('laborDetail').hidden).toBe(true);
+        PurchaseManager.toggleLabourDetail();
+        expect($('laborDetail').hidden).toBe(false);
+        expect(calc().getAttribute('aria-expanded')).toBe('true');
+        expect($('laborWorking').textContent).toBe('1 bag over 30 kg × ₹6 = ₹6');
+        $('manualLaborCharges').dataset.manuallySet = 'true';
+        typeIn('manualLaborCharges', 10);
+        PurchaseManager.updateTotals();
+        expect(calc().textContent).toBe('₹10 (changed)');
+        $('autoLaborCharge').checked = false;
+        PurchaseManager.updateTotals();
+        expect($('laborDetail').hidden).toBe(true);
+        expect(calc().getAttribute('aria-expanded')).toBe('false');
+    });
+
     test('on (the default): the working and the amount; off: neither, and no labour taken off', () => {
         PurchaseManager.setBillItems([{ ...rice(40, 25), weights: [40] }]);
         PurchaseManager.renderBill();
@@ -368,13 +426,14 @@ describe('7. lighter, safer bill form (U-05, U-06, U-18)', () => {
         expect(PurchaseManager.getWeights()).toEqual([40, 50]);
     });
 
-    test('the Last saved strip shows the bill number, party, total and due with Print, WhatsApp and Open', () => {
+    test('the Last saved strip is one compact row: bill number and "Saved · total · due · party" open the bill; Print, WhatsApp, × (U-05, N-08)', () => {
         showLastSaved('purchase', { id: 'p1', billNumber: 'P20261115-003', customerName: 'Ramesh', grandTotal: 16191, payment: { cash: 3000, online: 0, due: 13191 } });
         const strip = $('purchaseLastSaved');
         expect(strip.hidden).toBe(false);
-        expect(strip.querySelector('.last-saved-head').textContent).toContain('Saved #P20261115-003');
-        expect(strip.querySelector('.last-saved-facts').textContent).toBe('Ramesh · ₹16,191 · Due ₹13,191');
-        expect([...strip.querySelectorAll('.last-saved-actions button')].map(b => b.textContent)).toEqual(['Print', 'WhatsApp', 'Open', '']);
+        expect(strip.querySelector('.last-saved-head').textContent).toBe('#P20261115-003');
+        expect(strip.querySelector('.last-saved-facts').textContent).toBe('Saved · ₹16,191 · Due ₹13,191 · Ramesh');
+        expect(strip.querySelector('.last-saved-open').textContent).toContain('Open bill #P20261115-003');
+        expect([...strip.querySelectorAll(':scope > .btn-icon')].map(b => b.getAttribute('aria-label'))).toEqual(['Print', 'WhatsApp', 'Hide']);
         strip.querySelector('.last-saved-close').click();
         expect(strip.hidden).toBe(true);
     });
