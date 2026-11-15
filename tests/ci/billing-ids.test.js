@@ -61,6 +61,17 @@ test('every <div> is closed, and Sale is not nested in Purchase', () => {
     expect((BILLING.match(/<div\b/g) || []).length).toBe((BILLING.match(/<\/div>/g) || []).length);
 });
 
+test.each([
+    ['billing.html', ['shareWhatsApp', 'saveBillBtn', 'printBillBtn']],
+    ['billing.html', ['shareSaleWhatsApp', 'saveSaleBtn', 'printSaleBtn']],
+    ['wholesale-sales.html', ['shareViaWhatsApp', 'saveWholesaleBtn', 'printWholesaleBtn']],
+])('%s action row is Share, Save, Print (Print right-most, in DOM order)', (file, [share, save, print]) => {
+    const html = fs.readFileSync(path.join(ROOT, 'www', 'templates', file), 'utf8');
+    const row = html.slice(html.lastIndexOf('<button', html.indexOf(`.${share}()`))).split('</div>')[0];
+    const ids = [...row.matchAll(/<button\b[^>]*?(?:id="([\w-]+)"|data-onclick="[\w.]+?\.(\w+)\(\)")/g)].map((m) => m[1] || m[2]);
+    expect(ids).toEqual([share, save, print]);
+});
+
 test('the E2E code still uses every listed id', () => {
     const used = e2eIds();
     expect(BILLING_E2E_IDS.filter((id) => !used.has(id))).toEqual([]);
