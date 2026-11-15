@@ -12,6 +12,7 @@ import { t, getLang } from '../i18n/index.js';
 import { formatAmount } from './money.js';
 import { formatDay, formatDayTime, formatTimeOfDay } from './dates.js';
 import { dayCounter } from '../firebase/repos/counters.js';
+import { pickPhoneContact } from './contact-picker.js';
 
 export class Helpers {
     // -------------------- FORMATTING --------------------
@@ -254,33 +255,37 @@ export class Helpers {
     // -------------------- DEVICE HELPERS --------------------
 
     /**
-     * Pick a contact from the device's contact list
+     * Pick a contact from the phone (Android app: native picker; Chrome on Android: Contact Picker API)
+     * and put its name in the input. The phone number is returned but not stored: new bills carry no
+     * phone (docs/parties-design.md, the phone lives on the party with consent).
      * @param {string} inputElementId - ID of input element to populate with contact name
-     * @returns {Promise<void>}
+     * @returns {Promise<{ name: string, phone: string } | null>}
      */
     static async pickContact(inputElementId) {
         // Roles & access › Phone contacts (Q52 of #111): sign-in adds this class when the owner turned it off for the role
-        if (typeof document !== 'undefined' && document.body?.classList.contains('no-perm-contacts')) return;
-        try {
-            if ('contacts' in navigator && 'ContactsManager' in window) {
-                const contacts = await /** @type {any} */ (navigator).contacts.select(['name', 'tel'], { multiple: false });
-                if (contacts && contacts.length > 0) {
-                    const contact = contacts[0];
-                    const nameInput = /** @type {HTMLInputElement|null} */ (document.getElementById(inputElementId));
-                    if (nameInput && contact.name && contact.name.length > 0) {
-                        nameInput.value = contact.name[0];
-                        // Let live listeners (bill checks, existing-due line #166) see the new name
-                        nameInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        nameInput.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                }
-            } else {
-                const { UIManager } = await import('../ui/ui-manager.js');
-                UIManager.showToast(t('msg.common.contact_picker_not_supported'));
+        if (typeof document !== 'undefined' && document.body?.classList.contains('no-perm-contacts')) return null;
+        const nameInput = /** @type {HTMLInputElement|null} */ (document.getElementById(inputElementId));
+        const res = await pickPhoneContact(window);
+        if (res.status === 'picked') {
+            if (nameInput && res.name) {
+                nameInput.value = res.name;
+                // Let live listeners (bill checks, existing-due line #166) see the new name
+                nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                nameInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
-        } catch (error) {
-            console.error('Pick contact error:', error);
+            return { name: res.name, phone: res.phone };
         }
+        const toast = /** @type {Record<string, string>} */ ({
+            unsupported: 'msg.common.contact_picker_not_supported',
+            denied: 'msg.common.contact_picker_denied',
+            error: 'msg.common.contact_picker_failed',
+        })[res.status];
+        if (toast) {
+            const { UIManager } = await import('../ui/ui-manager.js');
+            UIManager.showToast(t(toast), res.status === 'unsupported' ? 'info' : 'error', 5000);
+            if (res.status === 'unsupported') nameInput?.focus();
+        }
+        return null;
     }
 
     // -------------------- BILL NUMBER GENERATION --------------------
