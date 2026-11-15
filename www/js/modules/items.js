@@ -655,6 +655,15 @@ const ItemsManager = {
         }, AppState.items);
     },
 
+    clearSearch() {
+        const input = /** @type {?HTMLInputElement} */ (document.getElementById('itemsSearchInput'));
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        this.renderItemsTable('');
+    },
+
     // Render items table view
     renderItemsTable(searchQuery = '') {
         const tbody = document.getElementById('itemsViewTableBody');
@@ -743,16 +752,22 @@ const ItemsManager = {
                     <td class="rates-name">
                         ${Helpers.escapeHtml(displayName || item.name || '-')}${archivedChip}
                     </td>
-                    <td data-perm="purchaseRates" class="rates-figs">${Helpers.escapeHtml(purchaseRates)}</td>
-                    <td class="rates-figs">${Helpers.escapeHtml(saleRates)}</td>${isStaff ? '' : `
-                    <td class="wholesale-column rates-figs">${Helpers.escapeHtml(wholesaleRates)}</td>`}
+                    <td data-perm="purchaseRates" class="rates-figs" data-label="${Helpers.escapeHtml(t('ui.items.short_buy'))}">${Helpers.escapeHtml(purchaseRates)}</td>
+                    <td class="rates-figs" data-label="${Helpers.escapeHtml(t('ui.items.short_retail'))}">${Helpers.escapeHtml(saleRates)}</td>${isStaff ? '' : `
+                    <td class="wholesale-column rates-figs" data-label="${Helpers.escapeHtml(t('ui.items.short_wholesale'))}">${Helpers.escapeHtml(wholesaleRates)}</td>`}
                 `;
             tbody.appendChild(row);
         });
         
+        const clear = document.getElementById('itemsSearchClear');
+        if (clear) clear.hidden = !searchQuery.trim();
         if (sortedItems.length === 0) {
             const colspan = isStaff ? '3' : '4';
-            tbody.innerHTML = `<tr><td colspan="${colspan}">${emptyState({ icon: 'search', title: t('ui.stock.no_items_found') })}</td></tr>`;
+            // One empty search answer across pages (U-72): what was searched, and Clear search
+            const empty = searchQuery.trim()
+                ? emptyState({ icon: 'search', title: t('ui.common.no_match_for', { q: searchQuery.trim() }), action: { onclick: 'items.clearSearch()', label: t('ui.common.clear_search') } })
+                : emptyState({ icon: 'search', title: t('ui.stock.no_items_found') });
+            tbody.innerHTML = `<tr><td colspan="${colspan}">${empty}</td></tr>`;
         }
         attachScrollCue(document.getElementById('itemsTableScroll'));
     },

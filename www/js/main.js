@@ -1055,6 +1055,7 @@ window.app = {
         renderTable: () => ItemsManager.renderItemsTable(),
         refreshTable: () => ItemsManager.refreshTable(),
         search: (query) => ItemsManager.renderItemsTable(query),
+        clearSearch: () => ItemsManager.clearSearch(),
         openAddModal: () => ItemsManager.openAddModal(),
         openEditModal: (id) => ItemsManager.openEditModal(id),
         closeItemModal: () => ItemsManager.closeItemModal(),
