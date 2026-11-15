@@ -1645,6 +1645,7 @@ export default {
     'ui.rate_history.loading': "Loading…",
     'ui.rate_history.name': "Name",
     'ui.rate_history.no_changes': "No changes recorded yet",
+    'ui.rate_history.last_change': "Last changed {date}: {field} {old} → {new}",
     'ui.rate_history.purchase_rate': "Purchase rate",
     'ui.rate_history.rename': "Rename",
     'ui.rate_history.rename_note': "Old bills keep the old name. Stock stays with this item.",

@@ -1645,6 +1645,7 @@ export default {
     'ui.rate_history.loading': "लोड हो रहा है…",
     'ui.rate_history.name': "नाम",
     'ui.rate_history.no_changes': "अभी कोई बदलाव दर्ज नहीं",
+    'ui.rate_history.last_change': "पिछला बदलाव {date}: {field} {old} → {new}",
     'ui.rate_history.purchase_rate': "खरीद रेट",
     'ui.rate_history.rename': "नाम बदलना",
     'ui.rate_history.rename_note': "पुराने बिलों में पुराना नाम ही रहेगा। स्टॉक इसी आइटम में रहेगा।",
