@@ -1488,7 +1488,7 @@ input[type="number"],
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  min-height: var(--control-h-sm);
+  min-height: var(--tap-min);
   font-size: var(--fs-sm);
   pointer-events: auto;
   cursor: pointer;
@@ -2125,9 +2125,10 @@ input[type="checkbox"].switch:focus-visible,
   padding-block: var(--sp-3);
 }
 
-/* Text buttons and the list's Load more / Retry get the button height */
+/* Text buttons, the list's Load more / Retry and the Show voided / old dues toggles get the button height (N-15) */
 .infinite-scroll-more,
-.history-range-retry {
+.history-range-retry,
+.chip[data-group-toggle] {
   min-height: var(--tap-min);
 }
 
@@ -2594,6 +2595,19 @@ a.row:active {
 
 .notice b {
   font-weight: var(--w-strong);
+}
+
+/* Doubtful-rate notice (N-06): the sentence takes the full width, "Open bill" goes under it */
+.notice.doubtful-rates {
+  flex-wrap: wrap;
+}
+
+.notice.doubtful-rates > .grow {
+  flex: 1 1 70%;
+}
+
+.notice.doubtful-rates > .btn {
+  margin-left: auto;
 }
 
 .notice[hidden],
@@ -3255,10 +3269,6 @@ body {
     margin-left: calc(-1 * var(--sp-3));
   }
 
-  body.biz-rentals .app-bar .hamburger {
-    display: inline-flex;
-  }
-
   .app-bar .notif-badge {
     top: 4px;
     right: 2px;
@@ -3421,6 +3431,12 @@ body {
 
 .nav-close:active {
   transform: scale(0.96);
+}
+
+/* Drawn inside the button: the sheet edge would cut an outer ring (N-14) */
+.nav-close:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
 }
 
 .nav-menu {
@@ -3696,7 +3712,7 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
     color: var(--accent-text);
   }
 
-  /* The tab bar has these pages; Rentals (no tab bar) hides them anyway */
+  /* The tab bar has these pages (the shop's, or Rentals' on its own bar, U-65) */
   .nav-menu a[data-bar],
   .nav-group[data-biz="rentals"],
   body.biz-rentals .nav-group:not([data-biz]) {
@@ -3796,8 +3812,14 @@ body {
   outline-offset: -4px;
 }
 
-body.biz-rentals .bottom-nav,
 body.typing .bottom-nav {
+  display: none;
+}
+
+/* One business's pages on the bar (U-65): the shop's, or Rentals' with the same More */
+body.biz-rentals .bottom-nav-item[data-tab]:not([data-tab="more"]),
+body:not(.biz-rentals) .bottom-nav-item[data-rent-bar],
+.bottom-nav-item[hidden] {
   display: none;
 }
 
@@ -6934,6 +6956,12 @@ tr.bill-check-line .bill-check-msg {
   min-width: 0;
 }
 
+/* The period as the shared chip (U-61); its whole text shows (Since 1 Sep 2026) */
+.history-date-filter > select.period-preset {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
 .history-custom-range {
   display: flex;
   flex-wrap: wrap;
@@ -7046,6 +7074,32 @@ tr.bill-check-line .bill-check-msg {
   grid-area: party;
   font-size: var(--fs-body);
   color: var(--ink);
+}
+
+/* Large text (U-17): the party gets its own line under the bill number, so neither is cut to a few letters */
+@media (max-width: 1023px) {
+  :has(> [data-history-item][data-bill-row]) {
+    container-type: inline-size;
+  }
+}
+
+@container (max-width: 18em) {
+  [data-history-item][data-bill-row] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "no amount"
+      "party party"
+      "meta meta";
+  }
+
+  .bill-row__party {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bill-row__party:not(:has(strong)) {
+    display: none;
+  }
 }
 
 .bill-row__amount {
@@ -7176,6 +7230,17 @@ tr.bill-check-line .bill-check-msg {
 
 .bill-table__date {
   white-space: nowrap;
+}
+
+/* Phone (U-70): bill no., party and amount fit the screen; date, items and payment are in the list view and the bill */
+@media (max-width: 599.98px) {
+  [data-bill-table] :is(.bill-table__date, .bill-table__items, .bill-table__chips) {
+    display: none;
+  }
+
+  [data-bill-table] .bill-table__party {
+    overflow-wrap: anywhere;
+  }
 }
 
 .bill-table__by {
@@ -7542,6 +7607,12 @@ tr.bill-check-line .bill-check-msg {
 
 .due-seg {
     margin-bottom: var(--sp-3);
+}
+
+/* At large text the total drops under the label instead of being cut (N-09) */
+.due-seg > button {
+    flex-wrap: wrap;
+    row-gap: 0;
 }
 
 .due-search {
@@ -7972,6 +8043,7 @@ tr.bill-check-line .bill-check-msg {
 .due-seg-total {
     color: var(--ink-3);
     font-size: var(--fs-caption);
+    white-space: nowrap;
 }
 
 .due-search > .search-clear {
@@ -8043,6 +8115,16 @@ tr.bill-check-line .bill-check-msg {
     flex-wrap: wrap;
     gap: var(--sp-2);
     margin-top: var(--sp-2);
+}
+
+.aging-more,
+.aging-more-menu > .btn {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.aging-more-menu > .btn {
+    white-space: normal;
 }
 
 .aging-bills-toggle {
@@ -8312,6 +8394,13 @@ tr.bill-check-line .bill-check-msg {
 /* Members: one choice left, so no switch (U-87) */
 .stock-seg[hidden] {
   display: none;
+}
+
+/* Adjustment reasons as one-tap chips (U-77) */
+.adjust-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
 }
 
 /* ---- css/charts.css ---- */
@@ -9285,6 +9374,17 @@ body.no-perm-contacts [data-perm~="contacts"] {
   display: none;
 }
 
+/* Owner: the other themes, folded (U-83) */
+.theme-more {
+  grid-column: 1 / -1;
+}
+
+.theme-more > summary {
+  color: var(--accent-text);
+  font-weight: var(--w-strong);
+  cursor: pointer;
+}
+
 /* ---- css/day.css ---- */
 /* ==================== DAY PAGE STYLES ==================== */
 
@@ -9764,6 +9864,11 @@ body.no-perm-contacts [data-perm~="contacts"] {
   overflow-x: auto;
 }
 
+.anom-scroll:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
 .anom-heat,
 .anom-table {
   font-size: var(--fs-caption);
@@ -10207,6 +10312,29 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-weight: var(--w-strong);
 }
 
+/* Checks and phones as rows that fit a phone (U-70) */
+.hl-rows > .row + .row {
+  border-top: 1px solid var(--line);
+}
+
+.hl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  margin: var(--sp-1) 0;
+  font-size: var(--fs-sm);
+}
+
+.hl-chip.hl-ok strong { color: var(--positive); }
+.hl-chip.hl-near strong { color: var(--warning); }
+.hl-chip.hl-bad strong { color: var(--negative); }
+
+.hl-rules > summary {
+  color: var(--accent-text);
+  font-weight: var(--w-strong);
+  cursor: pointer;
+}
+
 /* ---- css/app-updates.css ---- */
 /* What's new notes (an app dialog), Android update card, Settings → App updates */
 
@@ -10305,7 +10433,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
   padding: var(--sp-2) var(--sp-2) 0 var(--sp-4);
 }
 
-.notif-head h3 {
+.notif-head h2 {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -10644,26 +10772,26 @@ body.no-perm-contacts [data-perm~="contacts"] {
     background: inherit;
 }
 
-/* Phone: tabs, then the period, then "Compare & share" (#92) */
+/* Phone (U-71): only the tabs stay on screen when scrolling (about 56 px); the period and "Compare & share"
+   scroll away with the page. The head lets its children sit in the page, so the tabs stick for the whole page. */
 @media (max-width: 1023px) {
     .ins-head {
-        display: flex;
-        flex-direction: column;
+        display: contents;
     }
 
-    .ins-head > .tabs { order: 1; }
-    .ins-head > .ins-period { order: 2; }
-    .ins-head > .ins-more { order: 3; }
-    .ins-head > .ins-abbar { order: 4; }
+    .ins-head > .tabs {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-sticky);
+        padding-top: var(--sp-1);
+        background: var(--bg);
+    }
 
-    /* Scrolled under the header (U-71): only the tabs stay; scroll to the top for the period */
-    .ins-head.ins-compact > .ins-period,
-    .ins-head.ins-compact > .ins-more,
-    .ins-head.ins-compact > .ins-abbar { display: none; }
-    .ins-head.ins-compact { padding-bottom: var(--sp-1); }
+    .ins-head > .ins-more {
+        display: flex;
+        margin-left: auto;
+    }
 }
-
-.ins-head-mark { height: 1px; }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
 
@@ -10698,6 +10826,20 @@ body.no-perm-contacts [data-perm~="contacts"] {
 
 .ins-tap { cursor: pointer; }
 .ins-tap:focus-visible { outline: none; box-shadow: var(--focus); }
+/* The hero figure is its own button; its notes and links sit under it in the card, not inside it (N-02) */
+.hero-tap {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-md);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+.hero-tap > .metric-label { display: block; }
+.hero-tap > .hero-num { display: block; margin-top: var(--sp-1); color: var(--ink); }
 
 /* A group: section title above a panel (as on Today) */
 div.ins-wide,
@@ -10858,6 +11000,9 @@ div.ins-wide,
 /* Day book: ‹ day › with a date box for a jump (U-94) */
 .st-day-step { flex-wrap: wrap; }
 .st-day-pick { flex: 0 1 auto; width: auto; }
+
+/* Month statement: the month chip sits between ‹ and › (U-61) */
+.st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }
 
 /* ---- css/desktop.css ---- */
 /* ==================== DESKTOP LAYOUT (wide screens only) ====================
@@ -11169,7 +11314,7 @@ div.ins-wide,
     height: calc(100dvh - var(--desktop-header-h));
   }
 
-  /* A page's head (<header class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</header>; surfaces.css hides it
+  /* A page's head (<div class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</div>; surfaces.css hides it
      below 1024 px). The header bar shows the title, so the h2 stays for screen readers and the row holds the page's mode and actions. */
   .page-head {
     display: flex;

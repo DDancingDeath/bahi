@@ -125,6 +125,12 @@
   transform: scale(0.96);
 }
 
+/* Drawn inside the button: the sheet edge would cut an outer ring (N-14) */
+.nav-close:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
 .nav-menu {
   padding: var(--sp-1) 0;
   flex: 1 1 auto;
@@ -398,7 +404,7 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
     color: var(--accent-text);
   }
 
-  /* The tab bar has these pages; Rentals (no tab bar) hides them anyway */
+  /* The tab bar has these pages (the shop's, or Rentals' on its own bar, U-65) */
   .nav-menu a[data-bar],
   .nav-group[data-biz="rentals"],
   body.biz-rentals .nav-group:not([data-biz]) {
@@ -498,8 +504,14 @@ body {
   outline-offset: -4px;
 }
 
-body.biz-rentals .bottom-nav,
 body.typing .bottom-nav {
+  display: none;
+}
+
+/* One business's pages on the bar (U-65): the shop's, or Rentals' with the same More */
+body.biz-rentals .bottom-nav-item[data-tab]:not([data-tab="more"]),
+body:not(.biz-rentals) .bottom-nav-item[data-rent-bar],
+.bottom-nav-item[hidden] {
   display: none;
 }
 

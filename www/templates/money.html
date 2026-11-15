@@ -3,8 +3,7 @@
     <!-- Figures from the phone's cache until the server answers (#59) -->
     <p class="updating-note" data-i18n="ui.sync.figures_updating">Updating… these figures may change when the latest entries arrive.</p>
     <div class="ins-head">
-        <header class="page-head"><h2 data-i18n="ui.money.title">Money</h2></header>
-        <button type="button" class="btn btn-ghost btn-sm ins-more" id="moneyCmpToggle" aria-expanded="false" aria-controls="moneyCmpMore" data-onclick="money.toggleCompare()"><span data-i18n="ui.cmp.toggle_share">Compare &amp; share</span> <svg class="i i-sm ins-cmp-chev" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></button>
+        <div class="page-head"><h2 data-i18n="ui.money.title">Money</h2></div>
         <div class="tabs" role="tablist">
             <button type="button" class="active" data-money-section="profit" role="tab" aria-selected="true" data-onclick="money.setSection('profit')" data-i18n="ui.money.tab_profit">Profit</button>
             <button type="button" data-money-section="cash" role="tab" aria-selected="false" data-onclick="money.setSection('cash')" data-i18n="ui.money.tab_cash">Cash</button>
@@ -31,6 +30,7 @@
         <div class="ins-period" id="moneyNow" hidden>
             <span class="ins-period-label" id="moneyNowLabel"></span>
         </div>
+        <button type="button" class="btn btn-ghost btn-sm ins-more" id="moneyCmpToggle" aria-expanded="false" aria-controls="moneyCmpMore" data-onclick="money.toggleCompare()"><span data-i18n="ui.cmp.toggle_share">Compare &amp; share</span> <svg class="i i-sm ins-cmp-chev" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></button>
         <div class="ins-abbar" id="moneyCmpBar"></div>
     </div>
 
@@ -42,10 +42,12 @@
             <div class="panel panel-pad ins-scroll" id="moneyCmpTable"></div>
         </div>
         <section class="ins-section" id="moneyProfit" data-money-pane="profit">
-            <div class="hero ins-tap" data-perm="profit" data-breakdown="profit" role="button" tabindex="0">
-                <div class="metric-label" id="moneyProfitLabel"></div>
-                <div class="hero-num" data-metric="M6" id="moneyProfitValue">—</div>
-                <div class="ins-compare" id="moneyProfitCompare"></div>
+            <div class="hero" data-perm="profit">
+                <button type="button" class="hero-tap ins-tap" data-breakdown="profit">
+                    <span class="metric-label" id="moneyProfitLabel"></span>
+                    <span class="hero-num" data-metric="M6" id="moneyProfitValue">—</span>
+                    <span class="ins-compare" id="moneyProfitCompare"></span>
+                </button>
                 <div class="ins-takeaway" data-takeaway id="moneyProfitTakeaway"></div>
                 <div class="ins-caveats" id="moneyProfitCaveats"></div>
             </div>
@@ -86,10 +88,12 @@
         </section>
 
         <section class="ins-section" id="moneyCash" data-money-pane="cash" hidden>
-            <div class="hero ins-tap" data-breakdown="netCash" role="button" tabindex="0">
-                <div class="metric-label" data-i18n="ui.money.net_money">Net money in</div>
-                <div class="hero-num" data-metric="M14" id="moneyNetCash">—</div>
-                <div class="ins-compare" id="moneyCashCompare"></div>
+            <div class="hero">
+                <button type="button" class="hero-tap ins-tap" data-breakdown="netCash">
+                    <span class="metric-label" data-i18n="ui.money.net_money">Net money in</span>
+                    <span class="hero-num" data-metric="M14" id="moneyNetCash">—</span>
+                    <span class="ins-compare" id="moneyCashCompare"></span>
+                </button>
                 <div class="ins-takeaway" data-takeaway id="moneyCashTakeaway"></div>
                 <div class="ins-caveats" id="moneyCashCaveats"></div>
             </div>
@@ -121,10 +125,12 @@
         </section>
 
         <section class="ins-section" id="moneySpending" data-money-pane="spending" hidden>
-            <div class="hero ins-tap" data-breakdown="business" role="button" tabindex="0">
-                <div class="metric-label" data-i18n="ui.money.business_expenses">Business expenses</div>
-                <div class="hero-num" data-metric="M4" id="moneyBusiness">—</div>
-                <div class="ins-compare" id="moneySpendCompare"></div>
+            <div class="hero">
+                <button type="button" class="hero-tap ins-tap" data-breakdown="business">
+                    <span class="metric-label" data-i18n="ui.money.business_expenses">Business expenses</span>
+                    <span class="hero-num" data-metric="M4" id="moneyBusiness">—</span>
+                    <span class="ins-compare" id="moneySpendCompare"></span>
+                </button>
                 <div class="ins-takeaway" data-takeaway id="moneySpendTakeaway"></div>
                 <div class="ins-caveats" id="moneySpendCaveats"></div>
             </div>

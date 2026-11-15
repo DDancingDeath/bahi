@@ -157,7 +157,7 @@ describe('Today screen == oracle', () => {
     });
     specTest('T12_net')('T12_net: net flow amount and its in/out label', () => {
         expect(shown('todayNetCashFlow')).toBe(rupee(Math.abs(want.T12_net)));
-        expect(document.getElementById('todayCashFlowLabel').textContent).toMatch(want.T12_net < 0 ? /outflow/i : /inflow/i);
+        expect(document.getElementById('todayCashFlowLabel').textContent).toMatch(want.T12_net < 0 ? /^More went out/ : /^More came in/);
     });
 });
 

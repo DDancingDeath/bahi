@@ -191,6 +191,8 @@ test('the gallery previews without saving; Cancel, leaving Settings and Apply be
 
     await showTab(page, 'settings-appearance');
     await expect(page.locator('#themeGallery .theme-tile')).toHaveCount(13);
+    // The owner's other looks are folded under "More looks" (U-83)
+    await page.click('#themeGallery .theme-more > summary');
     // Each card is a mini Billing in its own theme
     await expect(page.locator('[data-theme-choice="cyberpunk"] .tcp[data-theme="cyberpunk"][data-mode="dark"] .tcp-save')).toHaveText(/Save/);
     await expect(page.locator('[data-theme-choice="modern"]')).toHaveAttribute('aria-pressed', 'true');
@@ -212,6 +214,7 @@ test('the gallery previews without saving; Cancel, leaving Settings and Apply be
     await expect(bar).toBeHidden();
 
     await showTab(page, 'settings-appearance');
+    if (!(await page.locator('#themeGallery .theme-more').evaluate(d => d.open))) await page.click('#themeGallery .theme-more > summary');
     await page.click('[data-theme-choice="nature"]');
     await page.click('#themePreviewBar .theme-preview-apply');
     expect(await html()).toEqual(['nature', 'light']);

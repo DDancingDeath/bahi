@@ -79,7 +79,7 @@ One pure function computes every figure: `todaySummary({ bills, expenses, sessio
 | T9 | Online paid | BILL-AT-SAVE online of today's purchases + today's online expenses (EXP-MODE) + online part of DUE-PAYs paid today. | `onlineOut` (expenses term: `expensesOnline`) |
 | T10 | Total in | T6 + T7. | `totalIn` |
 | T11 | Total out | T8 + T9. | `totalOut` |
-| T12 | Net inflow / outflow | T10 − T11, shown as an amount with "Net inflow" or "Net outflow". | `net` (= −`netOutflow`); label from `isOutflow`, amount `netAmount` |
+| T12 | Net inflow / outflow | T10 − T11, shown as an amount with "More came in than went out" or "More went out than came in" (U-35). | `net` (= −`netOutflow`); label from `isOutflow`, amount `netAmount` |
 | T13 | Due received | DUE-PAYs received today (cash + online). | `dueReceived` |
 | T14 | Due paid | DUE-PAYs paid today (cash + online). | `duePaid` |
 | T15 | New udhaar today (was "Due to receive") | Σ BILL-DUE of today's sales (new dues made today; OPENING records are not today's sales even when dated today). The all-time total is on Outstanding / Finance (F9). | `dueToReceive` |

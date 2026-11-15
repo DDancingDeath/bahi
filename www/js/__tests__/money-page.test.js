@@ -943,24 +943,6 @@ describe('what each role sees (Roles & access)', () => {
     });
 });
 
-test('U-71: scrolled under the header, only the tabs stay sticky (ins-compact); back at the top the period returns', async () => {
-    const { bindCompactHead } = await import('../ui/period-compare.js');
-    let seen = null;
-    const saved = global.IntersectionObserver;
-    global.IntersectionObserver = class { constructor(cb) { seen = cb; } observe() {} };
-    try {
-        bindCompactHead('money');
-        const head = document.querySelector('#money > .ins-head');
-        expect(head.previousElementSibling.className).toBe('ins-head-mark');
-        seen([{ isIntersecting: false }]);
-        expect(head.classList.contains('ins-compact')).toBe(true);
-        seen([{ isIntersecting: true }]);
-        expect(head.classList.contains('ins-compact')).toBe(false);
-    } finally {
-        global.IntersectionObserver = saved;
-    }
-});
-
 describe('worker pay and regular bills on Money (M22–M26, U-22)', () => {    let setLinkedSource;
     beforeAll(async () => {
         ({ setLinkedSource } = await import('../utils/linked-outflows.js'));

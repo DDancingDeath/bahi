@@ -180,7 +180,7 @@ test('desktop: the page header names the open page (en, hi) with the sync pill a
     await expect(page.getByRole('main')).toHaveCount(1);
     // A page's own head (.page-head) is not a second banner; its title is for screen readers, its actions show
     await page.evaluate(() => document.querySelector('.tab.active').insertAdjacentHTML('afterbegin',
-        '<header class="page-head" id="e2ePageHead"><h2>Head</h2><div class="page-head-actions"><button type="button" class="btn">Act</button></div></header>'));
+        '<div class="page-head" id="e2ePageHead"><h2>Head</h2><div class="page-head-actions"><button type="button" class="btn">Act</button></div></div>'));
     await expect(page.getByRole('banner')).toHaveCount(1);
     await expect(page.getByRole('heading', { name: 'Head', level: 2 })).toHaveCount(1);
     expect((await page.locator('#e2ePageHead h2').boundingBox()).width).toBeLessThanOrEqual(1);

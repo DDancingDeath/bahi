@@ -75,6 +75,18 @@ function loadedBills() {
     };
 }
 
+const TYPE_GROUPS = ['rates', 'stock', 'payments', 'edits', 'cash', 'other'];
+
+/** @param {string} id anomaly type @returns {string} one of TYPE_GROUPS */
+function typeGroup(id) {
+    if (/^(rate-|bag-weight|below-cost|cost-unknown|qty-invalid)/.test(id)) return 'rates';
+    if (/^(oversell|stock-|numcheck-ac[18]$)/.test(id)) return 'stock';
+    if (/^(payment-|party-required|due-|numcheck-ac[235]$)/.test(id)) return 'payments';
+    if (/^(cash-|numcheck-ac6$)/.test(id)) return 'cash';
+    if (/^(duplicate|date-|override|bill-|expense-|old-bill|numcheck-)/.test(id)) return 'edits';
+    return 'other';
+}
+
 const VOIDED_COLLECTIONS = { purchase: 'purchases', retail: 'retailSales', wholesale: 'wholesaleSales' };
 
 /** Voided bills (#75) and expenses (#99) the listeners already hold, by kind: no read. */
@@ -734,8 +746,12 @@ export const AnomaliesManager = {
         if (!sel || (sel.dataset.filled && !force)) return;
         const cur = sel.value;
         sel.dataset.filled = '1';
-        sel.innerHTML = `<option value="all">${esc(t('ui.anom.all_types'))}</option>` + Object.entries(ANOMALY_TYPES)
-            .map(([id, label]) => `<option value="${esc(id)}">${loc(label)}</option>`).join('');
+        // Types in a few plain groups (U-74)
+        const types = Object.entries(ANOMALY_TYPES);
+        sel.innerHTML = `<option value="all">${esc(t('ui.anom.all_types'))}</option>` + TYPE_GROUPS.map(g => {
+            const inGroup = types.filter(([id]) => typeGroup(id) === g);
+            return inGroup.length ? `<optgroup label="${esc(t(`ui.anom.group_${g}`))}">${inGroup.map(([id, label]) => `<option value="${esc(id)}">${loc(label)}</option>`).join('')}</optgroup>` : '';
+        }).join('');
         if (cur) sel.value = cur;
     },
 
@@ -848,7 +864,8 @@ export const AnomaliesManager = {
     filtered() {
         const f = this.page.filters;
         const range = this.page.range || presetRange(f.preset, todayKey());
-        return filterAnomalies(this.page.docs, { ...range, type: f.type, severity: f.severity, status: f.status, user: f.user, item: f.item });
+        // A voided bill's checks are not findings any more (U-28)
+        return withoutVoidedBillChecks(filterAnomalies(this.page.docs, { ...range, type: f.type, severity: f.severity, status: f.status, user: f.user, item: f.item }), loadedVoided());
     },
 
     renderPage() {
@@ -900,7 +917,7 @@ export const AnomaliesManager = {
                 heat.innerHTML = emptyState({ icon: 'box', title: t('ui.anom.no_item_data') });
             } else {
                 const max = Math.max(1, ...p.heat.items.flatMap(i => p.heat.types.map(ty => p.heat.cells[i][ty] || 0)));
-                heat.innerHTML = `<div class="anom-scroll"><table class="table anom-heat"><thead><tr><th>${esc(t('ui.anom.th_item'))}</th>${p.heat.types.map(ty => `<th title="${loc(typeLabel(ty))}">${loc(typeLabel(ty))}</th>`).join('')}</tr></thead><tbody>${p.heat.items.map(i => `<tr><td>${esc(i)}</td>${p.heat.types.map(ty => {
+                heat.innerHTML = `<div class="anom-scroll" role="region" tabindex="0" aria-label="${esc(t('ui.anom.h_item_type'))}"><table class="table anom-heat"><thead><tr><th>${esc(t('ui.anom.th_item'))}</th>${p.heat.types.map(ty => `<th title="${loc(typeLabel(ty))}">${loc(typeLabel(ty))}</th>`).join('')}</tr></thead><tbody>${p.heat.items.map(i => `<tr><td>${esc(i)}</td>${p.heat.types.map(ty => {
                     const n = p.heat.cells[i][ty] || 0;
                     return `<td${n / max > 0.5 ? ' class="hot"' : ''} style="--a:${n ? (0.15 + 0.75 * n / max).toFixed(2) : 0}">${esc(n || '')}</td>`;
                 }).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -910,7 +927,7 @@ export const AnomaliesManager = {
         const users = document.getElementById('anomalyByUser');
         if (users) {
             users.innerHTML = p.byUser.length
-                ? `<div class="anom-scroll"><table class="table anom-table"><thead><tr><th>${esc(t('ui.anom.th_user'))}</th><th>${esc(t('ui.anom.th_total'))}</th><th>${esc(t('ui.anom.th_high'))}</th><th>${esc(t('ui.anom.th_most_common'))}</th></tr></thead><tbody>${p.byUser.map(u => {
+                ? `<div class="anom-scroll" role="region" tabindex="0" aria-label="${esc(t('ui.anom.h_by_user'))}"><table class="table anom-table"><thead><tr><th>${esc(t('ui.anom.th_user'))}</th><th>${esc(t('ui.anom.th_total'))}</th><th>${esc(t('ui.anom.th_high'))}</th><th>${esc(t('ui.anom.th_most_common'))}</th></tr></thead><tbody>${p.byUser.map(u => {
                     const top = Object.entries(u.byType).sort((a, b) => b[1] - a[1])[0];
                     return `<tr><td>${esc(u.name)}</td><td>${esc(u.count)}</td><td>${esc(u.high)}</td><td>${top ? `${loc(typeLabel(top[0]))} (${esc(top[1])})` : ''}</td></tr>`;
                 }).join('')}</tbody></table></div>`
@@ -926,7 +943,7 @@ export const AnomaliesManager = {
         const rep = document.getElementById('anomalyRepeat');
         if (rep) {
             const block = (title, rows) => `<div class="anom-repeat-block"><h4>${title}</h4>${rows.length
-                ? `<ul>${rows.map(r => `<li><strong>${esc(r.name)}</strong> — ${esc(t('ui.anom.repeat_times', { count: r.count, days: r.days }))} <span class="tone-muted">(${r.types.map(ty => loc(typeLabel(ty))).join(', ')})</span></li>`).join('')}</ul>`
+                ? `<ul>${rows.map(r => `<li><strong>${esc(r.name)}</strong> — ${esc(t(r.days === 1 ? 'ui.anom.repeat_times_one_day' : 'ui.anom.repeat_times', { count: r.count, days: r.days }))} <span class="tone-muted">(${r.types.map(ty => loc(typeLabel(ty))).join(', ')})</span></li>`).join('')}</ul>`
                 : `<div class="tone-muted">${esc(t('ui.anom.none'))}</div>`}</div>`;
             rep.innerHTML = block(esc(t('ui.anom.repeat_items')), p.repeat.items) + block(esc(t('ui.anom.repeat_users')), p.repeat.users) + block(esc(t('ui.anom.repeat_parties')), p.repeat.parties);
         }

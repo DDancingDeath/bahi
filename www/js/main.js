@@ -1359,6 +1359,7 @@ window.app = {
         updateAdjustmentPlaceholder: () => withStock(m => m.updateAdjustmentPlaceholder()),
         applyAdjustment: () => withStock(m => m.applyStockAdjustment()),
         startOpeningStock: () => withStock(m => m.startOpeningStock()),
+        setReason: (code) => withStock(m => m.setReason(code)),
         renderAdjustmentHistory: () => withStock(m => m.renderAdjustmentHistory()),
         renderDeadStock: () => withStock(m => m.renderDeadStock()),
         setDeadStockDays: (days) => withStock(m => m.setDeadStockDays(days)),
@@ -1564,7 +1565,7 @@ window.app = {
     statements: {
         init: (route) => loadStatements().then(m => m.init(route))
             .catch(e => console.warn('Statements not loaded:', e?.message || e)),
-        ...Object.fromEntries(['open', 'back', 'set', 'stepDay', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
+        ...Object.fromEntries(['open', 'back', 'set', 'stepDay', 'stepMonth', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
             .map(name => [name, (...args) => loadStatements().then(m => m[name](...args))]))
     },
 

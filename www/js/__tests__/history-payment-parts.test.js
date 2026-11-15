@@ -23,8 +23,8 @@ const sale = (extra) => ({
     customerName: 'Trader', items: [{ name: 'Maize', qty: 200, rate: 25, total: 5000 }], total: 5000, ...extra
 });
 const lines = () => {
-    const h4 = [...document.querySelectorAll('#billDetailsContent h4')].find(h => h.textContent === 'Payment details');
-    return [...h4.parentElement.children].slice(1).map(d => d.textContent.replace(/\s+/g, ' ').trim());
+    const h3 = [...document.querySelectorAll('#billDetailsContent h3')].find(h => h.textContent === 'Payment details');
+    return [...h3.parentElement.children].slice(1).map(d => d.textContent.replace(/\s+/g, ' ').trim());
 };
 
 beforeEach(() => {
@@ -83,7 +83,7 @@ test('the dialog is titled with the bill number and party; amounts are in ink, a
     expect(document.getElementById('billDetailsTitle').textContent).toBe('Bill #W-1');
     expect(document.getElementById('billDetailsParty').textContent).toBe('Trader');
     expect(document.getElementById('billDetailsParty').hidden).toBe(false);
-    const panel = [...document.querySelectorAll('#billDetailsContent h4')].find(h => h.textContent === 'Payment details').parentElement;
+    const panel = [...document.querySelectorAll('#billDetailsContent h3')].find(h => h.textContent === 'Payment details').parentElement;
     expect([...panel.querySelectorAll('.tag')].map(t => [t.className, t.textContent])).toEqual([['tag warn', '₹2,000']]);
     expect(panel.querySelector('.row-amt').textContent).toBe('₹3,000');
 });

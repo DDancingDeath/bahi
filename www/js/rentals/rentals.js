@@ -198,6 +198,13 @@ function render() {
         b.classList.toggle('active', on);
         b.setAttribute('aria-selected', String(on));
     });
+    document.querySelectorAll('.bottom-nav-item[data-rent-bar]').forEach((b) => {
+        const name = b.getAttribute('data-rent-bar');
+        if (name === 'reports') b.hidden = !adv || !canWrite();
+        b.classList.toggle('active', name === state.page);
+        if (name === state.page) b.setAttribute('aria-current', 'page');
+        else b.removeAttribute('aria-current');
+    });
     document.querySelectorAll('#rentals [data-rent-mode]').forEach((b) => {
         const on = b.getAttribute('data-rent-mode') === state.mode;
         b.classList.toggle('active', on);
@@ -307,7 +314,7 @@ function renderMonth(d, ix, rows) {
         || emptyState({ icon: 'check', tone: 'pos', title: t(owe.length ? 'ui.rent.none_late' : 'ui.rent.all_paid', { month: monthLabel(state.month, lang) }) });
     const paidList = paid.length ? `<details class="rent-more"><summary>${et('ui.rent.paid_month', { n: paid.length })}</summary>
         <div class="panel">${paid.map(a => collectRow(a, ix, lang)).join('')}</div></details>` : '';
-    const vacant = sum.vacant ? `<button type="button" class="btn btn-ghost btn-sm rent-vacant" data-onclick="rentals.page('properties')">${et('ui.rent.vacant_units', { n: sum.vacant })}${icon('chevR', 'i-sm')}</button>` : '';
+    const vacant = sum.vacant ? `<button type="button" class="btn btn-ghost btn-sm rent-vacant" data-onclick="rentals.page('properties')">${et(sum.vacant === 1 ? 'ui.rent.vacant_units_one' : 'ui.rent.vacant_units', { n: sum.vacant })}${icon('chevR', 'i-sm')}</button>` : '';
     const payAny = canWrite() && owe.length ? `<div class="rent-sticky">${btn(' btn-primary btn-block', 'payAny', '', 'ui.rent.record_payment', '', ' data-rent-pay')}</div>` : '';
     return `${title}${summary}${attentionHtml(d, ix)}
         <h3 class="rent-section-title">${et('ui.rent.to_collect', { n: owe.length })}${owe.some(a => a.late)
@@ -346,7 +353,7 @@ function attentionHtml(d, ix) {
     const notes = leaseReminder(localStorage, uid, state.month);
     const rows = [];
     if (rem?.late) {
-        rows.push(`<button type="button" class="row" data-onclick="rentals.onlyLate(true)"><span class="row-main">${et('ui.today.reminder_rent_units', { count: rem.dueUnits, late: rem.late })}</span><strong class="row-trail row-amt">${moneyHtml(rem.due)}</strong></button>`);
+        rows.push(`<button type="button" class="row" data-onclick="rentals.onlyLate(true)"><span class="row-main">${et(rem.dueUnits === 1 ? 'ui.today.reminder_rent_units_one' : 'ui.today.reminder_rent_units', { count: rem.dueUnits, late: rem.late })}</span><strong class="row-trail row-amt">${moneyHtml(rem.due)}</strong></button>`);
     }
     const meters = meterPending(d, state.month).length;
     if (meters) rows.push(`<button type="button" class="row" data-onclick="rentals.meters()"><span class="lead-icon warn">${icon('bolt', 'i-sm')}</span><span class="row-main">${et('ui.rent.meter_pending', { n: meters })}</span></button>`);

@@ -10,7 +10,7 @@ import { AppState } from '../utils/state.js';
 import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { UIManager } from '../ui/ui-manager.js';
-import { t, getLang } from '../i18n/index.js';
+import { t, tn, getLang } from '../i18n/index.js';
 import { formatRupees, formatAmount, formatKg } from '../utils/money.js';
 import { caveatKey } from '../utils/takeaways.js';
 import { formatDay, formatMonth, formatDayTime, toLocalISODate, parseLocalDate, todayLocalISO, monthStart, endOfLocalDayExclusive, addLocalDays } from '../utils/dates.js';
@@ -110,6 +110,14 @@ export const StatementsManager = {
         this.set('day', next);
     },
 
+    /** Month statement ‹ › : one month back or forward, within the last 24 months. */
+    stepMonth(dir) {
+        const now = new Date();
+        const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
+        const next = opts[opts.indexOf(this.month) + (dir < 0 ? 1 : -1)];
+        if (next) this.set('month', next);
+    },
+
     /** Chooses the party the ledger opens on next (Insights › Parties row). */
     selectParty(partyKey, kind = 'customer') {
         this.partyKey = partyKey || null;
@@ -190,7 +198,12 @@ export const StatementsManager = {
         } else if (this.kind === 'month') {
             const now = new Date();
             const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
-            html = `<label>${esc(t('ui.statements.pick_month'))} <select class="form-control" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select></label>`;
+            const at = opts.indexOf(this.month);
+            // The shared period control (U-61): ‹ the month as a chip ›, as on Money and the Day book
+            html = `<div class="ins-period st-month-step">`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(-1)" aria-label="${esc(t('ui.money.earlier'))}"${at >= opts.length - 1 ? ' disabled' : ''}>${icon('chevL')}</button>`
+                + `<select class="ins-preset st-month-pick" aria-label="${esc(t('ui.statements.pick_month'))}" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select>`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(1)" aria-label="${esc(t('ui.money.later'))}"${at <= 0 ? ' disabled' : ''}>${icon('chevR')}</button></div>`;
         } else if (this.kind === 'party') {
             const parties = partyChoices(this.src(), this.partyKind);
             if (!this.partyKey || !parties.some(p => p.key === this.partyKey)) this.partyKey = parties[0]?.key || null;
@@ -394,7 +407,7 @@ export const StatementsManager = {
         if (!this.covered(from)) return this.notLoaded(label, from);
         const rows = exportLines(this.src(), AppState.items || [], { from, to });
         const bills = new Set(rows.map(r => `${r.type}|${r.billNo}|${r.date}`)).size;
-        const html = `<h3 class="st-title">${esc(title)}</h3><p>${esc(t('ui.statements.csv_ready', { lines: rows.length, bills }))}</p>`;
+        const html = `<h3 class="st-title">${esc(title)}</h3><p>${esc(t('ui.statements.csv_ready', { lines: tn('ui.statements.n_lines', rows.length), bills: tn('ui.statements.n_bills', bills) }))}</p>`;
         const cl = this.csvLang();
         const rates = this.perms().purchaseRates;
         const csvHeader = ['date', 'type', 'bill_no', 'party', 'item', 'kg', 'rate', 'line_amount', 'labour', 'amount_after_labour', 'bill_total', 'cash', 'online', 'due']
@@ -404,7 +417,7 @@ export const StatementsManager = {
             const hide = r.type === 'purchase' && !rates;
             return [r.date, this.kindLabel(r.type, cl), r.billNo, r.party, r.item, r.qty, hide ? '' : r.rate, hide ? '' : r.lineAmount, r.labour, hide ? '' : r.amount, r.billTotal, r.cash, r.online, r.due];
         });
-        return { title, html, share: `${title}\n${t('ui.statements.csv_ready', { lines: rows.length, bills })}`, csvHeader, csvRows };
+        return { title, html, share: `${title}\n${t('ui.statements.csv_ready', { lines: tn('ui.statements.n_lines', rows.length), bills: tn('ui.statements.n_bills', bills) })}`, csvHeader, csvRows };
     },
 
     renderAccountant() {
@@ -418,7 +431,7 @@ export const StatementsManager = {
         const sessions = this.sessions({ from, to });
         const rows = accountantLines(this.src(), { from, to }, { sessions: sessions.list });
         const bills = rows.filter(r => r.entry === 'bill').length;
-        const ready = t('ui.statements.accountant_ready', { bills, payments: rows.length - bills });
+        const ready = t('ui.statements.accountant_ready', { bills: tn('ui.statements.n_bills', bills), payments: tn('ui.statements.n_payments', rows.length - bills) });
         const html = `<h3 class="st-title">${esc(title)}</h3>${this.duesCaveat(sessions)}`
             + `<p>${esc(ready)}</p>`
             + `<p class="ins-hint">${esc(t('ui.statements.accountant_hint'))}</p>`;

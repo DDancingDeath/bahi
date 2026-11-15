@@ -68,10 +68,6 @@
     margin-left: calc(-1 * var(--sp-3));
   }
 
-  body.biz-rentals .app-bar .hamburger {
-    display: inline-flex;
-  }
-
   .app-bar .notif-badge {
     top: 4px;
     right: 2px;

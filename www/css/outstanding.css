@@ -5,6 +5,12 @@
     margin-bottom: var(--sp-3);
 }
 
+/* At large text the total drops under the label instead of being cut (N-09) */
+.due-seg > button {
+    flex-wrap: wrap;
+    row-gap: 0;
+}
+
 .due-search {
     position: relative;
     margin-bottom: var(--sp-3);
@@ -433,6 +439,7 @@
 .due-seg-total {
     color: var(--ink-3);
     font-size: var(--fs-caption);
+    white-space: nowrap;
 }
 
 .due-search > .search-clear {
@@ -504,6 +511,16 @@
     flex-wrap: wrap;
     gap: var(--sp-2);
     margin-top: var(--sp-2);
+}
+
+.aging-more,
+.aging-more-menu > .btn {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.aging-more-menu > .btn {
+    white-space: normal;
 }
 
 .aging-bills-toggle {

@@ -14,14 +14,14 @@ import { Helpers } from '../utils/helpers.js';
 import { ensureXLSX } from '../utils/lazy-scripts.js';
 import { findItemById, findDuplicateItem, duplicateItemMessage, itemUsageFrequency, sortItemsByUsage, sortItemsByName, itemToSheetRow, planItemImport, isArchivedItem, visibleItems } from '../utils/item-catalog.js';
 import { adjustItemStock } from '../utils/calc/stock.js';
-import { todayLocalISO, formatDateTimeIN } from '../utils/dates.js';
+import { todayLocalISO, formatDateTimeIN, formatDay } from '../utils/dates.js';
 import {
     snapshotItem, diffItemSnapshots, changeWarnings, buildHistoryEntries, historyDocId,
     formatHistoryValue, fieldLabel, RATE_SANITY_FACTOR, RATE_FIELDS
 } from '../utils/rate-history.js';
 import { createRateEditTracker, diffItemRates, diffItemFields } from '../utils/notification-format.js';
 import { canArchiveItem, ITEM_ARCHIVE_LOCKED_KEY, isPermissionDenied } from '../utils/record-permissions.js';
-import { t } from '../i18n/index.js';
+import { t, getLang } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { attachScrollCue } from '../ui/scroll-cue.js';
 import { CHANGED_ELSEWHERE, isOffline, writeErrorKey } from '../utils/write-conflict.js';
@@ -863,6 +863,7 @@ const ItemsManager = {
         // Its version when opened: saving over a newer one from another phone is refused (#113)
         this.editStartRev = Number(item.rev) || 0;
         this.resetModalHistory(this.canUseHistory());
+        if (this.canUseHistory()) this.showLastChange(item.id).catch(e => console.warn('Last rate change failed:', e));
         
         this.renderModalRates();
         UIManager.openSheet(document.getElementById('itemEditOverlay'));
@@ -886,10 +887,29 @@ const ItemsManager = {
     resetModalHistory(visible) {
         const section = document.getElementById('itemModalHistorySection');
         if (section) section.hidden = !visible;
+        const last = document.getElementById('itemModalLastChange');
+        if (last) { last.hidden = true; last.textContent = ''; }
         const list = document.getElementById('itemModalHistoryList');
         if (list) list.innerHTML = '';
         const btn = document.getElementById('itemModalHistoryBtn');
         if (btn) btn.style.display = '';
+    },
+
+    /** "Last changed 12 Nov: Purchase rate ₹24 → ₹26" right under the rates (U-95): one read, the newest entry. */
+    async showLastChange(id) {
+        const el = document.getElementById('itemModalLastChange');
+        if (!el || typeof FirebaseService.loadRateHistory !== 'function') return;
+        try {
+            const [h] = await FirebaseService.loadRateHistory(id, 1);
+            if (!h || this.currentEditingItemId !== id) return;
+            el.textContent = t('ui.rate_history.last_change', {
+                date: formatDay(h.at, { lang: getLang(), year: false }),
+                field: fieldLabel(h.field), old: formatHistoryValue(h.field, h.old), new: formatHistoryValue(h.field, h.new)
+            });
+            el.hidden = false;
+        } catch (error) {
+            console.warn('Last rate change not loaded:', error?.code || error);
+        }
     },
 
     /**

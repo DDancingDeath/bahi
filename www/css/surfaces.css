@@ -399,6 +399,19 @@ a.row:active {
   font-weight: var(--w-strong);
 }
 
+/* Doubtful-rate notice (N-06): the sentence takes the full width, "Open bill" goes under it */
+.notice.doubtful-rates {
+  flex-wrap: wrap;
+}
+
+.notice.doubtful-rates > .grow {
+  flex: 1 1 70%;
+}
+
+.notice.doubtful-rates > .btn {
+  margin-left: auto;
+}
+
 .notice[hidden],
 .empty[hidden] {
   display: none;

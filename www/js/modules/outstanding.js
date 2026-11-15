@@ -23,7 +23,7 @@ import { CashManagementManager } from './cash-management.js';
 import { PrinterService } from '../services/printer.js';
 import { openExternal } from '../utils/open-external.js';
 import { billDateOf } from '../utils/history-filters.js';
-import { getLang, t } from '../i18n/index.js';
+import { getLang, t, tn } from '../i18n/index.js';
 import { byNameHtml } from '../ui/bill-row.js';
 import { tip } from '../tip/index.js';
 import { track } from '../services/usage.js';
@@ -435,7 +435,7 @@ export class OutstandingManager {
             return `
             <div class="aging-party row aging-b${p.bucket}">
                 <span class="lead-icon aging-avatar" data-initials="${esc(initials(p.name))}" aria-hidden="true">${p.name ? '' : icon('user')}</span>
-                <button type="button" class="aging-party-main" data-onclick="outstanding.openParty('${attr(p.key)}')" aria-label="${tt('ui.outstanding.party_open_bills', { name: p.name || t('ui.outstanding.no_name') })}">
+                <button type="button" class="aging-party-main" data-onclick="outstanding.openParty('${attr(p.key)}')">
                     <span class="aging-party-name">${partyName(p)}${p.longOverdue ? ` <span class="aging-badge tag neg">${tt('ui.outstanding.long_overdue')}</span>` : ''}</span>
                     <span class="aging-party-meta">${esc(billsText(p.bills.length))} · <span class="aging-oldest${esc(AGE_TEXT_TONE[p.bucket])}">${tt('ui.outstanding.oldest', { age: daysText(p.oldestDays) })}</span>${p.overdue > 0 ? ` · ${withMoney(t('ui.outstanding.party_overdue', { amount: formatRupees(p.overdue) }), p.overdue)}` : ''}</span>
                 </button>
@@ -445,7 +445,7 @@ export class OutstandingManager {
                         : `<span class="aging-party-meta">${tt('ui.outstanding.party_pay_pick_list')}</span>`}
                     ${phone ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-party-call data-onclick="outstanding.callParty('${attr(p.key)}')" aria-label="${tt('ui.outstanding.call_name', { name: p.name || '' })}">${icon('phone', 'i-sm')}</button>` : ''}
                     <details class="aging-more">
-                        <summary class="btn btn-sm btn-ghost" aria-label="${tt('ui.outstanding.more_actions')}">${icon('dots', 'i-sm')}</summary>
+                        <summary class="btn btn-sm btn-ghost btn-icon" aria-label="${tt('ui.outstanding.more_actions')}">${icon('dots', 'i-sm')}</summary>
                         <div class="aging-more-menu">${more}</div>
                     </details>
                 </div>
@@ -1268,8 +1268,8 @@ export class OutstandingManager {
         const quick = (what, key, amount) => `<button type="button" class="chip" data-onclick="outstanding.partyPayQuick('${esc(what)}')">${esc(t(key, { amount: paiseText(amount) }))}</button>`;
         const html = `
             <div class="due-dlg">
-                <div><strong>${esc(name)}</strong><br>${esc(t('ui.outstanding.party_pay_summary', { count: chosen.length, total: paiseText(full) }))}</div>
-                ${chosen.length < all ? `<div>${esc(t('ui.outstanding.party_pay_oldest', { count: chosen.length, all }))}</div>` : ''}
+                <div><strong>${esc(name)}</strong><br>${esc(tn('ui.outstanding.party_pay_summary', chosen.length, { total: paiseText(full) }))}</div>
+                ${chosen.length < all ? `<div>${esc(tn('ui.outstanding.party_pay_oldest', chosen.length, { all }))}</div>` : ''}
                 <div class="field">
                     <label for="ppAmount">${esc(t(isPay ? 'ui.outstanding.party_pay_amount_paid' : 'ui.outstanding.party_pay_amount_received'))}</label>
                     <input type="number" class="input" inputmode="decimal" min="0" step="1" id="ppAmount" required aria-describedby="ppAmountError" data-oninput="outstanding.partyPayFill()">
@@ -1487,7 +1487,7 @@ export class OutstandingManager {
                     ? true : await readBillFromServer(COLLECTION_BY_TYPE[billType] || 'wholesaleSales', docId);
                 if (server === true || (server && paymentEntryOf(server, entryIds[0]))) {
                     settlePaymentIntent(key);
-                    UIManager.showToast(t('msg.outstanding.party_pay_done', { count: picked.length, total: paiseText(sum) }));
+                    UIManager.showToast(tn('msg.outstanding.party_pay_done', picked.length, { total: paiseText(sum) }));
                     UIManager.hapticFeedback('light');
                 } else {
                     UIManager.showToast(t(server === null ? 'msg.outstanding.payment_unconfirmed' : 'msg.outstanding.payment_not_saved', { total }));
@@ -1505,7 +1505,7 @@ export class OutstandingManager {
         settlePaymentIntent(key);
         const { settled } = result;
         settled.forEach(s => Object.assign(s.bill, s.fields));
-        UIManager.showToast(t('msg.outstanding.party_pay_done', { count: settled.length, total: paiseText(result.total) }));
+        UIManager.showToast(tn('msg.outstanding.party_pay_done', settled.length, { total: paiseText(result.total) }));
         UIManager.hapticFeedback('light');
         try {
             this.refreshAfterPayment();

@@ -23,7 +23,7 @@ import { approxStockNote, lowStockItems, lowStockLevel, stockedItemKeys, DEFAULT
 import { isArchivedItem } from '../utils/item-catalog.js';
 import { evaluateStockAdjustment, toFlags } from '../utils/bill-checks.js';
 import { findDeadStock, daysSinceLabel, localDaysBetween, DEAD_STOCK_DAY_OPTIONS, DEFAULT_DEAD_STOCK_DAYS } from '../utils/dead-stock.js';
-import { t, hasCatalogue, loadAllCatalogues } from '../i18n/index.js';
+import { t, tn, hasCatalogue, loadAllCatalogues } from '../i18n/index.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
 import { pickLang } from '../i18n/localize.js';
@@ -415,7 +415,7 @@ export class StockManager {
             UIManager.showToast(t('msg.stock.count_none'));
             return;
         }
-        const sure = await UIManager.showModal(t('msg.stock.count_confirm', { n: changes.length }), t('ui.stock.count_title'), true);
+        const sure = await UIManager.showModal(tn('msg.stock.count_confirm', changes.length), t('ui.stock.count_title'), true);
         if (!sure) return;
         const saved = await Helpers.runExclusive('stock-adjust', '[data-stock-adjust]', () => {
             let n = 0;
@@ -431,7 +431,7 @@ export class StockManager {
             return n;
         });
         if (saved) {
-            UIManager.showToast(t('msg.stock.count_saved', { n: saved }));
+            UIManager.showToast(tn('msg.stock.count_saved', saved));
             await this.refreshAfterAdjustment();
         }
     }
@@ -451,13 +451,20 @@ export class StockManager {
         </div>`;
     }
 
+    /** Adjustment reason chips (U-77): the chosen one is pressed; the hidden select holds the value. */
+    static setReason(code) {
+        const select = document.getElementById('adjustReasonCode');
+        if (select) select.value = code;
+        const chosen = select ? select.value : code;
+        document.querySelectorAll('#stock [data-reason]').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.reason === chosen)));
+    }
+
     /** "Set opening stock": the adjustment form, ready for one item's opening quantity and cost per kg. */
     static startOpeningStock() {
         this.filterStockTab('adjustment');
         const type = document.getElementById('adjustType');
         if (type) type.value = 'set';
-        const reason = document.getElementById('adjustReasonCode');
-        if (reason) reason.value = 'opening';
+        this.setReason('opening');
         const rate = document.getElementById('adjustRate');
         if (rate && rate.value === '0') rate.value = '';
         this.updateAdjustmentPlaceholder();
@@ -631,7 +638,7 @@ export class StockManager {
                     ? t('ui.deadstock.window_note', { date: formatWindowDate(windowStart), days: windowDays })
                     : t('ui.deadstock.all_bills');
                 summary.innerHTML = rows.length
-                    ? `${txMoney('ui.deadstock.summary', { n: rows.length, value: formatAmount(totalValue) }, totalValue)}<br>${e(windowNote)}`
+                    ? `${txMoney(rows.length === 1 ? 'ui.deadstock.summary_one' : 'ui.deadstock.summary', { n: rows.length, value: formatAmount(totalValue) }, totalValue)}<br>${e(windowNote)}`
                     : e(windowNote);
             }
 
@@ -866,8 +873,7 @@ export class StockManager {
             document.getElementById("adjustQuantity").value = "";
             document.getElementById("adjustRate").value = "";
             document.getElementById("adjustReason").value = "";
-            const reasonSelect = document.getElementById("adjustReasonCode");
-            if (reasonSelect) reasonSelect.value = "";
+            this.setReason('');
         }
 
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
