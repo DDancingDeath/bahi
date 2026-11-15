@@ -10116,6 +10116,29 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-weight: var(--w-strong);
 }
 
+/* Checks and phones as rows that fit a phone (U-70) */
+.hl-rows > .row + .row {
+  border-top: 1px solid var(--line);
+}
+
+.hl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  margin: var(--sp-1) 0;
+  font-size: var(--fs-sm);
+}
+
+.hl-chip.hl-ok strong { color: var(--positive); }
+.hl-chip.hl-near strong { color: var(--warning); }
+.hl-chip.hl-bad strong { color: var(--negative); }
+
+.hl-rules > summary {
+  color: var(--accent-text);
+  font-weight: var(--w-strong);
+  cursor: pointer;
+}
+
 /* ---- css/app-updates.css ---- */
 /* What's new notes (an app dialog), Android update card, Settings → App updates */
 

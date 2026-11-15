@@ -68,6 +68,17 @@ function rateCell(n, test) {
     return `<td class="hl-rate hl-${cls}" title="${esc(countedRuns(n))}">${esc(rate)}%<small>${esc(countedRuns(n))}</small></td>`;
 }
 
+/** The same rate as a labelled chip for the phone-width check rows (U-70). */
+function rateChip(n, test, labelKey) {
+    const rate = passRate(n);
+    const goal = target(test);
+    const cls = rate === null ? 'tone-muted' : rate >= goal ? 'hl-ok' : rate >= goal - 5 ? 'hl-near' : 'hl-bad';
+    return `<span class="hl-chip ${cls}">${L(labelKey)} <strong>${rate === null ? '–' : `${esc(rate)}%`}</strong></span>`;
+}
+
+/** Policy names an owner types in the rules box, said in words on the page (U-50). */
+const POLICY_LABEL_KEYS = { billChecksBlocking: 'ui.health.policy_bill_checks' };
+
 const ROLE_LABEL_KEYS = { owner: 'ui.health.role_owner', manager: 'ui.roles.manager', staff: 'ui.roles.member' };
 
 /**
@@ -170,15 +181,12 @@ export const HealthManager = {
             return acc;
         }, {});
 
-        set('healthSummary', `<table class="table hl-table"><thead><tr>
-            <th>${L('ui.health.check')}</th><th>${L('ui.health.today')}</th><th>${L('ui.health.last_7_days')}</th>
-            <th>${L('ui.health.last_14_days')}</th><th>${L('ui.health.target')}</th><th>${L('ui.health.failing_devices')}</th>
-            </tr></thead><tbody>${agg.tests.map(test => `<tr>
-                <th scope="row">${esc(testLabel(test))}</th>
-                ${rateCell(todayN(test), test)}${rateCell(sumDays(test, days7), test)}${rateCell(agg.totals[test], test)}
-                <td>${esc(target(test))}%</td>
-                <td>${esc(agg.devicesByTest[test]?.failing || 0)} / ${esc(agg.devicesByTest[test]?.total || 0)}</td>
-            </tr>`).join('')}</tbody></table>`);
+        // One row per check, fits a phone (U-70)
+        set('healthSummary', `<div class="hl-rows">${agg.tests.map(test => `<div class="row hl-check">
+                <div class="row-main"><strong class="row-title">${esc(testLabel(test))}</strong>
+                <div class="hl-chips">${rateChip(todayN(test), test, 'ui.health.today')}${rateChip(sumDays(test, days7), test, 'ui.health.last_7_days')}${rateChip(agg.totals[test], test, 'ui.health.last_14_days')}</div>
+                <div class="hl-muted">${L('ui.health.check_line', { target: target(test), failing: agg.devicesByTest[test]?.failing || 0, total: agg.devicesByTest[test]?.total || 0 })}</div></div>
+            </div>`).join('')}</div>`);
 
         set('healthByDay', `<table class="table hl-table"><thead><tr><th>${L('ui.health.check')}</th>${days7.map(d => `<th>${esc(dayLabel(d))}</th>`).join('')}</tr></thead>
             <tbody>${agg.tests.map(test => `<tr><th scope="row">${esc(testLabel(test))}</th>${days7.map(d => rateCell(agg.byTestDay[test]?.[d] || {}, test)).join('')}</tr>`).join('')}</tbody></table>`);
@@ -198,11 +206,10 @@ export const HealthManager = {
                 return `<tr><th scope="row">${esc(testLabel(test))}</th><td>${esc(fmt(d.p50))}</td><td>${esc(fmt(d.p90))}</td></tr>`;
             }).join('')}</tbody></table>`);
 
-        set('healthDevices', `<table class="table hl-table"><thead><tr><th>${L('ui.health.device')}</th><th>${L('ui.health.platform')}</th>
-            <th>${L('ui.health.version')}</th><th>${L('ui.health.last_seen')}</th><th>${L('ui.health.runs')}</th><th>${L('ui.health.failed')}</th></tr></thead>
-            <tbody>${agg.devices.slice(0, 30).map(dev => `<tr class="${dev.failed ? 'tone-neg' : ''}">
-                <td>${deviceCellHtml(dev, usersById)}</td><td>${esc(platformLabel(dev.platform))}</td><td>${esc(dev.appVersion)}</td>
-                <td>${esc(dev.lastDay ? dayLabel(dev.lastDay) : '')}</td><td>${esc(dev.runs)}</td><td>${esc(dev.failed)}</td></tr>`).join('')}</tbody></table>`);
+        set('healthDevices', `<div class="hl-rows">${agg.devices.slice(0, 30).map(dev => `<div class="row hl-device${dev.failed ? ' tone-neg' : ''}">
+                <div class="row-main">${deviceCellHtml(dev, usersById)}
+                <div class="hl-muted">${L('ui.health.device_line', { platform: platformLabel(dev.platform), version: dev.appVersion || '', day: dev.lastDay ? dayLabel(dev.lastDay) : '–', runs: dev.runs || 0, failed: dev.failed || 0 })}</div></div>
+            </div>`).join('')}</div>`);
 
         set('healthFailures', this.failuresHtml(failures) || emptyState({ icon: 'check', tone: 'pos', title: t('ui.health.no_failures') }));
         document.querySelectorAll('#health .scroll-cue-inner').forEach(attachScrollCue);
@@ -218,7 +225,7 @@ export const HealthManager = {
             return `<div class="row hl-failure">
                 <div class="row-main">
                     <div class="hl-failure-head"><strong>${esc(testLabel(f.test))}</strong> <span class="tag neg">${esc(resultKey ? t(resultKey) : f.result)}</span> ${esc(prettyReason(f.reasonName || reasonName(f.test, f.reason, reasons)))}</div>
-                    <div class="hl-muted">${esc(when)} · ${esc(f.appVersion)} · ${esc(platformLabel(f.platform))} · <code>${esc(f.deviceId)}</code>${flags ? ` · ${esc(flags)}` : ''}</div>
+                    <div class="hl-muted">${esc(when)} · ${esc(f.appVersion)} · ${esc(platformLabel(f.platform))} · <span lang="zxx" translate="no" title="${esc(f.deviceId)}">#${esc(String(f.deviceId || '').slice(-4))}</span>${flags ? ` · ${esc(flags)}` : ''}</div>
                 </div>
             </div>`;
         }).join('')}</div>`;
@@ -245,7 +252,7 @@ export const HealthManager = {
                 const s = tip.policyState(key);
                 const mode = p.telemetryOnly ? t('ui.health.report_only') : t('ui.health.switches_safe_mode');
                 const now = s.tripped ? t('ui.health.policy_tripped', { rate: s.passrate }) : tn('ui.health.policy_ok', s.runs, { runs: s.runs });
-                return `<li><strong>${esc(key)}</strong> (${esc(testLabel(p.test))}, ${esc(mode)}): ${esc(now)}</li>`;
+                return `<li><strong>${POLICY_LABEL_KEYS[key] ? L(POLICY_LABEL_KEYS[key]) : esc(key)}</strong> (${esc(testLabel(p.test))}, ${esc(mode)}): ${esc(now)}</li>`;
             });
             state.innerHTML = rows.length ? `<ul class="hl-list">${rows.join('')}</ul>` : `<div class="hl-muted">${L('ui.health.no_policies')}</div>`;
         }
