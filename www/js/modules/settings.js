@@ -140,6 +140,9 @@ export function packageKgInRange(value) {
     return Number.isFinite(n) && n >= LABOUR_PACKAGE_KG_MIN && n <= LABOUR_PACKAGE_KG_MAX;
 }
 
+/** Themes every role sees in Settings › Appearance (U-83). */
+const BASIC_THEMES = new Set(['modern', 'sunlight']);
+
 /**
  * Settings Manager - Manages application settings
  * @class SettingsManager
@@ -240,7 +243,7 @@ export class SettingsManager {
         const box = document.getElementById('themeGallery');
         if (!box) return;
         const span = themeSpan;
-        box.replaceChildren(...THEMES.map((th) => {
+        const tile = (th) => {
             const card = document.createElement('button');
             card.type = 'button';
             card.className = 'theme-tile';
@@ -256,7 +259,25 @@ export class SettingsManager {
             text.append(name, span('theme-tile-desc', t(`ui.settings.theme_${th.id}_desc`)));
             card.append(preview, check, text);
             return card;
-        }));
+        };
+        // Everyone: the default and the sunlight look (and the one in use); the owner has the rest under "More looks" (U-83)
+        const current = ThemeManager.current.theme;
+        const basic = THEMES.filter(th => BASIC_THEMES.has(th.id) || th.id === current);
+        const more = AppState.userRole === 'owner' ? THEMES.filter(th => !basic.includes(th)) : [];
+        const nodes = basic.map(tile);
+        if (more.length) {
+            const details = document.createElement('details');
+            details.className = 'theme-more';
+            details.open = !!box.querySelector('.theme-more')?.open;
+            const summary = document.createElement('summary');
+            summary.textContent = t('ui.settings.theme_more_looks');
+            const grid = document.createElement('div');
+            grid.className = 'theme-gallery theme-more-grid';
+            grid.append(...more.map(tile));
+            details.append(summary, grid);
+            nodes.push(details);
+        }
+        box.replaceChildren(...nodes);
         this.syncTheme();
     }
 

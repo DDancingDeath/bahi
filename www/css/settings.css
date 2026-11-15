@@ -704,3 +704,14 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .app-lock-box .notice[hidden] {
   display: none;
 }
+
+/* Owner: the other themes, folded (U-83) */
+.theme-more {
+  grid-column: 1 / -1;
+}
+
+.theme-more > summary {
+  color: var(--accent-text);
+  font-weight: var(--w-strong);
+  cursor: pointer;
+}

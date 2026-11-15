@@ -1222,6 +1222,7 @@ export default {
     'ui.settings.theme_hint': "Tap a theme to preview it. Saved on this device.",
     'ui.settings.theme_apply': "Apply",
     'ui.settings.theme_reset': "Reset to default",
+    'ui.settings.theme_more_looks': "More looks",
     'ui.settings.theme_always_dark': "Always dark",
     'ui.settings.theme_dark_hint': "{name} is a dark theme: Light applies to light themes.",
     'ui.settings.theme_previewing': "Previewing {name} · not saved yet",

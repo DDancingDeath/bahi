@@ -1222,6 +1222,7 @@ export default {
     'ui.settings.theme_hint': "झलक देखने के लिए किसी थीम पर टैप करें। यह इसी डिवाइस पर सेव होती है।",
     'ui.settings.theme_apply': "लागू करें",
     'ui.settings.theme_reset': "डिफ़ॉल्ट पर लौटाएँ",
+    'ui.settings.theme_more_looks': "और रंग-रूप",
     'ui.settings.theme_always_dark': "हमेशा गहरा",
     'ui.settings.theme_dark_hint': "{name} गहरी थीम है: हल्का रूप सिर्फ़ हल्की थीमों पर लागू होता है।",
     'ui.settings.theme_previewing': "{name} की झलक · अभी सेव नहीं हुई",
