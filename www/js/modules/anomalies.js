@@ -738,6 +738,16 @@ export const AnomaliesManager = {
         };
     },
 
+    /** The one "Filters" chip over the folded filters (U-74): the date choice and how many others are set. */
+    renderFilterChip() {
+        const chip = document.getElementById('anomalyFilterChipText');
+        if (!chip) return;
+        const f = this.page.filters;
+        const changed = ['type', 'severity', 'user'].filter(k => f[k] !== 'all').length + (f.status !== 'open' ? 1 : 0) + (f.item ? 1 : 0);
+        const sel = /** @type {?HTMLSelectElement} */ (document.getElementById('anomalyFilterPreset'));
+        const preset = sel?.selectedOptions?.[0]?.textContent || '';
+        chip.textContent = t(changed ? 'ui.anom.filters_n' : 'ui.anom.filters', { period: preset, n: changed });
+    },
     /** Any filter changed: reload from Firestore only when the date range changed. */
     applyFilters() {
         const next = this.readFilterInputs();
@@ -821,6 +831,7 @@ export const AnomaliesManager = {
             userSel.innerHTML = `<option value="all">${esc(t('ui.anom.all_users'))}</option>` + users.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
             userSel.value = users.includes(cur) ? cur : 'all';
         }
+        this.renderFilterChip();
         const list = this.filtered();
         const s = summarizeAnomalies(list);
         const summary = document.getElementById('anomalySummary');

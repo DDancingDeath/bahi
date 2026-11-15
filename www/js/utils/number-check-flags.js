@@ -47,7 +47,10 @@ export function numberCheckFlags(results, now) {
         (Array.isArray(r.rows) ? r.rows : []).forEach(row => {
             const ref = refOf(row);
             if (!ref) return;
-            const text = (/** @type {'en'|'hi'} */ lang) => `${t(r.key, null, lang)}: ${t('ui.numchecks.flag_found', { expected: shown(row, row.expected), actual: shown(row, row.actual) }, lang)}`;
+            // Said as a finding, not a failed rule (U-74): "Rice is -25 kg: sold more than bought"
+            const text = (/** @type {'en'|'hi'} */ lang) => (id === 'AC8' && row.ref?.item
+                ? t('ui.numchecks.find_ac8', { item: String(row.ref.item), qty: shown(row, row.actual) }, lang)
+                : `${t(r.key, null, lang)}: ${t('ui.numchecks.flag_found', { expected: shown(row, row.expected), actual: shown(row, row.actual) }, lang)}`);
             out.push({
                 id: anomalyId(type, ref.refKind, ref.refId),
                 type,
