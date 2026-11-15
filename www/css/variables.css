@@ -11,9 +11,11 @@
   --surface-3: #e8e8ed;
   --line: #e6e6eb;
   --line-strong: #d4d4dc;
+  /* Edges of fields, buttons and chips: 3:1 on the page and panels (WCAG 1.4.11) */
+  --line-control: #858591;
   --ink: #16161d;
   --ink-2: #4a4a56;
-  --ink-3: #686875;
+  --ink-3: #5c5c69;
   --ink-placeholder: #737380;
   --scrim: rgba(16, 16, 24, 0.32);
 
@@ -57,7 +59,6 @@
   --e2: 0 1px 2px rgba(16, 16, 29, 0.06), 0 6px 16px -4px rgba(16, 16, 29, 0.12);
   --e3: 0 2px 6px rgba(16, 16, 29, 0.08), 0 24px 48px -12px rgba(16, 16, 29, 0.24);
   --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  --focus: 0 0 0 3px rgba(79, 70, 229, 0.24);
   --state-hover: rgba(16, 16, 29, 0.05);
 
   /* System faces only (the CSP has no font origin); Devanagari faces before the generic family */
@@ -94,14 +95,21 @@
   --mode-purchase: var(--accent);
   --mode-purchase-soft: var(--accent-soft);
   --panel-bg: var(--surface);
-  --panel-border: var(--line);
+  --panel-border: var(--line-strong);
   --panel-shadow: none;
   --input-bg: var(--surface);
-  --input-border: var(--line-strong);
+  --input-border: var(--line-control);
   --bar-bg: var(--surface);
   --bar-border: var(--line);
   --seg-track: var(--surface-2);
   --seg-on: var(--surface);
+  /* The chosen segment shows by a 2 px edge and its ink, not only by a lighter fill */
+  --seg-on-line: var(--accent-text);
+  --seg-on-ink: var(--accent-text);
+  --seg-on-ring: inset 0 0 0 2px var(--seg-on-line);
+  /* A solid focus ring at 3:1 or more on every surface */
+  --focus-ring: var(--accent-text);
+  --focus: 0 0 0 3px var(--focus-ring);
   --table-rule: var(--line);
   --toast-bg: #1d1d24;
   --toast-ink: #f4f4f7;
@@ -130,10 +138,11 @@
     --surface-2: #1c1c22;
     --surface-3: #24242b;
     --line: rgba(255, 255, 255, 0.07);
-    --line-strong: rgba(255, 255, 255, 0.12);
+    --line-strong: rgba(255, 255, 255, 0.14);
+    --line-control: rgba(255, 255, 255, 0.38);
     --ink: #ececf1;
     --ink-2: #a8a8b5;
-    --ink-3: #8c8c99;
+    --ink-3: #9a9aa7;
     --ink-placeholder: #80808d;
     --scrim: rgba(0, 0, 0, 0.56);
 
@@ -168,7 +177,6 @@
     --e2: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 24px -6px rgba(0, 0, 0, 0.6);
     --e3: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 56px -12px rgba(0, 0, 0, 0.75);
     --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-    --focus: 0 0 0 3px rgba(124, 120, 248, 0.4);
     --state-hover: rgba(255, 255, 255, 0.06);
     --seg-on: var(--surface-3);
     --toast-bg: #2a2a32;
@@ -216,8 +224,9 @@
 /* Layout, type scale, density and motion: the same in every theme */
 :root {
   --w-label: 600;
-  --fs-caption: 12px;
-  --fs-sm: 13px;
+  /* 14 px is the least for text people read (U-15); 13 px only for short labels: dates, tags, tab names */
+  --fs-caption: 13px;
+  --fs-sm: 14px;
   --fs-body: 15px;
   --fs-lead: 17px;
   --fs-title: 20px;
@@ -227,7 +236,7 @@
   --fs-input: 16px;
   /* Floating field labels (.field-float): the 14 px minimum text size (#68) */
   --fs-label: 14px;
-  --fs-cur: 0.78em;
+  --fs-cur: max(12px, 0.9em);
   --lh-body: 1.45;
   --sp-1: 4px;
   --sp-2: 8px;
@@ -244,8 +253,12 @@
   --bottomnav-h: 56px;
   --phone-col-max: 480px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
-  --control-h: 44px;
-  --control-h-sm: 32px;
+  /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
+  --tap-min: 48px;
+  /* The clear border round a switch's 22 px track that makes its tap area 48 px */
+  --switch-hit: 13px;
+  --control-h: 48px;
+  --control-h-sm: 40px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-1: 120ms;
   --dur-2: 200ms;
@@ -275,8 +288,8 @@
   --ring-danger: 0 0 0 2px rgba(220, 38, 38, 0.25);
   --ring-warning: 0 0 0 2px rgba(217, 119, 6, 0.25);
 
-  --text-xs: 12px;
-  --text-sm: 13px;
+  --text-xs: 13px;
+  --text-sm: 14px;
   --text-base: 14px;
   --text-md: 15px;
   --text-lg: 17px;
@@ -301,6 +314,7 @@ html.platform-android {
 /* Devanagari: larger type, more leading, regular labels (Nirmala UI / Noto Sans Devanagari have no 500 or 600) */
 html[lang="hi"] {
   --w-label: 400;
+  --fs-caption: 14px;
   --fs-sm: 14px;
   --fs-body: 16px;
   --lh-body: 1.6;

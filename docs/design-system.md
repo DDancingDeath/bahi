@@ -23,15 +23,15 @@ layer-2 tokens. Nothing else changes per theme.
 
 | Layer | What | Tokens | Set by |
 |---|---|---|---|
-| **1. Semantic** | Colours by meaning, elevation, focus | `--bg`, `--surface`, `--surface-2`, `--surface-3`, `--line`, `--line-strong`, `--ink`, `--ink-2`, `--ink-3`, `--ink-placeholder`, `--scrim`; `--accent`, `--accent-hover`, `--accent-strong`, `--accent-text`, `--accent-soft`, `--accent-line`; `--mode-sale`, `--mode-wholesale`, `--mode-rentals` (+ `-soft`); `--positive`, `--negative`, `--warning`, `--info` (+ `-soft`, `-line`), `--negative-fill`, `--warning-dot`, `--caution-soft`; the **inks** `--on-accent`, `--on-accent-strong`, `--on-mode-sale`, `--on-mode-wholesale`, `--on-caution-soft`; `--e1`…`--e3`, `--highlight`, `--focus`, `--state-hover` | every theme (a light block, and a dark block unless it is always dark) |
-| **2. Component** | Shape and type roles (declared beside layer 1, on `:root, [data-theme]`); materials and button inks derived from layer 1 (on `:root, [data-theme], [data-mode]`) | `--r-2xs`, `--r-xs`, `--r-sm`, `--r-control`, `--r-md` (control + 2px), `--r-panel`, `--r-lg` (panel + 2px), `--r-chip`, `--r-sheet`, `--r-full`, `--r-round` (50%), `--rule-style`; `--font-ui`, `--font-display`, `--font-num`, `--font-hero`, `--w-regular`, `--w-strong`, `--w-display`, `--tracking-display`, `--title-style`, `--hero-nums`; `--page-bg`, `--panel-bg`, `--panel-border`, `--panel-shadow`, `--input-bg`, `--input-border`, `--bar-bg`, `--bar-border`, `--seg-track`, `--seg-on`, `--table-rule`, `--btn-primary-bg`, `--btn-primary-ink`, `--btn-primary-shadow`, `--btn-sale-bg`, `--btn-sale-ink`, `--btn-danger-bg`, `--btn-danger-ink`, `--toast-bg`, `--toast-ink`, `--toast-pos/-neg/-warn/-info`, `--preview-apply-line`, `--mode-purchase` | defaults in `variables.css`; a theme overrides only what makes it different |
+| **1. Semantic** | Colours by meaning, elevation, focus | `--bg`, `--surface`, `--surface-2`, `--surface-3`, `--line`, `--line-strong`, `--line-control` (field, button and chip edges, 3:1), `--ink`, `--ink-2`, `--ink-3`, `--ink-placeholder`, `--scrim`; `--accent`, `--accent-hover`, `--accent-strong`, `--accent-text`, `--accent-soft`, `--accent-line`; `--mode-sale`, `--mode-wholesale`, `--mode-rentals` (+ `-soft`); `--positive`, `--negative`, `--warning`, `--info` (+ `-soft`, `-line`), `--negative-fill`, `--warning-dot`, `--caution-soft`; the **inks** `--on-accent`, `--on-accent-strong`, `--on-mode-sale`, `--on-mode-wholesale`, `--on-caution-soft`; `--e1`…`--e3`, `--highlight`, `--focus`, `--state-hover` | every theme (a light block, and a dark block unless it is always dark) |
+| **2. Component** | Shape and type roles (declared beside layer 1, on `:root, [data-theme]`); materials and button inks derived from layer 1 (on `:root, [data-theme], [data-mode]`) | `--r-2xs`, `--r-xs`, `--r-sm`, `--r-control`, `--r-md` (control + 2px), `--r-panel`, `--r-lg` (panel + 2px), `--r-chip`, `--r-sheet`, `--r-full`, `--r-round` (50%), `--rule-style`; `--font-ui`, `--font-display`, `--font-num`, `--font-hero`, `--w-regular`, `--w-strong`, `--w-display`, `--tracking-display`, `--title-style`, `--hero-nums`; `--page-bg`, `--panel-bg`, `--panel-border`, `--panel-shadow`, `--input-bg`, `--input-border`, `--bar-bg`, `--bar-border`, `--seg-track`, `--seg-on`, `--seg-on-line` / `--seg-on-ink` / `--seg-on-ring` (the chosen segment's 2 px edge and ink), `--focus-ring` (the colour of `--focus`), `--table-rule`, `--btn-primary-bg`, `--btn-primary-ink`, `--btn-primary-shadow`, `--btn-sale-bg`, `--btn-sale-ink`, `--btn-danger-bg`, `--btn-danger-ink`, `--toast-bg`, `--toast-ink`, `--toast-pos/-neg/-warn/-info`, `--preview-apply-line`, `--mode-purchase` | defaults in `variables.css`; a theme overrides only what makes it different |
 | **3. Components** | `.btn`, `.field`, `.seg`, `.panel`, `.row`, `.notice` … (§3) | read tokens, never raw colours | base CSS only |
 
 **Not per theme** (on `:root`): the type scale `--fs-caption|sm|body|lead|title|display|hero` (plus `--fs-input`, a fixed 16px for text fields so iOS does not zoom on focus, and `--fs-label`, 14px for floating field labels, the #68 minimum),
 `--lh-body`, `--w-label`, spacing `--sp-1…10`, `--gutter`,
-`--section-gap`, `--row-h`, `--control-h(-sm)`, motion `--ease`, `--dur-1…3`, layers `--z-*` (below), edge stripes `--stripe` / `--stripe-sm` (`box-shadow: var(--stripe) <colour>`) and the validation rings `--ring-danger` / `--ring-warning`. Layouts are therefore
-identical in every theme. Desktop (≥1024 px, `desktop.css`) sets `--control-h` 36, `--row-h` 44 and the desktop type scale (body 14, lead 16,
-title 18, display 26, hero 30). Hindi (`html[lang="hi"]`) raises `--fs-sm` / `--fs-body` and `--lh-body`,
+`--section-gap`, `--row-h`, `--control-h(-sm)`, `--tap-min` (the least tap size: 48 px on phones, Android's 48 dp; every button, field, tab and segment), `--switch-hit`, motion `--ease`, `--dur-1…3`, layers `--z-*` (below), edge stripes `--stripe` / `--stripe-sm` (`box-shadow: var(--stripe) <colour>`) and the validation rings `--ring-danger` / `--ring-warning`. Layouts are therefore
+identical in every theme. Desktop (≥1024 px, `desktop.css`) sets `--control-h` 36, `--tap-min` 44, `--row-h` 44 and the desktop type scale (body 14, lead 16,
+title 18, display 26, hero 30). **Reading text is 14 px or more** (`--fs-sm`, U-15); `--fs-caption` (13 px) is only for short labels: dates, tags, tab names. Hindi (`html[lang="hi"]`) raises `--fs-caption` / `--fs-body` and `--lh-body`,
 makes `--w-label` 400, and turns off a theme's italic titles and display tracking (`--title-style`, `--tracking-display`); the Android app (`html.platform-android`) uses weight 500.
 
 **Layers (`--z-*`), low to high.** Use a token; a step inside a band is a `calc()` offset of the band's token, so
@@ -107,6 +107,10 @@ fills, the toast.
 
 - `tests/ci/theme-contrast.test.js` checks those pairs from the CSS (resolving `var()` chains and
   compositing translucent fills) for every theme × mode. A theme can't merge with a failing pair.
+- **Non-text contrast (WCAG 1.4.11, U-16)**: the same test holds what shows a control at **3:1** in every theme × mode:
+  `--line-control` / `--input-border` on the page, panels and fields, the chosen segment's edge (`--seg-on-line`) on the
+  track and on its fill, and the outer colour of `--focus` on every surface. A card stands out from the page by its edge
+  or fill at 1.3:1 (or a shadow). A theme sets `--line-control` (not `--input-border`) when the default grey misses.
 - `tests/e2e/themes.spec.js` runs axe `color-contrast` on Billing, Today, Outstanding, Money, Insights and Statements for every
   theme × mode, and `tests/e2e/a11y-contrast.spec.js` covers the main pages in Modern, en and hi, phone and desktop.
 
@@ -119,7 +123,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
 - **Buttons** `.btn` + `-primary` / `-tonal` / `-ghost` / `-danger` / `-danger-outline` / `-success`, `-sm`, `-icon`,
   `-block` (`-danger-outline`: a risky choice that is not the main action, e.g. Discard the line, Save anyway at a rate check). One primary button per screen. Hover is a veil over the button's own colour; a busy
   save sets `aria-busy` (the `runExclusive` lock). Every button, `-sm` too, and the payment actions
-  (`[data-record-payment]`, `[data-mark-cleared]`) are at least 44 px tall. No page has a button class with its own
+  (`[data-record-payment]`, `[data-mark-cleared]`), fields, segments and tabs are at least `--tap-min` tall (48 px on phones). A chip draws 40 px with a 48 px tap area (`::after`); a switch draws 36 × 22 inside a clear 48 px border; a check box is 24 px and a `label` holding one is a 48 px row; a bill-number link (`.due-bill-link`) has an invisible 48 px tap area. No page has a button class with its own
   look (C2): Billing and Wholesale use Save `-primary`, Print and Share (`-icon`) the default (the bill's action row is
   Share, Save, Print: Print, the most used, is right-most, in DOM and tab order too; Share is a 48 px icon and Save and Print
   share the rest of the row in equal widths), Add to bill and
@@ -378,7 +382,7 @@ counts toward the 1.5 KB. A look that tokens can't express needs a new token in 
 | `www/js/__tests__/billing-entry.test.js`, `tests/e2e/billing-entry.spec.js` | `.field-float`: a field without its own `<label for>`, a label hidden or moved by whether the field has a value, `--fs-label` under 14 px; Billing's 🎙 / 📷 shown without their setting |
 | `tests/ci/ds-guard.test.js` | raw spacing, radius, shadow or z-index, `!important`, an `#id` or `.dark-mode` / `[data-theme]` selector, an inline style, an emoji, a Title Case label or a legacy component class outside the allowlist; an allowlist entry without a known list or a reason |
 | `tests/ci/themes.test.js` | a theme missing from the registry, `styles.css` or i18n; a non-token rule or a colour outside `@media screen` in a theme file; a theme over 1.5 KB gzip; a rule in `www/css` or a template `<style>` that sets an accent, sale, wholesale, positive or negative fill and white text together |
-| `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1 in any theme × mode |
+| `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1, or a control edge, chosen segment or focus ring under 3:1, in any theme × mode |
 | `tests/ci/icon-sprite.test.js` | a missing `#i-*` symbol, or the sprite growing too large |
 | `www/js/__tests__/theme-manager.test.js`, `theme-boot.test.js` | Appearance, System, preview and the pre-paint boot |
 | `tests/e2e/themes.spec.js` | axe contrast on Billing, Today, Outstanding, Cash, Money, Insights, Statements and the open More sheet per theme × mode; the gallery preview, Cancel, Apply |

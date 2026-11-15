@@ -22,6 +22,7 @@
     --surface-3: #e6d9bd;
     --line: #ddcfb1;
     --line-strong: #c4b18b;
+    --line-control: #8c7a5c;
     --ink: #2e2418;
     --ink-2: #57472f;
     --ink-3: #6a5840;
@@ -46,7 +47,6 @@
     --warning: #87560a;
     --warning-soft: #f6e6c2;
     --warning-dot: #c98a1b;
-    --focus: 0 0 0 3px rgba(143, 58, 34, 0.25);
     --e1: 0 1px 0 rgba(90, 60, 20, 0.12);
     --panel-shadow: 0 1px 0 #d6c6a4, 0 2px 0 rgba(90, 60, 20, 0.06);
     --input-bg: #fffdf6;

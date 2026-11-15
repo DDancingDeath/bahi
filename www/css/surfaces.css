@@ -67,11 +67,14 @@ a.row:active {
   min-width: 0;
 }
 
+/* Large text (U-17): a title or subtitle takes up to two lines before it is cut */
 .row-title,
 .row-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .row-title {

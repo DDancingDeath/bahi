@@ -103,7 +103,21 @@ const PAIRS = [
     ['warning', 'surface'], ['warning', 'warning-soft@surface'],
     ['info', 'surface'], ['info', 'info-soft@surface'],
     ['on-caution-soft', 'caution-soft@surface'], ['toast-ink', 'toast-bg'],
+    // The chosen segment's words on its fill
+    ['seg-on-ink', 'seg-on@seg-track'],
 ];
+
+const EDGES = [
+    ['line-control', 'bg'], ['line-control', 'surface'],
+    ['input-border', 'input-bg'], ['input-border', 'panel-bg'], ['input-border', 'bg'],
+    ['seg-on-line', 'seg-track'], ['seg-on-line', 'seg-on@seg-track'],
+];
+
+/** The last colour in a box-shadow list (the outer ring of --focus). */
+function lastColour(v) {
+    const all = [...String(v || '').matchAll(/#[0-9a-f]{3,8}\b|rgba?\([^)]+\)/gi)].map((m) => m[0]);
+    return all.length ? rgba(all[all.length - 1]) : null;
+}
 
 describe.each(Object.keys(TOKENS))('%s', (name) => {
     const t = TOKENS[name];
@@ -118,6 +132,29 @@ describe.each(Object.keys(TOKENS))('%s', (name) => {
         const bgc = colour(t, bg);
         const fgc = fg === '#fff' ? [255, 255, 255, 1] : colour(t, `${fg}@${bg.split('@')[0]}`);
         expect(Number(ratio(fgc, bgc).toFixed(2))).toBeGreaterThanOrEqual(4.5);
+    });
+
+    // WCAG 1.4.11 (U-16): what shows a control's edge, the chosen segment and the focus ring is 3:1 on what is behind it
+    test.each(EDGES)('%s on %s is at least 3:1', (fg, bg) => {
+        const bgc = colour(t, bg);
+        expect(Number(ratio(colour(t, `${fg}@${bg.split('@')[0]}`), bgc).toFixed(2))).toBeGreaterThanOrEqual(3);
+    });
+
+    test.each(['bg', 'surface', 'surface-2', 'panel-bg'])('the focus ring on %s is at least 3:1', (bg) => {
+        const ring = lastColour(resolve(t, t['--focus']));
+        expect(ring).not.toBeNull();
+        const bgc = colour(t, bg);
+        const c = ring[3] < 1 ? over(ring, bgc) : ring;
+        expect(Number(ratio(c, bgc).toFixed(2))).toBeGreaterThanOrEqual(3);
+    });
+
+    test('a card stands out from the page: its edge or its fill at 1.3:1, or a shadow', () => {
+        const bg = colour(t, 'bg');
+        const border = rgba(resolve(t, t['--panel-border'])) || [0, 0, 0, 0];
+        const edge = ratio(border[3] < 1 ? over(border, bg) : border, bg);
+        const fill = ratio(colour(t, 'panel-bg@bg'), bg);
+        const shadow = !/^(none|0 0 #0000)$/.test(String(resolve(t, t['--panel-shadow'])).trim());
+        expect(Math.max(edge, fill) >= 1.3 || shadow).toBe(true);
     });
 });
 

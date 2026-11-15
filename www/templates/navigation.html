@@ -70,7 +70,7 @@
         </button>
     </header>
     <div class="scrim notif-backdrop" id="notifBackdrop" hidden data-onclick="notifications.close()"></div>
-    <div class="sheet notif-sheet" id="notifPanel" role="dialog" aria-label="Notifications" hidden data-i18n-aria-label="ui.common.notifications">
+    <div class="sheet notif-sheet" id="notifPanel" role="dialog" aria-modal="true" aria-label="Notifications" hidden data-i18n-aria-label="ui.common.notifications">
         <div class="notif-head">
             <h3><svg class="i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg> <span data-i18n="ui.common.notifications">Notifications</span></h3>
             <button type="button" class="btn btn-ghost btn-icon notif-close" data-dismiss data-onclick="notifications.close()" aria-label="Close" data-i18n-aria-label="ui.common.close"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
@@ -207,7 +207,7 @@
         <a href="#" class="bottom-nav-item" data-tab="billing" data-onclick="nav.showTab('billing', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.billing">Billing</span></a>
         <a href="#" class="bottom-nav-item" data-tab="day" data-onclick="nav.showTab('day', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.today">Today</span></a>
         <a href="#" class="bottom-nav-item" data-tab="history" data-onclick="nav.showTab('history', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-history"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.history">History</span></a>
-        <a href="#" class="bottom-nav-item" data-tab="due" data-onclick="nav.showTab('due', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.outstanding">Outstanding</span></a>
+        <a href="#" class="bottom-nav-item" data-tab="due" data-onclick="nav.showTab('due', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.outstanding_short">Dues</span></a>
         <button type="button" class="bottom-nav-item" data-tab="more" data-onclick="nav.toggleMenu()" aria-controls="sideNav" aria-expanded="false"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.more">More</span></button>
     </nav>
     <div class="pull-refresh" id="pullRefresh" hidden aria-hidden="true"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span class="pull-refresh-pull" data-i18n="ui.nav.pull_refresh">Pull to refresh</span><span class="pull-refresh-release" data-i18n="ui.nav.release_refresh">Release to refresh</span></div>
@@ -215,13 +215,14 @@
     <!-- Overlay -->
     <div class="scrim nav-scrim" id="overlay"></div>
 
-    <!-- Loading Spinner -->
-    <div class="app-loading" id="loadingOverlay">
-        <div class="spinner"></div>
+    <!-- Loading Spinner: TalkBack hears "Please wait…" while a save or load blocks the screen -->
+    <div class="app-loading" id="loadingOverlay" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <span class="sr-only" id="loadingText"></span>
     </div>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
+    <!-- Toast Notification: a polite status; ui-manager.js makes an error an alert -->
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Theme preview (Settings › Appearance): shown across the app until Apply or Cancel -->
     <div class="theme-preview-bar" id="themePreviewBar" role="status" hidden>
