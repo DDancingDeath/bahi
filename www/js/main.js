@@ -1221,6 +1221,7 @@ window.app = {
         loadSaleRates: () => BillingManager.loadSaleRates(),
         // Labour typed by hand: auto labour stops overwriting it
         markLabourManual: (input) => { input.dataset.manuallySet = 'true'; },
+        toggleLabourDetail: () => PurchaseManager.toggleLabourDetail(),
         
         // Weight management
         addWeight: () => BillingManager.addWeight(),

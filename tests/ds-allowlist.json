@@ -23,7 +23,7 @@
     {"metric":"spacing","file":"www/css/rate-trends.css","count":11,"list":"off-scale","reason":"1px, 2px, 6px, 10px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/surfaces.css","count":8,"list":"off-scale","reason":"1px, 2px, 6px, 10px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/toast.css","count":2,"list":"off-scale","reason":"2px, 6px with no exact --sp-* token"},
-    {"metric":"spacing","file":"www/css/totals.css","count":18,"list":"off-scale","reason":"-4px, 1px, 6px, 10px, 11px, 14px, 56px, 72px, 96px, 480px with no exact --sp-* token"},
+    {"metric":"spacing","file":"www/css/totals.css","count":17,"list":"off-scale","reason":"-4px, 1px, 6px, 10px, 11px, 14px, 56px, 72px, 80px, 480px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/js/main.js","count":1,"list":"standalone","reason":"console.log %c badge padding for the build stamp in DevTools"},
     {"metric":"spacing","file":"www/js/services/exporter.js","count":6,"list":"standalone","reason":"margins and cell padding of the exported HTML file, which has no app.css"},
     {"metric":"spacing","file":"www/js/utils/quota-guard.js","count":2,"list":"standalone","reason":"the quota banner styles itself inline so it shows even if app.css failed to load"},

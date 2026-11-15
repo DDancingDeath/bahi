@@ -506,6 +506,22 @@ export function autoLabour(settings, heavyPackets) {
 }
 
 /**
+ * A bill's stored labour working ("6 × 3": rate × bags) read back, only while it still gives the labour
+ * taken off (within ₹1): a Labour box changed by hand prints the amount alone (N-16).
+ * @param {*} working - the bill's `laborCalc`
+ * @param {number} labour - the labour on the bill
+ * @returns {?{rate: number, bags: number}}
+ */
+export function labourWorkingParts(working, labour) {
+    const m = /^\s*([\d.]+)\s*[×x*]\s*(\d+)\s*$/.exec(String(working || ''));
+    if (!m) return null;
+    const rate = Number(m[1]);
+    const bags = Number(m[2]);
+    if (!(rate > 0) || !(bags > 0) || Math.abs(rate * bags - (Number(labour) || 0)) >= 1) return null;
+    return { rate, bags };
+}
+
+/**
  * BF-PAYABLE as shown on the purchase form: line total less the labour in the
  * box as it is saved (ROUNDING.labour), in ROUNDING.shown: the same figure as
  * the saved `grandTotal` (computePurchaseTotals') and the Cash / Online / Due tick.
@@ -981,6 +997,7 @@ export const BILLING_SPEC = Object.freeze({
     draftLineSum: 'BF-TOTAL',
     computePurchaseTotals: 'BF-TOTAL, BF-LAB, BF-PAYABLE',
     autoLabour: 'BF-LAB',
+    labourWorkingParts: 'BF-LAB',
     payableOnScreen: 'BF-PAYABLE',
     computeRetailTotals: 'BF-TOTAL',
     computeWholesaleTotals: 'BF-TOTAL, WS-PROFIT, WS-MARGIN',

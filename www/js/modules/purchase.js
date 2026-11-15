@@ -454,6 +454,7 @@ const PurchaseManager = {
         let laborCharges = 0;
         const labourOn = !!autoLaborCheckbox?.checked;
         if (laborCalculationSpan) laborCalculationSpan.hidden = !labourOn;
+        if (!labourOn) this.toggleLabourDetail(false);
         const labourBox = laborChargesInput?.closest('.bill-money');
         if (labourBox) labourBox.hidden = !labourOn;
         if (labourOn) {
@@ -467,16 +468,19 @@ const PurchaseManager = {
             if (laborChargesInput) {
                 laborChargesInput.disabled = false;
             }
+            laborCharges = parseFloat(laborChargesInput?.value || 0);
             if (laborCalculationSpan) {
-                // On screen in words (U-79); the bill and the slip keep the short working ("6 × 7")
+                // One line on screen (N-07): "7 bags × ₹6 = ₹42"; the full working and the box open on tap.
+                // The bill and the slip keep the short working ("6 × 7").
                 laborCalculationSpan.dataset.working = suggested.working;
                 const { heavyWeightThreshold } = normalizeLabourSettings(AppState.settings);
-                laborCalculationSpan.textContent = tn('ui.billing.labour_working', heavyPacketsCount, {
-                    kg: formatKg(heavyWeightThreshold), rate: formatRupees(suggested.rate, 'rate'), amount: formatRupees(suggested.box)
-                });
+                const amount = formatRupees(suggested.box);
+                laborCalculationSpan.textContent = (laborCharges || 0) === suggested.box
+                    ? tn('ui.billing.labour_short', heavyPacketsCount, { rate: formatRupees(suggested.rate, 'rate'), amount })
+                    : t('ui.billing.labour_changed', { amount: formatRupees(laborCharges || 0) });
+                const working = document.getElementById('laborWorking');
+                if (working) working.textContent = tn('ui.billing.labour_working', heavyPacketsCount, { kg: formatKg(heavyWeightThreshold), rate: formatRupees(suggested.rate, 'rate'), amount });
             }
-            
-            laborCharges = parseFloat(laborChargesInput?.value || 0);
         } else {
             if (laborChargesInput) {
                 laborChargesInput.value = '0';
@@ -516,6 +520,20 @@ const PurchaseManager = {
         }
         Helpers.showSplitRemaining('purchaseSplitRemaining', validatePaymentSplit(this.computeTotals().grandTotal, split));
         BillChecksUI.schedule('purchase');
+    },
+
+    /**
+     * Opens or closes the Labour working and its box (N-07).
+     * @param {boolean} [open] - default: the other way round
+     */
+    toggleLabourDetail(open) {
+        const btn = document.getElementById('laborCalculation');
+        const detail = document.getElementById('laborDetail');
+        if (!detail) return;
+        const show = typeof open === 'boolean' ? open : detail.hidden;
+        detail.hidden = !show;
+        btn?.setAttribute('aria-expanded', String(show));
+        if (show && typeof open !== 'boolean') document.getElementById('manualLaborCharges')?.focus();
     },
 
     /**

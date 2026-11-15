@@ -249,7 +249,22 @@ describe('the printed bill', () => {
         drawn = [];
         render({});
         expect(drawn).toContain('Receipt');
-        expect(drawn).toContain('चावल');
+        expect(drawn).toContain('Rice');
+        expect(drawn).not.toContain('चावल');
+    });
+
+    test('labour reads "3 bags × ₹6" in the slip language, only when that working still gives the amount (N-16)', () => {
+        const labourBill = { ...bill, billTotal: 200, laborCharges: 18, laborCalc: '6 × 3', grandTotal: 182 };
+        PrinterService.manager._renderBillCanvas(labourBill, 384, {});
+        expect(drawn).toContain('3 bags × ₹6');
+        expect(drawn).not.toContain('6 × 3');
+        drawn = [];
+        PrinterService.manager._renderBillCanvas(labourBill, 384, { lang: 'hi' });
+        expect(drawn).toContain('3 बोरी × ₹6');
+        drawn = [];
+        PrinterService.manager._renderBillCanvas({ ...labourBill, laborCharges: 25, grandTotal: 175 }, 384, {});
+        expect(drawn.some(s => /bag|6 × 3/.test(s))).toBe(false);
+        expect(drawn).toContain('₹25');
     });
 
     test('the party line says Customer on a purchase (owner: no "Supplier") and on a sale, in the slip language', () => {

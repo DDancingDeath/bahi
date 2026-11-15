@@ -10,8 +10,9 @@ import { AppState } from '../utils/state.js';
 import { DEFAULT_SETTINGS } from '../utils/constants.js';
 import { billQrText, copyMark, receiptDateTime, receiptPayable } from '../utils/bill-share.js';
 import { billLabour, billLineTotal, outstandingDue, readPayment, formatKg, formatRupees } from '../utils/money.js';
+import { labourWorkingParts } from '../utils/calc/billing.js';
 import { parseAnyBillDate } from '../utils/dates.js';
-import { t, tn } from '../i18n/index.js';
+import { getLang, t, tn } from '../i18n/index.js';
 import { PAPER_DOTS } from '../utils/printer-settings.js';
 import { encodeQr } from '../utils/qr-code.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
@@ -133,10 +134,16 @@ class ReceiptDrawing {
         return this._receipt?.lang;
     }
 
-    /** Item name on the slip: the Hindi name when there is one, except on an English receipt. */
+    /** Item name on the slip: the Hindi name on a Hindi receipt (the receipt language, else the app's), else the bill's name (N-16). */
     _itemName(itemObj, item) {
-        if (this._receipt?.lang !== 'en' && itemObj?.hindiName) return itemObj.hindiName;
+        if ((this._receipt?.lang || getLang()) === 'hi' && itemObj?.hindiName) return itemObj.hindiName;
         return item.name;
+    }
+
+    /** "3 bags × ₹6" from the bill's stored working ("6 × 3"), when it still gives the labour taken off. */
+    _labourWords(billData, labour) {
+        const parts = labourWorkingParts(billData.laborCalc, labour);
+        return parts ? this._tn('ui.print.labour_bags', parts.bags, { rate: formatRupees(parts.rate, 'rate') }) : '';
     }
 
     /** Footer line and bill QR (#107), below the totals. */
@@ -302,24 +309,17 @@ class ReceiptDrawing {
             y += config.spacing.line;
         }
         
-        // Labor charges (only for purchases)
+        // Labour (purchases): "Labour:  3 bags × ₹6  ₹18" in the receipt language (N-16)
         if (labour > 0) {
-            if (billData.laborCalc) {
-                // Show calculation in middle and amount on right
-                ctx.fillText(`${this._t('ui.bill.labour')}:`, config.padding.left, y);
-                const calcWidth = ctx.measureText(billData.laborCalc).width;
-                const calcX = (config.width - calcWidth) / 2;
-                ctx.fillText(billData.laborCalc, calcX, y);
-                const laborText = formatRupees(billLabour(billData), { exact: true });
-                const laborWidth = ctx.measureText(laborText).width;
-                ctx.fillText(laborText, config.width - laborWidth - config.padding.left, y);
-            } else {
-                // No calculation, just show amount
-                ctx.fillText(`${this._t('ui.bill.labour')}:`, config.padding.left, y);
-                const laborText = formatRupees(billLabour(billData), { exact: true });
-                const laborWidth = ctx.measureText(laborText).width;
-                ctx.fillText(laborText, config.width - laborWidth - config.padding.left, y);
+            const words = this._labourWords(billData, labour);
+            ctx.fillText(`${this._t('ui.bill.labour')}:`, config.padding.left, y);
+            if (words) {
+                const calcWidth = ctx.measureText(words).width;
+                ctx.fillText(words, (config.width - calcWidth) / 2, y);
             }
+            const laborText = formatRupees(labour, { exact: true });
+            const laborWidth = ctx.measureText(laborText).width;
+            ctx.fillText(laborText, config.width - laborWidth - config.padding.left, y);
             y += config.spacing.line;
         }
         

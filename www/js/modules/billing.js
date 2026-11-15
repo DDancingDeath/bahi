@@ -172,6 +172,8 @@ let autoSaveFullWarnedAt = 0;
 let restoring = false;
 /** Drafts on the open Drafts sheet (Undo after Delete writes one back). */
 let shownDrafts = [];
+/** A draft with weights but no lines is kept this long (U-37): long enough for the next shift. */
+const EMPTY_DRAFT_KEEP_MS = 24 * 60 * 60 * 1000;
 
 const BILL_COLLECTIONS = { purchase: 'purchases', retail: 'retailSales', wholesale: 'wholesaleSales' };
 const historyOf = (billType) => (billType === 'purchase' ? AppState.purchaseHistory
@@ -905,9 +907,17 @@ const BillingManager = {
             }
 
             const mode = this.currentMode === 'purchase' ? 'purchase' : 'sale';
-            // A draft with no lines and no weights holds nothing to continue (U-37); this mode's drafts first
-            shownDrafts = (await BillDrafts.listDrafts(currentUser.uid))
-                .filter(d => (d.items?.length || 0) + (d.weights?.length || 0) > 0)
+            // A draft with no lines holds nothing to continue once a day has passed (U-37): removed, not listed
+            const all = await BillDrafts.listDrafts(currentUser.uid);
+            const stale = all.filter(d => !(d.items?.length) && Date.now() - (Number(d.timestamp) || 0) > EMPTY_DRAFT_KEEP_MS);
+            if (stale.length) {
+                Promise.all(stale.map(d => BillDrafts.deleteDraft(d.id)))
+                    .then(() => this.updateDraftCount())
+                    .catch(e => console.warn('Old empty drafts not removed:', e?.code || e));
+            }
+            // This mode's drafts first
+            shownDrafts = all
+                .filter(d => !stale.includes(d) && (d.items?.length || 0) + (d.weights?.length || 0) > 0)
                 .sort((a, b) => Number(b.mode === mode) - Number(a.mode === mode) || (b.timestamp || 0) - (a.timestamp || 0));
             const drafts = shownDrafts;
 
@@ -921,21 +931,23 @@ const BillingManager = {
                     const meta = lines
                         ? `${tn('ui.billing.draft_lines', lines)} · ${formatRupees(amount)}`
                         : tn('ui.billing.draft_weights_only', draft.weights?.length || 0);
+                    const when = formatDate(draft.date, 'datetime') || draft.date;
                     return `
                     <div class="panel draft">
                         <div class="draft-head">
                             <span class="draft-title"><span class="mode-dot${purchase ? '' : ' sale'}" aria-hidden="true"></span>${Helpers.escapeHtml(t(purchase ? 'ui.billing.purchase_draft' : 'ui.billing.sale_draft'))}</span>
                             <span class="draft-meta">${Helpers.escapeHtml(meta)}</span>
                         </div>
-                        <div class="draft-date">${Helpers.escapeHtml(formatDate(draft.date, 'datetime') || draft.date)}</div>
-                        ${draft.customerName ? `<div class="draft-customer">${Helpers.escapeHtml(t(purchase ? 'ui.billing.supplier_label' : 'ui.billing.customer_label'))} <strong>${Helpers.escapeHtml(draft.customerName)}</strong></div>` : ''}
-                        <div class="draft-actions">
-                            <button type="button" class="btn btn-primary btn-sm" data-onclick="billing.loadDraft('${Helpers.escapeJsAttr(draft.id)}')">
-                                ${Helpers.escapeHtml(t('ui.billing.load'))}
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm draft-delete" data-onclick="billing.deleteDraft('${Helpers.escapeJsAttr(draft.id)}')">
-                                ${Helpers.escapeHtml(t('ui.modals.delete'))}
-                            </button>
+                        <div class="draft-row">
+                            <div class="draft-date">${Helpers.escapeHtml(when)}${draft.customerName ? ` · <strong class="draft-customer">${Helpers.escapeHtml(draft.customerName)}</strong>` : ''}</div>
+                            <div class="draft-actions">
+                                <button type="button" class="btn btn-ghost btn-sm draft-delete" data-onclick="billing.deleteDraft('${Helpers.escapeJsAttr(draft.id)}')">
+                                    ${Helpers.escapeHtml(t('ui.modals.delete'))}
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" data-onclick="billing.loadDraft('${Helpers.escapeJsAttr(draft.id)}')">
+                                    ${Helpers.escapeHtml(t('ui.billing.load'))}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;

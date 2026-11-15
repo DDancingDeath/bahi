@@ -74,6 +74,30 @@
     ],
     [
       "get"
+    ],
+    [
+      "collection",
+      "dev_drafts"
+    ],
+    [
+      "doc",
+      "d2"
+    ],
+    [
+      "delete"
+    ],
+    [
+      "collection",
+      "dev_drafts"
+    ],
+    [
+      "where",
+      "userId",
+      "==",
+      "u1"
+    ],
+    [
+      "get"
     ]
   ],
   "draft.load": [

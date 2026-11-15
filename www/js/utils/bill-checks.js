@@ -392,6 +392,19 @@ function paymentIssues(draft) {
 }
 
 /**
+ * A bill line of the same item at the same rate as the line being typed.
+ * @param {Rec} line
+ * @param {Rec} entry
+ * @returns {boolean}
+ */
+function sameEntryLine(line, entry) {
+    const a = readLineItem(line);
+    const b = readLineItem(entry);
+    const item = line?.itemId && entry.itemId ? String(line.itemId) === String(entry.itemId) : !!a.name && a.name === b.name;
+    return item && toMoney(line?.rate) !== null && toMoney(line.rate) === toMoney(entry.rate);
+}
+
+/**
  * Run every rule over a bill being entered or edited.
  * @param {Object} draft
  * @param {'purchase'|'retail'|'wholesale'} draft.kind
@@ -409,14 +422,17 @@ function paymentIssues(draft) {
  */
 export function evaluateBill(draft, ctx) {
     const c = /** @type {Rec} */ ({ ...ctx, kind: draft.kind, thresholds: normalizeThresholds(ctx?.thresholds), catalogue: ctx?.catalogue || [] });
-    const items = Array.isArray(draft.items) ? draft.items.filter(Boolean) : [];
     const rates = lastRates(c.recentBills, draft.isEdit ? draft.id : null);
     /** @type {Array<Rec>} */
     const out = [];
 
     const entry = draft.entry;
+    const items = Array.isArray(draft.items) ? draft.items.filter(Boolean) : [];
     if (entry && (entry.itemId || entry.name)) {
-        if (entry.rate !== null && entry.rate !== undefined && entry.rate !== '') {
+        // The rate left in the box after Add to bill is warned on its line already: one warning, not two (U-01, U-18)
+        const onBill = (entry.qty === null || entry.qty === undefined || entry.qty === '' || !(Number(entry.qty) > 0))
+            && items.some(l => sameEntryLine(l, entry));
+        if (!onBill && entry.rate !== null && entry.rate !== undefined && entry.rate !== '') {
             out.push(...rateIssues(entry, 'entry.rate', c, rates));
         }
         if (entry.qty !== null && entry.qty !== undefined && entry.qty !== '') {
