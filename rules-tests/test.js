@@ -5145,6 +5145,27 @@ function defineReminderSuite(prefix) {
         await assertFails(db.doc('g').set(rem('manager1', { repeatOf: 'x' })));
     });
 
+    t('time (#86): an optional HH:MM on create and edit, kept by the next copy', async () => {
+        const db = as('manager1').collection(reminders);
+        await assertSucceeds(db.doc('a').set(rem('manager1', { dueTime: '16:30' })));
+        await assertSucceeds(db.doc('b').set(rem('manager1', { dueTime: '00:00', repeat: 'weekly' })));
+        await assertFails(db.doc('c').set(rem('manager1', { dueTime: '24:00' })));
+        await assertFails(db.doc('d').set(rem('manager1', { dueTime: '9:30' })));
+        await assertFails(db.doc('e').set(rem('manager1', { dueTime: 930 })));
+        await assertSucceeds(db.doc('a').update(edit('manager1', { dueTime: '07:05' })));
+        await assertSucceeds(db.doc('a').update(edit('manager1', { dueTime: FieldValue.delete() })));
+        await assertFails(db.doc('a').update(edit('manager1', { dueTime: '7:05 pm' })));
+        const copy = (dueTime) => {
+            const s = as('staff1');
+            const b = s.batch();
+            b.update(s.collection(reminders).doc('b'), { status: 'done', doneBy: 'staff1', doneAt: serverTimestamp(), nextId: 'b2' });
+            b.set(s.collection(reminders).doc('b2'), { title: 'Collect from Ramesh', repeat: 'weekly', dueDate: istDay(7), dueTime, repeatOf: 'b', status: 'open', createdBy: 'staff1', createdAt: serverTimestamp() });
+            return b.commit();
+        };
+        await assertFails(copy('01:00'));
+        await assertSucceeds(copy('00:00'));
+    });
+
     t('repeat (#86): anyone who marks a repeating one done creates its next copy in the same batch, linked both ways', async () => {
         await seed('r1', open({ repeat: 'weekly', party: 'Gupta' }));
         const done = (uid, extra = {}) => ({ status: 'done', doneBy: uid, doneAt: serverTimestamp(), ...extra });

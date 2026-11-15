@@ -99,10 +99,9 @@ describe('buildBillShareText', () => {
 
     test('purchase shows labour and payable; comments only when marked for print', () => {
         const text = buildBillShareText(PURCHASE, 'purchase');
-        expect(text).toContain('Supplier: Ram');
-        expect(text).not.toContain('Customer:');
+        expect(text).toContain('Customer: Ram');
         const draft = buildDraftShareText({ kind: 'purchase', customer: 'Ram', items: PURCHASE.items, total: 1000 });
-        expect(draft).toContain('Supplier: Ram');
+        expect(draft).toContain('Customer: Ram');
         expect(draft).toContain('DRAFT, not saved');
         expect(buildDraftShareText({ kind: 'retail', customer: 'Gita', items: [], total: 0 })).toContain('Customer: Gita');
         expect(text).toContain('*Purchase bill*');

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon: the Bahi mark as a white silhouette (Android tints it). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group android:translateX="5" android:translateY="1">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M0,0 H9 L13,4 V7.5 A5.5,5.5 0 0 1 7.5,13 H0 Z M4,3 H9 V8 A2,2 0 0 1 7,10 H4 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M0,10 H8 A6,6 0 0 1 8,22 H0 Z M4,13 H7 A3,3 0 0 1 7,19 H4 Z" />
+    </group>
+</vector>

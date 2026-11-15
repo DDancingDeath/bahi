@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v734';
+const CACHE_NAME = 'happa-v736';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -83,6 +83,7 @@ const STATIC_ASSETS = [
     '/js/modules/items.js',
     '/js/modules/miscellaneous.js',
     '/js/modules/notifications.js',
+    '/js/modules/phone-notify.js',
     '/js/modules/outstanding.js',
     '/js/modules/purchase.js',
     '/js/modules/rate-trends.js',
@@ -217,6 +218,7 @@ const STATIC_ASSETS = [
     '/js/utils/number-checks.js',
     '/js/utils/number-check-flags.js',
     '/js/utils/notification-format.js',
+    '/js/utils/phone-reminders.js',
     '/js/utils/record-permissions.js',
     '/js/utils/role-access.js',
     '/js/utils/personal-expenses.js',
@@ -381,6 +383,23 @@ self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
+});
+
+/**
+ * A tap on a notification the app showed (modules/phone-notify.js): the open app goes to
+ * the page it is about; with none open, the app opens there.
+ */
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const route = (event.notification.data && event.notification.data.route) || '';
+    event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        const client = list.find((c) => c.url && new URL(c.url).origin === self.location.origin);
+        if (client) {
+            client.postMessage({ type: 'HAPPA_NOTIFICATION', route });
+            return 'focus' in client ? client.focus() : undefined;
+        }
+        return self.clients.openWindow(route ? `/?notify=${encodeURIComponent(route)}` : '/');
+    }));
 });
 
 /**

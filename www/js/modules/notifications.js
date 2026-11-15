@@ -1,8 +1,8 @@
 /**
  * @fileoverview In-app notifications (#12): bell + unread badge, inbox panel,
- * toasts for new notifications and (optional, desktop web only) system
- * notifications while the app is open in the background. No server push:
- * on the free Spark plan nothing can reach a closed app.
+ * toasts for new notifications, and a phone notification for them while the app
+ * runs but is not in front (modules/phone-notify.js). No server push: on the
+ * free Spark plan nothing reaches a closed app.
  * @module modules/notifications
  */
 
@@ -14,7 +14,6 @@ import { TelemetryService } from '../services/telemetry.js';
 import { Helpers } from '../utils/helpers.js';
 import { t, tn, getLang } from '../i18n/index.js';
 import { pickLang } from '../i18n/localize.js';
-import { APP_IDENTITY } from '../config/app-identity.js';
 import { AppState } from '../utils/state.js';
 import { rentRoleOf } from '../utils/settings-sections.js';
 import { toLocalISODate, formatDayTime } from '../utils/dates.js';
@@ -27,13 +26,13 @@ import {
 import { formatRupees } from '../utils/money.js';
 import { getPendingJoins, writeOffsByOthers } from '../utils/owner-alerts.js';
 import { trapFocus } from '../utils/keyboard-shortcuts.js';
+import { PhoneNotify } from './phone-notify.js';
 
-const SYSTEM_PREF_KEY = 'aadhat.notifications.system';
 const CLEANUP_KEY = 'aadhat.notifications.cleanupAt';
 const CLEANUP_EVERY_MS = 24 * 60 * 60 * 1000;
 const TOAST_MS = 5000;
 
-/** Row icon by notification type (the toast and system notification keep describeNotification's emoji). */
+/** Row icon by notification type (the toast keeps describeNotification's emoji). */
 const rowIcon = (type) => (type === 'rate_change' ? icon('tag')
     : type === 'item_edit' ? icon('box')
         : type === 'edit' ? icon('receipt') : icon('bell'));
@@ -193,7 +192,7 @@ const NotificationsManager = {
             ? `${notificationText(latest)} (+${fresh.length - 1})`
             : notificationText(latest);
         UIManager.showToast(text, TOAST_MS);
-        this.showSystemNotification(fresh);
+        PhoneNotify.bell(fresh, uid);
         if (this.panelOpen) {
             this.panelItems = prepareList([...fresh, ...this.panelItems]);
             this.renderPanel();
@@ -463,62 +462,9 @@ const NotificationsManager = {
             .catch(e => console.warn('Old notifications cleanup failed:', e?.code || e));
     },
 
-    // ---------- Optional desktop system notifications (no push) ----------
-
-    /** System notifications are possible here: web (not the Android app) with the Notification API. */
-    systemSupported() {
-        if (typeof window === 'undefined' || !('Notification' in window)) return false;
-        return !window.Capacitor?.isNativePlatform?.();
-    },
-
-    systemEnabled() {
-        try {
-            return this.systemSupported() && localStorage.getItem(SYSTEM_PREF_KEY) === '1' && window.Notification.permission === 'granted';
-        } catch (e) {
-            return false;
-        }
-    },
-
-    /** Settings checkbox handler. */
-    async toggleSystem(checked) {
-        if (!this.systemSupported()) return;
-        if (checked) {
-            let permission = window.Notification.permission;
-            if (permission === 'default') permission = await window.Notification.requestPermission();
-            if (permission !== 'granted') {
-                UIManager.showToast(t('msg.notifications.browser_blocked_notifications_allow_them'), TOAST_MS);
-                this.refreshSettings();
-                return;
-            }
-            localStorage.setItem(SYSTEM_PREF_KEY, '1');
-            UIManager.showToast(t('msg.notifications.desktop_notifications_on_while_app'));
-        } else {
-            localStorage.removeItem(SYSTEM_PREF_KEY);
-        }
-        this.refreshSettings();
-    },
-
-    /** Shows/hides the Settings card and syncs the checkbox. */
+    /** Settings › Help & about › Notifications (modules/phone-notify.js). */
     refreshSettings() {
-        const card = document.getElementById('notifSettingsCard');
-        if (!card) return;
-        card.hidden = !this.systemSupported();
-        card.style.display = this.systemSupported() ? '' : 'none';
-        const box = document.getElementById('settingSystemNotifications');
-        if (box) box.checked = this.systemEnabled();
-    },
-
-    /** @private Only when the tab is in the background and the user opted in. */
-    showSystemNotification(fresh) {
-        if (!this.systemEnabled() || typeof document === 'undefined' || !document.hidden) return;
-        try {
-            const d = describeNotification(fresh[0]);
-            const body = `${pickLang(d)}${d.who ? `\n— ${d.who}` : ''}`;
-            const note = new window.Notification(fresh.length > 1 ? `${APP_IDENTITY.appName}: ${fresh.length} new` : APP_IDENTITY.appName, { body, tag: 'aadhat-notifications' });
-            note.onclick = () => { window.focus(); this.openInbox().catch(e => console.warn('Opening notifications failed:', e)); note.close(); };
-        } catch (e) {
-            console.warn('System notification failed:', e);
-        }
+        PhoneNotify.renderSettings().catch(e => console.warn('Notification settings failed:', e));
     }
 };
 

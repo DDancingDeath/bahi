@@ -112,7 +112,7 @@ const TITLES = {
 };
 
 
-/** The party's word on shared text: Supplier on a purchase, Customer on a sale (U-27). */
+/** The party's word on shared text (U-27): its own key per bill kind; both read Customer since v730. */
 const partyLabel = (/** @type {string} */ kind) => t(kind === 'purchase' ? 'ui.bill.supplier' : 'ui.bill.customer');
 
 /**

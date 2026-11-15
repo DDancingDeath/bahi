@@ -1802,7 +1802,9 @@ service cloud.firestore {
     function reminderFieldsOk(d) {
       let r = d.get('repeat', null);
       let day = d.get('repeatDay', null);
+      let tm = d.get('dueTime', null);
       return d.title is string && d.title.size() >= 1 && d.title.size() <= 120
+        && (tm == null || (tm is string && tm.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
         && shortStringOrAbsent(d, 'party', 80)
         && (r == null || r in ['daily', 'weekly', 'monthly'])
         && (day == null || (r == 'monthly' && day is int && day >= 1 && day <= 31));
@@ -1821,7 +1823,7 @@ service cloud.firestore {
     function validReminderCreate(usersCol) {
       let d = request.resource.data;
       return isManagerIn(usersCol)
-        && d.keys().hasOnly(['title', 'dueDate', 'party', 'repeat', 'repeatDay', 'status', 'createdBy', 'createdByName', 'createdAt'])
+        && d.keys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'status', 'createdBy', 'createdByName', 'createdAt'])
         && reminderCreatedOk(d);
     }
 
@@ -1843,7 +1845,7 @@ service cloud.firestore {
       let prev = get(prevPath).data;
       let after = getAfter(prevPath).data;
       return isApprovedIn(usersCol)
-        && d.keys().hasOnly(['title', 'dueDate', 'party', 'repeat', 'repeatDay', 'repeatOf', 'status', 'createdBy', 'createdByName', 'createdAt'])
+        && d.keys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'repeatOf', 'status', 'createdBy', 'createdByName', 'createdAt'])
         && d.repeatOf is string
         && reminderCreatedOk(d)
         && prev.status == 'open'
@@ -1854,6 +1856,7 @@ service cloud.firestore {
         && d.get('party', null) == prev.get('party', null)
         && d.get('repeat', null) == prev.get('repeat', null)
         && d.get('repeatDay', null) == prev.get('repeatDay', null)
+        && d.get('dueTime', null) == prev.get('dueTime', null)
         && d.dueDate > prev.dueDate
         && reminderNextDateOk(d.dueDate, prev);
     }
@@ -1877,7 +1880,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return isManagerIn(usersCol)
         && resource.data.status == 'open'
-        && d.diff(resource.data).affectedKeys().hasOnly(['title', 'dueDate', 'party', 'repeat', 'repeatDay', 'updatedBy', 'updatedByName', 'updatedAt'])
+        && d.diff(resource.data).affectedKeys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'updatedBy', 'updatedByName', 'updatedAt'])
         && d.status == 'open'
         && reminderFieldsOk(d)
         && (d.dueDate == resource.data.dueDate || reminderDateInRange(d.dueDate))

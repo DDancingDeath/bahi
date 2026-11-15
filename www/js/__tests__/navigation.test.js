@@ -155,6 +155,8 @@ describe('back button returns to the previous tab (F17)', () => {
             NavigationManager.handlePopState({ state: {} });
             expect(activeTab()).toBe('day');
             NavigationManager.handleBackButton(app);
+            expect(app.exitApp).not.toHaveBeenCalled();
+            NavigationManager.handleBackButton(app);
             expect(app.exitApp).toHaveBeenCalledTimes(1);
         } finally {
             NavigationManager.homeTab = 'billing';

@@ -422,10 +422,51 @@
         <div class="panel panel-pad set-panel" id="notifSettingsCard" hidden>
             <h3 class="set-title" data-i18n="ui.common.notifications">Notifications</h3>
             <label class="set-toggle">
-                <span data-i18n="ui.settings.desktop_notifications">Desktop notifications</span>
-                <input type="checkbox" class="switch" id="settingSystemNotifications" data-onchange="notifications.toggleSystem(this.checked)">
+                <span data-i18n="ui.notify.master">Phone notifications</span>
+                <input type="checkbox" class="switch" id="settingPhoneNotifications" data-onchange="notifications.setPhone(this.checked)">
             </label>
-            <p class="setting-description" data-i18n="ui.settings.desktop_notifications_hint">Shows a computer notification for new updates while the app is open in another tab or window. Closed apps can't get notifications yet.</p>
+            <p class="setting-description" id="notifPermNote" role="status" hidden></p>
+            <div data-notify-type="bell">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.type_bell">Bell updates</span>
+                    <input type="checkbox" class="switch" id="notifTypeBell" data-onchange="notifications.setType('bell', this.checked)">
+                </label>
+            </div>
+            <div data-notify-type="todo">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.type_todo">To do reminders</span>
+                    <input type="checkbox" class="switch" id="notifTypeTodo" data-onchange="notifications.setType('todo', this.checked)">
+                </label>
+            </div>
+            <div data-notify-type="udhaar">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.type_udhaar">Udhaar summary</span>
+                    <input type="checkbox" class="switch" id="notifTypeUdhaar" data-onchange="notifications.setType('udhaar', this.checked)">
+                </label>
+            </div>
+            <div data-notify-type="rent">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.type_rent">Rent due</span>
+                    <input type="checkbox" class="switch" id="notifTypeRent" data-onchange="notifications.setType('rent', this.checked)">
+                </label>
+            </div>
+            <div data-notify-type="backup">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.type_backup">Backup check</span>
+                    <input type="checkbox" class="switch" id="notifTypeBackup" data-onchange="notifications.setType('backup', this.checked)">
+                </label>
+            </div>
+            <div data-notify-time>
+                <div class="field">
+                    <label for="notifSummaryTime" data-i18n="ui.notify.summary_time">Daily summary time</label>
+                    <input type="time" class="input" id="notifSummaryTime" value="09:30" data-onchange="notifications.setTime(this.value)">
+                </div>
+                <p class="setting-description" data-i18n="ui.notify.summary_time_hint">Udhaar summary, rent due and backup check come at this time.</p>
+            </div>
+            <div class="set-actions">
+                <button class="btn" type="button" data-onclick="notifications.test()" data-i18n="ui.notify.test">Send test notification</button>
+            </div>
+            <p class="setting-description" id="notifPlatformNote"></p>
         </div>
 
         <div class="panel panel-pad set-panel" id="crashReportsCard" hidden>

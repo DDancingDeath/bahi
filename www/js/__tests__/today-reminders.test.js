@@ -66,7 +66,7 @@ describe('REM-2 rent due', () => {
     test('only for the same person and month, and only when something is due', () => {
         const s = memStore();
         saveRentReminder(s, { uid: 'u1', month: '2026-11', due: 12000, late: 2, dueUnits: 3, at: 5 });
-        expect(rentReminder(s, 'u1', '2026-11')).toEqual({ due: 12000, late: 2, dueUnits: 3, at: 5 });
+        expect(rentReminder(s, 'u1', '2026-11')).toEqual({ due: 12000, late: 2, dueUnits: 3, dueDays: [], at: 5 });
         expect(rentReminder(s, 'u2', '2026-11')).toBeNull();
         expect(rentReminder(s, 'u1', '2026-12')).toBeNull();
         saveRentReminder(s, { uid: 'u1', month: '2026-11', due: 0, late: 0, dueUnits: 0 });
@@ -83,8 +83,12 @@ describe('Rent page note (REM-2)', () => {
 
     test('kept for the current month with complete data only', () => {
         AppState.currentUser = { uid: 'u9' };
+        noteRent({ month, errors: new Set() }, [{ due: 5000, leaseId: 'L1' }, { due: 0, leaseId: 'L2' }, { due: 10, leaseId: 'L3' }, { due: 10, leaseId: 'L4' }],
+            [], [{ id: 'L1', dueDay: 10 }, { id: 'L2', dueDay: 1 }, { id: 'L3', dueDay: 5 }, { id: 'L4', dueDay: 10 }]);
+        expect(rentReminder(localStorage, 'u9', month).dueDays).toEqual([5, 10]);
+        localStorage.clear();
         noteRent({ month, errors: new Set() }, rows, []);
-        expect(rentReminder(localStorage, 'u9', month)).toEqual({ due: 7500.5, late: 1, dueUnits: 2, at: expect.any(Number) });
+        expect(rentReminder(localStorage, 'u9', month)).toEqual({ due: 7500.5, late: 1, dueUnits: 2, dueDays: [], at: expect.any(Number) });
         localStorage.clear();
         noteRent({ month, errors: new Set(['monthCharges']) }, rows, []);
         noteRent({ month, errors: new Set() }, rows, ['openCharges']);
