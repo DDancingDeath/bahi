@@ -13,7 +13,7 @@
   },
   "entries": [
     {"metric":"spacing","file":"www/css/bill-checks.css","count":4,"list":"off-scale","reason":"-4px, 2px, 6px, 10px with no exact --sp-* token"},
-    {"metric":"spacing","file":"www/css/billing.css","count":11,"list":"off-scale","reason":"2px, 6px, 10px, 13px, 14px, 15px, 52px with no exact --sp-* token"},
+    {"metric":"spacing","file":"www/css/billing.css","count":10,"list":"off-scale","reason":"2px, 6px, 10px, 13px, 14px, 15px, 52px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/day.css","count":22,"list":"off-scale","reason":"1px, 2px, 6px, 10px, 14px, 44px, 140px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/desktop.css","count":12,"list":"off-scale","reason":"1px, 2px, 3px, 5px, 6px, 9px, 10px, 14px, 28px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/finance.css","count":8,"list":"off-scale","reason":"2px, 6px, 10px, 13px, 15px with no exact --sp-* token"},
