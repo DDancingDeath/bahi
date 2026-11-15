@@ -399,6 +399,11 @@
     margin-top: 0;
   }
 
+  /* The side column's footer holds the total, Share, then Save and Print with their Ctrl hints */
+  .bill-actions > :is(.btn-primary, .bill-print) {
+    padding: 0 var(--sp-2);
+  }
+
   .bill-main > .bill-form-field:first-child {
     margin-top: 0;
   }
