@@ -14,11 +14,14 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { t, tn, getLang } from '../i18n/index.js';
 import { formatDay, todayLocalISO } from '../utils/dates.js';
 import { icon } from './icons.js';
+import { setDisclosureOpen } from './disclosure.js';
 import {
     checkReminder, groupReminders, nextDueDate, isReminderRepeat, REMINDER_REPEATS, REMINDER_LISTEN_LIMIT, REMINDER_TITLE_MAX, REMINDER_PARTY_MAX
 } from '../utils/manual-reminders.js';
 
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
+/** Today's Reminders card (ui/disclosure.js): opening the form opens the card. */
+export const TODAY_REMINDERS_KEY = 'today-reminders';
 const FORM_IDS = ['reminderTitle', 'reminderDate', 'reminderParty', 'reminderRepeat'];
 const CSS_ESCAPE = (s) => (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(s) : String(s).replace(/[^\w-]/g, '\\$&'));
 /** A write the server hasn't confirmed in this time stays queued on the phone (Firestore sends it when online). */
@@ -165,16 +168,22 @@ export const ManualReminders = {
         this.captureDraft();
         const g = groupReminders(this.list, todayIso);
         const rows = [...g.due, ...g.soon];
-        if (!rows.length && !manage) return '';
+        if (!rows.length && !this.formOpen) return '';
         return `<div class="today-reminder" data-reminder="manual"><span class="lead-icon">${icon('check')}</span><div class="today-reminder-body">`
             + `<div class="today-reminder-head"><strong>${esc(t('ui.reminders.title'))}</strong>`
             + (g.due.length ? ` ${esc(t('ui.reminders.due_count', { count: g.due.length }))}` : '') + '</div>'
             + (rows.length ? `<ul>${rows.map(r => this.rowHtml(r, manage)).join('')}</ul>` : `<div class="today-reminder-more">${esc(t('ui.reminders.none'))}</div>`)
             + (g.later ? `<div class="today-reminder-more">${esc(t('ui.reminders.later', { count: g.later }))}</div>` : '')
             + (this.list.length >= REMINDER_LISTEN_LIMIT ? `<div class="today-reminder-more">${esc(t('ui.reminders.limit', { count: REMINDER_LISTEN_LIMIT }))}</div>` : '')
-            + (manage ? (this.formOpen ? this.formHtml()
-                : `<button type="button" class="btn btn-sm" data-onclick="day.reminderForm(true)">${esc(t('ui.reminders.add'))}</button>`) : '')
+            + (manage && this.formOpen ? this.formHtml() : '')
             + '</div></div>';
+    },
+
+    /** For the closed Reminders card: how many are due or coming up, and whether one is late. */
+    summary(todayIso = todayLocalISO()) {
+        const g = groupReminders(this.list, todayIso);
+        const rows = [...g.due, ...g.soon];
+        return { count: rows.length, late: rows.some(r => r.days < 0) };
     },
 
     by() {
@@ -186,6 +195,7 @@ export const ManualReminders = {
         this.editId = null;
         this.draft = null;
         this.freshForm = true;
+        if (this.formOpen) setDisclosureOpen(TODAY_REMINDERS_KEY, true);
         this.changed();
         if (this.formOpen) setTimeout(() => document.getElementById('reminderTitle')?.focus(), 0);
     },

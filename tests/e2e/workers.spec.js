@@ -3,7 +3,7 @@
  * then more than the rest (paid, advance carried); Today shows the salaries due (WP-11); the page reads the workers once per open and
  * works in Hindi; managers and members cannot open it.
  */
-const { test, expect, login, showTab, clickAfterTyping } = require('./support/app');
+const { test, expect, login, showTab, clickAfterTyping, openDisclosure } = require('./support/app');
 const { listDocs } = require('./support/emulator');
 
 const row = (page, name) => page.locator('#workersBody .row[data-worker]', { hasText: name });
@@ -35,6 +35,8 @@ test('the owner records an advance and the rest; the month goes part-paid, then 
     const salaries = page.locator('#todayReminders [data-reminder="salaries"]');
     await expect(salaries).toContainText(`Salaries due ${toPay}`);
     await expect(salaries).toContainText(/\d+ workers? still to be paid/);
+    await expect(page.locator('#todayRemindersToggle')).toContainText(`Salaries ${toPay}`);
+    await openDisclosure(page, 'todayReminders');
     await salaries.locator('button').click();
     await expect(page.locator('#workers.tab.active')).toBeVisible();
     await expect(row(page, name).locator('[data-wp-state]')).toHaveText('Part-paid, ₹3,000 of ₹9,000');
