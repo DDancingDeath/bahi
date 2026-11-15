@@ -3515,6 +3515,8 @@ export default {
     'msg.workers.rejoined': "{name} working again at {amount} a month",
     'msg.workers.remove_confirm': "Remove {amount} for {name}? The month it paid shows as owed again.",
     'msg.workers.start_after_left': "The start month must be before the month they stopped being paid.",
+    'ui.rent.received_month_note': "Includes old dues and advances paid this month, so it can be more than this month's rent.",
+    'ui.rent.paid_pct': "{pct}% of this month's rent paid",
     'ui.money.linked_title': "Worker pay and regular bills",
     'ui.money.linked_workers': "Worker pay",
     'ui.money.linked_bills': "Regular bills paid",

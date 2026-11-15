@@ -3515,6 +3515,8 @@ export default {
     'msg.workers.rejoined': "{name} फिर से काम पर, {amount} हर महीने",
     'msg.workers.remove_confirm': "{name} के {amount} हटाएँ? जिस महीने में गिने थे, वह फिर बकाया दिखेगा।",
     'msg.workers.start_after_left': "शुरू का महीना, वेतन बंद होने वाले महीने से पहले का होना चाहिए।",
+    'ui.rent.received_month_note': "इसमें इस महीने चुकाया पुराना बकाया और पेशगी भी है, इसलिए यह इस महीने के किराए से ज़्यादा हो सकता है।",
+    'ui.rent.paid_pct': "इस महीने का {pct}% किराया चुकाया",
     'ui.money.linked_title': "कर्मचारियों का वेतन और नियमित बिल",
     'ui.money.linked_workers': "कर्मचारियों का वेतन",
     'ui.money.linked_bills': "नियमित बिल भरे",

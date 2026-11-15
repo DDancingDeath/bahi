@@ -298,8 +298,9 @@ function renderMonth(d, ix, rows) {
     }
     const summary = `<div class="panel panel-pad rent-collect">
         <div class="rent-collect-line">${moneyInText(t('ui.rent.collected_of', { collected: formatRupees(sum.collected), expected: formatRupees(sum.expected) }), [sum.collected, sum.expected])}</div>
-        ${sum.expected > 0 ? `<progress class="rent-progress" max="${esc(sum.expected)}" value="${esc(sum.collected)}" aria-label="${et('ui.rent.collected')}"></progress>` : ''}
+        ${sum.expected > 0 ? progressBar(sum.collected, sum.expected) : ''}
         <div class="rent-sub" data-rent-received>${et('ui.rent.received_month')}: ${receivedText(d)}</div>
+        <div class="row-meta">${et('ui.rent.received_month_note')}</div>
         <div class="rent-sub">${et('ui.rent.outstanding')}: ${moneyHtml(sum.due)}</div>
     </div>`;
     const list = shown.map(a => collectRow(a, ix, lang)).join('')
@@ -314,6 +315,12 @@ function renderMonth(d, ix, rows) {
         ${shown.length ? `<div class="panel">${list}</div>` : list}${paidList}${vacant}${payAny}`;
 }
 
+/** This month's rent paid as a bar with the % in words: a native <progress> looks full at 0 % in dark mode (U-31). */
+function progressBar(collected, expected) {
+    const pct = Math.max(0, Math.min(100, Math.round((Number(collected) || 0) / expected * 100)));
+    return `<div class="rent-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${esc(pct)}" aria-label="${et('ui.rent.collected')}"><span class="rent-bar-fill" style="--w:${esc(pct)}%"></span></div>
+        <div class="row-meta rent-bar-pct">${et('ui.rent.paid_pct', { pct })}</div>`;
+}
 /** RENT-20 once its listener has answered complete; null ("—") until then, or when it failed or was cut at its limit. */
 function received(d) {
     return state.loaded.has('monthPaid') && !state.paidError && !store.paidTruncated?.() ? receivedIn(d.paidCharges, state.month) : null;
