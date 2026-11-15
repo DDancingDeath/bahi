@@ -14,6 +14,15 @@ const isSheet = () => typeof window === 'undefined' || !window.matchMedia || !wi
 
 const shown = (el) => !!el && el.isConnected && el.getClientRects().length > 0;
 
+/** The shop's own name under the Bahi mark in the More sheet / sidebar head (U-90); hidden while it has none. */
+export function showShopName() {
+    const el = document.getElementById('navShopName');
+    if (!el) return;
+    const name = String(AppState.settings?.shopName || '').trim();
+    el.textContent = name;
+    el.hidden = !name;
+}
+
 /**
  * Focus back after the sheet closes: what opened it if it still shows, else the opener showing now
  * (switching business swaps More for the bar's menu button), else the page title.
@@ -122,6 +131,7 @@ const NavigationManager = {
         const wasOpen = this.isMenuOpen();
         if (sideNav) sideNav.classList.toggle('active', open);
         if (overlay) overlay.classList.toggle('active', open);
+        if (open) showShopName();
         document.querySelectorAll('.bottom-nav-item[data-tab="more"], .app-bar .hamburger').forEach(b => b.setAttribute('aria-expanded', String(!!open)));
         if (!sideNav || open === wasOpen || !isSheet()) return;
         // Phone: the menu is a modal bottom sheet (redesign 4.1); focus goes in, and back to what opened it

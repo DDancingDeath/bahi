@@ -105,6 +105,8 @@ const PAIRS = [
     ['on-caution-soft', 'caution-soft@surface'], ['toast-ink', 'toast-bg'],
     // The chosen segment's words on its fill
     ['seg-on-ink', 'seg-on@seg-track'],
+    // The sign-in header
+    ['auth-head-ink', 'auth-head-bg'],
 ];
 
 const EDGES = [

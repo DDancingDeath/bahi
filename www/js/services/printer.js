@@ -1,7 +1,8 @@
 // -------------------- BLUETOOTH PRINTER MANAGER --------------------
 
 import { AppState } from '../utils/state.js';
-import { UIManager } from '../ui/ui-manager.js';
+import { UIManager, buildSheet, openSheet, closeSheet } from '../ui/ui-manager.js';
+import { icon } from '../ui/icons.js';
 import { getAndroidMajorVersion, Helpers } from '../utils/helpers.js';
 import { t, loadAllCatalogues } from '../i18n/index.js';
 import { PrinterLink } from './printer-link.js';
@@ -27,6 +28,9 @@ const UNCERTAIN_TTL_MS = 24 * 60 * 60 * 1000;
 const STOPPED_KEY = 'printerDisconnected';
 const LOGO_KEY = 'receiptLogo';
 const SHARED_RECEIPT_KEY = 'receiptShared';
+/** Ids for the preview dialogs' titles */
+let previewSeq = 0;
+
 /** A bill whose print failed can be tried again from its preview, this many tries in all (#77, Q16). */
 export const BILL_PRINT_TRIES = 3;
 const CONNECT_PERMISSION = 'android.permission.BLUETOOTH_CONNECT';
@@ -624,7 +628,7 @@ const PrinterService = {
         close.type = 'button';
         close.className = 'btn btn-sm btn-ghost btn-icon printer-perm-notice__close';
         close.setAttribute('aria-label', t('ui.common.close'));
-        close.textContent = '×';
+        close.innerHTML = icon('x');
         close.addEventListener('click', () => {
             this.permissionBannerClosed = true;
             this.renderPermissionBanner();
@@ -906,57 +910,27 @@ const PrinterService = {
      */
     showImagePreview(canvas, filename, shareTitle = t('ui.bill.bill_no'), { onPrint } = {}) {
         try {
-            // Convert canvas to data URL
             const dataUrl = canvas.toDataURL('image/png');
-            
-            // Show in a modal or preview element
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.9);
-                z-index: 10000;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            `;
-            
+            // A standard app dialog (U-66): titled, takes focus, keeps Tab inside, Esc / Back / scrim close it, focus goes back
+            const { overlay: modal, box, body, footer } = buildSheet({ labelId: `printPreviewTitle${++previewSeq}`, title: t('ui.print.preview_title'), className: 'print-preview' });
+            box.classList.add('dialog-wide');
             const img = document.createElement('img');
             img.src = dataUrl;
-            img.style.cssText = `
-                max-width: 90%;
-                max-height: 80vh;
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            `;
-            
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = `
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: center;
-            `;
-            
+            img.alt = t('ui.print.preview_alt');
+            img.className = 'print-preview-img';
+            body.appendChild(img);
+            // No shop name yet (U-89): say where to add it, so the next slip says whose shop it is
+            if (!String(AppState.settings?.shopName || '').trim()) {
+                const hint = document.createElement('p');
+                hint.className = 'notice info print-preview-hint';
+                hint.textContent = t('ui.print.add_shop_name');
+                body.appendChild(hint);
+            }
+
             const downloadBtn = document.createElement('button');
+            downloadBtn.type = 'button';
+            downloadBtn.className = 'btn btn-tonal';
             downloadBtn.textContent = t(isNativeApp() ? 'ui.print.share_save' : 'ui.print.download');
-            downloadBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #15803d;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
             downloadBtn.onclick = async () => {
                 // Create a new canvas with padding
                 const padding = 20;
@@ -1006,38 +980,28 @@ const PrinterService = {
                     URL.revokeObjectURL(url);
                 }, 'image/png');
             };
-            
+
             const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'btn btn-ghost';
+            closeBtn.setAttribute('data-dismiss', '');
             closeBtn.textContent = t('ui.common.close');
-            closeBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #0058b8;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
-            closeBtn.onclick = () => document.body.removeChild(modal);
-            
-            buttonContainer.appendChild(downloadBtn);
-            buttonContainer.appendChild(closeBtn);
-            
-            modal.appendChild(img);
-            modal.appendChild(buttonContainer);
+            const close = () => {
+                if (!modal.parentNode) return;
+                closeSheet(modal);
+                modal.remove();
+            };
+            closeBtn.onclick = close;
+            footer.append(closeBtn, downloadBtn);
 
             let result = true;
             if (typeof onPrint === 'function') {
                 const printBtn = document.createElement('button');
+                printBtn.type = 'button';
                 printBtn.textContent = t('ui.print.print');
-                printBtn.className = 'print-preview-print-btn';
-                printBtn.style.cssText = closeBtn.style.cssText;
-                printBtn.style.background = '#111827';
-                buttonContainer.style.flexWrap = 'wrap';
-                buttonContainer.insertBefore(printBtn, downloadBtn);
+                printBtn.className = 'btn btn-primary print-preview-print-btn';
+                footer.appendChild(printBtn);
                 result = new Promise((resolve) => {
-                    const close = () => { if (modal.parentNode) modal.parentNode.removeChild(modal); };
                     closeBtn.onclick = () => { close(); resolve(false); };
                     printBtn.onclick = async () => {
                         close();
@@ -1049,8 +1013,11 @@ const PrinterService = {
                         }
                     };
                 });
+            } else {
+                downloadBtn.classList.replace('btn-tonal', 'btn-primary');
             }
             document.body.appendChild(modal);
+            openSheet(modal, { focus: closeBtn });
             
             return result;
         } catch (error) {
@@ -1080,139 +1047,7 @@ const PrinterService = {
             // Generate canvas for expense
             const canvas = await this.manager.generateExpenseCanvas(expense);
             
-            // Convert canvas to data URL
-            const dataUrl = canvas.toDataURL('image/png');
-            
-            // Show in a modal
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.9);
-                z-index: 10000;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            `;
-            
-            const img = document.createElement('img');
-            img.src = dataUrl;
-            img.style.cssText = `
-                max-width: 90%;
-                max-height: 80vh;
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            `;
-            
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = `
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: center;
-            `;
-            
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = t(isNativeApp() ? 'ui.print.share_save' : 'ui.print.download');
-            downloadBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #15803d;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
-            downloadBtn.onclick = async () => {
-                // Create a new canvas with padding
-                const padding = 20;
-                const paddedCanvas = document.createElement('canvas');
-                paddedCanvas.width = canvas.width + (padding * 2);
-                paddedCanvas.height = canvas.height + (padding * 2);
-                
-                const paddedCtx = paddedCanvas.getContext('2d');
-                paddedCtx.fillStyle = '#FFFFFF';
-                paddedCtx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-                paddedCtx.drawImage(canvas, padding, padding);
-                
-                const filename = `expense_${expense.id || Date.now()}.png`;
-                
-                // Convert canvas to blob for better mobile support
-                paddedCanvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        UIManager.showToast(t('msg.printer.failed_generate_image'), 'error');
-                        return;
-                    }
-                    
-                    if (await saveInApp(blob, filename, t('ui.today.expense'))) return;
-
-                    // Try Web Share API for mobile (allows saving to gallery)
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
-                        try {
-                            const file = new File([blob], filename, { type: 'image/png' });
-                            await navigator.share({
-                                files: [file],
-                                title: t('ui.today.expense')
-                            });
-                            return;
-                        } catch (e) {
-                            // User cancelled or share failed, fall through to download
-                            if (e.name !== 'AbortError') {
-                                console.warn('Share failed, trying download:', e);
-                            }
-                        }
-                    }
-                    
-                    // Fallback: Create blob URL and download
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }, 'image/png');
-            };
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = t('ui.common.close');
-            closeBtn.style.cssText = `
-                padding: 12px 24px;
-                background: #0058b8;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                cursor: pointer;
-                min-width: 140px;
-            `;
-            closeBtn.onclick = () => document.body.removeChild(modal);
-            
-            buttonContainer.appendChild(downloadBtn);
-            buttonContainer.appendChild(closeBtn);
-            
-            modal.appendChild(img);
-            modal.appendChild(buttonContainer);
-            
-            document.body.appendChild(modal);
-            
-            // Close on background click
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            };
-            
-            return true;
+            return this.showImagePreview(canvas, `expense_${expense.id || Date.now()}.png`, t('ui.today.expense'));
         } catch (error) {
             console.error('Failed to show expense preview:', error);
             UIManager.showToast(t('msg.printer.failed_generate_preview_2', { message: error.message }));

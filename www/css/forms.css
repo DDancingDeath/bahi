@@ -444,8 +444,8 @@ input[type="checkbox"].switch:focus-visible,
 
 .tabs > .on,
 .tabs > [aria-selected="true"] {
-  border-bottom-color: var(--ink);
-  color: var(--ink);
+  border-bottom-color: var(--seg-on-line);
+  color: var(--seg-on-ink);
 }
 
 /* ---------- Chips: .chip + aria-pressed (on/off), and tags ----------
@@ -468,11 +468,49 @@ input[type="checkbox"].switch:focus-visible,
   inset: calc((var(--control-h-sm) - var(--tap-min)) / 2) 0;
 }
 
+/* The chosen chip looks like the chosen segment (U-61): one "selected" look across segments, chips and tabs */
 .chip.on,
 .chip[aria-pressed="true"] {
-  border-color: var(--ink);
-  background-color: var(--ink);
-  color: var(--bg);
+  border-color: var(--seg-on-line);
+  background-color: var(--accent-soft);
+  box-shadow: var(--chip-on-ring);
+  color: var(--seg-on-ink);
+}
+
+/* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
+   .period is the component; .ins-period and .wp-month are its old hooks */
+:is(.period, .ins-period, .wp-month) {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+:is(.period, .ins-period, .wp-month) > .btn {
+  flex: none;
+  width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+}
+
+:is(.period-label, .ins-period-label),
+.wp-month > b {
+  flex: 1 0 auto;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: var(--w-strong);
+  text-align: center;
+}
+
+/* At large text the preset gives way first; the month name wraps only between words */
+:is(.period-preset, .ins-preset) {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: 45%;
+  border-color: var(--line-control);
+  border-radius: var(--r-chip);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
 }
 
 .tag {

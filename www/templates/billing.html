@@ -2,7 +2,7 @@
     <header class="page-head"><h2 data-i18n="ui.nav.billing">Billing</h2></header>
 
         <div class="bill-mode-row">
-        <div class="seg bill-mode" role="group">
+        <div class="seg bill-mode" role="group" aria-label="Bill type" data-i18n-aria-label="ui.billing.bill_type">
             <button type="button" class="active" id="purchaseModeBtn" aria-pressed="true" data-onclick="billing.switchMode('purchase', event)"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchase">Purchase</span></button>
             <button type="button" id="saleModeBtn" aria-pressed="false" data-onclick="billing.switchMode('sale', event)"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.billing.sale">Retail sale</span></button>
         </div>
@@ -99,7 +99,7 @@
                     <th data-i18n="ui.common.rate">Rate</th>
                     <th data-i18n="ui.common.qty">Qty</th>
                     <th data-i18n="ui.common.total">Total</th>
-                    <th></th>
+                    <th><span class="sr-only" data-i18n="ui.billing.col_remove">Remove</span></th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -291,7 +291,7 @@
                     <th data-i18n="ui.common.rate">Rate</th>
                     <th data-i18n="ui.common.qty">Qty</th>
                     <th data-i18n="ui.common.total">Total</th>
-                    <th></th>
+                    <th><span class="sr-only" data-i18n="ui.billing.col_remove">Remove</span></th>
                 </tr>
             </thead>
             <tbody></tbody>

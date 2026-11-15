@@ -169,7 +169,10 @@ describe('preview before print', () => {
     test('shows the bill with Print; nothing prints until Print is tapped', async () => {
         const result = PrinterService.printBill(bill);
         await new Promise(r => setTimeout(r, 0));
-        expect(buttons()).toEqual(['Print', 'Download', 'Close']);
+        // An app dialog (U-66): Close on the left, Print (the one primary) on the right
+        expect(buttons()).toEqual(['Close', 'Download', 'Print']);
+        expect(document.querySelector('.app-scrim [role="dialog"][aria-modal="true"]')).not.toBeNull();
+        expect(document.querySelector('.print-preview-img').alt).not.toBe('');
         expect(window.bluetoothSerial.write).not.toHaveBeenCalled();
         button('Print').click();
         expect(await result).toBe(true);

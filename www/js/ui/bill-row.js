@@ -317,7 +317,7 @@ export function billTableHtml(bills, { onclickFor, openings = [], voided = [], t
     const openingRows = group(openings, 'ui.history.old_dues_group');
     const voidedRows = group(voided, 'ui.void.group');
     return `
-        <div class="bill-table-scroll panel">
+        <div class="bill-table-scroll panel" tabindex="0" role="region" aria-label="${L('ui.history.table_view')}">
             <table class="table" data-bill-table>
                 <thead>
                     <tr>

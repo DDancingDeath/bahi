@@ -39,10 +39,15 @@
 }
 
 .auth-header {
-  background: var(--accent-strong);
-  color: var(--on-accent-strong);
+  border-top: 4px solid var(--accent);
+  background: var(--auth-head-bg);
+  color: var(--auth-head-ink);
   padding: var(--sp-8) var(--sp-6);
   text-align: center;
+}
+
+.auth-mark {
+  margin-bottom: var(--sp-3);
 }
 
 .auth-header h1 {

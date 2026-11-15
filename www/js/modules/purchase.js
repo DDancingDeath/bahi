@@ -138,7 +138,7 @@ const PurchaseManager = {
                 ${weights.map((w, i) => `
                     <div class="weight-chip">
                         <span>${formatKg(w)}</span>
-                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatKg(w) }))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>

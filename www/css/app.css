@@ -109,6 +109,7 @@
   --seg-on-line: var(--accent-text);
   --seg-on-ink: var(--accent-text);
   --seg-on-ring: inset 0 0 0 2px var(--seg-on-line);
+  --chip-on-ring: inset 0 0 0 1px var(--seg-on-line);
   /* A solid focus ring at 3:1 or more on every surface */
   --focus-ring: var(--accent-text);
   --focus: 0 0 0 3px var(--focus-ring);
@@ -127,6 +128,9 @@
   --btn-danger-bg: var(--negative-fill);
   --btn-danger-ink: #ffffff;
   --preview-apply-line: transparent;
+  /* Sign-in header: the deep accent in light; a dark surface with an accent stripe in dark (no bright block, U-48) */
+  --auth-head-bg: var(--accent-strong);
+  --auth-head-ink: var(--on-accent-strong);
   --r-md: calc(var(--r-control) + 2px);
   --r-lg: calc(var(--r-panel) + 2px);
 }
@@ -136,16 +140,17 @@
   [data-mode="dark"] {
     color-scheme: dark;
     --bg: #0d0d10;
-    --surface: #15151a;
-    --surface-2: #1c1c22;
-    --surface-3: #24242b;
+    /* Cards lifted off the page (U-48) */
+    --surface: #1e1e24;
+    --surface-2: #26262d;
+    --surface-3: #2f2f37;
     --line: rgba(255, 255, 255, 0.07);
     --line-strong: rgba(255, 255, 255, 0.14);
     --line-control: rgba(255, 255, 255, 0.38);
     --ink: #ececf1;
     --ink-2: #a8a8b5;
     --ink-3: #9a9aa7;
-    --ink-placeholder: #80808d;
+    --ink-placeholder: #8c8c99;
     --scrim: rgba(0, 0, 0, 0.56);
 
     --accent: #5b54e8;
@@ -182,6 +187,8 @@
     --state-hover: rgba(255, 255, 255, 0.06);
     --seg-on: var(--surface-3);
     --toast-bg: #2a2a32;
+    --auth-head-bg: var(--surface-2);
+    --auth-head-ink: var(--ink);
   }
 }
 
@@ -403,6 +410,97 @@ input[type="number"],
 .badge-info {
   background: var(--info-soft);
   color: var(--info);
+}
+
+/* ---- css/themes/sunlight.css ---- */
+/* High contrast / Sunlight (U-83): for the counter in bright sun. Black on white with dark edges and deep colours;
+   in dark, white on black with a yellow accent. Colours are screen-only, so printing uses the Modern light values. */
+@media screen {
+  [data-theme="sunlight"]:not([data-mode="dark"]) {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #ededed;
+    --surface-3: #dcdcdc;
+    --line: #8c8c8c;
+    --line-strong: #4d4d4d;
+    --line-control: #1f1f1f;
+    --ink: #000000;
+    --ink-2: #1a1a1a;
+    --ink-3: #333333;
+    --ink-placeholder: #4d4d4d;
+    --accent: #0038b8;
+    --accent-hover: #002d94;
+    --accent-strong: #002d94;
+    --accent-text: #00309e;
+    --accent-soft: #dde6ff;
+    --accent-line: #0038b8;
+    --mode-sale: #005c33;
+    --mode-sale-soft: #d6f0e2;
+    --mode-wholesale: #4b1aa8;
+    --mode-wholesale-soft: #e8defc;
+    --mode-rentals: #005566;
+    --positive: #005c33;
+    --positive-soft: #d6f0e2;
+    --negative: #a3001b;
+    --negative-soft: #ffe0e5;
+    --negative-fill: #a3001b;
+    --warning: #7a3d00;
+    --warning-soft: #ffeccc;
+    --info: #00477a;
+    --info-soft: #dcefff;
+    --e1: 0 0 0 1px #4d4d4d;
+    --seg-track: #dcdcdc;
+    --toast-bg: #000000;
+    --toast-ink: #ffffff;
+  }
+
+  [data-theme="sunlight"][data-mode="dark"] {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #0d0d0d;
+    --surface-2: #1a1a1a;
+    --surface-3: #262626;
+    --line: rgba(255, 255, 255, 0.4);
+    --line-strong: rgba(255, 255, 255, 0.6);
+    --line-control: rgba(255, 255, 255, 0.85);
+    --ink: #ffffff;
+    --ink-2: #f0f0f0;
+    --ink-3: #d6d6d6;
+    --ink-placeholder: #bdbdbd;
+    --accent: #ffd60a;
+    --accent-hover: #ffe14d;
+    --accent-strong: #3d3300;
+    --accent-text: #ffd60a;
+    --accent-soft: rgba(255, 214, 10, 0.18);
+    --accent-line: #ffd60a;
+    --on-accent: #000000;
+    --mode-sale: #4ef08f;
+    --on-mode-sale: #000000;
+    --mode-sale-soft: rgba(78, 240, 143, 0.18);
+    --mode-wholesale: #d2b4ff;
+    --on-mode-wholesale: #000000;
+    --mode-wholesale-soft: rgba(210, 180, 255, 0.18);
+    --mode-rentals: #6fe3f5;
+    --positive: #4ef08f;
+    --positive-soft: rgba(78, 240, 143, 0.18);
+    --negative: #ff9a9a;
+    --negative-soft: rgba(255, 154, 154, 0.18);
+    --negative-fill: #b00020;
+    --warning: #ffd60a;
+    --warning-soft: rgba(255, 214, 10, 0.18);
+    --info: #8fd6ff;
+    --info-soft: rgba(143, 214, 255, 0.18);
+    --caution-soft: rgba(255, 170, 80, 0.2);
+    --on-caution-soft: #ffc58a;
+    --seg-on: #262626;
+    --toast-bg: #ffffff;
+    --toast-ink: #000000;
+    --toast-pos: #005c33;
+    --toast-neg: #a3001b;
+    --toast-warn: #7a3d00;
+    --toast-info: #00309e;
+  }
 }
 
 /* ---- css/themes/vintage.css ---- */
@@ -1895,8 +1993,8 @@ input[type="checkbox"].switch:focus-visible,
 
 .tabs > .on,
 .tabs > [aria-selected="true"] {
-  border-bottom-color: var(--ink);
-  color: var(--ink);
+  border-bottom-color: var(--seg-on-line);
+  color: var(--seg-on-ink);
 }
 
 /* ---------- Chips: .chip + aria-pressed (on/off), and tags ----------
@@ -1919,11 +2017,49 @@ input[type="checkbox"].switch:focus-visible,
   inset: calc((var(--control-h-sm) - var(--tap-min)) / 2) 0;
 }
 
+/* The chosen chip looks like the chosen segment (U-61): one "selected" look across segments, chips and tabs */
 .chip.on,
 .chip[aria-pressed="true"] {
-  border-color: var(--ink);
-  background-color: var(--ink);
-  color: var(--bg);
+  border-color: var(--seg-on-line);
+  background-color: var(--accent-soft);
+  box-shadow: var(--chip-on-ring);
+  color: var(--seg-on-ink);
+}
+
+/* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
+   .period is the component; .ins-period and .wp-month are its old hooks */
+:is(.period, .ins-period, .wp-month) {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+:is(.period, .ins-period, .wp-month) > .btn {
+  flex: none;
+  width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+}
+
+:is(.period-label, .ins-period-label),
+.wp-month > b {
+  flex: 1 0 auto;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: var(--w-strong);
+  text-align: center;
+}
+
+/* At large text the preset gives way first; the month name wraps only between words */
+:is(.period-preset, .ins-preset) {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: 45%;
+  border-color: var(--line-control);
+  border-radius: var(--r-chip);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
 }
 
 .tag {
@@ -2277,9 +2413,21 @@ a.row:active {
   height: 100%;
 }
 
-/* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ---------- */
-.page-head {
-  display: none;
+/* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ----------
+   On the phone its h2 stays for screen readers, so headings go h1 (app bar) > h2 (page) > h3 (sections) (U-47) */
+@media (max-width: 1023.98px) {
+  .page-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .page-head > :not(h2) {
+    display: none;
+  }
 }
 
 /* ---------- Notice ---------- */
@@ -2656,10 +2804,15 @@ a.row:active {
 }
 
 .auth-header {
-  background: var(--accent-strong);
-  color: var(--on-accent-strong);
+  border-top: 4px solid var(--accent);
+  background: var(--auth-head-bg);
+  color: var(--auth-head-ink);
   padding: var(--sp-8) var(--sp-6);
   text-align: center;
+}
+
+.auth-mark {
+  margin-bottom: var(--sp-3);
 }
 
 .auth-header h1 {
@@ -3154,9 +3307,41 @@ body {
   content: ' · ';
 }
 
-/* The business mark and the Alt+N hints are desktop only (desktop.css) */
-.nav-mark,
+/* The Alt+N hints are desktop only (desktop.css) */
 .nav-kbd {
+  display: none;
+}
+
+/* The Bahi mark (U-90): white B with the sage corner on the charcoal tile, the same in every theme */
+.nav-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: linear-gradient(var(--brand-tile-top), var(--brand-tile) 55%);
+  box-shadow: var(--brand-tile-ring);
+  color: var(--brand-ink);
+}
+
+.nav-mark-bahi {
+  width: 100%;
+  height: 100%;
+  fill: var(--brand-corner);
+}
+
+/* The shop's own name under "Bahi" */
+.nav-shop {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+  overflow-wrap: anywhere;
+}
+
+.nav-shop[hidden] {
   display: none;
 }
 
@@ -3230,9 +3415,9 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
 
   .nav-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    column-gap: var(--sp-2);
+    column-gap: var(--sp-3);
     padding: var(--sp-1) var(--sp-2) var(--sp-3) var(--gutter);
   }
 
@@ -3240,20 +3425,29 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
     display: contents;
   }
 
-  .nav-header h2 {
+  .nav-mark {
     grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .nav-header h2 {
+    grid-column: 2;
     font-size: var(--fs-lead);
   }
 
+  .nav-shop,
   .nav-user {
-    grid-column: 1;
+    grid-column: 2;
+  }
+
+  .nav-user {
     margin-top: 0;
     color: var(--ink-3);
   }
 
   .nav-close {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-column: 3;
+    grid-row: 1 / span 3;
   }
 
   /* Not "all": an inherited visibility change would be animated too, and the sheet's controls could not take focus as it opens */
@@ -3351,8 +3545,9 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
   }
 }
 
-/* A short screen (a phone on its side): the whole sheet scrolls, not only the page grid between the header and Settings */
-@media (max-width: 1023.98px) and (max-height: 480px) {
+/* One scroll for the whole sheet (U-63): the header, the page groups and Settings as the last tile move together,
+   so nothing is hidden in an inner scroll at large text or on a phone on its side */
+@media (max-width: 1023.98px) {
   .side-nav {
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -7280,6 +7475,20 @@ tr.bill-check-line .bill-check-msg {
   color: var(--ink);
 }
 
+/* Print preview (U-66): the receipt picture keeps its own black on white; the frame is an app dialog */
+.print-preview-img {
+  display: block;
+  max-width: 100%;
+  max-height: 62vh;
+  margin: 0 auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+.print-preview-hint {
+  margin: var(--sp-3) 0 0;
+}
+
 .dialog-body {
   flex: 1;
   min-height: 0;
@@ -8067,8 +8276,9 @@ body.no-perm-contacts [data-perm~="contacts"] {
 /* ---- css/day.css ---- */
 /* ==================== DAY PAGE STYLES ==================== */
 
+/* The page's own gutter comes from .tab (--gutter); no second side padding here (U-64) */
 .day-container {
-  padding: var(--sp-5);
+  padding: 0;
 }
 
 .day-tabs {
@@ -9395,7 +9605,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
     text-align: center;
 }
 
-.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: 44px; padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
+.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: var(--tap-min); padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
 
 .ins-more { align-self: flex-end; margin-top: var(--sp-1); }
 .ins-more[aria-expanded="true"] .ins-cmp-chev { transform: rotate(180deg); }
