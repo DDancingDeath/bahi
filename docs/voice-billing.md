@@ -2,7 +2,7 @@
 
 Status: in the app, **off by default**: the whole bill by voice (#498: party, lines, bag
 weights, rate, payment, labour, note, day) through one check sheet, a name mic in the
-Supplier / Customer field, hold-to-talk, and a spoken readback (#81 A1–A3). The web header
+Customer field (Purchase and Retail sale), hold-to-talk, and a spoken readback (#81 A1–A3). The web header
 (#266) and the Android recogniser (#267) are in, so it runs in Chrome and in the Android
 app; #498 fixed the Android microphone flow (see "Android app").
 
@@ -62,7 +62,7 @@ matches in any script and spelling (`looseWord`: "रमेश" = "ramesh"), hon
 party only when exactly one fits exactly and no other is close; otherwise the pick list starts
 on "Use '<as said>'" and is marked, and the user chooses.
 
-**Name mic.** A small 🎤 inside the Supplier / Customer field, beside the contact button
+**Name mic.** A small 🎤 inside the Customer field (Purchase and Retail sale), beside the contact button
 (44+ px, en/hi label; only while voice billing is on). A tap listens once for a name ("Ramesh
 bhai se" → "Ramesh Bhai"), then lists the closest known parties (with what is open on them),
 "Use '<as said>'" and, where the phone can pick contacts, "Pick from phone contacts". Nothing

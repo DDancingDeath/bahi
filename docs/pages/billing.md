@@ -78,7 +78,7 @@ While a bill is being typed:
   owner, the day ("kal"). A **check sheet** shows everything understood, marks what is unclear, lets each
   part be changed or unticked, and **Hold to add more** adds to it. Only **Fill bill** puts it on the page,
   as typing would; voice never saves. A party is picked only when exactly one known party fits; otherwise
-  the sheet asks. The small 🎤 in the Supplier / Customer field (beside the contact button) listens for a
+  the sheet asks. The small 🎤 in the Customer field (Purchase and Retail sale) (beside the contact button) listens for a
   name and lists the closest parties (any script: "रमेश" ~ "Ramesh Bhai") and "Use … as said". A heard
   line can be corrected in the sheet (**Correct**: item, kg, rate); what was heard stays in a line under
   🎤; **Undo voice** (or saying "undo") takes back the last voice change; Settings can add a short beep
