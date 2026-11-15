@@ -9480,7 +9480,9 @@ body.no-perm-contacts [data-perm~="contacts"] {
 #dayTodayContent .items-grid { gap: 0; }
 
 /* Hero: net (T12), in (T10) and out (T11) */
-.today-inout { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-2); font-size: var(--fs-sm); }
+/* "New bill" beside the net figure, for every role (U-35) */
+.today-new-bill { float: right; gap: var(--sp-1); margin-left: var(--sp-3); }
+.today-inout { clear: both; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-2); font-size: var(--fs-sm); }
 .today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
 .today-in .i { color: var(--positive); }
 .today-out .i { color: var(--ink-3); }

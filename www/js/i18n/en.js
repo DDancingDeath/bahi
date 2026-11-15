@@ -1427,6 +1427,7 @@ export default {
     'ui.today.labour_note': "Deducted is the labour ticked on each bill (heavy packets × rate). Paid to labourers is today's business expenses of type Labour (also Labor, Labourers, or Labour and wages written in Hindi). The estimate to pay is today's total kg ÷ package weight, rounded up, × the same rate. Deducted and paid differ when labour was unticked on a bill, when packets were light, or when the labourers were paid more or less than the bills deducted.",
     'ui.today.net_inflow': "More came in than went out",
     'ui.today.net_outflow': "More went out than came in",
+    'ui.today.new_bill': "New bill",
     'ui.today.no_purchases_today': "No purchases today",
     'ui.today.no_sales_today': "No sales today",
     'ui.today.online_in': "Online in",
