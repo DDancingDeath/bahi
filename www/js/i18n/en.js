@@ -1489,6 +1489,7 @@ export default {
     'ui.trends.no_items_changes': "No Rates-page rate changes since {date}.",
     'ui.trends.no_movement': "No bills for this item in {month}.",
     'ui.trends.not_enough': "{label}: Not enough history",
+    'ui.trends.not_enough_all': "Not enough history yet to show rate trends",
     'ui.trends.not_enough_explain': "Not enough history yet: needs {from} and {to} rates from at least {min} past years (have {have}).",
     'ui.trends.paused': "History build paused: {bills} bills read so far ({reads} reads).",
     'ui.trends.progress': "{bills} bills, {reads} reads",

@@ -1489,6 +1489,7 @@ export default {
     'ui.trends.no_items_changes': "{date} के बाद रेट पेज पर रेट नहीं बदला।",
     'ui.trends.no_movement': "{month} में इस आइटम का कोई बिल नहीं।",
     'ui.trends.not_enough': "{label}: पूरा इतिहास नहीं",
+    'ui.trends.not_enough_all': "भाव का रुख़ दिखाने के लिए अभी पुराना हिसाब काफ़ी नहीं",
     'ui.trends.not_enough_explain': "अभी पूरा इतिहास नहीं है: कम से कम {min} पिछले सालों के {from} और {to} के रेट चाहिए (अभी {have})।",
     'ui.trends.paused': "इतिहास बनाना रुका है: अब तक {bills} बिल पढ़े गए ({reads} रीड)।",
     'ui.trends.progress': "{bills} बिल, {reads} रीड",
