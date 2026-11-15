@@ -8810,22 +8810,18 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 /* ---- css/app-updates.css ---- */
-/* What's new notes (an app dialog), Android update banner, Settings → App updates */
+/* What's new notes (an app dialog), Android update card, Settings → App updates */
 
 .whats-new-notes {
   margin: 0;
   padding-left: var(--sp-5);
 }
 
+/* Android update card: in the page at the top of Today, so it never covers a control */
 .app-update {
-  position: fixed;
-  left: var(--sp-2);
-  right: var(--sp-2);
-  bottom: calc(var(--sp-2) + env(safe-area-inset-bottom, 0px));
-  z-index: calc(var(--z-sheet) - 1);
   flex-wrap: wrap;
   align-items: center;
-  box-shadow: var(--e3);
+  margin-bottom: var(--sp-3);
 }
 
 .app-update-text {
