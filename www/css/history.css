@@ -340,6 +340,32 @@
   color: var(--ink);
 }
 
+/* Large text (U-17): the party gets its own line under the bill number, so neither is cut to a few letters */
+@media (max-width: 1023px) {
+  :has(> [data-history-item][data-bill-row]) {
+    container-type: inline-size;
+  }
+}
+
+@container (max-width: 18em) {
+  [data-history-item][data-bill-row] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "no amount"
+      "party party"
+      "meta meta";
+  }
+
+  .bill-row__party {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bill-row__party:not(:has(strong)) {
+    display: none;
+  }
+}
+
 .bill-row__amount {
   grid-area: amount;
   text-align: right;
