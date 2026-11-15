@@ -345,21 +345,9 @@
     display: none;
   }
 
-  /* ---------- Billing: mode and the drafts toolbar share one row under the page header (4.2) ---------- */
-  .tab > .bill-mode:has(+ .bill-toolbar) {
-    float: left;
-    width: min(360px, 40%);
-    margin: 0 var(--sp-4) var(--sp-4) 0;
-  }
-
-  .tab > .bill-toolbar {
-    min-height: var(--control-h);
-    margin-bottom: var(--sp-4);
-    padding-top: var(--sp-1);
-  }
-
-  .tab > .bill-toolbar ~ * {
-    clear: both;
+  /* ---------- Billing: Purchase / Retail sale keep their phone width; ⋯ stays at the row's end (4.2) ---------- */
+  .bill-mode-row > .bill-mode {
+    flex: 0 1 360px;
   }
 
   /* ---------- Billing: entry left, sticky bill summary right ---------- */

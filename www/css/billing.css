@@ -365,10 +365,6 @@ input[type="number"] {
   }
 }
 /* Voice billing (#81): shown only when switched on in Settings */
-.btn[data-voice-mic] {
-  margin-bottom: var(--sp-3);
-}
-
 .btn[data-voice-mic].voice-listening {
   background-color: var(--negative-soft);
   color: var(--negative);
@@ -390,37 +386,55 @@ input[type="number"] {
   flex: 1 1 auto;
 }
 
-/* ---------- Billing entry (redesign 3.1a): labels above, ₹ / kg in the field, one line panel ---------- */
-.bill-mode {
-  margin-bottom: var(--sp-3);
-}
-
-.bill-toolbar {
+/* ---------- Billing entry (redesign 3.1a): ₹ / kg in the field, one line panel ---------- */
+/* Purchase / Retail sale and the ⋯ menu on one row */
+.bill-mode-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
 }
 
-.bill-toolbar > .btn {
-  padding: 0 var(--sp-3);
-  color: var(--ink-2);
-  font-weight: var(--w-label);
+.bill-mode-row > .bill-mode {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-/* Save draft and Clear sit in the ⋯ menu at the end of the row (Drafts shows only when there are some) */
+/* Drafts (only when there are some), Save draft and Clear sit in the ⋯ menu; a badge on ⋯ counts the drafts */
 .bill-menu {
   position: relative;
+  flex: none;
   margin-left: auto;
 }
 
 .bill-menu > summary {
+  position: relative;
   list-style: none;
   color: var(--ink-2);
 }
 
 .bill-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bill-menu-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--sp-1);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--fs-label);
+  font-weight: var(--w-strong);
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-menu-badge[hidden] {
   display: none;
 }
 
@@ -651,6 +665,76 @@ input[type="number"] {
   min-height: 48px;
   margin-bottom: var(--sp-3);
   white-space: nowrap;
+}
+
+/* Purchase / Retail sale: the name and the line's fields carry floating labels (.field-float) */
+.field-float.bill-customer {
+  margin-bottom: var(--sp-4);
+}
+
+/* Item | Rate | 🎙 and Weight | 📷 | Add; a hidden tool button leaves its room to the fields */
+.bill-entry-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.bill-entry-row:first-child {
+  margin-top: 0;
+}
+
+.bill-entry-row > .field-float {
+  flex: 1 1 0;
+}
+
+.bill-entry-row > .bill-entry-item {
+  flex-grow: 1.6;
+}
+
+.bill-entry-row .input {
+  min-height: 48px;
+}
+
+.bill-entry-item > .input {
+  padding-left: var(--sp-3);
+}
+
+.bill-entry-rate .adorn-pre {
+  padding: 0 var(--sp-2);
+}
+
+.bill-entry-rate .input {
+  padding: 0 var(--sp-2);
+  text-overflow: ellipsis;
+}
+
+.bill-entry-row > .bill-entry-tool {
+  flex: none;
+  width: 48px;
+  min-height: 48px;
+}
+
+.bill-entry-row > [data-add-weight] {
+  flex: none;
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+/* A live check message under a field (bill-highlight.js) takes its own line below the row */
+.bill-entry-row > .bill-check-msg {
+  flex: 1 0 100%;
+  order: 1;
+}
+
+/* What voice heard and Undo voice, right under Item | Rate | 🎙; no gap while both are hidden */
+.bill-entry-row + .voice-strip {
+  margin: 0;
+}
+
+.bill-entry-row + .voice-strip > * {
+  margin-top: var(--sp-2);
 }
 
 #billing .bill-line-sum {

@@ -252,6 +252,43 @@ select:not([multiple]):not([size]) {
   border-bottom-right-radius: 0;
 }
 
+/* ---------- Floating-label field: .field-float > label[for] + control ----------
+   The label sits on the control's top border and stays there with or without a value (never a placeholder as
+   label). The control is an .input, an .adorn or a wrapper holding one. The label's lower half takes the field
+   colour to cut the border; its upper half is clear, so it works on any surface. Leave about --sp-3 above. */
+.field-float {
+  position: relative;
+  min-width: 0;
+}
+
+.field-float > label {
+  position: absolute;
+  top: 0;
+  left: var(--sp-2);
+  z-index: var(--z-base);
+  max-width: calc(100% - var(--sp-4));
+  margin: 0;
+  padding: 0 var(--sp-1);
+  overflow: hidden;
+  background: linear-gradient(transparent 50%, var(--input-bg) 50%);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  font-weight: var(--w-label);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transform: translateY(-50%);
+}
+
+.field-float > .input,
+.field-float > .adorn {
+  width: 100%;
+}
+
+.field-float:focus-within > label {
+  color: var(--accent-text);
+}
+
 /* ---------- Search field: .search-field > .i (decorative, aria-hidden) + .input with its own label ---------- */
 .search-field {
   position: relative;

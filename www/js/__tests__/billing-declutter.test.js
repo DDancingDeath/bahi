@@ -215,7 +215,7 @@ describe('4. Drafts only with drafts; Save draft and Clear in the ⋯ menu', () 
     });
 
     test('Save draft and Clear sit inside the menu', () => {
-        const menu = document.querySelector('.bill-toolbar details.bill-menu');
+        const menu = document.querySelector('.bill-mode-row details.bill-menu');
         expect(menu.contains($('saveDraftBtn'))).toBe(true);
         expect(menu.contains($('clearBillBtn'))).toBe(true);
     });

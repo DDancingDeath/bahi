@@ -6,7 +6,7 @@ switched on in the Firebase project first (console steps below). Purchase bills 
 
 ## What it does
 
-When on, Purchase billing shows **Photo of weights** under the weight box, for everyone:
+When on, Purchase billing shows the **Photo of weights** camera button beside the weight box, for everyone:
 owner, managers and members. One tap:
 
 1. opens the phone's camera (`<input type="file" accept="image/*" capture="environment">`;

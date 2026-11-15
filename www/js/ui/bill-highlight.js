@@ -103,7 +103,7 @@ export function showFieldError(inputId, message) {
     msg.dataset.fieldError = '';
     msg.setAttribute('role', 'alert');
     msg.textContent = message;
-    (el.closest('.bill-form-field, .field') || el).insertAdjacentElement('afterend', msg);
+    (el.closest('.bill-form-field, .field-float, .field') || el).insertAdjacentElement('afterend', msg);
     el.setAttribute('aria-invalid', 'true');
     const ids = new Set((el.getAttribute('aria-describedby') || '').split(' ').filter(Boolean));
     ids.add(msgId);
@@ -180,7 +180,7 @@ function placeFieldIssue(cfg, issue, n) {
     if (!anchor) return null;
     const msgId = `billcheck-${cfg.kind}-${n}`;
     inputs.forEach(el => mark(el, issue.severity, msgId));
-    const row = anchor.closest('.bill-form-field, .pay-line') || anchor;
+    const row = anchor.closest('.bill-form-field, .field-float, .pay-line') || anchor;
     let after = row;
     while (after.nextElementSibling?.classList.contains('bill-check-msg')) after = after.nextElementSibling;
     after.insertAdjacentElement('afterend', messageEl(issue, msgId));
