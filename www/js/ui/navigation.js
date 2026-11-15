@@ -66,6 +66,10 @@ const ROUTES = Object.freeze({
     'settings-aadhat': { tab: 'settings', section: 'shop', id: 'settings-shop' },
     'admin-configure': { tab: 'settings', section: 'shop', id: 'settings-shop' },
 
+    // One Cash screen (U-32): Today › Cash. The old Cash page route (Money's cash drawer link) opens it.
+    'day-cash': { tab: 'day', section: 'cash', nav: 'day' },
+    'cash-management': { tab: 'day', section: 'cash', id: 'day-cash', nav: 'day' },
+
     // Ask (#88) replaced the unused Chat page.
     chat: { tab: 'ask', id: 'ask' }
 });
@@ -307,13 +311,16 @@ const NavigationManager = {
             setTimeout(() => window.app.health.init(), 100);
         }
         
-        // Initialize Day page when Day tab is shown
-        if (tabId === 'day' && window.app?.day) {
-            setTimeout(() => window.app.day.init(), 100);
+        // Initialize Day page when Day tab is shown (day-cash opens its Cash tab)
+        if (route.tab === 'day' && window.app?.day) {
+            setTimeout(() => {
+                window.app.day.init();
+                if (route.section === 'cash') window.app.day.showSubTab('cash');
+            }, 100);
         }
         
         // Initialize cash management when Cash Management tab is shown
-        if (tabId === 'cash-management' && window.app?.cashManagement) {
+        if (route.tab === 'cash-management' && window.app?.cashManagement) {
             window.app.day?.returnCashBody?.();
             setTimeout(() => window.app.cashManagement.init(), 100);
         }

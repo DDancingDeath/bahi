@@ -131,6 +131,8 @@ const STATIC_ASSETS = [
     '/js/ui/seg.js',
     '/js/ui/sticky-focus.js',
     '/js/ui/sync-status.js',
+    '/js/ui/sync-sheet.js',
+    '/js/ui/boot-splash.js',
     '/js/ui/theme.js',
     '/js/ui/icons.js',
     '/js/ui/components.js',

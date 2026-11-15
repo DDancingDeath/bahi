@@ -1032,6 +1032,10 @@ window.app = {
     business: {
         set: (biz) => BusinessSwitcher.set(biz)
     },
+    // Sync pill (U-04): the list of changes not sent yet
+    sync: {
+        openSheet: () => import('./ui/sync-sheet.js').then(m => m.openSyncSheet())
+    },
     rentals: {
         open: (page, evt) => BusinessSwitcher.openRentals(page, evt)
     },

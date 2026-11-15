@@ -1,5 +1,5 @@
 <div id="cash-management" class="tab">
-    <header class="page-head"><h2 data-i18n="ui.nav.today">Today</h2></header>
+    <header class="page-head"><h2 data-i18n="ui.today.cash_management">Cash</h2></header>
     <div class="cash-body">
 
         <!-- Today's cash (C7): what is in the drawer now, then the day's figures -->
@@ -126,6 +126,8 @@
         <section id="cashSignOutSection" class="panel panel-pad cash-panel cash-off" aria-labelledby="cashSignOutTitle">
             <h3 class="cash-title" id="cashSignOutTitle" data-i18n="ui.cash.cash_sign_out">Close cash</h3>
             <div id="cashLongOpen" class="cash-long-open" role="status" hidden></div>
+            <!-- A count saved on this phone while offline (U-32) -->
+            <div id="cashOfflineCount" class="notice info" role="status" hidden></div>
 
             <h4 class="cash-sub-title" data-i18n="ui.cash.today_s_transactions">Today's transactions</h4>
             <div class="cash-sum">
