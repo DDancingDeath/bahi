@@ -449,7 +449,7 @@ body {
 .bottom-nav-item {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 56px;
+  min-height: var(--bottomnav-h);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -501,6 +501,18 @@ body {
 body.biz-rentals .bottom-nav,
 body.typing .bottom-nav {
   display: none;
+}
+
+/* On its side the label sits beside the icon, so the bar is one line high */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  .bottom-nav-item {
+    flex-direction: row;
+    gap: var(--sp-2);
+  }
+
+  .bottom-nav-icon {
+    padding: var(--sp-1) var(--sp-2);
+  }
 }
 
 .pull-refresh {

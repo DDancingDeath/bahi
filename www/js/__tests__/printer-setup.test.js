@@ -279,6 +279,43 @@ describe('Bluetooth off or missing', () => {
     });
 });
 
+describe('Nearby devices permission (Android 12+)', () => {
+    afterEach(() => {
+        delete window.cordova;
+        delete window.Capacitor;
+    });
+
+    const permissions = (granted, asked = []) => ({
+        plugins: {
+            permissions: {
+                BLUETOOTH_CONNECT: 'android.permission.BLUETOOTH_CONNECT',
+                checkPermission: jest.fn((name, ok) => ok({ hasPermission: false })),
+                requestPermission: jest.fn((name, ok) => { asked.push(name); ok({ hasPermission: granted }); })
+            }
+        }
+    });
+
+    test('Scan asks only for Nearby devices, never for location', async () => {
+        mockPlugin();
+        const asked = [];
+        window.cordova = permissions(true, asked);
+        await PrinterService.scanDevices();
+        expect(asked).toEqual(['android.permission.BLUETOOTH_CONNECT']);
+        expect(window.bluetoothSerial.list).toHaveBeenCalledTimes(1);
+    });
+
+    test('refused: says how to allow it in Hindi or English, with a button to the app settings', async () => {
+        mockPlugin();
+        const openAppSettings = jest.fn(() => Promise.resolve({ opened: true }));
+        window.Capacitor = { isNativePlatform: () => true, Plugins: { AppShell: { openAppSettings } } };
+        window.cordova = permissions(false);
+        await expect(PrinterService.scanDevices()).rejects.toMatchObject({ kind: 'permission' });
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('Nearby devices'), 'Allow Nearby devices', true, { confirmLabel: 'Open settings' });
+        expect(openAppSettings).toHaveBeenCalledTimes(1);
+        expect(window.bluetoothSerial.list).not.toHaveBeenCalled();
+    });
+});
+
 test('Test Print runs once while a test is printing; the button is disabled meanwhile', async () => {
     mockPlugin();
     AppState.printerSettings = usePrinter({ enabled: true }, { deviceId: 'A', deviceName: 'P' });

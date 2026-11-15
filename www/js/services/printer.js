@@ -15,6 +15,7 @@ import {
     paperDots, rasterThreshold, receiptLang
 } from '../utils/printer-settings.js';
 import { safeSetItem } from '../utils/storage-full.js';
+import { shellMethod } from '../utils/native-shell.js';
 
 /** Dots darker than this (average of R,G,B) print black */
 const RASTER_THRESHOLD = 128;
@@ -172,63 +173,22 @@ class BluetoothPrinterManager {
             throw new Error(errorMsg);
         }
         
-        // Request Bluetooth runtime permissions. BLUETOOTH_SCAN/CONNECT only exist on
-        // Android 12+ (API 31); requesting them on Android 11 always reports "denied".
-        if (window.cordova && window.cordova.plugins && window.cordova.plugins.permissions) {
-            const permissions = window.cordova.plugins.permissions;
-            const permissionsToRequest = [];
-            if (getAndroidMajorVersion() >= 12) {
-                permissionsToRequest.push(
-                    permissions.BLUETOOTH_SCAN || 'android.permission.BLUETOOTH_SCAN',
-                    permissions.BLUETOOTH_CONNECT || 'android.permission.BLUETOOTH_CONNECT'
-                );
-            }
-            permissionsToRequest.push(
-                permissions.ACCESS_FINE_LOCATION || 'android.permission.ACCESS_FINE_LOCATION'
-            );
-            
-            try {
-                // Check each permission individually
-                for (const permission of permissionsToRequest) {
-                    await new Promise((resolve, reject) => {
-                        permissions.checkPermission(permission, (status) => {
-                            if (status.hasPermission) {
-                                resolve();
-                            } else {
-                                permissions.requestPermission(
-                                    permission,
-                                    (result) => {
-                                        if (result.hasPermission) {
-                                            resolve();
-                                        } else {
-                                            reject(new Error('Permission denied: ' + permission));
-                                        }
-                                    },
-                                    () => reject(new Error('Failed to request permission: ' + permission))
-                                );
-                            }
-                        }, () => {
-                            // Permission check failed, try to request anyway
-                            permissions.requestPermission(
-                                permission,
-                                (result) => {
-                                    if (result.hasPermission) {
-                                        resolve();
-                                    } else {
-                                        reject(new Error('Permission denied: ' + permission));
-                                    }
-                                },
-                                () => reject(new Error('Failed to request permission: ' + permission))
-                            );
-                        });
-                    });
+        // Listing paired printers needs only Nearby devices (BLUETOOTH_CONNECT) on Android 12+, and nothing
+        // before that: no location prompt (the scan permission is declared neverForLocation).
+        const permissions = window.cordova?.plugins?.permissions;
+        if (permissions && getAndroidMajorVersion() >= 12) {
+            const name = permissions.BLUETOOTH_CONNECT || CONNECT_PERMISSION;
+            const granted = await new Promise((resolve) => {
+                const ask = () => permissions.requestPermission(name, (r) => resolve(!!r?.hasPermission), () => resolve(false));
+                try {
+                    permissions.checkPermission(name, (st) => (st?.hasPermission ? resolve(true) : ask()), ask);
+                } catch {
+                    resolve(false);
                 }
-            } catch (permError) {
-                console.error('[SCAN] Permission error:', permError);
-                throw new Error('Bluetooth permissions required. Please grant all permissions when prompted, or enable them manually in app settings.');
-            }
+            });
+            if (!granted) throw Object.assign(new Error('Bluetooth permission denied'), { kind: 'permission' });
         }
-        
+
         await this.link.enableBluetooth();
         UIManager.showLoading();
         try {
@@ -263,6 +223,20 @@ class BluetoothPrinterManager {
 }
 
 let drawingLoading = null;
+
+const isNativeApp = () => !!window.Capacitor?.isNativePlatform?.();
+
+/**
+ * The Android app's WebView has no Web Share and drops downloads, so a preview's picture goes to
+ * Android's share sheet (save to Files, WhatsApp, …) through the exporter; the web keeps its own path.
+ * @returns {Promise<boolean>} true when handled here (the Android app)
+ */
+async function saveInApp(blob, filename, title) {
+    if (!isNativeApp()) return false;
+    const { Exporter } = await import('./exporter.js');
+    await Exporter.saveBlob(blob, filename, { title });
+    return true;
+}
 /**
  * Receipt drawing (services/receipt-drawing.js, #59): imported on the first print or preview
  * (main.js also starts it when the phone is idle after the first screen), with both language
@@ -287,7 +261,12 @@ const PrinterService = {
             return devices;
         } catch (error) {
             console.error('Printer scan error:', error);
-            UIManager.showToast(t('msg.printer.failed_scan_devices', { message: this.errorText(error) }));
+            if (error?.kind === 'permission') {
+                if (this._permissions()) this.setPermissionState('denied');
+                await this.offerAppSettings();
+            } else {
+                UIManager.showToast(t('msg.printer.failed_scan_devices', { message: this.errorText(error) }));
+            }
             throw error;
         }
     },
@@ -588,8 +567,24 @@ const PrinterService = {
             }
         });
         this.setPermissionState(granted ? 'granted' : 'denied');
-        if (!granted) UIManager.showToast(t('msg.printer.permission_in_settings'), 'warning');
+        if (!granted) await this.offerAppSettings();
         return granted;
+    },
+
+    /**
+     * Nearby devices was refused (maybe with "Don't ask again", when Android no longer asks): says how
+     * to allow it, with a button to this app's Android settings page when the app can open it.
+     * @returns {Promise<void>}
+     */
+    async offerAppSettings() {
+        const open = shellMethod('openAppSettings');
+        if (!open) {
+            UIManager.showToast(t('msg.printer.permission_in_settings'), 'warning');
+            return;
+        }
+        const go = await UIManager.showModal(t('msg.printer.permission_open_settings'), t('ui.printer.permission_title'), true,
+            { confirmLabel: t('ui.common.open_settings') });
+        if (go) await open().catch(() => UIManager.showToast(t('msg.printer.permission_in_settings'), 'warning'));
     },
 
     /** @param {'granted'|'denied'|'unknown'} state */
@@ -935,7 +930,7 @@ const PrinterService = {
             const downloadBtn = document.createElement('button');
             downloadBtn.type = 'button';
             downloadBtn.className = 'btn btn-tonal';
-            downloadBtn.textContent = t('ui.print.download');
+            downloadBtn.textContent = t(isNativeApp() ? 'ui.print.share_save' : 'ui.print.download');
             downloadBtn.onclick = async () => {
                 // Create a new canvas with padding
                 const padding = 20;
@@ -955,6 +950,8 @@ const PrinterService = {
                         return;
                     }
                     
+                    if (await saveInApp(blob, filename, shareTitle)) return;
+
                     // Try Web Share API for mobile (allows saving to gallery)
                     if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
                         try {

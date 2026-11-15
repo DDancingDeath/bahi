@@ -636,6 +636,37 @@
   }
 }
 
+/* A phone on its side: Save stays pinned above the low tab bar unless the keyboard is open
+   (.bill-actions is only on the Billing and Wholesale bill pages) */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  body:not(.typing) .tab .bill-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--bottomnav-h);
+    z-index: calc(var(--z-appbar) - 10);
+    margin: 0;
+    padding: var(--sp-2) var(--sp-4);
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  body.biz-rentals:not(.typing) .tab .bill-actions {
+    bottom: 0;
+  }
+
+  body:not(.typing) .tab:has(.bill-actions) {
+    animation-name: bill-fade-in;
+    padding-bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-10));
+    scroll-padding-bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-4));
+  }
+
+  body:not(.typing):has(.tab.active .bill-actions) .toast,
+  body:not(.biz-rentals):not(.typing):has(.tab.active .bill-actions) .app-update {
+    bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-4));
+  }
+}
+
 @keyframes bill-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

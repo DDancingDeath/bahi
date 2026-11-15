@@ -43,6 +43,23 @@
             --sp-6: 24px;
         }
         html[lang="hi"] { --fs-sm: 14px; --fs-body: 16px; }
+        /* Dark tokens copied from css/variables.css [data-mode="dark"] (download-tokens.test.js); the header is a
+           dark surface with a coloured edge instead of a bright block */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                color-scheme: dark;
+                --bg: #0d0d10;
+                --surface: #15151a;
+                --line: rgba(255, 255, 255, 0.07);
+                --ink: #ececf1;
+                --ink-2: #a8a8b5;
+                --accent-text: #a5a6fb;
+                --mode-sale: #057a55;
+                --state-hover: rgba(255, 255, 255, 0.06);
+                --focus: 0 0 0 3px rgba(124, 120, 248, 0.4);
+            }
+            header { background: var(--surface); color: var(--ink); border-bottom: var(--sp-1) solid var(--accent-text); }
+        }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: var(--font-ui); font-size: var(--fs-body); background: var(--bg); color: var(--ink); line-height: 1.5; }
         header { background: var(--accent-strong); color: var(--on-accent-strong); padding: var(--sp-6) var(--sp-4); text-align: center; }
@@ -124,8 +141,8 @@
                     <li>ऊपर हरे बटन <b>"डाउनलोड करें"</b> को दबाएँ। फ़ाइल डाउनलोड होने तक रुकें।</li>
                     <li>डाउनलोड पूरा होने पर सूचना में या फ़ोन के फ़ाइल वाले ऐप (<b lang="en">Files</b>) में <b data-happa="apkFile">bahi.apk</b> खोलें।</li>
                     <li>अगर लिखा आए कि इस स्रोत से ऐप इंस्टॉल करने की अनुमति नहीं है, तो <b>सेटिंग</b> दबाएँ और <b>"इस स्रोत से अनुमति दें"</b> चालू करें। फिर वापस आएँ।</li>
-                    <li><b>इंस्टॉल</b> (पहली बार) या <b>अपडेट</b> (पहले से ऐप है) दबाएँ।</li>
-                    <li>पुराना ऐप हटाने की ज़रूरत नहीं है — नया वर्ज़न उसी के ऊपर अपडेट हो जाता है और आपका सारा डेटा सुरक्षित रहता है।</li>
+                    <li><b>इंस्टॉल</b> (पहली बार) या <b>अपडेट</b> (पहले से ऐप है) दबाएँ। अगर <b>गूगल प्ले प्रोटेक्ट</b> ऐप को असुरक्षित बताए या जाँचने को कहे, तो <b>ज़्यादा जानकारी</b> दबाकर <b>फिर भी इंस्टॉल करें</b> दबाएँ (या पहले जाँचने दें, फिर इंस्टॉल करें)। यह ऐप सिर्फ़ इसी पेज से आता है।</li>
+                    <li>पुराना ऐप हटाने की ज़रूरत नहीं है — नया वर्ज़न उसी के ऊपर अपडेट हो जाता है और आपका सारा डेटा सुरक्षित रहता है। सिर्फ़ अगर फ़ोन लिखे <b>"ऐप इंस्टॉल नहीं हुआ"</b>, तब पुराना ऐप हटाएँ और फिर से इंस्टॉल करें: आपके बिल सर्वर पर सुरक्षित हैं, बस इस फ़ोन पर बिना सेव किए बिल मिट जाएँगे।</li>
                 </ol>
             </div>
             <div class="en">
@@ -141,8 +158,8 @@
                     <li>Tap the green <b>"Download Android app"</b> button above and wait for the download to finish.</li>
                     <li>Open <b data-happa="apkFile">bahi.apk</b> from the download notification or the <b>Files / Downloads</b> app.</li>
                     <li>If you see <b>"For your security, your phone is not allowed to install unknown apps from this source"</b>, tap <b>Settings</b>, turn on <b>"Allow from this source"</b> for your browser or Files app, then go back.</li>
-                    <li>Tap <b>Install</b> (first time) or <b>Update</b> (already installed).</li>
-                    <li>No need to uninstall the old app — the new version updates over it and all your data is kept.</li>
+                    <li>Tap <b>Install</b> (first time) or <b>Update</b> (already installed). If <b>Google Play Protect</b> warns about the app or offers to scan it, tap <b>More details</b> › <b>Install anyway</b> (or let it scan, then install). The app comes only from this page.</li>
+                    <li>No need to uninstall the old app — the new version updates over it and all your data is kept. Only if the phone says <b>"App not installed"</b>, uninstall the old app and install again: your bills are safe on the server; only bills not yet saved on this phone are lost.</li>
                 </ol>
             </div>
         </section>

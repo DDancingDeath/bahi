@@ -259,6 +259,7 @@
   --section-gap: 24px;
   --row-h: 56px;
   --appbar-h: 52px;
+  --bottomnav-h: 56px;
   --phone-col-max: 480px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
   /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
@@ -303,6 +304,14 @@
   --text-lg: 17px;
   --text-xl: 20px;
   --text-2xl: 24px;
+}
+
+/* A phone on its side: lower app and tab bars leave room for the bill */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  :root {
+    --appbar-h: 44px;
+    --bottomnav-h: 48px;
+  }
 }
 
 /* Android app: Roboto has a Medium face, the native emphasis (600 would render as Bold); before html[lang="hi"] so Hindi labels stay 400 */
@@ -3571,7 +3580,7 @@ body {
 .bottom-nav-item {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 56px;
+  min-height: var(--bottomnav-h);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3623,6 +3632,18 @@ body {
 body.biz-rentals .bottom-nav,
 body.typing .bottom-nav {
   display: none;
+}
+
+/* On its side the label sits beside the icon, so the bar is one line high */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  .bottom-nav-item {
+    flex-direction: row;
+    gap: var(--sp-2);
+  }
+
+  .bottom-nav-icon {
+    padding: var(--sp-1) var(--sp-2);
+  }
 }
 
 .pull-refresh {
@@ -5769,6 +5790,37 @@ input[type="number"] {
   body:has(:is(#billing, .bill-page).tab.active) .toast,
   body:not(.biz-rentals):has(:is(#billing, .bill-page).tab.active) .app-update {
     bottom: calc(80px + 72px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* A phone on its side: Save stays pinned above the low tab bar unless the keyboard is open
+   (.bill-actions is only on the Billing and Wholesale bill pages) */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  body:not(.typing) .tab .bill-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--bottomnav-h);
+    z-index: calc(var(--z-appbar) - 10);
+    margin: 0;
+    padding: var(--sp-2) var(--sp-4);
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  body.biz-rentals:not(.typing) .tab .bill-actions {
+    bottom: 0;
+  }
+
+  body:not(.typing) .tab:has(.bill-actions) {
+    animation-name: bill-fade-in;
+    padding-bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-10));
+    scroll-padding-bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-4));
+  }
+
+  body:not(.typing):has(.tab.active .bill-actions) .toast,
+  body:not(.biz-rentals):not(.typing):has(.tab.active .bill-actions) .app-update {
+    bottom: calc(var(--row-h) + var(--bottomnav-h) + var(--sp-4));
   }
 }
 
@@ -9087,22 +9139,18 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 /* ---- css/app-updates.css ---- */
-/* What's new notes (an app dialog), Android update banner, Settings → App updates */
+/* What's new notes (an app dialog), Android update card, Settings → App updates */
 
 .whats-new-notes {
   margin: 0;
   padding-left: var(--sp-5);
 }
 
+/* Android update card: in the page at the top of Today, so it never covers a control */
 .app-update {
-  position: fixed;
-  left: var(--sp-2);
-  right: var(--sp-2);
-  bottom: calc(var(--sp-2) + env(safe-area-inset-bottom, 0px));
-  z-index: calc(var(--z-sheet) - 1);
   flex-wrap: wrap;
   align-items: center;
-  box-shadow: var(--e3);
+  margin-bottom: var(--sp-3);
 }
 
 .app-update-text {

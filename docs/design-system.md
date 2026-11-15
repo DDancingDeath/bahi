@@ -46,7 +46,7 @@ the stacking order stays exact. `ds-guard` counts any numeric `z-index`.
 | `--z-nav` | 900 | desktop sidebar; the phone's canvas band under the app bar |
 | `--z-appbar` | 950 | app bar (desktop), bottom tab bar; −10 Billing's action bar, +10 pull-to-refresh, +40 the phone app bar |
 | `--z-drawer` (`--z-bell`) | 1000 | the old `.modal`, the bell; −1 the menu scrim (`.overlay`), +1 the phone side menu and the sync pill, +2 / +3 the notifications scrim / sheet |
-| `--z-sheet` | 9000 | floating notices (printer permission, theme preview bar); −1 the update banner, +1 the clock notice |
+| `--z-sheet` | 9000 | floating notices (printer permission, theme preview bar); +1 the clock notice |
 | `--z-dialog` (`--z-auth`) | 10000 | page dialogs (`.app-scrim.page-sheet`, + `--sheet-layer`, the stack depth), the sign-in screen, Rentals sheets |
 | `--z-busy` | 15000 | the saving spinner: above any stack of page dialogs, below the confirms |
 | `--z-modal` | 20000 | confirms and alerts (`.app-scrim`, + `--sheet-layer`) over any of the above |
@@ -278,7 +278,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   unit and receipt-list dialogs use `.metrics`, `.table`, `.field`s, `.btn`s, `.tag` and `.notice`, with `moneyHtml()`
   figures; the receipt itself, its title and its share text are unchanged. The tenant's `/r/<token>` page is standalone
   like `/download`: `www/r/rent-history.css` copies the tokens it uses into `:root` (same test).
-- **Notices and empty states (C4b)**: the old banners are notices: unsaved bill `.autosave-notice` (warn), live bill checks `.bill-check-notice` (neg / warn, solid, sticky), wrong clock `.clock-notice` and printer permission `.printer-perm-notice` (float), the Android update `.app-update` (info, solid, above the tab bar), a voided bill `.bill-voided-notice`, the bill being edited `#billEditNotice` (info, "Editing #P12" on Billing until it is saved) and History's older-bills line `.history-range-note` (info, warn on error). Every page's empty list is an `emptyState()`.
+- **Notices and empty states (C4b)**: the old banners are notices: unsaved bill `.autosave-notice` (warn), live bill checks `.bill-check-notice` (neg / warn, solid, sticky), wrong clock `.clock-notice` and printer permission `.printer-perm-notice` (float), the Android update `.app-update` (info, in the page at the top of Today), a voided bill `.bill-voided-notice`, the bill being edited `#billEditNotice` (info, "Editing #P12" on Billing until it is saved) and History's older-bills line `.history-range-note` (info, warn on error). Every page's empty list is an `emptyState()`.
 - **Feedback** `.notice` (`.pos/.neg/.warn/.info`; `.solid` puts the tint on an opaque surface for a notice that sticks or floats, `.float` pins it to the top of the screen, `.notice-actions` holds its buttons; `[hidden]` always hides it), `.empty` (write it with `emptyState({ icon, title, text, action, tone })` from `ui/components.js`: the icon tile, a title, an optional line and an optional button; loading and error lines stay a plain `<p class="empty">`), `.skel`, `.toast` (near-black; light in the
   Dark theme), `.dialog` / `.sheet` / `.scrim` (old `.modal-overlay > .modal-box`), `.spinner` (blocking
   saves only). Dialog buttons: Cancel (ghost) on the left, one primary on the right, labelled with a verb; a destructive

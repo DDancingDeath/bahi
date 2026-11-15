@@ -453,9 +453,9 @@ section 7) before pushing; don't commit one-off probe scripts.
    1.0.0 → 10000999), so each tag installs over the one before; its
    versionName is the tag without `v`. The `androidVersionCode` in step 1 only
    applies to local builds.
-5. Installed apps see the "Update available" banner (checks
-   `releases/latest`, at most every 12 h); `/download` always links to the
-   latest APK; users get a one-time "What's new" sheet.
+5. Installed apps see an "Update available" card at the top of Today and in Settings › Help & about
+   (checks `releases/latest`, at most every 12 h; Download opens `/download`, Later hides it for a day);
+   `/download` always links to the latest APK; users get a one-time "What's new" sheet.
 
 ### Code-review rules
 

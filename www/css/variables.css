@@ -257,6 +257,7 @@
   --section-gap: 24px;
   --row-h: 56px;
   --appbar-h: 52px;
+  --bottomnav-h: 56px;
   --phone-col-max: 480px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
   /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
@@ -301,6 +302,14 @@
   --text-lg: 17px;
   --text-xl: 20px;
   --text-2xl: 24px;
+}
+
+/* A phone on its side: lower app and tab bars leave room for the bill */
+@media (max-width: 1023.98px) and (max-height: 480.98px) and (orientation: landscape) {
+  :root {
+    --appbar-h: 44px;
+    --bottomnav-h: 48px;
+  }
 }
 
 /* Android app: Roboto has a Medium face, the native emphasis (600 would render as Bold); before html[lang="hi"] so Hindi labels stay 400 */
