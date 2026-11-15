@@ -15,7 +15,7 @@ import {
     buildSnapshot, figuresFromSnapshot, partialFigures, sumFigures, rangeFigures, monthsToRoll, monthKeysBetween, lastMonthKeys, monthBounds, SNAPSHOT_VERSION, outdatedOlderMonths,
     snapshotCustomers
 } from '../utils/month-snapshots.js';
-import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways } from '../utils/takeaways.js';
+import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways, caveatKey } from '../utils/takeaways.js';
 import { setInsightsContext, resetInsightsContextForTests, getInsightsContext, contextMonth } from '../utils/insights-context.js';
 import { t, tn, setLang } from '../i18n/index.js';
 import { billsOfLines } from '../utils/finance-breakdown.js';
@@ -221,7 +221,13 @@ describe('comparisons and takeaways', () => {
         expect(cashTakeaways({ net: -1574, out: { atPurchase: 1274, duePaid: 400, expenses: 250 }, profit: 100, salesDue: 250 }).map(x => x.key))
             .toEqual(['ui.tk.cash_out', 'ui.tk.biggest_out_purchases']);
         expect(spendingTakeaways({ business: 670, vsLastYear: { pct: 8, dir: 'up' }, topCategory: 'rent', withdrawn: 2000, kept: -3170, personal: 1080, show: { profit: true, personal: true } }).map(x => x.key))
-            .toEqual(['ui.tk.expenses_up', 'ui.tk.kept_negative']);
+            .toEqual(['ui.tk.expenses_up', 'ui.tk.loss_taken']);
+        // U-75: a loss with nothing taken out never says "₹0 went to personal use"; a profit smaller than what was taken keeps kept_negative
+        expect(spendingTakeaways({ business: 670, withdrawn: 0, kept: -500, personal: 0, show: { profit: true, personal: true } }).slice(-1))
+            .toEqual([{ key: 'ui.tk.loss_nothing_taken', params: { loss: 500 } }]);
+        expect([caveatKey({ key: 'uncosted', estimate: 0 }), caveatKey({ key: 'uncosted', estimate: 0.3 }), caveatKey({ key: 'uncosted', estimate: 40 }), caveatKey({ key: 'gap' })])
+            .toEqual(['uncosted_unknown', 'uncosted_unknown', 'uncosted', 'gap']);
+        expect(spendingTakeaways({ business: 670, withdrawn: 800, kept: -300, personal: 0, show: { profit: true, personal: true } }).slice(-1)[0].key).toBe('ui.tk.kept_negative');
         expect(worthTakeaways({ worth: null }).map(x => x.key)).toEqual(['ui.tk.worth_unknown']);
         expect(worthTakeaways({ worth: 5000, change: { dir: 'up', diff: 1000 }, receivable: 200, sinceLabel: 'Oct 2025' }).map(x => x.key))
             .toEqual(['ui.tk.worth_up', 'ui.tk.worth_receivable']);
@@ -885,7 +891,8 @@ describe('what each role sees (Roles & access)', () => {
 
     test('owner: the spending takeaway says what went to personal use and what stays of the profit', () => {
         MoneyManager.init('spending');
-        expect(spendText()).toContain(t('ui.tk.kept_negative', { taken: formatAmount(w().M9_withdrawals + w().M8_personalExpenses), kept: formatAmount(Math.abs(w().M10_kept)) }));
+        const taken = w().M9_withdrawals + w().M8_personalExpenses;
+        expect(spendText()).toContain(t('ui.tk.loss_taken', { taken: formatAmount(taken), loss: formatAmount(Math.abs(Math.round(w().M10_kept + taken))) }));
     });
     test('without profit: personal use only, nothing about the profit', () => {
         asMember({ profit: false });

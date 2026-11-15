@@ -35,7 +35,7 @@ import {
     buildSnapshot, figuresFromSnapshot, rangeFigures, monthsToRoll, monthBounds,
     monthKeysBetween, lastMonthKeys, monthKeyOf, snapshotsFrom, staleToRebuild, outdatedOlderMonths
 } from '../utils/month-snapshots.js';
-import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways } from '../utils/takeaways.js';
+import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways, caveatKey } from '../utils/takeaways.js';
 import { can, canEditWorthAccounts, canReadWorthAccounts } from '../utils/role-access.js';
 import { dataSignature } from '../utils/render-memo.js';
 import { openExternal } from '../utils/open-external.js';
@@ -70,7 +70,7 @@ export function routeAvailable(link) {
     return !!(document.getElementById(link) || document.getElementById(String(link).split('-')[0]));
 }
 
-const TAKEAWAY_RUPEES = ['amount', 'taken', 'kept'];
+const TAKEAWAY_RUPEES = ['amount', 'taken', 'kept', 'loss'];
 
 /** Takeaway params with the ₹ amounts grouped like the cards ("4,927"). */
 export function takeawayParams(params) {
@@ -619,7 +619,7 @@ export const MoneyManager = {
         const list = (m.caveats || []).filter(c => c.ids.some(id => ids.includes(id)));
         return list.map(c => {
             const params = { qty: c.qty, amount: formatAmount(c.estimate ?? c.amount ?? c.gap ?? 0) };
-            return `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${c.key}`, params)))}</span></div>`;
+            return `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${caveatKey(c)}`, params)))}</span></div>`;
         }).join('');
     },
 
