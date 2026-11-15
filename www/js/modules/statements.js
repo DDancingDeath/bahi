@@ -204,7 +204,7 @@ export const StatementsManager = {
             const today = todayLocalISO();
             const yesterday = toLocalISODate(/** @type {Date} */ (addLocalDays(/** @type {Date} */ (parseLocalDate(today)), -1)));
             const preset = this.day === today ? 'today' : this.day === yesterday ? 'yesterday' : 'pick';
-            const opt = (v, key) => `<option value="${v}"${v === preset ? ' selected' : ''}>${esc(t(key))}</option>`;
+            const opt = (v, key) => `<option value="${esc(v)}"${v === preset ? ' selected' : ''}>${esc(t(key))}</option>`;
             // The shared period control (U-61): ‹ day › and a preset chip; "Choose day…" opens the phone's date picker
             html = `<div class="ins-period st-day-step">`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(-1)" aria-label="${esc(t('ui.statements.day_before'))}">${icon('chevL')}</button>`

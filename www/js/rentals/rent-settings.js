@@ -90,7 +90,7 @@ export async function mount(el, { editable }) {
 /** Simple / Advanced for the Rentals page (U-65): per user on this phone, anyone with a rentals role. */
 function viewCard() {
     const mode = readRentMode(AppState.currentUser?.uid);
-    const b = (m, key) => `<button type="button" data-rent-mode="${m}" class="${mode === m ? 'active' : ''}" aria-pressed="${mode === m}" data-onclick="settings.setRentMode('${m}')">${esc(t(key))}</button>`;
+    const b = (m, key) => `<button type="button" data-rent-mode="${esc(m)}" class="${mode === m ? 'active' : ''}" aria-pressed="${mode === m}" data-onclick="settings.setRentMode('${esc(m)}')">${esc(t(key))}</button>`;
     return `<div class="panel panel-pad set-panel" id="rentViewCard">
             <h3 class="set-title" id="rentViewTitle">${esc(t('ui.rentset.view_title'))}</h3>
             <div class="seg rent-mode" role="group" aria-labelledby="rentViewTitle">${b('simple', 'ui.rent.view_simple')}${b('advanced', 'ui.rent.view_advanced')}</div>
