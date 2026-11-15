@@ -182,6 +182,26 @@ describe('logout', () => {
         expect(AppState.userRole).toBe('owner');
     });
 
+    test('Switch user (U-86): its own question, then an empty login card for the next person', async () => {
+        const ask = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        await AuthManager.handleLogout({ switching: true });
+        expect(ask.mock.calls[0][1]).toBe('Switch user');
+        expect(auth.signOut).toHaveBeenCalled();
+        expect(document.getElementById('loginEmail').value).toBe('');
+        expect(document.getElementById('loginPassword').value).toBe('');
+        expect(document.activeElement.id).toBe('loginEmail');
+        expect(toast).toHaveBeenCalledWith('Signed out. The next person can sign in now.');
+    });
+
+    test('Switch user with changes not sent yet gets the same guard as Log out (U-03)', async () => {
+        const { SyncStatus } = await import('../ui/sync-status.js');
+        jest.spyOn(SyncStatus, 'unsentCount').mockResolvedValue(2);
+        const guard = jest.spyOn(UIManager, 'showCustomModal').mockResolvedValue(null);
+        await AuthManager.handleLogout({ switching: true });
+        expect(guard.mock.calls[0][0]).toMatch('2 changes not sent yet');
+        expect(auth.signOut).not.toHaveBeenCalled();
+    });
+
     // BUG: see #96 — logout keeps the previous user's bills in AppState (next login on a shared phone sees them until listeners refire).
     test.skip('clears the previous user\'s business data from AppState', async () => {
         jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);

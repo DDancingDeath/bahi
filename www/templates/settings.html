@@ -23,6 +23,7 @@
             <div class="set-kv"><span data-i18n="ui.settings.email">Email</span> <span id="userEmail">-</span></div>
             <div class="set-actions">
                 <button class="btn" type="button" data-onclick="settings.changePassword()" data-i18n="ui.settings.change_password">Change password</button>
+                <button class="btn" type="button" id="switchUserBtn" data-onclick="auth.switchUser()" data-i18n="ui.settings.switch_user">Switch user</button>
                 <button class="btn" type="button" data-onclick="auth.logout()" data-i18n="ui.settings.logout">Log out</button>
             </div>
             <p class="setting-description" data-i18n="ui.settings.change_password_hint">We email you a link to set a new password.</p>

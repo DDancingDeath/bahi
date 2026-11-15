@@ -1080,6 +1080,7 @@ window.app = {
         login: () => AuthManager.handleLogin(),
         register: () => AuthManager.handleRegister(),
         logout: () => AuthManager.handleLogout(),
+        switchUser: () => AuthManager.handleLogout({ switching: true }),
         forgotPassword: () => AuthManager.handleForgotPassword(),
         sendPasswordReset: () => AuthManager.handleSendPasswordReset(),
         togglePassword: (inputId, btn) => AuthManager.togglePassword(inputId, btn),
