@@ -114,7 +114,7 @@ export const PhotoWeights = {
         if (!input) return false;
         // The Android app's WebView opens only the camera for a capture input, only the gallery without it
         if (window.Capacitor?.isNativePlatform?.()) {
-            this.chooseSource(mode, input);
+            this.chooseSource(mode, input).catch(e => console.warn('Photo source not chosen:', e?.message || e));
             return true;
         }
         input.value = '';
