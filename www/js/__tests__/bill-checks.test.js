@@ -95,7 +95,7 @@ describe('rate sanity (2× / ½× the usual rate, owner-confirmed 2×)', () => {
         expect(ids(evaluateBill(bill(80), ctx()))).toEqual([]); // exactly 2× is fine
         const high = find(evaluateBill(bill(81), ctx()), 'rate-high');
         expect(high).toMatchObject({ severity: 'warn', field: 'items.0', overridable: false });
-        expect(high.en).toBe('Rate ₹81.00 is 2.0× the usual ₹40.00');
+        expect(high.en).toBe('Rice: ₹81.00/kg is 2.0× the usual ₹40.00/kg');
         expect(high.hi).toContain('गुना');
         const cheap = ctx({ stock: { rice: { quantity: 100, rate: 1 } } });
         expect(ids(evaluateBill(bill(20), cheap))).toEqual([]); // exactly ½ is fine
@@ -109,19 +109,50 @@ describe('rate sanity (2× / ½× the usual rate, owner-confirmed 2×)', () => {
         expect(ids(evaluateBill(w, ctx()))).toEqual(['rate-high']);
     });
 
-    test('the last billed rate of this kind wins over the saved rate (newest by timestamp, any line shape)', () => {
+    test('U-01: the Rates page wins over saved bills; one odd 100× bill never becomes "usual"', () => {
         const recentBills = [
-            { id: 'old', timestamp: NOW - 86400000 * 5, items: [{ itemId: 'rice', rate: 100, qty: 1 }] },
-            { id: 'new', timestamp: NOW - 86400000, items: [{ itemId: 'rice', rate: 90, quantity: 2, total: 180 }] }
+            { id: 'odd', timestamp: NOW - 86400000, items: [{ itemId: 'rice', rate: 4000, qty: 1 }] },
+            { id: 'a', timestamp: NOW - 86400000 * 2, items: [{ itemId: 'rice', rate: 41, quantity: 2, total: 82 }] }
         ];
-        expect(ids(evaluateBill(bill(80), ctx({ recentBills })))).toEqual([]);
-        expect(find(evaluateBill(bill(181), ctx({ recentBills })), 'rate-high').en).toContain('usual ₹90.00');
+        expect(ids(evaluateBill(bill(40), ctx({ recentBills })))).toEqual([]);
+        expect(find(evaluateBill(bill(81), ctx({ recentBills })), 'rate-high').en).toContain('usual ₹40.00/kg');
+    });
+
+    test('U-01: a rate inside the Rates-page range is its own usual; outside it is compared with the nearest end', () => {
+        const ranged = ctx({ catalogue: [{ ...RICE, saleRates: [30, 50] }] });
+        expect(ids(evaluateBill(bill(45), ranged))).toEqual([]);
+        expect(find(evaluateBill(bill(101), ranged), 'rate-high')).toMatchObject({ usual: 50, usualSource: 'rates' });
+        expect(find(evaluateBill(bill(14), ranged), 'rate-low')).toMatchObject({ usual: 30 });
+    });
+
+    test('U-01: with no Rates-page rate the usual is the median of 3+ recent bills, never one bill', () => {
+        const noRates = { catalogue: [DAL] };
+        const dal = (rate) => draft({ items: [{ itemId: 'dal', name: 'Dal', rate, qty: 1, total: rate }], total: rate, payment: { cash: rate } });
+        const b = (id, ts, rate, over = {}) => ({ id, timestamp: ts, items: [{ itemId: 'dal', rate, qty: 1 }], ...over });
+        expect(ids(evaluateBill(dal(500), ctx({ ...noRates, recentBills: [b('x', 1, 80), b('y', 2, 2400)] })))).toEqual([]);
+        const three = [b('a', 3, 80), b('b', 2, 8800), b('c', 1, 90)];
+        const high = find(evaluateBill(dal(200), ctx({ ...noRates, recentBills: three })), 'rate-high');
+        expect(high).toMatchObject({ usual: 90, usualSource: 'bills' });
+        const flagged = [b('a', 4, 80), b('b', 3, 8800, { flags: [{ rule: 'rate-high' }] }), b('c', 2, 90), b('d', 1, 100)];
+        expect(find(evaluateBill(dal(200), ctx({ ...noRates, recentBills: flagged })), 'rate-high').usual).toBe(90);
+        const voided = [b('a', 4, 80), b('b', 3, 8800, { voided: true }), b('c', 2, 90)];
+        expect(ids(evaluateBill(dal(200), ctx({ ...noRates, recentBills: voided })))).toEqual([]);
+    });
+
+    test('U-01: about 100× the usual reads as a per-quintal rate, with the per-kg rate offered', () => {
+        const p = draft({ kind: 'purchase', items: [{ itemId: 'rice', name: 'Rice', rate: 3000, qty: 10, total: 30000 }], total: 30000, payment: { cash: 30000 } });
+        const slip = find(evaluateBill(p, ctx({ kind: 'purchase' })), 'rate-high');
+        expect(slip).toMatchObject({ suggestRate: 30, usual: 30, rate: 3000 });
+        expect(slip.en).toBe('Rice: ₹3,000.00/kg looks like a per-quintal rate — usually ₹30.00/kg. Use ₹30.00/kg?');
+        expect(slip.hi).toContain('क्विंटल');
+        expect(find(evaluateBill(bill(81), ctx()), 'rate-high').suggestRate).toBeUndefined();
     });
 
     test('an edited bill is not its own "usual" rate', () => {
-        const recentBills = [{ id: 'e1', timestamp: NOW, items: [{ itemId: 'rice', rate: 200, qty: 1 }] }];
-        const d = bill(200);
-        expect(ids(evaluateBill({ ...d, isEdit: true, id: 'e1' }, ctx({ recentBills })))).toEqual(['rate-high']);
+        const recentBills = [1, 2, 3].map(n => ({ id: `e${n}`, timestamp: NOW - n, items: [{ itemId: 'dal', rate: 200, qty: 1 }] }));
+        const d = draft({ items: [{ itemId: 'dal', name: 'Dal', rate: 90, qty: 1, total: 90 }], total: 90, payment: { cash: 90 } });
+        expect(ids(evaluateBill({ ...d, isEdit: true, id: 'e1' }, ctx({ recentBills })))).toEqual([]);
+        expect(ids(evaluateBill(d, ctx({ recentBills })))).toEqual(['rate-low']);
     });
 });
 
@@ -443,13 +474,13 @@ describe('rule edges (mutation score, #160)', () => {
         expect(ids(evaluateBill(dalBill(100), ctx()))).not.toContain('rate-high');
     });
 
-    test('usual rate: newest bill wins, the first of equal times wins, rate-0 and nameless lines are skipped', () => {
-        const recent = [billOf('a', 2, [dalLine(80)]), billOf('b', 1, [dalLine(300)])];
+    test('usual rate: median of the newest bills, rate-0 and nameless lines are skipped', () => {
+        const recent = [billOf('a', 3, [dalLine(80)]), billOf('b', 2, [dalLine(90)]), billOf('c', 1, [dalLine(300)])];
         expect(ids(evaluateBill(dalBill(200), ctx({ recentBills: recent })))).toContain('rate-high');
-        const same = [billOf('a', 5, [dalLine(80)]), billOf('b', 5, [dalLine(300)])];
-        expect(ids(evaluateBill(dalBill(200), ctx({ recentBills: same })))).toContain('rate-high');
-        const zero = [billOf('a', 1, [dalLine(80)]), billOf('b', 2, [dalLine(0)])];
+        const zero = [billOf('a', 1, [dalLine(80)]), billOf('b', 2, [dalLine(0)]), billOf('c', 3, [dalLine(80)]), billOf('d', 4, [dalLine(90)])];
         expect(ids(evaluateBill(dalBill(200), ctx({ recentBills: zero })))).toContain('rate-high');
+        const tooFew = [billOf('a', 1, [dalLine(80)]), billOf('b', 2, [dalLine(0)]), billOf('c', 3, [dalLine(80)])];
+        expect(ids(evaluateBill(dalBill(200), ctx({ recentBills: tooFew })))).not.toContain('rate-high');
         const nameless = [billOf('a', 1, [{ rate: 10, qty: 1, total: 10 }])];
         const d = draft({ items: [{ rate: 100, qty: 1, total: 100 }], total: 100, payment: { cash: 100 } });
         expect(ids(evaluateBill(d, ctx({ recentBills: nameless })))).not.toContain('rate-high');
@@ -461,7 +492,7 @@ describe('rule edges (mutation score, #160)', () => {
     });
 
     test('an edit skips only its own old copy', () => {
-        const recent = [billOf('e1', 2, [dalLine(80)]), billOf('e2', 1, [dalLine(80)])];
+        const recent = [billOf('e1', 4, [dalLine(80)]), billOf('e2', 3, [dalLine(80)]), billOf('e3', 2, [dalLine(80)]), billOf('e4', 1, [dalLine(80)])];
         const d = dalBill(200, { isEdit: true, id: 'e1' });
         expect(ids(evaluateBill(d, ctx({ recentBills: recent })))).toContain('rate-high');
     });

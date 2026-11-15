@@ -259,6 +259,146 @@ export function savedRateCheck(line, savedItems) {
     return { saved: !!saved, rateCheck: saved && rateConfirmed(saved) ? saved.rateCheck : null };
 }
 
+/** BF-USUAL: the fallback median looks at this many newest bills of the item … */
+export const USUAL_RATE_BILLS = 10;
+/** … and needs at least this many: one or two odd bills never set the usual rate. */
+export const USUAL_RATE_MIN_BILLS = 3;
+/** Bill `flags` rules that make a bill's rates doubtful (left out of the median). */
+const DOUBTFUL_RATE_RULES = new Set(['rate-high', 'rate-low', 'rate-confirmed']);
+
+/**
+ * BF-USUAL: rates of saved bills per item (itemId, else name), for the median fallback.
+ * Voided bills, the bill being edited, bills that carry a rate warning (`flags`) and
+ * lines whose extreme rate was confirmed (`rateCheck`) are left out.
+ * @param {Array<*>} bills - saved bills of one kind
+ * @param {?string} [skipId] - bill being edited
+ * @param {(bill: *) => number} [timeOf] - when a bill was made (ms)
+ * @returns {Map<string, Array<{ts: number, rate: number}>>} newest first
+ */
+export function billRateIndex(bills, skipId = null, timeOf = (b) => Number(b?.timestamp) || 0) {
+    /** @type {Map<string, Array<{ts: number, rate: number}>>} */
+    const out = new Map();
+    for (const bill of Array.isArray(bills) ? bills : []) {
+        if (!bill || !Array.isArray(bill.items) || bill.voided === true) continue;
+        if (skipId && bill.id === skipId) continue;
+        if (Array.isArray(bill.flags) && bill.flags.some((/** @type {*} */ f) => DOUBTFUL_RATE_RULES.has(f?.rule))) continue;
+        const ts = Number(timeOf(bill)) || 0;
+        const seen = new Set();
+        for (const line of bill.items) {
+            if (!line || rateConfirmed(line)) continue;
+            const key = lineKeyOf(line);
+            const { rate } = readLineItem(line);
+            if (!key || !(rate > 0) || seen.has(key)) continue;
+            seen.add(key);
+            const list = out.get(key) || [];
+            list.push({ ts, rate });
+            out.set(key, list);
+        }
+    }
+    out.forEach(list => list.sort((a, b) => b.ts - a.ts));
+    return out;
+}
+
+/**
+ * BF-USUAL: the median of a list of rates (two middles: their mean, to the paisa).
+ * @param {number[]} rates
+ * @returns {?number}
+ */
+export function medianRate(rates) {
+    const list = (Array.isArray(rates) ? rates : []).map(ratePaise).filter(p => p > 0).sort((a, b) => a - b);
+    if (!list.length) return null;
+    const mid = Math.floor(list.length / 2);
+    const p = list.length % 2 ? list[mid] : Math.round((list[mid - 1] + list[mid]) / 2);
+    return p / 100;
+}
+
+/**
+ * BF-USUAL: the usual rate a typed rate is compared with. The Rates page comes first
+ * (today's rates of the item for the bill type; several rates = a range, and a rate
+ * inside it is its own usual); with none there, the median of the item's newest
+ * USUAL_RATE_BILLS saved rates (billRateIndex), only when there are at least
+ * USUAL_RATE_MIN_BILLS of them. Never one bill's rate.
+ * @param {*} rate - the typed rate
+ * @param {{todays?: number[], billRates?: Array<{rate: number}>}} sources
+ * @returns {?{rate: number, source: 'rates'|'bills'}}
+ */
+export function usualRateFor(rate, { todays = [], billRates = [] } = {}) {
+    const list = (Array.isArray(todays) ? todays : []).map(ratePaise).filter(p => p > 0);
+    if (list.length) {
+        const r = ratePaise(rate);
+        const high = Math.max(...list);
+        const low = Math.min(...list);
+        const near = r > high ? high : r < low ? low : r;
+        return { rate: near / 100, source: 'rates' };
+    }
+    const recent = (Array.isArray(billRates) ? billRates : []).slice(0, USUAL_RATE_BILLS).map(b => b?.rate);
+    if (recent.filter(r => ratePaise(r) > 0).length < USUAL_RATE_MIN_BILLS) return null;
+    const median = medianRate(recent);
+    return median ? { rate: median, source: 'bills' } : null;
+}
+
+/** BF-UNITSLIP: a rate this many times the usual (both ends included) reads as a per-quintal rate. */
+export const UNIT_SLIP_RANGE = Object.freeze({ low: 50, high: 200, factor: 100 });
+
+/**
+ * BF-UNITSLIP: a per-kg rate that looks typed per quintal (100 kg): between 50× and 200×
+ * the usual rate. The suggestion is the rate ÷ 100, to the paisa.
+ * @param {*} rate
+ * @param {*} usual
+ * @returns {?{suggest: number, factor: number}}
+ */
+export function unitSlip(rate, usual) {
+    const r = ratePaise(rate);
+    const u = ratePaise(usual);
+    if (!r || !u) return null;
+    if (r < UNIT_SLIP_RANGE.low * u || r > UNIT_SLIP_RANGE.high * u) return null;
+    return { suggest: Math.round(r / UNIT_SLIP_RANGE.factor) / 100, factor: UNIT_SLIP_RANGE.factor };
+}
+
+/**
+ * BF-USUAL: saved bills whose rates are doubtful for the money figures: a line at least
+ * RATE_CHECK_FACTOR × (or at most ⅕ of) today's Rates-page rate of its item, confirmed or not.
+ * @param {Array<*>} bills - saved bills of one kind
+ * @param {Array<Rec>} catalogue
+ * @param {'purchase'|'retail'|'wholesale'} kind
+ * @returns {Array<{id: string, billNumber: ?string, kind: string, item: string, rate: number, todayRate: number}>}
+ */
+export function doubtfulRateBills(bills, catalogue, kind) {
+    const cat = Array.isArray(catalogue) ? catalogue : [];
+    /** @type {Array<{id: string, billNumber: ?string, kind: string, item: string, rate: number, todayRate: number}>} */
+    const out = [];
+    for (const bill of Array.isArray(bills) ? bills : []) {
+        if (!bill || bill.voided === true || !Array.isArray(bill.items)) continue;
+        for (const line of bill.items) {
+            if (!line) continue;
+            const { rate, name } = readLineItem(line);
+            const item = (line.itemId && cat.find(i => i.id === line.itemId))
+                || cat.find(i => normName(name) && (normName(i.name) === normName(name) || normName(i.hindiName) === normName(name)));
+            const hit = extremeRate(rate, todaysRates(item, kind));
+            if (!hit) continue;
+            out.push({ id: String(bill.id), billNumber: bill.billNumber || null, kind, item: name || item?.name || '', rate, todayRate: hit.todayRate });
+            break;
+        }
+    }
+    return out;
+}
+
+/**
+ * BF-LINE: a bill line with a new rate (the per-kg rate chosen for a per-quintal slip,
+ * BF-UNITSLIP): kg as before (its weights, else its kg), amount BF-LINE again; a
+ * confirm of the old rate is dropped.
+ * @param {Rec} line
+ * @param {number} rate
+ * @returns {Rec}
+ */
+export function withLineRate(line, rate) {
+    const rest = { ...(line || {}) };
+    delete rest.rateCheck;
+    const weights = Array.isArray(rest.weights) && rest.weights.length ? rest.weights : null;
+    const { qty, total } = computeLine(weights ? { rate, weights } : { rate, qty: readLineItem(rest).qty });
+    return { ...rest, rate, qty, total };
+}
+
 /** BF-BAGCHECK (owner, 8 Nov 2026): one bag / packet weight above this many kg needs a confirm (exactly 100 is fine). */
 export const BAG_WEIGHT_LIMIT_KG = 100;
 
@@ -827,6 +967,12 @@ export const BILLING_SPEC = Object.freeze({
     rateConfirmed: 'BF-RATECHECK',
     linesNeedingRateCheck: 'BF-RATECHECK',
     savedRateCheck: 'BF-RATECHECK',
+    billRateIndex: 'BF-USUAL',
+    medianRate: 'BF-USUAL',
+    usualRateFor: 'BF-USUAL',
+    doubtfulRateBills: 'BF-USUAL',
+    unitSlip: 'BF-UNITSLIP',
+    withLineRate: 'BF-LINE',
     heavyBag: 'BF-BAGCHECK',
     bagWeightGuess: 'BF-BAGCHECK',
     weightCheckRecord: 'BF-BAGCHECK',

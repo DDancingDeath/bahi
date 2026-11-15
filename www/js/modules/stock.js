@@ -15,6 +15,7 @@ import { SAVED_ON_PHONE_KEY } from '../utils/storage-full.js';
 import { formatAmount, formatRupees, formatRate, formatKg } from '../utils/money.js';
 import { parseAnyBillDate, formatDate } from '../utils/dates.js';
 import { stockRows, itemValue, stockValue, stockSummary, adjustItemStock, adjustmentValue, deadStockValue } from '../utils/calc/stock.js';
+import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import { isFullHistoryLoaded, historyLoadedFrom, formatWindowDate } from '../utils/history-window.js';
 import { planStockAdjustment, adjustReasonText, canReverseAdjustment, reversalPlan, stockCountPlan, adjustmentDelta, lastPurchaseRate, restockCost } from '../utils/stock-adjust.js';
@@ -124,7 +125,7 @@ export class StockManager {
             // Buckets keyed by a catalogue id or a legacy name collapse to one row per
             // item with a weighted average rate; buckets with no catalogue match stay
             // visible as "Unmatched" rows (utils/calc/stock.js stockRows, S1/S2).
-            const { rows: stockWithDetails, orphanKeys } = stockRows(stock, AppState.items);
+            const { rows: stockWithDetails, orphanKeys } = stockRows(stock, AppState.items, { includeBelowZero: true });
 
             if (orphanKeys.length > 0) {
                 console.warn(
@@ -140,13 +141,16 @@ export class StockManager {
             return;
         }
         
-        // Check if user is staff (show limited quantity info for items > 100kg)
-        const isStaff = AppState.userRole === 'staff';
+        // What a role sees comes from Roles & access only (U-09): kg always, the ₹ value per stockValue
+        const hideValue = !can(AppState.userRole, 'stockValue', AppState.settings?.roleAccess);
 
-        this.renderSummary(stockSummary(stockWithDetails), stockValue(stock), isStaff);
+        const belowZeroCount = stockWithDetails.filter(r => r.belowZero).length;
+        this.renderSummary(stockSummary(stockWithDetails), stockValue(stock), hideValue, belowZeroCount);
         const approxNote = stockApproxNoteHtml(AppState.stockApprox);
         if (approxNote) container.insertAdjacentHTML('beforeend', approxNote);
-        container.insertAdjacentHTML('beforeend', this.lowStockHtml(stock, isStaff));
+        // A purchase at a 100× rate skews the stock rate and value (U-01)
+        if (this.canManageStock()) container.insertAdjacentHTML('beforeend', doubtfulRatesNoticeHtml(['purchase']));
+        container.insertAdjacentHTML('beforeend', this.lowStockHtml(stock));
         const canSetAlerts = this.canManageStock();
         const list = document.createElement('div');
         list.className = 'panel stock-rows';
@@ -178,11 +182,29 @@ export class StockManager {
                 return;
             }
 
-            // For staff: show "Available" if quantity > 100, otherwise show actual quantity
-            // Rate is always shown, value is hidden when showing "Available"
-            const showLimitedQty = isStaff && item.quantity > 100;
-            const quantityDisplay = showLimitedQty ? tx('ui.stock.available') : `${stockKg(item.quantity)} kg`;
-            const valueDisplay = showLimitedQty ? '' : `<div class="row-meta" data-perm="stockValue">≈ ${figHtml(itemValue(item))}</div>`;
+            if (item.belowZero) {
+                // Sold before the purchase was entered: shown to everyone, at the top,
+                // with words (not only colour) so a stock count can fix it (U-12).
+                div.classList.add('stock-below-zero', 'tone-neg');
+                const fix = canSetAlerts
+                    ? `<button type="button" class="btn btn-ghost btn-sm" data-stock-adjust data-onclick="stock.openStockCount()">${tx('ui.stock.fix_with_count')}</button>`
+                    : '';
+                div.innerHTML = `
+                        <div class="row-main">
+                            <div class="row-title">${Helpers.escapeHtml(displayName)}</div>
+                            <div class="stock-orphan-note">${icon('triangle', 'i-sm')} ${tx('ui.stock.below_zero_note')}</div>${fix}
+                        </div>
+                        <div class="row-trail">
+                            <div class="row-amt">${stockKg(item.quantity)} kg</div>
+                            <div class="row-meta">${tx('ui.stock.below_zero_tag')}</div>
+                        </div>
+                `;
+                list.appendChild(div);
+                return;
+            }
+
+            const quantityDisplay = `${stockKg(item.quantity)} kg`;
+            const valueDisplay = `<div class="row-meta" data-perm="stockValue">≈ ${figHtml(itemValue(item))}</div>`;
             
             const catalogueItem = AppState.items.find(i => i.id === item.itemId);
             const level = lowStockLevel(catalogueItem);
@@ -212,25 +234,29 @@ export class StockManager {
 
     /**
      * Summary card above the list (#92): items in stock and their kg (S7), stock value (S4).
-     * Members see the item count only: like the list, no exact kg above 100 kg and no value.
+     * The value shows only to roles with Stock value on in Roles & access (U-09).
      * @param {?{items: number, kg: number}} summary null hides the card
      * @param {number} [value] S4
-     * @param {boolean} [isStaff]
+     * @param {boolean} [hideValue]
+     * @param {number} [belowZero] items below zero (U-12), shown as their own figure
      */
-    static renderSummary(summary, value = 0, isStaff = false) {
+    static renderSummary(summary, value = 0, hideValue = false, belowZero = 0) {
         const box = document.getElementById('stockSummary');
         if (!box) return;
-        box.hidden = !summary || summary.items === 0;
+        box.hidden = !summary || (summary.items === 0 && !belowZero);
         if (box.hidden) return;
         const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
         set('stockSummaryItems', formatAmount(summary.items));
+        set('stockSummaryBelowZero', formatAmount(belowZero));
+        const bzCell = document.getElementById('stockSummaryBelowZeroCell');
+        if (bzCell) bzCell.hidden = !belowZero;
         set('stockSummaryKg', `${stockKg(summary.kg)} kg`);
         const valueEl = document.getElementById('stockSummaryValue');
         if (valueEl) valueEl.innerHTML = `≈ ${figHtml(value)}`;
         const kgCell = document.getElementById('stockSummaryKgCell');
-        if (kgCell) kgCell.hidden = isStaff;
+        if (kgCell) kgCell.hidden = false;
         const valueCell = document.getElementById('stockSummaryValueCell');
-        if (valueCell) valueCell.hidden = isStaff;
+        if (valueCell) valueCell.hidden = hideValue;
     }
 
     /** Owners and managers adjust stock and set low-stock levels (firestore.rules: items and stockAdjustments). */
@@ -242,15 +268,13 @@ export class StockManager {
      * "Low stock (N)" card at the top of Current stock (#146, S-LOW): items below
      * their own level (default 10 kg), lowest first.
      * @param {Object} stock AppState.stock
-     * @param {boolean} isStaff members see "Available" above 100 kg, as in the list
      * @returns {string} HTML ('' when nothing is low)
      */
-    static lowStockHtml(stock, isStaff) {
+    static lowStockHtml(stock) {
         const stocked = stockedItemKeys({ purchases: AppState.purchaseHistory, stockAdjustments: AppState.stockAdjustments }, AppState.items, stock);
         const rows = lowStockItems(stock, AppState.items, stocked, { lang: AppState.settings?.showHindi ? 'hi' : 'en' });
         if (!rows.length) return '';
-        const lines = rows.map(r => `<li><strong>${Helpers.escapeHtml(r.name)}</strong> ${isStaff && r.quantity > 100 ? tx('ui.stock.available')
-            : tx('ui.stock.low_row', { qty: stockKg(r.quantity), level: stockKg(r.level) })}</li>`).join('');
+        const lines = rows.map(r => `<li><strong>${Helpers.escapeHtml(r.name)}</strong> ${tx('ui.stock.low_row', { qty: stockKg(r.quantity), level: stockKg(r.level) })}</li>`).join('');
         return `<div class="notice warn" data-stock-low role="status">${icon('triangle')}<div class="grow"><b>${tx('ui.stock.low_title', { n: rows.length })}</b><ul class="stock-low-list">${lines}</ul></div></div>`;
     }
 
@@ -656,6 +680,9 @@ export class StockManager {
                 filterButtons[1].hidden = true;
             }
         }
+        // A switch with a single choice left is no switch (U-87)
+        const seg = document.querySelector('#stock .stock-seg');
+        if (seg) seg.hidden = [...seg.querySelectorAll(':scope > button')].filter(b => !b.hidden).length < 2;
     }
 
     /**
@@ -667,13 +694,17 @@ export class StockManager {
         if (!select) return;
 
         select.innerHTML = `<option value="">${tx('ui.wholesale.select_item')}</option>`;
-        AppState.items.forEach(item => {
-            const option = document.createElement("option");
-            option.value = item.id;
-            const displayName = (AppState.settings.showHindi && item.hindiName) ? item.hindiName : item.name;
-            option.textContent = isArchivedItem(item) ? `${displayName} (${t('ui.items.archived_chip')})` : displayName;
-            select.appendChild(option);
-        });
+        const nameOf = (item) => String((AppState.settings.showHindi && item.hindiName) ? item.hindiName : item.name);
+        // A–Z; an archived item only while it still holds stock (U-77)
+        AppState.items
+            .filter(item => item && item.id && (!isArchivedItem(item) || Math.abs(Number(AppState.stock?.[item.id]?.quantity) || 0) > 0.001))
+            .sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
+            .forEach(item => {
+                const option = document.createElement("option");
+                option.value = item.id;
+                option.textContent = isArchivedItem(item) ? `${nameOf(item)} (${t('ui.items.archived_chip')})` : nameOf(item);
+                select.appendChild(option);
+            });
     }
 
     static loadAdjustItemStock() {
@@ -683,6 +714,8 @@ export class StockManager {
         const avgRateValue = document.getElementById("avgRateValue");
         
         if (!display) return;
+        const now = document.getElementById('adjustStockNow');
+        if (now) now.hidden = !itemId;
 
         if (!itemId) {
             display.textContent = "";
@@ -831,7 +864,7 @@ export class StockManager {
         if (quiet) return true;
         if (!reversesId) {
             document.getElementById("adjustQuantity").value = "";
-            document.getElementById("adjustRate").value = "0";
+            document.getElementById("adjustRate").value = "";
             document.getElementById("adjustReason").value = "";
             const reasonSelect = document.getElementById("adjustReasonCode");
             if (reasonSelect) reasonSelect.value = "";

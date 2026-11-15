@@ -1,11 +1,14 @@
 /** Login gate in a real browser (#127, #96): pending users stay out; staff see a reduced menu. */
 const { test, expect, login } = require('./support/app');
 
-test('pending user is signed out with a message', async ({ page, problems }) => {
+test('pending user waits on the approval card with Check again (U-24)', async ({ page, problems }) => {
     await login(page, 'pending');
-    await expect(page.locator('#loginMessage')).toHaveText(/owner to approve/, { timeout: 30000 });
+    await expect(page.locator('#pendingCard')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('#loginMessage')).toHaveText(/waiting for the owner/);
     await expect(page.locator('#authScreen')).toBeVisible();
     await expect(page.locator('#appContent')).toHaveClass(/hidden/);
+    await page.locator('#pendingCheckBtn').click();
+    await expect(page.locator('#pendingMessage')).toHaveText(/Still waiting/);
     expect(problems.pageErrors).toEqual([]);
 });
 

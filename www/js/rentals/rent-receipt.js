@@ -14,6 +14,7 @@ import { Helpers } from '../utils/helpers.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
+import { Exporter } from '../services/exporter.js';
 import { openExternal } from '../utils/open-external.js';
 import { cleanText, whatsAppReminderUrl } from '../utils/due-reminder.js';
 import { formatRupees } from '../utils/money.js';
@@ -200,24 +201,9 @@ export function pdfFromJpeg(jpeg, w, h) {
     return out;
 }
 
-async function shareFile(blob, filename) {
-    const file = typeof File === 'function' ? new File([blob], filename, { type: blob.type }) : null;
-    if (file && navigator.canShare?.({ files: [file] })) {
-        try {
-            await navigator.share({ files: [file], title: filename });
-            return;
-        } catch (e) {
-            if (e?.name === 'AbortError') return;
-        }
-    }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+/** Share sheet / download on the web; Android's share sheet in the app, whose WebView drops downloads. */
+function shareFile(blob, filename) {
+    return Exporter.saveBlob(blob, filename);
 }
 
 // ---------- dialogs (env from rentals.js: dialog, rcOf(charge), linkOf(leaseId), canVoid, head) ----------

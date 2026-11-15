@@ -22,6 +22,11 @@ import { t } from '../i18n/index.js';
 import { UserAdmin, isRemovedProfile, logUserAction } from '../services/user-admin.js';
 import { icon } from '../ui/icons.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
+import { setPendingJoins } from '../utils/owner-alerts.js';
+import { FIRST_RUN_TEAM_KEY } from '../utils/first-run.js';
+import { safeSetItem } from '../utils/storage-full.js';
+import { normalizeUsername, validPin, workerEmail, workerUsername } from '../utils/worker-accounts.js';
+import { createWorkerAccount, workerEmailDomain } from '../firebase/repos/users.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
 /** Most audit entries the activity report reads per tap. */
@@ -112,7 +117,8 @@ const AdminManager = {
     },
 
     /**
-     * Render Users tab
+     * Admin › Users: the counts, where people are managed (Settings › Team, U-54) and the
+     * per-person activity report.
      */
     async renderUsers() {
         const container = document.getElementById('adminContainer');
@@ -120,26 +126,9 @@ const AdminManager = {
 
         container.innerHTML = `
             <p class="admin-hint" id="adminUserCounts"></p>
-            <section class="admin-section">
-                <h3>${tx('ui.users.pending_registrations')}</h3>
-                <p class="admin-hint">${tx('ui.users.approve_new_users_and_assign')}</p>
-                <div class="panel" id="adminPendingUsers">
-                    <p class="empty">${tx('ui.navigation.loading')}</p>
-                </div>
-            </section>
-
-            <section class="admin-section">
-                <h3>${tx('ui.users.active_users')}</h3>
-                <p class="admin-hint">${tx('ui.users.manage_existing_user_roles')}</p>
-                <div class="panel" id="adminActiveUsers">
-                    <p class="empty">${tx('ui.navigation.loading')}</p>
-                </div>
-            </section>
-
-            <section class="admin-section" id="adminRemovedCard" hidden>
-                <h3>${tx('ui.admin.removed_users')}</h3>
-                <p class="admin-hint">${tx('ui.admin.removed_users_hint')}</p>
-                <div class="panel" id="adminRemovedUsers"></div>
+            <section class="admin-section" id="adminTeamLink">
+                <p class="admin-hint">${tx('ui.admin.people_in_team')}</p>
+                <button type="button" class="btn btn-tonal" data-onclick="nav.showTab('settings-team', event)">${icon('users', 'i-sm')} ${tx('ui.admin.open_team')}</button>
             </section>
 
             <section class="admin-section" id="adminActivityCard">
@@ -153,6 +142,101 @@ const AdminManager = {
         `;
 
         await this.loadUsers();
+    },
+
+    /** The people lists: waiting to join, people, removed (their containers; loadUsers fills them). */
+    peopleListsHtml() {
+        return `
+            <section class="admin-section" id="teamWaitingCard">
+                <h4 class="set-subtitle">${tx('ui.team.waiting_to_join')}</h4>
+                <p class="admin-hint">${tx('ui.users.approve_new_users_and_assign')}</p>
+                <div class="panel" id="adminPendingUsers">
+                    <p class="empty">${tx('ui.navigation.loading')}</p>
+                </div>
+            </section>
+
+            <section class="admin-section">
+                <h4 class="set-subtitle">${tx('ui.users.active_users')}</h4>
+                <p class="admin-hint">${tx('ui.users.manage_existing_user_roles')}</p>
+                <div class="panel" id="adminActiveUsers">
+                    <p class="empty">${tx('ui.navigation.loading')}</p>
+                </div>
+            </section>
+
+            <section class="admin-section" id="adminRemovedCard" hidden>
+                <h4 class="set-subtitle">${tx('ui.admin.removed_users')}</h4>
+                <p class="admin-hint">${tx('ui.admin.removed_users_hint')}</p>
+                <div class="panel" id="adminRemovedUsers"></div>
+            </section>`;
+    },
+
+    /**
+     * Settings › Team (U-54): the one place where the owner approves, changes, resets and removes
+     * people. One users read, when the group opens.
+     * @returns {Promise<boolean>}
+     */
+    async renderTeam() {
+        const card = document.getElementById('teamPeopleCard');
+        const host = document.getElementById('teamPeople');
+        const owner = AppState.userRole === 'owner';
+        if (card) card.hidden = !owner;
+        if (!host || !owner) return false;
+        safeSetItem(`${FIRST_RUN_TEAM_KEY}.${AppState.currentUser?.uid || ''}`, '1');
+        host.innerHTML = this.peopleListsHtml();
+        await this.loadUsers();
+        return true;
+    },
+
+    /**
+     * Settings › Team › Add a worker without email (U-56): a username and a PIN make the worker's
+     * sign-in (createWorkerAccount, in a second app so the owner stays signed in); the owner then
+     * approves it with the chosen role, as any registration. Needs the internet.
+     * @returns {Promise<boolean>} true when the account was made and approved
+     */
+    async addWorker() {
+        if (AppState.userRole !== 'owner') return false;
+        const $ = (id) => /** @type {HTMLInputElement|null} */ (document.getElementById(id));
+        const msg = $('teamWorkerMessage');
+        const say = (key, params, tone = 'neg') => {
+            if (!msg) return;
+            msg.hidden = false;
+            msg.className = `notice ${tone}`;
+            msg.textContent = t(key, params);
+        };
+        const name = ($('teamWorkerName')?.value || '').trim();
+        const username = normalizeUsername($('teamWorkerUser')?.value);
+        const pin = $('teamWorkerPin')?.value || '';
+        const role = $('teamWorkerRole')?.value === 'manager' ? 'manager' : 'staff';
+        if (!name) { say('msg.team.enter_name'); $('teamWorkerName')?.focus(); return false; }
+        if (!username) { say('msg.team.bad_username'); $('teamWorkerUser')?.focus(); return false; }
+        if (!validPin(pin)) { say('msg.team.bad_pin'); $('teamWorkerPin')?.focus(); return false; }
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) { say('msg.team.needs_internet'); return false; }
+        const button = $('teamWorkerSubmit');
+        if (button) button.disabled = true;
+        try {
+            const uid = await createWorkerAccount({ email: workerEmail(username, workerEmailDomain()), password: pin, name });
+            await FirebaseService.updateUser(uid, {
+                status: 'active',
+                role,
+                approvedAt: FirebaseService.serverTimestamp(),
+                approvedBy: AppState.currentUser?.uid
+            });
+            logUserAction(AuditService.ACTIONS.APPROVE_USER, { targetUserId: uid, role, workerAccount: true });
+            ['teamWorkerName', 'teamWorkerUser', 'teamWorkerPin'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+            say('msg.team.worker_added', { name, username }, 'pos');
+            await this.loadUsers();
+            return true;
+        } catch (error) {
+            console.error('Worker account not made:', error?.code || error);
+            const code = String(error?.code || '');
+            say(code === 'auth/email-already-in-use' ? 'msg.team.username_taken'
+                : code === 'auth/network-request-failed' ? 'msg.team.needs_internet'
+                    : code === 'auth/invalid-email' ? 'msg.team.bad_username'
+                        : 'msg.team.not_made', { code: code || 'unknown' });
+            return false;
+        } finally {
+            if (button) button.disabled = false;
+        }
     },
 
     /**
@@ -180,6 +264,7 @@ const AdminManager = {
             });
 
             this.users = users;
+            setPendingJoins(pendingUsers.length);
             this.renderCounts(users);
             this.renderPendingUsers(pendingUsers);
             this.renderActiveUsers(activeUsers);
@@ -214,7 +299,7 @@ const AdminManager = {
                 <div class="row">
                     <div class="row-main">
                         <div class="row-title">${Helpers.escapeHtml(user.name || t('ui.reports.unknown'))}${isMe ? ` <span class="tag">${tx('ui.admin.you')}</span>` : ''}</div>
-                        <div class="row-meta">${Helpers.escapeHtml(user.email || '')}</div>
+                        <div class="row-meta">${Helpers.escapeHtml(workerUsername(user.email) ? t('ui.team.username_is', { username: workerUsername(user.email) }) : (user.email || ''))}</div>
                     </div>
                     <div class="row-trail">${this.userTagHtml(user, kind)}</div>
                 </div>
@@ -258,12 +343,12 @@ const AdminManager = {
                     <button type="button" class="btn btn-sm btn-tonal" data-onclick="admin.showChangeRole('${id}', '${safeName}', '${Helpers.escapeJsAttr(user.role)}')">
                         ${icon('sliders', 'i-sm')} ${tx('ui.admin.edit_role')}
                     </button>
-                    <button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
+                    ${workerUsername(user.email) ? '' : `<button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
                         ${icon('lock', 'i-sm')} ${tx('ui.admin.reset_password')}
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger" data-onclick="admin.deleteUser('${id}', '${safeName}')">
-                        ${icon('trash', 'i-sm')} ${tx('ui.modals.delete')}
-                    </button>
+                    </button>`}
+                    ${user.role === 'owner' ? '' : `<button type="button" class="btn btn-sm btn-danger-outline" data-onclick="admin.deleteUser('${id}', '${safeName}')">
+                        ${icon('x', 'i-sm')} ${tx('ui.confirm.delete_user')}
+                    </button>`}
                 </div>`;
     },
 

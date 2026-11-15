@@ -90,7 +90,8 @@ export function paymentChipsHtml(bill) {
     if (p.online > 0) chips.push(`<span class="tag payment-badge payment-online">${L('ui.history.badge_online', { amount: formatAmount(p.online) })}</span>`);
     if (p.cash > 0) chips.push(`<span class="tag payment-badge payment-cash">${L('ui.history.badge_cash', { amount: formatAmount(p.cash) })}</span>`);
     const date = billDateOf(bill);
-    const tone = dueTone(date ? ageInDays(date) : null, p.due);
+    // A due always stands out from Cash / Online (U-73); older dues go orange, then red
+    const tone = dueTone(date ? ageInDays(date) : null, p.due) || 'warn';
     if (p.due > 0) chips.push(`<span class="tag payment-badge payment-due${tone ? ` ${Helpers.escapeHtml(tone)}` : ''}">${L('ui.history.badge_due', { amount: formatAmount(p.due) })}</span>`);
     return chips.join('');
 }
@@ -317,7 +318,7 @@ export function billTableHtml(bills, { onclickFor, openings = [], voided = [], t
     const openingRows = group(openings, 'ui.history.old_dues_group');
     const voidedRows = group(voided, 'ui.void.group');
     return `
-        <div class="bill-table-scroll panel">
+        <div class="bill-table-scroll panel" tabindex="0" role="region" aria-label="${L('ui.history.table_view')}">
             <table class="table" data-bill-table>
                 <thead>
                     <tr>

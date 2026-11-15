@@ -132,7 +132,7 @@ describe('cash drawer', () => {
         expect(UIManager.showModal).not.toHaveBeenCalled();
     });
 
-    test('Close offline: says it needs internet, writes nothing, keeps the count', async () => {
+    test('Close offline: keeps the count on this phone (U-32), writes nothing', async () => {
         document.body.innerHTML = '<input id="cashSignOutAmount" value="500"><input id="cashSignOutNotes">';
         openSession();
         goOffline();
@@ -141,7 +141,7 @@ describe('cash drawer', () => {
         const btn = button('data-cash-save="close"');
         await CashManagementManager.signOut();
         expect(update).not.toHaveBeenCalled();
-        expect(UIManager.showToast).toHaveBeenCalledWith(t('msg.cash.close_needs_internet'), 'warning');
+        expect(UIManager.showToast).toHaveBeenCalledWith(t('msg.cash.count_saved_offline'), 'warning');
         expect(document.getElementById('cashSignOutAmount').value).toBe('500');
         expect(btn.disabled).toBe(false);
     });

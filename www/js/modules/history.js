@@ -15,7 +15,7 @@ import { Helpers } from '../utils/helpers.js';
 import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import { PrinterService } from '../services/printer.js';
 import {
-    ensureHistoryFrom, isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, findBillIndex,
+    ensureHistoryFrom, isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, findBillIndex, syncAllDatesLabel,
     renderStaleHistoryHint, rangeStatus, retryRange, applyRangeState, needsHistoryFrom, loadOlderHistory, monthStart
 } from '../utils/history-window.js';
 import {
@@ -32,7 +32,7 @@ import { voidBlocker } from '../utils/bill-edits.js';
 import { buildReprintPayload, buildBillShareText } from '../utils/bill-share.js';
 import { billTimes, refusedForClock } from '../utils/clock-skew.js';
 import { todayLocalISO } from '../utils/dates.js';
-import { paymentBreakdown } from '../utils/due-payments.js';
+import { paymentBreakdown, paidSoFar } from '../utils/due-payments.js';
 import { whatsAppShareUrl } from '../utils/release-info.js';
 import { openExternal } from '../utils/open-external.js';
 import { billTraceId } from '../utils/status-report.js';
@@ -212,6 +212,7 @@ export class HistoryManager {
         const filter = this.getFilter();
         type = filter.type;
         this.syncFilterUi();
+        syncAllDatesLabel(/** @type {?HTMLSelectElement} */ (document.getElementById('historyDatePreset')));
 
         const range = resolveHistoryRange(filter.preset, new Date(), filter);
         this.activeRange = range;
@@ -278,7 +279,8 @@ export class HistoryManager {
         }
 
         if (sortedBills.length === 0 && !showOpenings && !showVoided) {
-            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm) });
+            const searching = !!(searchTerm || '').trim();
+            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm), action: searching ? { onclick: 'history.clearSearch()', label: t('ui.common.clear_search') } : null });
             this.renderShowMore(container);
             this.updateOlderHistoryUi();
             return;
@@ -571,35 +573,14 @@ export class HistoryManager {
         const content = `
             <div class="bill-view${isPurchase ? '' : ' is-sale'}">
                 ${voidedBannerHtml(bill)}
-                <div class="panel bill-view-info">
-                    <div class="row bill-view-row">
-                        <span class="row-main">${L('ui.history.bill_no')}</span>
-                        <strong class="bill-view-no">#${Helpers.escapeHtml(billNumber)}</strong>
+                <div class="panel panel-pad bill-view-head">
+                    ${bill.customerName ? `<div class="bill-view-party"><span class="row-meta">${L(isPurchase ? 'ui.common.supplier' : 'ui.common.customer')}</span> <strong>${Helpers.escapeHtml(bill.customerName)}</strong></div>` : ''}
+                    <div class="bill-view-sum hero-num">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</div>
+                    <div class="bill-view-chips">
+                        ${paidSoFar(parts) > 0 ? `<span class="tag pos">${L('ui.history.chip_paid', { amount: formatAmount(paidSoFar(parts)) })}</span>` : ''}
+                        ${parts.due > 0 ? `<span class="tag warn">${L('ui.history.badge_due', { amount: formatAmount(parts.due) })}</span>` : ''}
                     </div>
-                    <div class="row bill-view-row">
-                        <span class="row-main">${L('ui.history.date_label')}</span>
-                        <span>${Helpers.escapeHtml(shownDate.text)}${shownDate.bad ? badDateBadgeHtml() : ''}</span>
-                    </div>
-                    ${bill.createdByName || bill.userName ? `
-                        <div class="row bill-view-row">
-                            <span class="row-main">${L('ui.history.created_by')}</span>
-                            <span>${Helpers.escapeHtml(bill.createdByName || bill.userName)}</span>
-                        </div>
-                    ` : ''}
-                    ${bill.customerName ? `
-                        <div class="row bill-view-row">
-                            <span class="row-main">${L(isPurchase ? 'ui.common.supplier' : 'ui.common.customer')}</span>
-                            <strong>${Helpers.escapeHtml(bill.customerName)}</strong>
-                        </div>
-                    ` : ''}
-                    ${billTimesHtml(bill)}
-                    ${billTraceId(bill, type) ? `
-                        <div class="row bill-view-row bill-trace-row">
-                            <span class="row-main">${L('ui.status.trace_id')}</span>
-                            <span class="bill-trace"><code lang="zxx" translate="no">${Helpers.escapeHtml(billTraceId(bill, type))}</code>
-                                <button type="button" class="btn btn-ghost btn-sm bill-trace-copy" data-onclick="history.copyTraceId()">${L('ui.status.copy_short')}</button></span>
-                        </div>
-                    ` : ''}
+                    <div class="row-meta">${Helpers.escapeHtml(shownDate.text)}${shownDate.bad ? badDateBadgeHtml() : ''}</div>
                 </div>
                 
                 ${bill.comments ? `
@@ -661,6 +642,29 @@ export class HistoryManager {
                 
                 ${paymentHTML}
                 ${editsRowHtml(bill, 'history.showEdits()')}
+                <details class="panel bill-view-more">
+                    <summary class="row bill-view-row">${L('ui.history.record_details')}</summary>
+                    <div class="bill-view-info">
+                    <div class="row bill-view-row">
+                        <span class="row-main">${L('ui.history.bill_no')}</span>
+                        <strong class="bill-view-no">#${Helpers.escapeHtml(billNumber)}</strong>
+                    </div>
+                    ${bill.createdByName || bill.userName ? `
+                        <div class="row bill-view-row">
+                            <span class="row-main">${L('ui.history.created_by')}</span>
+                            <span>${Helpers.escapeHtml(bill.createdByName || bill.userName)}</span>
+                        </div>
+                    ` : ''}
+                    ${billTimesHtml(bill)}
+                    ${billTraceId(bill, type) ? `
+                        <div class="row bill-view-row bill-trace-row">
+                            <span class="row-main">${L('ui.status.trace_id')}</span>
+                            <span class="bill-trace"><code lang="zxx" translate="no">${Helpers.escapeHtml(billTraceId(bill, type))}</code>
+                                <button type="button" class="btn btn-ghost btn-sm bill-trace-copy" data-onclick="history.copyTraceId()">${L('ui.status.copy_short')}</button></span>
+                        </div>
+                    ` : ''}
+                    </div>
+                </details>
             </div>
         `;
         
@@ -669,7 +673,7 @@ export class HistoryManager {
         
         // Edit / Void only while this user may still change the bill (#87 edit window, #84, #75)
         const who = { uid: AppState.currentUser?.uid, role: AppState.userRole, raw: AppState.settings?.roleAccess };
-        setBillActions(bill, who, { editable: type !== 'wholesale' });
+        setBillActions(bill, who);
         if (isActiveBill(bill) && AppState.userRole !== 'owner' && !withinBillEditWindow(bill, who)) {
             document.getElementById('billDetailsContent').insertAdjacentHTML('beforeend',
                 `<div class="notice bill-window-note">${icon('lock', 'i-sm')}<span class="grow">${L('msg.roles.edit_window_closed', { days: accessFor(AppState.userRole, who.raw).editDays })}</span></div>`);
@@ -851,7 +855,18 @@ export class HistoryManager {
     }
 
     static searchHistory(searchTerm) {
+        const clear = document.getElementById('historySearchClear');
+        if (clear) clear.hidden = !String(searchTerm || '').trim();
         this.renderHistory(this.getFilter().type, searchTerm);
+    }
+
+    static clearSearch() {
+        const input = /** @type {?HTMLInputElement} */ (document.getElementById('historySearch'));
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        this.searchHistory('');
     }
 
     static refreshHistory() {
@@ -1033,10 +1048,13 @@ export class HistoryManager {
     static updateRangeLabel(range, count, sum = null) {
         const label = document.getElementById('historyRangeLabel');
         if (!label) return;
-        const text = formatHistoryRange(range);
-        const parts = text || this.activeSearch ? [text, t(count === 1 ? 'ui.outstanding.bills_one' : 'ui.outstanding.bills_many', { count })] : [];
+        // One line for the list shown, whatever the filter (U-73): period · N bills · ₹ total · Due ₹
+        const text = formatHistoryRange(range) || (isFullHistoryLoaded() ? t('ui.history.all_dates')
+            : t('ui.history.since_date', { date: formatWindowDate(historyLoadedFrom()) }));
+        const parts = count > 0 || this.activeSearch ? [text, t(count === 1 ? 'ui.outstanding.bills_one' : 'ui.outstanding.bills_many', { count })] : [];
         if (parts.length && sum && sum.count > 0) {
             parts.push(sum.unknown > 0 ? t('ui.history.list_total_unknown', { total: formatRupees(sum.total), n: sum.unknown }) : formatRupees(sum.total));
+            if (sum.due > 0) parts.push(t('ui.history.list_due', { amount: formatRupees(sum.due) }));
         }
         label.textContent = parts.filter(Boolean).join(' · ');
         label.hidden = !parts.length;
@@ -1142,7 +1160,8 @@ export class HistoryManager {
         if (bills.length === 0 && this.pageOpenings.length === 0 && this.pageVoided.length === 0) {
             const searchInput = document.getElementById('historySearch');
             const searchTerm = searchInput ? searchInput.value : '';
-            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm) });
+            const searching = !!(searchTerm || '').trim();
+            container.innerHTML = emptyState({ icon: 'receipt', title: this.emptyMessage(type, searchTerm), action: searching ? { onclick: 'history.clearSearch()', label: t('ui.common.clear_search') } : null });
             return;
         }
 

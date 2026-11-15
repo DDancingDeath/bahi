@@ -39,10 +39,15 @@
 }
 
 .auth-header {
-  background: var(--accent-strong);
-  color: var(--on-accent-strong);
+  border-top: 4px solid var(--accent);
+  background: var(--auth-head-bg);
+  color: var(--auth-head-ink);
   padding: var(--sp-8) var(--sp-6);
   text-align: center;
+}
+
+.auth-mark {
+  margin-bottom: var(--sp-3);
 }
 
 .auth-header h1 {
@@ -208,15 +213,19 @@
 }
 
 .auth-lang-link {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
   background: none;
-  border: none;
-  padding: var(--sp-1) var(--sp-2);
-  font-size: var(--fs-sm);
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-body);
   color: var(--ink-2);
   cursor: pointer;
 }
 
 .auth-lang-link[aria-pressed="true"] {
+  border-color: var(--seg-on-line);
   color: var(--accent-text);
   font-weight: var(--w-strong);
 }
@@ -241,4 +250,31 @@ body {
   touch-action: manipulation;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+/* The password rule stays under the field while typing (U-57) */
+.auth-field-hint {
+  margin: var(--sp-1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+/* Waiting for approval (U-24): the card replaces the sign-in forms */
+.auth-form[hidden],
+.auth-switch[hidden] {
+  display: none;
+}
+
+.auth-pending p {
+  margin: 0 0 var(--sp-3);
+  color: var(--ink-2);
+}
+
+.auth-pending .auth-pending-name {
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
+
+.auth-pending .auth-pending-name:empty {
+  display: none;
 }

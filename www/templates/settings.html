@@ -5,10 +5,10 @@
         <div class="panel panel-pad set-panel" id="languageSettingsCard">
             <h3 class="set-title" data-i18n="ui.settings.language">Language</h3>
             <div class="seg lang-switch" role="group" aria-label="Language" data-i18n-aria-label="ui.settings.language">
-                <button type="button" data-lang-option="en" lang="en" aria-pressed="true" data-onclick="i18n.setLang('en')">English</button>
-                <button type="button" data-lang-option="hi" lang="hi" aria-pressed="false" data-onclick="i18n.setLang('hi')">हिंदी</button>
+                <button type="button" data-lang-option="en" lang="en" aria-pressed="true" data-onclick="i18n.choose('en')">English</button>
+                <button type="button" data-lang-option="hi" lang="hi" aria-pressed="false" data-onclick="i18n.choose('hi')">हिंदी</button>
             </div>
-            <p class="setting-description" data-i18n="ui.settings.language_hint">App text and messages. Saved on this device.</p>
+            <p class="setting-description" data-i18n="ui.settings.language_hint">App text and messages. Saved for you, on any phone you sign in to.</p>
         </div>
 
         <div class="panel panel-pad set-panel" id="accountCard">
@@ -23,9 +23,20 @@
             <div class="set-kv"><span data-i18n="ui.settings.email">Email</span> <span id="userEmail">-</span></div>
             <div class="set-actions">
                 <button class="btn" type="button" data-onclick="settings.changePassword()" data-i18n="ui.settings.change_password">Change password</button>
-                <button class="btn btn-danger" type="button" data-onclick="auth.logout()" data-i18n="ui.settings.logout">Log out</button>
+                <button class="btn" type="button" data-onclick="auth.logout()" data-i18n="ui.settings.logout">Log out</button>
             </div>
             <p class="setting-description" data-i18n="ui.settings.change_password_hint">We email you a link to set a new password.</p>
+        </div>
+
+        <!-- Phone lock (U-55): owner and managers; off until a PIN is set -->
+        <div class="panel panel-pad set-panel" id="appLockCard" hidden>
+            <h3 class="set-title" data-i18n="ui.applock.title">Lock this phone</h3>
+            <div class="set-kv"><span data-i18n="ui.applock.status">Lock</span> <span id="appLockState" data-i18n="ui.applock.off">Off</span></div>
+            <div class="set-actions">
+                <button class="btn" type="button" id="appLockSetup" data-onclick="appLock.setup()" data-i18n="ui.applock.set_up">Set up</button>
+                <button class="btn btn-ghost" type="button" id="appLockOff" hidden data-onclick="appLock.turnOff()" data-i18n="ui.applock.turn_off">Turn off</button>
+            </div>
+            <p class="setting-description" data-i18n="ui.applock.hint">For a phone others also use: after some minutes without use, the app asks for your PIN.</p>
         </div>
 
         <div class="panel set-groups" id="settingsGroups">
@@ -201,6 +212,7 @@
             </label>
             <p class="setting-description" data-i18n="ui.settings.photo_weights_hint">Off unless the owner switches it on. Then everyone sees “Photo of weights” on Purchase billing: take a photo of the weight sheet, check the weights and add them to the bag weights. Nothing is saved until the bill is saved. The photo is sent to Google’s Gemini to be read and is not kept. Photograph only the weights, not names or phone numbers. Saved for everyone.</p>
             <p class="setting-description" id="photoWeightsOwnerOnly" hidden data-i18n="ui.settings.photo_weights_owner_only">Only the owner can change this.</p>
+            <p class="setting-description tone-warn" id="photoWeightsNeedsSetup" hidden data-i18n="ui.settings.photo_weights_needs_setup">Not working in this app yet: the app's security check (App Check) must be set up first. Until then the button stays hidden.</p>
         </div>
     </section>
 
@@ -302,6 +314,44 @@
             <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
             <h2 class="set-group-title" id="settingsTeamTitle" tabindex="-1" data-i18n="ui.settings.group_team">Team</h2>
         </div>
+        <!-- People (U-54): waiting to join, everyone's role, reset, remove; a worker without email (U-56) -->
+        <div class="panel panel-pad set-panel" id="teamPeopleCard" hidden>
+            <h3 class="set-title" data-i18n="ui.team.people_title">People</h3>
+            <p class="setting-description" data-i18n="ui.team.people_hint">Waiting to join, everyone's role, password reset and removing someone from the shop.</p>
+            <div class="set-actions">
+                <button class="btn" type="button" id="teamShowPeople" data-onclick="team.render()" data-i18n="ui.roles.show_people">Show people</button>
+            </div>
+            <div id="teamPeople"></div>
+            <details class="team-add" id="teamAddWorker">
+                <summary class="btn btn-tonal" data-i18n="ui.team.add_worker">Add a worker without email</summary>
+                <p class="setting-description" data-i18n="ui.team.add_worker_hint">For a worker with no email: they sign in with this username and PIN. Tell them both.</p>
+                <form novalidate data-onsubmit="team.addWorker(); return false;">
+                    <div class="field">
+                        <label for="teamWorkerName" data-i18n="ui.rate_history.name">Name</label>
+                        <input class="input" type="text" id="teamWorkerName" maxlength="80" autocomplete="off">
+                    </div>
+                    <div class="field">
+                        <label for="teamWorkerUser" data-i18n="ui.team.username">Username</label>
+                        <input class="input" type="text" id="teamWorkerUser" maxlength="30" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="teamWorkerUserHint">
+                        <p class="setting-description" id="teamWorkerUserHint" data-i18n="ui.team.username_rule">3 to 30 small letters or numbers, no spaces</p>
+                    </div>
+                    <div class="field">
+                        <label for="teamWorkerPin" data-i18n="ui.team.pin">PIN</label>
+                        <input class="input" type="password" id="teamWorkerPin" inputmode="numeric" maxlength="8" autocomplete="new-password" aria-describedby="teamWorkerPinHint">
+                        <p class="setting-description" id="teamWorkerPinHint" data-i18n="ui.team.pin_rule">6 to 8 numbers</p>
+                    </div>
+                    <div class="field">
+                        <label for="teamWorkerRole" data-i18n="ui.team.role">Role</label>
+                        <select class="input" id="teamWorkerRole">
+                            <option value="staff" data-i18n="ui.roles.member">Member</option>
+                            <option value="manager" data-i18n="ui.roles.manager">Manager</option>
+                        </select>
+                    </div>
+                    <div id="teamWorkerMessage" class="notice" role="alert" aria-live="assertive" hidden></div>
+                    <button type="submit" class="btn btn-tonal btn-block" id="teamWorkerSubmit" data-i18n="ui.team.create_account">Create account</button>
+                </form>
+            </details>
+        </div>
         <div class="panel panel-pad set-panel" id="roleAccessCard" hidden>
             <h3 class="set-title" data-i18n="ui.roles.title">Roles &amp; access</h3>
             <p class="setting-description" data-i18n="ui.roles.hint">Choose what managers and members may see and do. The owner always sees everything.</p>
@@ -310,7 +360,7 @@
                 <button class="btn btn-primary" type="button" data-onclick="roles.save()" data-i18n="ui.roles.save">Save for everyone</button>
             </div>
             <p class="setting-description" id="roleAccessStatus"></p>
-            <h4 class="set-subtitle" data-i18n="ui.roles.people">People</h4>
+            <h4 class="set-subtitle" data-i18n="ui.roles.rentals_roles_title">Rentals roles</h4>
             <p class="setting-description" data-i18n="ui.roles.people_load_hint">Each person's Aadhat role and Rentals role.</p>
             <div class="set-actions">
                 <button class="btn" type="button" id="rolePeopleBtn" data-onclick="roles.loadPeople()" data-i18n="ui.roles.show_people">Show people</button>
@@ -337,6 +387,7 @@
         <div class="panel panel-pad set-panel">
             <h3 class="set-title" data-i18n="ui.settings.app_updates">App updates</h3>
             <div class="set-kv"><span data-i18n="ui.settings.version">Version</span> <span id="appVersionText">-</span></div>
+            <p class="setting-description tone-warn" id="appUpdateOffer" role="status" hidden></p>
             <div class="set-actions">
                 <button class="btn" type="button" data-onclick="updates.showWhatsNew()" data-i18n="ui.settings.what_s_new">What's new</button>
                 <button class="btn" type="button" data-onclick="updates.shareOnWhatsApp()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg><span data-i18n="ui.settings.share_on_whatsapp">Share on WhatsApp</span></button>

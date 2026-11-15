@@ -12,7 +12,7 @@ import { emptyState } from '../ui/components.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { TelemetryService } from '../services/telemetry.js';
 import { Helpers } from '../utils/helpers.js';
-import { t, getLang } from '../i18n/index.js';
+import { t, tn, getLang } from '../i18n/index.js';
 import { pickLang } from '../i18n/localize.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { AppState } from '../utils/state.js';
@@ -25,6 +25,8 @@ import {
     badgeText, idsToMarkRead, prepareList, newArrivals, notificationTime, retentionCutoff
 } from '../utils/notification-format.js';
 import { formatRupees } from '../utils/money.js';
+import { getPendingJoins, writeOffsByOthers } from '../utils/owner-alerts.js';
+import { trapFocus } from '../utils/keyboard-shortcuts.js';
 
 const SYSTEM_PREF_KEY = 'aadhat.notifications.system';
 const CLEANUP_KEY = 'aadhat.notifications.cleanupAt';
@@ -52,6 +54,8 @@ const NotificationsManager = {
     initial: true,
     errorShown: false,
     panelOpen: false,
+    /** @type {?Element} the control that opened the inbox; focus goes back to it */
+    panelOpener: null,
     panelItems: [],
     cursor: null,
     hasMore: false,
@@ -71,11 +75,43 @@ const NotificationsManager = {
     },
 
     unseenRentCount() {
-        const { items } = this.rentItems();
+        const items = [...this.rentItems().items, ...this.ownerItems()];
         if (!items.length) return 0;
         let seen;
         try { seen = bellSeen(localStorage, this.uid); } catch (_) { seen = new Set(); }
         return items.filter(x => !seen.has(x.key)).length;
+    },
+
+    /**
+     * The owner's alerts kept on this phone: people waiting to join (U-24) and dues someone else
+     * wrote off this week (U-08). Members can't send notifications (rules), so the owner's phone
+     * works these out from what it already holds; no read.
+     * @returns {Array<{key: string, kind: 'join'|'writeoff', title: string, meta: string, billId?: string, billType?: string}>}
+     */
+    ownerItems() {
+        if (!this.uid || AppState.userRole !== 'owner') return [];
+        const items = [];
+        const waiting = getPendingJoins();
+        if (waiting > 0) items.push({ key: `join:${waiting}`, kind: 'join', title: tn('ui.today.reminder_join', waiting), meta: t('ui.notif.join_meta') });
+        const bills = { purchase: AppState.purchaseHistory || [], retail: AppState.retailSalesHistory || [], wholesale: AppState.salesHistory || [] };
+        writeOffsByOthers(bills, this.uid).slice(0, 5).forEach(w => items.push({
+            key: w.key,
+            kind: 'writeoff',
+            title: t('ui.notif.writeoff_title', { amount: formatRupees(w.amount), bill: [w.billNumber ? `#${w.billNumber}` : '', w.party].filter(Boolean).join(' ') }),
+            meta: [t('ui.today.reminder_writeoff_by', { name: w.by || t('ui.reports.unknown') }), formatDayTime(w.at, { lang: getLang() })].join(' · '),
+            billId: w.billId,
+            billType: w.billType
+        }));
+        return items;
+    },
+
+    /** Tap on an owner alert: Team for people waiting, the bill for a write-off. */
+    openOwnerItem(key) {
+        const item = this.ownerItems().find(x => x.key === key);
+        this.close();
+        if (!item) return;
+        if (item.kind === 'join') window.app?.team?.openWaiting?.();
+        else window.app?.history?.viewBill?.(`id:${item.billId}`, item.billType);
     },
 
     markRentSeen(items) {
@@ -213,13 +249,19 @@ const NotificationsManager = {
         const panel = document.getElementById('notifPanel');
         if (!panel || !this.uid) return;
         this.panelOpen = true;
+        if (panel.hidden) this.panelOpener = document.activeElement;
         panel.hidden = false;
         const backdrop = document.getElementById('notifBackdrop');
         if (backdrop) backdrop.hidden = false;
+        if (!panel.dataset.trap) {
+            panel.dataset.trap = '1';
+            panel.addEventListener('keydown', (e) => { if (e.key === 'Tab') trapFocus(e, panel); });
+        }
+        /** @type {HTMLElement|null} */ (panel.querySelector('.notif-close'))?.focus({ preventScroll: true });
         this.panelItems = prepareList(this.unread.slice());
         this.cursor = null;
         this.hasMore = false;
-        const { items } = this.rentItems();
+        const items = [...this.rentItems().items, ...this.ownerItems()];
         let seen;
         try { seen = bellSeen(localStorage, this.uid); } catch (_) { seen = new Set(); }
         this.rentNew = new Set(items.filter(x => !seen.has(x.key)).map(x => x.key));
@@ -234,9 +276,16 @@ const NotificationsManager = {
     close() {
         this.panelOpen = false;
         const panel = document.getElementById('notifPanel');
+        const wasOpen = !!panel && !panel.hidden;
         if (panel) panel.hidden = true;
         const backdrop = document.getElementById('notifBackdrop');
         if (backdrop) backdrop.hidden = true;
+        const opener = this.panelOpener;
+        this.panelOpener = null;
+        if (wasOpen && opener && opener.isConnected && typeof opener.focus === 'function'
+            && (!document.activeElement || document.activeElement === document.body || panel.contains(document.activeElement))) {
+            opener.focus({ preventScroll: true });
+        }
     },
 
     async loadMore() {
@@ -293,7 +342,7 @@ const NotificationsManager = {
      */
     markAllRead() {
         if (!this.uid) return;
-        this.markRentSeen(this.rentItems().items);
+        this.markRentSeen([...this.rentItems().items, ...this.ownerItems()]);
         this.rentNew = new Set();
         const ids = idsToMarkRead('all', [...this.unread, ...this.panelItems.filter(n => !n.readNow)]);
         this.applyLocalRead(ids);
@@ -330,6 +379,19 @@ const NotificationsManager = {
         window.app?.rentals?.open?.(page === 'tenants' ? 'tenants' : 'rent');
     },
 
+    /** @private The owner's alerts (ownerItems) as inbox rows. */
+    ownerRowsHtml() {
+        const e = Helpers.escapeHtml;
+        return this.ownerItems().map(x => `
+                <button type="button" class="row notif-item${this.rentNew.has(x.key) ? ' unread' : ''}" data-owner-alert="${e(x.kind)}" data-onclick="notifications.openOwnerItem('${Helpers.escapeJsAttr(x.key)}')">
+                    <span class="lead-icon">${x.kind === 'join' ? icon('user') : icon('alert')}</span>
+                    <span class="row-main">
+                        <span class="row-title">${e(x.title)}</span>
+                        <span class="row-meta">${e(x.meta)}</span>
+                    </span>
+                </button>`).join('');
+    },
+
     rentRowsHtml() {
         const { items, more } = this.rentItems();
         if (!items.length) return '';
@@ -357,7 +419,7 @@ const NotificationsManager = {
         const list = document.getElementById('notifList');
         if (!list) return;
         const now = Date.now();
-        const rent = this.rentRowsHtml();
+        const rent = this.ownerRowsHtml() + this.rentRowsHtml();
         if (!this.panelItems.length) {
             list.innerHTML = rent + (this.loading
                 ? `<div class="empty">${Helpers.escapeHtml(t('ui.notif.loading'))}</div>`

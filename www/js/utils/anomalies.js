@@ -283,6 +283,23 @@ const billParty = (/** @type {?Rec|undefined} */ bill) => String(bill?.customerN
 const billUserId = (/** @type {?Rec|undefined} */ bill) => String(bill?.userId || bill?.createdBy || '');
 
 /**
+ * A voided bill stops counting everywhere (U-28): the checks found on it (rate far below usual, …)
+ * leave Today's day report and its Needs review queue. The record of the void itself stays.
+ * @param {Array<Rec>} list - anomalies as shown
+ * @param {?Object<string, ?Array<?Rec>|undefined>|undefined} voided - voided bills by kind (purchase, retail, wholesale)
+ * @returns {Array<Rec>}
+ */
+export function withoutVoidedBillChecks(list, voided) {
+    /** @type {Set<string>} */
+    const ids = new Set();
+    for (const kind of ['purchase', 'retail', 'wholesale']) {
+        (voided?.[kind] || []).forEach(b => { if (b?.id !== undefined && b?.id !== null) ids.add(`${kind}|${b.id}`); });
+    }
+    if (!ids.size) return list;
+    return list.filter(a => !(a && a.refKind === 'bill' && a.type !== 'bill-voided' && ids.has(`${a.billType}|${a.refId}`)));
+}
+
+/**
  * A voided bill or expense (by kind, as detectAnomalies `voided`) voided within [from, to) by someone
  * other than `uid` (#75, #99): only then does a scan need to know who the owners are.
  * @param {?Object<string, ?Array<?Rec>|undefined>|undefined} voided

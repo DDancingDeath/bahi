@@ -150,3 +150,21 @@ export function autoCloseFields(session, transactions) {
         transactions: { ...transactions }
     };
 }
+
+/** localStorage key of a cash count saved on this phone while offline (U-32), per user. */
+export const OFFLINE_COUNT_KEY = 'happa.cashCountOffline';
+
+/**
+ * A count saved offline still applies to `session` (U-32): the same open session, today.
+ * Closing waits for the internet because the expected cash must include every phone's entries
+ * and another phone may close the day meanwhile.
+ * @param {?{sessionId: string, date: string, amount: number, notes?: string, at: number}} saved
+ * @param {?Rec} session
+ * @param {string} today YYYY-MM-DD
+ * @returns {?{sessionId: string, date: string, amount: number, notes?: string, at: number}}
+ */
+export function offlineCountFor(saved, session, today) {
+    if (!saved || !session || session.signedOut) return null;
+    if (String(saved.sessionId) !== String(session.id) || saved.date !== today || session.date !== today) return null;
+    return Number.isFinite(saved.amount) && saved.amount >= 0 ? saved : null;
+}

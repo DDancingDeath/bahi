@@ -57,7 +57,7 @@ const STEPS = [
     { name: 'Stock › Opening stock', route: null, page: 'stock', act: 'window.app.settings.openOpeningStock()', roles: OM, timers: 150, expect: '#stockAdjustmentSection' },
     // Members may not open Not selling or Adjustment (stock.js filterStockTab): the Current screen stays.
     { name: 'Stock › Not selling and Adjustment stay closed', route: 'stock', page: 'stock', act: "(window.app.stock.filterTab('dead'), window.app.stock.filterTab('adjustment'))", roles: M, expect: '#currentStockSection', hidden: ['#deadStockSection', '#stockAdjustmentSection', '#deadStockTabBtn'] },
-    { name: 'Outstanding › Purchase', route: 'due', page: 'due', roles: A, expect: '#due .filter-purchase.active' },
+    { name: 'Outstanding › Purchase', route: 'due', page: 'due', act: "window.app.outstanding.filterDue('purchase', { target: document.querySelector('#due .filter-purchase') })", roles: A, expect: '#due .filter-purchase.active' },
     { name: 'Outstanding › Sale', route: 'due', page: 'due', act: "window.app.outstanding.filterDue('sale', { target: document.querySelector('#due .filter-sale') })", roles: A, expect: '#due .filter-sale.active' },
     { name: 'Money › Profit', route: 'money-profit', page: 'money', roles: OM, expect: '#moneyProfit' },
     { name: 'Money › Cash', route: 'money-cash', page: 'money', roles: OM, expect: '#moneyCash' },
@@ -85,7 +85,7 @@ const STEPS = [
     { name: 'App health', route: 'health', page: 'health', roles: OM },
     { name: 'Workers', route: 'workers', page: 'workers', roles: O, expect: '#workersBody .wp-metrics' },
     { name: 'Recurring bills', route: 'recurring', page: 'recurring', roles: O, expect: '#recurringBody .rb-metrics' },
-    { name: 'Admin › Users', route: 'admin', page: 'admin', act: "window.app.admin.showTab('users')", roles: O, expect: '#adminActiveUsers' },
+    { name: 'Admin › Users', route: 'admin', page: 'admin', act: "window.app.admin.showTab('users')", roles: O, expect: '#adminTeamLink' },
     { name: 'Admin › Data', route: 'admin', page: 'admin', act: "window.app.admin.showTab('data')", roles: O, expect: '#adminContainer .danger-zone' },
     { name: 'Diagnostics › Number checks', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('numbers')", roles: OM, expect: '#diagnosticsContainer .diag-numchecks-intro' },
     { name: 'Diagnostics › Errors', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('errors')", roles: O, expect: '#diagTypeFilter' },
@@ -120,7 +120,8 @@ const ROUTE_READY = {
     'wholesale-sales': '#salesEntrySection',
     history: '#history .history-type-filter .active',
     stock: '#currentStockSection',
-    due: '#due .filter-purchase.active',
+    // Sales first, or the list last opened this session (U-69)
+    due: '#due .due-seg > .active',
     anomalies: '#anomalies .anom-tabs [aria-selected="true"]',
     admin: '#adminTabsContainer [aria-selected="true"]',
     diagnostics: '#diagnosticsTabsContainer [aria-selected="true"]'

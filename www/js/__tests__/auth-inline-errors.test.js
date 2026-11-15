@@ -110,15 +110,21 @@ describe.each([
 });
 
 describe.each([
-    ['en', 'Your account is waiting for the owner to approve it.', 'Your account was not approved. Please talk to the owner.'],
-    ['hi', 'आपका खाता मंज़ूरी के लिए रुका है। मालिक की मंज़ूरी का इंतज़ार करें।', 'आपका खाता मंज़ूर नहीं हुआ। मालिक से बात करें।']
+    ['en', "Your account is waiting for the owner's approval.", 'Your account was not approved. Please talk to the owner.'],
+    ['hi', 'आपका खाता मालिक की मंज़ूरी का इंतज़ार कर रहा है।', 'आपका खाता मंज़ूर नहीं हुआ। मालिक से बात करें।']
 ])('after sign-in (%s)', (lang, pending, rejected) => {
     beforeEach(() => setLang(lang, { store: null }));
 
     test.each([['pending', pending], ['rejected', rejected]])('%s account is told so on the card', async (status, text) => {
         fake.seed('users', [{ id: 'u1', name: 'A', email: 'a@x.com', role: 'staff', status }]);
         await AuthManager.handleLogin();
-        expect(auth.signOut).toHaveBeenCalled();
+        // Pending stays signed in on the waiting card (U-24); rejected is signed out
+        if (status === 'pending') {
+            expect(auth.signOut).not.toHaveBeenCalled();
+            expect($('pendingCard').hidden).toBe(false);
+        } else {
+            expect(auth.signOut).toHaveBeenCalled();
+        }
         expect($('loginMessage').textContent).toBe(text);
         expect(toast).not.toHaveBeenCalled();
     });
@@ -192,8 +198,8 @@ describe('register card', () => {
     });
 
     test.each([
-        ['en', 'Registered. Please wait for the owner to approve you.'],
-        ['hi', 'रजिस्टर हो गया! मालिक की मंज़ूरी का इंतज़ार करें।']
+        ['en', 'Account made. Now the owner needs to approve it.'],
+        ['hi', 'खाता बन गया। अब मालिक को इसे मंज़ूर करना है।']
     ])('(%s) success moves to the Login card with the result shown there', async (lang, text) => {
         setLang(lang, { store: null });
         AuthManager.showAuthTab('register');

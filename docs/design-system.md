@@ -23,15 +23,15 @@ layer-2 tokens. Nothing else changes per theme.
 
 | Layer | What | Tokens | Set by |
 |---|---|---|---|
-| **1. Semantic** | Colours by meaning, elevation, focus | `--bg`, `--surface`, `--surface-2`, `--surface-3`, `--line`, `--line-strong`, `--ink`, `--ink-2`, `--ink-3`, `--ink-placeholder`, `--scrim`; `--accent`, `--accent-hover`, `--accent-strong`, `--accent-text`, `--accent-soft`, `--accent-line`; `--mode-sale`, `--mode-wholesale`, `--mode-rentals` (+ `-soft`); `--positive`, `--negative`, `--warning`, `--info` (+ `-soft`, `-line`), `--negative-fill`, `--warning-dot`, `--caution-soft`; the **inks** `--on-accent`, `--on-accent-strong`, `--on-mode-sale`, `--on-mode-wholesale`, `--on-caution-soft`; `--e1`…`--e3`, `--highlight`, `--focus`, `--state-hover` | every theme (a light block, and a dark block unless it is always dark) |
-| **2. Component** | Shape and type roles (declared beside layer 1, on `:root, [data-theme]`); materials and button inks derived from layer 1 (on `:root, [data-theme], [data-mode]`) | `--r-2xs`, `--r-xs`, `--r-sm`, `--r-control`, `--r-md` (control + 2px), `--r-panel`, `--r-lg` (panel + 2px), `--r-chip`, `--r-sheet`, `--r-full`, `--r-round` (50%), `--rule-style`; `--font-ui`, `--font-display`, `--font-num`, `--font-hero`, `--w-regular`, `--w-strong`, `--w-display`, `--tracking-display`, `--title-style`, `--hero-nums`; `--page-bg`, `--panel-bg`, `--panel-border`, `--panel-shadow`, `--input-bg`, `--input-border`, `--bar-bg`, `--bar-border`, `--seg-track`, `--seg-on`, `--table-rule`, `--btn-primary-bg`, `--btn-primary-ink`, `--btn-primary-shadow`, `--btn-sale-bg`, `--btn-sale-ink`, `--btn-danger-bg`, `--btn-danger-ink`, `--toast-bg`, `--toast-ink`, `--toast-pos/-neg/-warn/-info`, `--preview-apply-line`, `--mode-purchase` | defaults in `variables.css`; a theme overrides only what makes it different |
+| **1. Semantic** | Colours by meaning, elevation, focus | `--bg`, `--surface`, `--surface-2`, `--surface-3`, `--line`, `--line-strong`, `--line-control` (field, button and chip edges, 3:1), `--ink`, `--ink-2`, `--ink-3`, `--ink-placeholder`, `--scrim`; `--accent`, `--accent-hover`, `--accent-strong`, `--accent-text`, `--accent-soft`, `--accent-line`; `--mode-sale`, `--mode-wholesale`, `--mode-rentals` (+ `-soft`); `--positive`, `--negative`, `--warning`, `--info` (+ `-soft`, `-line`), `--negative-fill`, `--warning-dot`, `--caution-soft`; the **inks** `--on-accent`, `--on-accent-strong`, `--on-mode-sale`, `--on-mode-wholesale`, `--on-caution-soft`; `--e1`…`--e3`, `--highlight`, `--focus`, `--state-hover` | every theme (a light block, and a dark block unless it is always dark) |
+| **2. Component** | Shape and type roles (declared beside layer 1, on `:root, [data-theme]`); materials and button inks derived from layer 1 (on `:root, [data-theme], [data-mode]`) | `--r-2xs`, `--r-xs`, `--r-sm`, `--r-control`, `--r-md` (control + 2px), `--r-panel`, `--r-lg` (panel + 2px), `--r-chip`, `--r-sheet`, `--r-full`, `--r-round` (50%), `--rule-style`; `--font-ui`, `--font-display`, `--font-num`, `--font-hero`, `--w-regular`, `--w-strong`, `--w-display`, `--tracking-display`, `--title-style`, `--hero-nums`; `--page-bg`, `--panel-bg`, `--panel-border`, `--panel-shadow`, `--input-bg`, `--input-border`, `--bar-bg`, `--bar-border`, `--seg-track`, `--seg-on`, `--seg-on-line` / `--seg-on-ink` / `--seg-on-ring` (the chosen segment's 2 px edge and ink), `--focus-ring` (the colour of `--focus`), `--table-rule`, `--btn-primary-bg`, `--btn-primary-ink`, `--btn-primary-shadow`, `--btn-sale-bg`, `--btn-sale-ink`, `--btn-danger-bg`, `--btn-danger-ink`, `--toast-bg`, `--toast-ink`, `--toast-pos/-neg/-warn/-info`, `--preview-apply-line`, `--mode-purchase` | defaults in `variables.css`; a theme overrides only what makes it different |
 | **3. Components** | `.btn`, `.field`, `.seg`, `.panel`, `.row`, `.notice` … (§3) | read tokens, never raw colours | base CSS only |
 
 **Not per theme** (on `:root`): the type scale `--fs-caption|sm|body|lead|title|display|hero` (plus `--fs-input`, a fixed 16px for text fields so iOS does not zoom on focus, and `--fs-label`, 14px for floating field labels, the #68 minimum),
 `--lh-body`, `--w-label`, spacing `--sp-1…10`, `--gutter`,
-`--section-gap`, `--row-h`, `--control-h(-sm)`, motion `--ease`, `--dur-1…3`, layers `--z-*` (below), edge stripes `--stripe` / `--stripe-sm` (`box-shadow: var(--stripe) <colour>`) and the validation rings `--ring-danger` / `--ring-warning`. Layouts are therefore
-identical in every theme. Desktop (≥1024 px, `desktop.css`) sets `--control-h` 36, `--row-h` 44 and the desktop type scale (body 14, lead 16,
-title 18, display 26, hero 30). Hindi (`html[lang="hi"]`) raises `--fs-sm` / `--fs-body` and `--lh-body`,
+`--section-gap`, `--row-h`, `--control-h(-sm)`, `--tap-min` (the least tap size: 48 px on phones, Android's 48 dp; every button, field, tab and segment), `--switch-hit`, motion `--ease`, `--dur-1…3`, layers `--z-*` (below), edge stripes `--stripe` / `--stripe-sm` (`box-shadow: var(--stripe) <colour>`) and the validation rings `--ring-danger` / `--ring-warning`. Layouts are therefore
+identical in every theme. Desktop (≥1024 px, `desktop.css`) sets `--control-h` 36, `--tap-min` 44, `--row-h` 44 and the desktop type scale (body 14, lead 16,
+title 18, display 26, hero 30). **Reading text is 14 px or more** (`--fs-sm`, U-15); `--fs-caption` (13 px) is only for short labels: dates, tags, tab names. Hindi (`html[lang="hi"]`) raises `--fs-caption` / `--fs-body` and `--lh-body`,
 makes `--w-label` 400, and turns off a theme's italic titles and display tracking (`--title-style`, `--tracking-display`); the Android app (`html.platform-android`) uses weight 500.
 
 **Layers (`--z-*`), low to high.** Use a token; a step inside a band is a `calc()` offset of the band's token, so
@@ -46,7 +46,7 @@ the stacking order stays exact. `ds-guard` counts any numeric `z-index`.
 | `--z-nav` | 900 | desktop sidebar; the phone's canvas band under the app bar |
 | `--z-appbar` | 950 | app bar (desktop), bottom tab bar; −10 Billing's action bar, +10 pull-to-refresh, +40 the phone app bar |
 | `--z-drawer` (`--z-bell`) | 1000 | the old `.modal`, the bell; −1 the menu scrim (`.overlay`), +1 the phone side menu and the sync pill, +2 / +3 the notifications scrim / sheet |
-| `--z-sheet` | 9000 | floating notices (printer permission, theme preview bar); −1 the update banner, +1 the clock notice |
+| `--z-sheet` | 9000 | floating notices (printer permission, theme preview bar); +1 the clock notice |
 | `--z-dialog` (`--z-auth`) | 10000 | page dialogs (`.app-scrim.page-sheet`, + `--sheet-layer`, the stack depth), the sign-in screen, Rentals sheets |
 | `--z-busy` | 15000 | the saving spinner: above any stack of page dialogs, below the confirms |
 | `--z-modal` | 20000 | confirms and alerts (`.app-scrim`, + `--sheet-layer`) over any of the above |
@@ -94,7 +94,7 @@ fills (a pale accent, a light green sale fill), so white text there is unreadabl
 | `--btn-sale-bg` / `--mode-sale` | `--btn-sale-ink` (`--on-mode-sale`) |
 | `--mode-wholesale` | `--on-mode-wholesale` |
 | `--btn-danger-bg` / `--negative-fill` | `--btn-danger-ink` |
-| `--accent-strong` (hero cards, menu header, sign-in header) | `--on-accent-strong` |
+| `--accent-strong` (hero cards, menu header) | `--on-accent-strong` |
 | `--caution-soft` | `--on-caution-soft` |
 | `--toast-bg` | `--toast-ink` |
 
@@ -107,6 +107,10 @@ fills, the toast.
 
 - `tests/ci/theme-contrast.test.js` checks those pairs from the CSS (resolving `var()` chains and
   compositing translucent fills) for every theme × mode. A theme can't merge with a failing pair.
+- **Non-text contrast (WCAG 1.4.11, U-16)**: the same test holds what shows a control at **3:1** in every theme × mode:
+  `--line-control` / `--input-border` on the page, panels and fields, the chosen segment's edge (`--seg-on-line`) on the
+  track and on its fill, and the outer colour of `--focus` on every surface. A card stands out from the page by its edge
+  or fill at 1.3:1 (or a shadow). A theme sets `--line-control` (not `--input-border`) when the default grey misses.
 - `tests/e2e/themes.spec.js` runs axe `color-contrast` on Billing, Today, Outstanding, Money, Insights and Statements for every
   theme × mode, and `tests/e2e/a11y-contrast.spec.js` covers the main pages in Modern, en and hi, phone and desktop.
 
@@ -119,7 +123,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
 - **Buttons** `.btn` + `-primary` / `-tonal` / `-ghost` / `-danger` / `-danger-outline` / `-success`, `-sm`, `-icon`,
   `-block` (`-danger-outline`: a risky choice that is not the main action, e.g. Discard the line, Save anyway at a rate check). One primary button per screen. Hover is a veil over the button's own colour; a busy
   save sets `aria-busy` (the `runExclusive` lock). Every button, `-sm` too, and the payment actions
-  (`[data-record-payment]`, `[data-mark-cleared]`) are at least 44 px tall. No page has a button class with its own
+  (`[data-record-payment]`, `[data-mark-cleared]`), fields, segments and tabs are at least `--tap-min` tall (48 px on phones). A chip draws 40 px with a 48 px tap area (`::after`); a switch draws 36 × 22 inside a clear 48 px border; a check box is 24 px and a `label` holding one is a 48 px row; a bill-number link (`.due-bill-link`) has an invisible 48 px tap area. No page has a button class with its own
   look (C2): Billing and Wholesale use Save `-primary`, Print and Share (`-icon`) the default (the bill's action row is
   Share, Save, Print: Print, the most used, is right-most, in DOM and tab order too; Share is a 48 px icon and Save and Print
   share the rest of the row in equal widths), Add to bill and
@@ -167,7 +171,10 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   (`role="group"`, each button `aria-pressed`; a `.mode-dot` span for purchase / sale); on / off is a **chip**
   `.chip` (`aria-pressed`) or a `.switch`. **Tags** `.tag` (`.pos/.neg/.warn/.info`). The old `.filter-buttons`,
   `.filter-btn`, `.sub-tabs`, `.sub-tab` and the bespoke `*-toggle-chip`s are gone (action buttons that used
-  `.filter-btn` are `.btn .btn-sm`).
+  `.filter-btn` are `.btn .btn-sm`). **One chosen look (U-61)**: the chosen segment, chip and tab all show `--seg-on-ink` with a
+  `--seg-on-line` edge (2 px on a segment, 1 px ring + soft accent fill on a chip, the underline on a tab), never a black fill.
+  **Period control** `.period` (old hooks `.ins-period`, `.wp-month`): ‹ `-icon` stepper, the period label (`.period-label`),
+  › stepper and a preset `<select>` drawn as a chip (`.period-preset` / `.ins-preset`); Money, Insights and Workers use it.
 - **Tab keyboard** (`www/js/ui/seg.js`, installed once on the document): every `role="tablist"` has a roving
   tabindex (only the selected tab is a Tab stop) and Left / Right / Home / End select a tab through its own
   click handler, also for tablists drawn later.
@@ -186,7 +193,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   the true minus outside `.cur` (−₹500), `—` when missing; its text is exactly `moneyText(amount, opts)`. `opts` is a
   named preset (`MONEY_PRESETS` in `utils/money.js`: `exact`, `rate`, `signed`, …), and plain screen text uses
   `moneyText(amount, preset)`; no page defines its own money formatter (F0). Billing's totals are grouped (₹6,28,782).
-- **Page head** `<header class="page-head"><h2>…</h2></header>` (optionally with `<div class="page-head-actions">` for the page's mode and actions): the page's title, in every page template, with the app bar's key (`pageTitleKey()` in `ui/bottom-nav.js`, or the page's own `title` key) and no emoji. It is the only page-title pattern. Below 1024 px it is not drawn (the app bar is the title); on desktop (4.2) the h2 is for screen readers, since the header bar shows the same title, and the row shows only when it has actions (an h2-only head takes no space). It is not a second banner landmark. `.sr-only` hides any other text that only screen readers need (Money keeps
+- **Page head** `<header class="page-head"><h2>…</h2></header>` (optionally with `<div class="page-head-actions">` for the page's mode and actions): the page's title, in every page template, with the app bar's key (`pageTitleKey()` in `ui/bottom-nav.js`, or the page's own `title` key) and no emoji. It is the only page-title pattern. Below 1024 px it is not drawn (the app bar `h1` is the title) but its `h2` stays for screen readers, so headings run `h1` (app bar) > `h2` (page) > `h3` (sections); dialog titles are `h2` (U-47); on desktop (4.2) the h2 is for screen readers, since the header bar shows the same title, and the row shows only when it has actions (an h2-only head takes no space). It is not a second banner landmark. `.sr-only` hides any other text that only screen readers need (Money keeps
   its ⚠ / ✓ status words that way beside the sprite icon).
 - **Money, Insights, Statements (5.7)**: plain hero figures (`.hero-num`), section titles above panels of `.row`s,
   Cash in / out as `.metrics`, `.tabs` for the sections and `.seg` for sub-views, `.notice` caveats and checks,
@@ -271,7 +278,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   unit and receipt-list dialogs use `.metrics`, `.table`, `.field`s, `.btn`s, `.tag` and `.notice`, with `moneyHtml()`
   figures; the receipt itself, its title and its share text are unchanged. The tenant's `/r/<token>` page is standalone
   like `/download`: `www/r/rent-history.css` copies the tokens it uses into `:root` (same test).
-- **Notices and empty states (C4b)**: the old banners are notices: unsaved bill `.autosave-notice` (warn), live bill checks `.bill-check-notice` (neg / warn, solid, sticky), wrong clock `.clock-notice` and printer permission `.printer-perm-notice` (float), the Android update `.app-update` (info, solid, above the tab bar), a voided bill `.bill-voided-notice`, the bill being edited `#billEditNotice` (info, "Editing #P12" on Billing until it is saved) and History's older-bills line `.history-range-note` (info, warn on error). Every page's empty list is an `emptyState()`.
+- **Notices and empty states (C4b)**: the old banners are notices: unsaved bill `.autosave-notice` (warn), live bill checks `.bill-check-notice` (neg / warn, solid, sticky), wrong clock `.clock-notice` and printer permission `.printer-perm-notice` (float), the Android update `.app-update` (info, in the page at the top of Today), a voided bill `.bill-voided-notice`, the bill being edited `#billEditNotice` (info, "Editing #P12" on Billing until it is saved) and History's older-bills line `.history-range-note` (info, warn on error). Every page's empty list is an `emptyState()`.
 - **Feedback** `.notice` (`.pos/.neg/.warn/.info`; `.solid` puts the tint on an opaque surface for a notice that sticks or floats, `.float` pins it to the top of the screen, `.notice-actions` holds its buttons; `[hidden]` always hides it), `.empty` (write it with `emptyState({ icon, title, text, action, tone })` from `ui/components.js`: the icon tile, a title, an optional line and an optional button; loading and error lines stay a plain `<p class="empty">`), `.skel`, `.toast` (near-black; light in the
   Dark theme), `.dialog` / `.sheet` / `.scrim` (old `.modal-overlay > .modal-box`), `.spinner` (blocking
   saves only). Dialog buttons: Cancel (ghost) on the left, one primary on the right, labelled with a verb; a destructive
@@ -291,7 +298,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   (`#financeBreakdownSheet`, a wide dialog on desktop, no longer a side panel) and What's new (`#whatsNewSheet`); the
   desktop keyboard help (`#kbdHelpOverlay`) is a dialog. `.dialog-head` is a title row with its own Back / Close
   buttons, `.dialog-wide` a 560 px (desktop 680 px) dialog.
-- **App shell (phone and tablet, <1024 px)**: `header.app-bar` (`hamburger.css`) holds the open page's title (`#appBarTitle`, the menu name `t('ui.nav.*')` set by `ui/bottom-nav.js` on `aadhat:tabshown`), the sync pill (`#syncStatus`) and the bell; pages scroll under it (`--appbar-h`, `--tab-top`). The menu button shows only in Rentals (no tab bar). **More** opens `#sideNav` as a modal bottom sheet (`navigation.css`): the business switch and the pages not on the tab bar (`data-bar` links are hidden there) in groups (`.nav-group`); it takes focus, keeps Tab inside, closes on Esc, Back or a swipe down and gives focus back. The open page is the `main` landmark (`role="main"`, set by `showTab`).
+- **App shell (phone and tablet, <1024 px)**: `header.app-bar` (`hamburger.css`) holds the open page's title (`#appBarTitle`, the menu name `t('ui.nav.*')` set by `ui/bottom-nav.js` on `aadhat:tabshown`), the sync pill (`#syncStatus`) and the bell; pages scroll under it (`--appbar-h`, `--tab-top`). The menu button shows only in Rentals (no tab bar). **More** opens `#sideNav` as a modal bottom sheet (`navigation.css`), one scroll for the whole sheet with Settings as the last tile, headed by the Bahi mark (`.nav-mark`) and the shop name (`#navShopName`, U-63, U-90): the business switch and the pages not on the tab bar (`data-bar` links are hidden there) in groups (`.nav-group`); it takes focus, keeps Tab inside, closes on Esc, Back or a swipe down and gives focus back. The open page is the `main` landmark (`role="main"`, set by `showTab`).
 - **Desktop shell (≥1024 px, 4.2, `desktop.css`)**: the same `header.app-bar` becomes the 60 px page header beside the sidebar (`--desktop-header-h`): the page title (the same `#appBarTitle`), the sync pill and the bell; pages scroll under it. The sidebar is the same `#sideNav` on `--surface-2`: the Bahi mark (`.nav-mark`: the `i-bahi` symbol, white B with the sage corner on the charcoal `--brand-tile`, fixed in every theme; docs/brand), the name and role, the business switch, the same `.nav-group`s as the More sheet (a group shows only when the role may open one of its pages; links a role may not open carry `hidden`), Alt+1…9 hints (`.nav-kbd`, from `TAB_SHORTCUTS` in `keyboard-shortcuts.js`, which also sets `aria-keyshortcuts`), Settings and Shortcuts. At 1024–1279 px it is a 64 px icon rail (names stay for screen readers and show as tooltips). Density: `--control-h` 36, `--row-h` 44. Tab order: header, sidebar, page.
 - **Tones** for text written by scripts: `.tone-pos`, `.tone-neg`, `.tone-warn`, `.tone-info`,
   `.tone-muted`, instead of inline colours.
@@ -378,7 +385,7 @@ counts toward the 1.5 KB. A look that tokens can't express needs a new token in 
 | `www/js/__tests__/billing-entry.test.js`, `tests/e2e/billing-entry.spec.js` | `.field-float`: a field without its own `<label for>`, a label hidden or moved by whether the field has a value, `--fs-label` under 14 px; Billing's 🎙 / 📷 shown without their setting |
 | `tests/ci/ds-guard.test.js` | raw spacing, radius, shadow or z-index, `!important`, an `#id` or `.dark-mode` / `[data-theme]` selector, an inline style, an emoji, a Title Case label or a legacy component class outside the allowlist; an allowlist entry without a known list or a reason |
 | `tests/ci/themes.test.js` | a theme missing from the registry, `styles.css` or i18n; a non-token rule or a colour outside `@media screen` in a theme file; a theme over 1.5 KB gzip; a rule in `www/css` or a template `<style>` that sets an accent, sale, wholesale, positive or negative fill and white text together |
-| `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1 in any theme × mode |
+| `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1, or a control edge, chosen segment or focus ring under 3:1, in any theme × mode |
 | `tests/ci/icon-sprite.test.js` | a missing `#i-*` symbol, or the sprite growing too large |
 | `www/js/__tests__/theme-manager.test.js`, `theme-boot.test.js` | Appearance, System, preview and the pre-paint boot |
 | `tests/e2e/themes.spec.js` | axe contrast on Billing, Today, Outstanding, Cash, Money, Insights, Statements and the open More sheet per theme × mode; the gallery preview, Cancel, Apply |

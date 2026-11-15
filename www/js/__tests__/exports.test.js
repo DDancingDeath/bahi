@@ -296,4 +296,23 @@ describe('Exporter.printPage: a statement printed in its own window (#444)', () 
         expect(text).not.toMatch(/−₹/);
         frame.remove();
     });
+
+    test('Android app: the page goes to Android\'s print screen (Print / Save as PDF), no window', async () => {
+        const printHtml = jest.fn(() => Promise.resolve());
+        const open = jest.spyOn(window, 'open');
+        window.Capacitor = { isNativePlatform: () => true, Plugins: { AppShell: { printHtml } } };
+        try {
+            expect(await Exporter.printPage({ title: 'Day statement', html: '<p>Row</p>', stampText: 'Shop', lang: 'en' })).toBe(true);
+            expect(printHtml).toHaveBeenCalledWith({ title: 'Day statement', html: expect.stringContaining('<p>Row</p>') });
+            expect(open).not.toHaveBeenCalled();
+
+            delete window.Capacitor.Plugins.AppShell;
+            const saved = jest.spyOn(Exporter, 'saveBlob').mockResolvedValue(true);
+            expect(await Exporter.printPage({ title: 'Day statement', html: '<p>Row</p>', stampText: 'Shop', lang: 'en' })).toBe(true);
+            expect(saved).toHaveBeenCalledWith(expect.any(Blob), 'Day_statement.html', { title: 'Day statement' });
+            expect(open).not.toHaveBeenCalled();
+        } finally {
+            delete window.Capacitor;
+        }
+    });
 });

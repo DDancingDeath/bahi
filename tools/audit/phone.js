@@ -254,8 +254,8 @@ function setRole(role) {
     AppState.currentUser = { uid: `audit-${role}` };
     AppState.userRole = role;
     AppState.settings = role === 'owner' ? { showHindi: false }
-        // Personal expenses on for the member pass (off by default since #98), so its figures match the oracle's
-        : { showHindi: false, roleAccess: { staff: { finance: true, reports: true, analytics: true, personalExpenses: true, personalExpensesChosen: true } } };
+        // Personal expenses (off by default since #98) and the margin switches (off for members since U-09) on for the member pass, so its figures match the oracle's
+        : { showHindi: false, roleAccess: { staff: { finance: true, reports: true, analytics: true, personalExpenses: true, personalExpensesChosen: true, profit: true, stockValue: true, oldCashSessions: true, purchaseRates: true } } };
 }
 
 /**

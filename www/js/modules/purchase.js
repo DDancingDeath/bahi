@@ -12,9 +12,13 @@ import { PrinterService } from '../services/printer.js';
 import { Helpers } from '../utils/helpers.js';
 import { KEPT_SERVER_PAYMENT_KEY, normalizeLabourSettings, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
 import {
-    autoLabour, bagChecks, buildPaymentSplit, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
+    autoLabour, bagChecks, buildPaymentSplit, withLineRate, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
     paymentSplit, pendingLine, prefillPayment, restInDue, shownAmount, sumWeights, validatePaymentSplit
 } from '../utils/calc/billing.js';
+import { showAmount } from '../ui/number-input.js';
+import { showUndo } from '../ui/undo-bar.js';
+import { showLastSaved } from '../ui/last-saved.js';
+import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
@@ -27,6 +31,7 @@ import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, resetBillDate } from '../ui/bill-date-input.js';
+import { openExternal } from '../utils/open-external.js';
 
 /** Name to show for a catalogue item or bill line in the chosen item-name language. */
 const lineLabel = (line) => lineItemIdentity(line && 'itemId' in line ? line : { itemId: line?.id, name: line?.name }, AppState.items, AppState.settings.showHindi).label;
@@ -138,7 +143,7 @@ const PurchaseManager = {
                 ${weights.map((w, i) => `
                     <div class="weight-chip">
                         <span>${formatKg(w)}</span>
-                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatKg(w) }))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>
@@ -150,11 +155,20 @@ const PurchaseManager = {
      * @param {number} index - Index of weight to remove
      */
     removeWeight(index) {
+        if (weights[index] === undefined) return;
+        const before = { weights: [...weights], checks: [...weightChecks] };
+        const kg = weights[index];
         weights.splice(index, 1);
         weightChecks = bagChecks(weights, weightChecks).confirmed;
         this.renderWeights();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.weight_removed', { kg: formatKg(kg) }), () => {
+            weights = before.weights;
+            weightChecks = before.checks;
+            this.renderWeights();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        });
     },
 
     /**
@@ -299,6 +313,8 @@ const PurchaseManager = {
         const billTotalSpan = document.getElementById('billTotal');
         const lines = document.getElementById('purchaseLines');
         if (lines) lines.hidden = billItems.length === 0;
+        const share = document.querySelector('#purchaseSection .bill-share');
+        if (share) share.hidden = billItems.length === 0;
         
         if (billItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
@@ -309,40 +325,14 @@ const PurchaseManager = {
             return;
         }
         
-        // Render weight breakdown for items with 2 or more packets
-        if (weightBreakdownSection) {
-            const itemsWithMultipleWeights = billItems.filter(item => item.weights.length >= 2);
-            
-            if (itemsWithMultipleWeights.length > 0) {
-                weightBreakdownSection.innerHTML = itemsWithMultipleWeights.map(item => {
-                    const weightsPerLine = 6;
-                    const weightLines = [];
-                    for (let i = 0; i < item.weights.length; i += weightsPerLine) {
-                        const lineWeights = item.weights.slice(i, i + weightsPerLine);
-                        weightLines.push(lineWeights.map(w => formatKg(w)).join('&nbsp;&nbsp;'));
-                    }
-                    
-                    return `
-                        <div class="bill-weights bill-weights-purchase">
-                            <div class="bill-weights-title">
-                                ${Helpers.escapeHtml(lineLabel(item))} (${Helpers.escapeHtml(tn('ui.print.packets_kg', item.weights.length, { kg: formatKg(item.qty) }))})
-                            </div>
-                            <div class="bill-weights-list">
-                                ${weightLines.join('<br>')}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                weightBreakdownSection.innerHTML = '';
-            }
-        }
+        // Each line once (U-18): its bag weights go on the line itself
+        if (weightBreakdownSection) weightBreakdownSection.innerHTML = '';
         
         // Render bill items table
         tbody.innerHTML = billItems.map((item, index) => {
             return `
                 <tr class="bill-line" data-onclick="purchase.editBillItem(${index})">
-                    <td>${Helpers.escapeHtml(lineLabel(item))}</td>
+                    <td>${lineNameHtml(lineLabel(item), item.weights)}</td>
                     <td>${formatRate(item.rate)}</td>
                     <td>${formatKg(item.qty)} kg</td>
                     <td>${formatRupees(shownAmount(item.total))}</td>
@@ -371,10 +361,29 @@ const PurchaseManager = {
      * @param {number} index - Index of item to delete
      */
     deleteBillItem(index) {
+        const line = billItems[index];
+        if (!line) return;
         billItems.splice(index, 1);
         this.renderBill();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.line_removed', { item: lineLabel(line), kg: formatKg(line.qty) }), () => {
+            billItems.splice(Math.min(index, billItems.length), 0, line);
+            this.renderBill();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        });
+    },
+
+    /**
+     * Change a bill line's rate in place (per-quintal slip fixed with one tap, U-01).
+     * @param {number} index
+     * @param {number} rate
+     */
+    setLineRate(index, rate) {
+        if (!billItems[index] || !(rate > 0)) return;
+        billItems[index] = withLineRate(billItems[index], rate);
+        this.renderBill();
+        if (this.billingManager) this.billingManager.triggerAutoSave();
     },
 
     /**
@@ -459,7 +468,12 @@ const PurchaseManager = {
                 laborChargesInput.disabled = false;
             }
             if (laborCalculationSpan) {
-                laborCalculationSpan.textContent = suggested.working;
+                // On screen in words (U-79); the bill and the slip keep the short working ("6 × 7")
+                laborCalculationSpan.dataset.working = suggested.working;
+                const { heavyWeightThreshold } = normalizeLabourSettings(AppState.settings);
+                laborCalculationSpan.textContent = tn('ui.billing.labour_working', heavyPacketsCount, {
+                    kg: formatKg(heavyWeightThreshold), rate: formatRupees(suggested.rate, 'rate'), amount: formatRupees(suggested.box)
+                });
             }
             
             laborCharges = parseFloat(laborChargesInput?.value || 0);
@@ -470,6 +484,7 @@ const PurchaseManager = {
             }
             if (laborCalculationSpan) {
                 laborCalculationSpan.textContent = '';
+                delete laborCalculationSpan.dataset.working;
             }
             laborCharges = 0;
         }
@@ -495,6 +510,9 @@ const PurchaseManager = {
         const totalPaymentElement = document.getElementById('totalPayment');
         if (totalPaymentElement) {
             totalPaymentElement.textContent = formatAmount(paidOnScreen(split), 'exact');
+            // Total paid repeats a single Cash or Online figure: shown only when both have money (U-18)
+            const row = totalPaymentElement.closest('.payment-total');
+            if (row) row.hidden = !(split.cash > 0 && split.online > 0);
         }
         Helpers.showSplitRemaining('purchaseSplitRemaining', validatePaymentSplit(this.computeTotals().grandTotal, split));
         BillChecksUI.schedule('purchase');
@@ -542,7 +560,7 @@ const PurchaseManager = {
             return;
         }
         const dueInput = document.getElementById('dueAmount');
-        if (dueInput) dueInput.value = rest.due;
+        showAmount(dueInput, rest.due);
         const dueCheckbox = document.getElementById('dueCheckbox');
         if (dueCheckbox) dueCheckbox.checked = rest.dueTicked;
         this.updatePaymentTotal();
@@ -591,6 +609,12 @@ const PurchaseManager = {
         if (Helpers.isBusy('purchase')) return;
         if (billItems.length === 0 && this.entryLineEmpty()) {
             UIManager.showToast(t('msg.common.no_items_in_bill'));
+            return;
+        }
+        const ready = await PrinterService.beforeSavePrint();
+        if (ready === 'cancel') return;
+        if (ready === 'save') {
+            await this.saveBillToHistory();
             return;
         }
         
@@ -674,7 +698,7 @@ const PurchaseManager = {
         const laborChargesInput = document.getElementById('manualLaborCharges');
         const laborCalculationSpan = document.getElementById('laborCalculation');
         const laborCalc = (autoLaborCheckbox?.checked && !laborChargesInput?.dataset.manuallySet) 
-            ? laborCalculationSpan?.textContent || null 
+            ? laborCalculationSpan?.dataset.working || null 
             : null;
         
         const wasRestored = !!pendingBill?.restored;
@@ -772,6 +796,7 @@ const PurchaseManager = {
             
             UIManager.hideLoading();
             UIManager.showToast(this.savedText(bill));
+            showLastSaved('purchase', bill);
             UIManager.hapticFeedback('success');
             
             return bill;
@@ -906,7 +931,7 @@ const PurchaseManager = {
         });
         
         const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        openExternal(url);
     },
 
     // -------------------- STATE ACCESS --------------------
@@ -1016,6 +1041,7 @@ BillChecksUI.register('purchase', {
     tableSelector: '#billTable',
     saveButtons: '#saveBillBtn, #printBillBtn',
     getDraft: () => PurchaseManager.getCheckDraft(),
+    applyRate: (index, rate) => PurchaseManager.setLineRate(index, rate),
     fields: {
         party: { inputs: ['customerName'] },
         payment: { inputs: ['cashPayment', 'onlinePayment', 'dueAmount'], anchor: 'purchaseSplitRemaining' },

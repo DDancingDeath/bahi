@@ -20,7 +20,7 @@ import {
     ANOMALY_DEFAULTS, ANOMALY_TYPES, DETECTION_FIELDS, SEVERITIES, SEVERITY_LABELS, STATUS_LABELS,
     addDaysToKey, anomalyPatterns, anomalyText, billTime, buildDayReportText, detectAnomalies, filterAnomalies,
     istDayKey, istDayStartMs, mergeAnomalies, planAnomalyWrites, presetRange, sortAnomalies, summarizeAnomalies, summaryLine, typeLabel,
-    voidedByOthers, withoutStoredVoidTwins, withoutUnstockedOversell
+    voidedByOthers, withoutStoredVoidTwins, withoutUnstockedOversell, withoutVoidedBillChecks
 } from '../utils/anomalies.js';
 import { firstStockTimes } from '../utils/stock-check.js';
 import { auditScanCap } from '../utils/security-flags.js';
@@ -58,6 +58,8 @@ const SEV_TAGS = { high: 'tag neg', medium: 'tag warn', low: 'tag' };
 const TYPE_COLORS = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#4f46e5', '#0d9488', '#9333ea', '#be123c', '#15803d', '#1d4ed8', '#a16207'];
 
 const canSee = () => AppState.userRole === 'owner' || AppState.userRole === 'manager';
+/** Anomalies about a bill's rate: the card offers "Correct rate on this bill" (U-01). */
+const RATE_FIX_TYPES = new Set(['rate-high', 'rate-low', 'rate-confirmed']);
 const todayKey = () => istDayKey(Date.now());
 const loc = (o) => esc(pickLang(o));
 
@@ -416,7 +418,8 @@ export const AnomaliesManager = {
         if (!card || !canSee()) return;
         const { today } = this.reportKeys();
         const isOpen = (a) => (a.status || 'open') === 'open';
-        const todays = this.reportList.filter(a => a.dayKey === today);
+        // A voided bill's checks leave the day report and its review queue (U-28)
+        const todays = withoutVoidedBillChecks(this.reportList.filter(a => a.dayKey === today), loadedVoided());
         const queue = todays.filter(isOpen);
         // Older not-reviewed records stay on the Anomalies page; only their count is shown here
         const pending = this.reportList.filter(a => a.dayKey !== today && isOpen(a)).length;
@@ -584,6 +587,7 @@ export const AnomaliesManager = {
                 </div>
                 <div class="anom-actions">
                     ${canOpen ? `<button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.openRef('${id}')">${icon('chevR', 'i-sm')} ${esc(t('ui.anom.btn_open'))}</button>` : ''}
+                    ${a.refKind === 'bill' && RATE_FIX_TYPES.has(a.type) ? `<button type="button" class="btn btn-sm btn-tonal" data-onclick="anomalies.correctRate('${id}')">${icon('tag', 'i-sm')} ${esc(t('ui.anom.btn_correct_rate'))}</button>` : ''}
                     ${review}
                 </div>
             </div>`;
@@ -596,22 +600,34 @@ export const AnomaliesManager = {
     /** Tap → open the bill (or the cash / stock screen). */
     openRef(id) {
         const a = this.findAnomaly(id);
-        if (!a) return;
+        if (!a) return undefined;
         if (a.refKind === 'bill') {
             const list = a.billType === 'purchase' ? AppState.purchaseHistory
                 : a.billType === 'retail' ? AppState.retailSalesHistory : AppState.salesHistory;
             const voided = loadedVoided()[a.billType] || [];
             if (![...(list || []), ...voided].some(b => String(b.id) === String(a.refId))) {
                 UIManager.showToast(t('msg.anomalies.bill_not_loaded_older_or'));
-                return;
+                return undefined;
             }
-            window.app?.history?.viewBill(`id:${a.refId}`, a.billType);
+            return window.app?.history?.viewBill(`id:${a.refId}`, a.billType);
         } else if (a.refKind === 'cash') {
             window.app?.nav?.showTab('day');
             setTimeout(() => window.app?.day?.showSubTab('cash'), 150);
         } else if (a.refKind === 'stock') {
             window.app?.nav?.showTab('stock');
         }
+        return undefined;
+    },
+
+    /**
+     * "Correct rate on this bill" (U-01): the bill opens in its form to edit, within the
+     * usual edit window (Edit's own checks); nothing is changed until it is saved.
+     */
+    async correctRate(id) {
+        const a = this.findAnomaly(id);
+        if (!a || a.refKind !== 'bill') return;
+        await this.openRef(id);
+        if (String(window.currentBillId) === String(a.refId)) window.app?.history?.editCurrentBill?.();
     },
 
     /** Mark OK / Fixed (with an optional note) or reopen. Owner/manager only. */
@@ -739,6 +755,16 @@ export const AnomaliesManager = {
         };
     },
 
+    /** The one "Filters" chip over the folded filters (U-74): the date choice and how many others are set. */
+    renderFilterChip() {
+        const chip = document.getElementById('anomalyFilterChipText');
+        if (!chip) return;
+        const f = this.page.filters;
+        const changed = ['type', 'severity', 'user'].filter(k => f[k] !== 'all').length + (f.status !== 'open' ? 1 : 0) + (f.item ? 1 : 0);
+        const sel = /** @type {?HTMLSelectElement} */ (document.getElementById('anomalyFilterPreset'));
+        const preset = sel?.selectedOptions?.[0]?.textContent || '';
+        chip.textContent = t(changed ? 'ui.anom.filters_n' : 'ui.anom.filters', { period: preset, n: changed });
+    },
     /** Any filter changed: reload from Firestore only when the date range changed. */
     applyFilters() {
         const next = this.readFilterInputs();
@@ -822,6 +848,7 @@ export const AnomaliesManager = {
             userSel.innerHTML = `<option value="all">${esc(t('ui.anom.all_users'))}</option>` + users.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
             userSel.value = users.includes(cur) ? cur : 'all';
         }
+        this.renderFilterChip();
         const list = this.filtered();
         const s = summarizeAnomalies(list);
         const summary = document.getElementById('anomalySummary');

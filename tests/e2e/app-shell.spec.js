@@ -117,20 +117,20 @@ test('phone on its side: the sheet fits under the bar and scrolls', async ({ pag
 });
 
 // The sidebar links each role sees today (authentication.js applyRoleBasedRestrictions): unchanged by 4.2
+// Ask is a daily page; a group left with no page for the role is not shown (U-87)
 const NAV = {
     owner: {
-        Daily: ['day', 'billing', 'wholesale-sales', 'expenses', 'rates', 'history', 'stock', 'due'],
-        Money: ['money', 'insights', 'statements', 'workers', 'recurring', 'ask'],
+        Daily: ['day', 'billing', 'wholesale-sales', 'expenses', 'rates', 'history', 'stock', 'due', 'ask'],
+        Money: ['money', 'insights', 'statements', 'workers', 'recurring'],
         Manage: ['anomalies', 'health', 'admin', 'diagnostics']
     },
     manager: {
-        Daily: ['day', 'billing', 'wholesale-sales', 'expenses', 'rates', 'history', 'stock', 'due'],
-        Money: ['money', 'insights', 'statements', 'ask'],
+        Daily: ['day', 'billing', 'wholesale-sales', 'expenses', 'rates', 'history', 'stock', 'due', 'ask'],
+        Money: ['money', 'insights', 'statements'],
         Manage: ['anomalies', 'health', 'diagnostics']
     },
     staff: {
-        Daily: ['day', 'billing', 'expenses', 'rates', 'history', 'stock', 'due'],
-        Money: ['ask']
+        Daily: ['day', 'billing', 'expenses', 'rates', 'history', 'stock', 'due', 'ask']
     }
 };
 

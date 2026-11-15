@@ -22,9 +22,10 @@
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
 
-    <!-- Styles: one file, joined from the list in styles.css (npm run build:css, #66) -->
-    <link rel="stylesheet" href="css/app.css?v=20261108gg">
-    
+    <!-- Start-up screen (U-25): painted before the big stylesheet arrives, so a slow first open is never a blank page.
+         Tokens with fallbacks: variables.css is not loaded yet. -->
+    <style>.boot-splash{position:fixed;inset:0;z-index:calc(var(--z-modal, 20000) + 1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-3, 12px);padding:var(--sp-6, 24px);background:var(--bg, Canvas);color:var(--ink, CanvasText);font-family:var(--font-ui, system-ui, sans-serif);font-size:var(--fs-body, 16px);text-align:center}.boot-splash p{margin:0;max-width:20em}.boot-splash-name{font-size:var(--fs-title, 20px);font-weight:var(--w-strong, 600)}.boot-splash-slow{color:var(--ink-2, GrayText)}.boot-splash-retry{min-height:var(--control-h, 44px);padding:0 var(--sp-5, 20px);border:1px solid currentColor;border-radius:var(--r-control, 8px);background:none;color:inherit;font:inherit}.boot-splash [hidden]{display:none}</style>
+
     <!-- Firebase SDK (deferred: deferred classic scripts and module scripts run
          in document order after parsing, so firebaseConfig.js and js/main.js
          still see `firebase` ready. Nothing inline uses `firebase`.)
@@ -36,11 +37,44 @@
     <script defer src="vendor/firebase/10.7.1/firebase-auth-compat.js" integrity="sha384-lI+CxEx/bCvWP1b0OK13j5HTrTZP7yf1xle8TVOFq2smz6KC1RChTarRV/RHP5PP"></script>
     <script defer src="vendor/firebase/10.7.1/firebase-firestore-compat.js" integrity="sha384-nwX2Qpkhc2sv6L0ZPkLefLGguao67toSowvePuQvGF6cG+8MUphGI2uI94Ls3JF7"></script>
     <!-- SheetJS (Excel) is loaded on demand via js/utils/lazy-scripts.js -->
+    <!-- The deepest start-up modules (U-38): fetched at once instead of three imports down, one round trip less on a slow
+         network. startup-weight.test.js checks each is in the start-up graph. -->
+    <link rel="modulepreload" href="js/firebase/core/reads.js">
+    <link rel="modulepreload" href="js/firebase/core/records.js">
+    <link rel="modulepreload" href="js/firebase/core/session.js">
+    <link rel="modulepreload" href="js/utils/team-directory.js">
+    <link rel="modulepreload" href="js/utils/stock-replay.js">
+    <link rel="modulepreload" href="js/firebase/core/realtime.js">
+    <link rel="modulepreload" href="js/utils/history-range.js">
+    <link rel="modulepreload" href="js/firebase/repos/bill-due.js">
+    <link rel="modulepreload" href="js/firebase/repos/bill-fields.js">
+    <link rel="modulepreload" href="js/utils/rebuild-lease.js">
+    <link rel="modulepreload" href="js/firebase/core/rebuild-progress.js">
+    <link rel="modulepreload" href="js/utils/personal-expenses.js">
+    <link rel="modulepreload" href="js/firebase/core/target-heal.js">
+    <link rel="modulepreload" href="js/ui/party-due-line.js">
+    <link rel="modulepreload" href="js/ui/rate-check.js">
+    <link rel="modulepreload" href="js/utils/party-match.js">
+    <link rel="modulepreload" href="js/ui/pending-line.js">
+    <link rel="modulepreload" href="js/utils/bill-date.js">
+    <link rel="modulepreload" href="js/utils/stock-check.js">
 </head>
 <body>
     <!-- Apply the saved theme and appearance before first paint (same keys and rules as js/ui/theme.js). The one inline script:
          keep it on one line; its sha256 is in the CSP's script-src (firebase.json, security-headers.test.js). -->
     <script id="themeBoot">try{var s=localStorage,d=document.documentElement,o=s.getItem('darkMode'),t=s.getItem('happa.theme')||'modern',f=s.getItem('happa.themeFallback')===t,a=s.getItem('happa.appearance')||(o==='true'?'dark':o==='false'||s.getItem('aadhat.itemNamesFollowLang')!==null?'light':'system'),m=!f&&s.getItem('happa.themeKind')==='dark'||a==='dark'||a==='system'&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',c=s.getItem('happa.bar.'+m),e=document.querySelector('meta[name="theme-color"]');d.setAttribute('data-theme',t);d.setAttribute('data-appearance',a);d.setAttribute('data-mode',m);if(e&&!f&&/^#[0-9a-f]{6}$/i.test(c))e.setAttribute('content',c)}catch(x){}</script>
+    <div id="bootSplash" class="boot-splash" role="status" aria-live="polite">
+        <img src="icons/favicon.svg" alt="" width="64" height="64">
+        <p class="boot-splash-name" data-i18n="ui.app.name">Bahi</p>
+        <p data-boot-text data-i18n="ui.boot.loading">Loading…</p>
+        <p class="boot-splash-slow" data-boot-slow hidden data-i18n="ui.boot.slow">Slow internet. Keep this page open, it is still loading.</p>
+        <button type="button" class="boot-splash-retry" data-boot-retry hidden data-i18n="ui.boot.retry">Try again</button>
+    </div>
+    <script async src="js/boot/boot-splash.js?v=20261108gg"></script>
+    <!-- Styles: one file, joined from the list in styles.css (npm run build:css, #66). In the body, after the start-up
+         screen, so that screen paints while this large file is still loading (U-25). -->
+    <link rel="stylesheet" href="css/app.css?v=20261108gg">
+
     <!-- All HTML content is dynamically loaded from templates/ directory -->
     <!-- See templates/*.html for all readable HTML templates -->
     

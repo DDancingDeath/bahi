@@ -20,7 +20,7 @@ beforeAll(() => installActions(document));
 beforeEach(() => {
     localStorage.clear();
     resetLangForTests();
-    window.app = { i18n: { setLang: (lang) => setLang(lang), getLang: () => getLang() } };
+    window.app = { i18n: { setLang: (lang) => setLang(lang), choose: (lang) => setLang(lang), getLang: () => getLang() } };
 });
 afterEach(() => {
     localStorage.clear();

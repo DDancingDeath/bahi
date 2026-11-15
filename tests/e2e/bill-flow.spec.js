@@ -42,7 +42,8 @@ test('bill → History → due payment → cash close', async ({ page, problems 
     await showTab(page, 'due');
     await page.click('#due .filter-sale');
     const input = page.locator(`[id="payment_${sale.id}"]`);
-    await expect(input).toBeVisible();
+    // Folded under the party rows (U-19); recorded below without needing it on screen
+    await expect(input).toBeAttached();
     // Outstanding redraws its rows (empty inputs) whenever the bill lists update, at any moment after it
     // opens: type the amount and press Record in one go so no redraw can come in between.
     await page.evaluate((id) => {
@@ -58,7 +59,8 @@ test('bill → History → due payment → cash close', async ({ page, problems 
     expect(paid.payments).toHaveLength(1);
 
     // ---- 4. open and close the cash drawer ----
-    await showTab(page, 'cash-management');
+    // One Cash screen (U-32): Today › Cash
+    await showTab(page, 'day-cash');
     await page.fill('#cashSignInAmount', '1000');
     await clickAfterTyping(page, 'button[data-onclick="cashManagement.signIn()"]');
     await expectToast(page, /Cash opened for today/);

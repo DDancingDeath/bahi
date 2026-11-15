@@ -13,8 +13,12 @@ import { Helpers } from '../utils/helpers.js';
 import { KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
 import {
     bagChecks, buildPaymentSplit, computeLine, computeRetailTotals, editSplitFor, paidOnScreen, paymentSplit, pendingLine, prefillPayment, restInDue,
-    shownAmount, sumWeights, validatePaymentSplit, weightsForEdit
+    shownAmount, sumWeights, validatePaymentSplit, weightsForEdit, withLineRate
 } from '../utils/calc/billing.js';
+import { showAmount } from '../ui/number-input.js';
+import { showUndo } from '../ui/undo-bar.js';
+import { showLastSaved } from '../ui/last-saved.js';
+import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
@@ -27,6 +31,7 @@ import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, resetBillDate } from '../ui/bill-date-input.js';
+import { openExternal } from '../utils/open-external.js';
 
 /** Name to show for a catalogue item or bill line in the chosen item-name language. */
 const lineLabel = (line) => lineItemIdentity(line && 'itemId' in line ? line : { itemId: line?.id, name: line?.name }, AppState.items, AppState.settings.showHindi).label;
@@ -136,7 +141,7 @@ const RetailSaleManager = {
                 ${saleWeights.map((w, i) => `
                     <div class="weight-chip">
                         <span>${formatKg(w)}</span>
-                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="retailSale.removeSaleWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="retailSale.removeSaleWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatKg(w) }))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>
@@ -148,11 +153,20 @@ const RetailSaleManager = {
      * @param {number} index - Index of weight to remove
      */
     removeSaleWeight(index) {
+        if (saleWeights[index] === undefined) return;
+        const before = { weights: [...saleWeights], checks: [...saleWeightChecks] };
+        const kg = saleWeights[index];
         saleWeights.splice(index, 1);
         saleWeightChecks = bagChecks(saleWeights, saleWeightChecks).confirmed;
         this.renderSaleWeights();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.weight_removed', { kg: formatKg(kg) }), () => {
+            saleWeights = before.weights;
+            saleWeightChecks = before.checks;
+            this.renderSaleWeights();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        });
     },
 
     /**
@@ -281,6 +295,8 @@ const RetailSaleManager = {
         this.billingManager?.renderBillNumber?.();
         const lines = document.getElementById('saleLines');
         if (lines) lines.hidden = saleItems.length === 0;
+        const share = document.querySelector('#saleSection .bill-share');
+        if (share) share.hidden = saleItems.length === 0;
         
         if (saleItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
@@ -292,39 +308,13 @@ const RetailSaleManager = {
             return;
         }
         
-        // Render weight breakdown for items with 2 or more packets
-        if (saleWeightBreakdownSection) {
-            const itemsWithMultipleWeights = saleItems.filter(item => item.weights && item.weights.length >= 2);
-            
-            if (itemsWithMultipleWeights.length > 0) {
-                saleWeightBreakdownSection.innerHTML = itemsWithMultipleWeights.map(item => {
-                    const weightsPerLine = 6;
-                    const weightLines = [];
-                    for (let i = 0; i < item.weights.length; i += weightsPerLine) {
-                        const lineWeights = item.weights.slice(i, i + weightsPerLine);
-                        weightLines.push(lineWeights.map(w => formatKg(w)).join('&nbsp;&nbsp;'));
-                    }
-                    
-                    return `
-                        <div class="bill-weights bill-weights-sale">
-                            <div class="bill-weights-title">
-                                ${Helpers.escapeHtml(lineLabel(item))} (${Helpers.escapeHtml(tn('ui.print.packets_kg', item.weights.length, { kg: formatKg(item.qty) }))})
-                            </div>
-                            <div class="bill-weights-list">
-                                ${weightLines.join('<br>')}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                saleWeightBreakdownSection.innerHTML = '';
-            }
-        }
+        // Each line once (U-18): its packet weights go on the line itself
+        if (saleWeightBreakdownSection) saleWeightBreakdownSection.innerHTML = '';
         
         // Render bill items table
         tbody.innerHTML = saleItems.map((item, index) => `
             <tr class="bill-line" data-onclick="retailSale.editSaleItem(${index})">
-                <td>${Helpers.escapeHtml(lineLabel(item))}</td>
+                <td>${lineNameHtml(lineLabel(item), item.weights)}</td>
                 <td>${formatRate(item.rate)}</td>
                 <td>${formatKg(item.qty)} kg</td>
                 <td>${formatRupees(shownAmount(item.total))}</td>
@@ -347,11 +337,30 @@ const RetailSaleManager = {
      * Remove a sale item by index
      * @param {number} index - Index of item to remove
      */
+    /**
+     * Change a bill line's rate in place (per-quintal slip fixed with one tap, U-01).
+     * @param {number} index
+     * @param {number} rate
+     */
+    setLineRate(index, rate) {
+        if (!saleItems[index] || !(rate > 0)) return;
+        saleItems[index] = withLineRate(saleItems[index], rate);
+        this.renderSalesBill();
+        if (this.billingManager) this.billingManager.triggerAutoSave();
+    },
+
     removeSaleItem(index) {
+        const line = saleItems[index];
+        if (!line) return;
         saleItems.splice(index, 1);
         this.renderSalesBill();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.line_removed', { item: lineLabel(line), kg: formatKg(line.qty) }), () => {
+            saleItems.splice(Math.min(index, saleItems.length), 0, line);
+            this.renderSalesBill();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        });
     },
 
     /**
@@ -435,7 +444,11 @@ const RetailSaleManager = {
         const split = this.readPaymentSplit();
         
         const totalReceivedEl = document.getElementById('totalReceived');
-        if (totalReceivedEl) totalReceivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+        if (totalReceivedEl) {
+            totalReceivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+            const row = totalReceivedEl.closest('.payment-total');
+            if (row) row.hidden = !(split.cash > 0 && split.online > 0);
+        }
         Helpers.showSplitRemaining('saleSplitRemaining', validatePaymentSplit(computeRetailTotals(saleItems).total, split));
         BillChecksUI.schedule('retail');
     },
@@ -472,7 +485,7 @@ const RetailSaleManager = {
             return;
         }
         const dueInput = document.getElementById('saleDueAmount');
-        if (dueInput) dueInput.value = rest.due;
+        showAmount(dueInput, rest.due);
         const dueCheckbox = document.getElementById('saleDueCheckbox');
         if (dueCheckbox) dueCheckbox.checked = rest.dueTicked;
         this.updateSalePaymentTotal();
@@ -656,6 +669,7 @@ const RetailSaleManager = {
             
             UIManager.hideLoading();
             UIManager.showToast(this.savedText(sale));
+            showLastSaved('retail', sale);
             UIManager.hapticFeedback('success');
             
             return sale;
@@ -794,7 +808,7 @@ const RetailSaleManager = {
         });
         
         const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        openExternal(url);
     },
 
     /**
@@ -805,6 +819,12 @@ const RetailSaleManager = {
         if (Helpers.isBusy('retail')) return;
         if (saleItems.length === 0 && this.entryLineEmpty()) {
             UIManager.showToast(t('msg.retail.no_items_in_sale'));
+            return;
+        }
+        const ready = await PrinterService.beforeSavePrint();
+        if (ready === 'cancel') return;
+        if (ready === 'save') {
+            await this.completeSale();
             return;
         }
         
@@ -947,6 +967,7 @@ BillChecksUI.register('retail', {
     tableSelector: '#saleTable',
     saveButtons: '#saveSaleBtn, #printSaleBtn',
     getDraft: () => RetailSaleManager.getCheckDraft(),
+    applyRate: (index, rate) => RetailSaleManager.setLineRate(index, rate),
     fields: {
         party: { inputs: ['saleCustomerName'] },
         payment: { inputs: ['saleCashPayment', 'saleOnlinePayment', 'saleDueAmount'], anchor: 'saleSplitRemaining' },

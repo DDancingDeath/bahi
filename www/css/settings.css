@@ -184,8 +184,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 .role-table input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .role-table input[type="number"] {
@@ -597,4 +597,69 @@ body.no-perm-contacts [data-perm~="contacts"] {
 
 .theme-preview-bar .theme-preview-apply {
   border-color: var(--preview-apply-line);
+}
+
+/* Roles & access on a phone (U-52): one role at a time, a full-width row per permission */
+.role-pick {
+  margin-bottom: var(--sp-3);
+}
+
+.role-list[hidden] {
+  display: none;
+}
+
+.role-toggle {
+  border-bottom: 1px solid var(--line);
+  padding: var(--sp-2) 0;
+}
+
+.role-toggle .switch {
+  flex: none;
+}
+
+.role-list .role-access-group {
+  margin: var(--sp-4) 0 var(--sp-1);
+  color: var(--ink-3);
+}
+
+.role-days {
+  margin-top: var(--sp-3);
+}
+
+/* Settings › Team: add a worker without email (U-56) */
+.team-add {
+  margin-top: var(--sp-4);
+}
+
+.team-add > summary {
+  list-style: none;
+}
+
+.team-add > summary::-webkit-details-marker {
+  display: none;
+}
+
+.team-add form {
+  margin-top: var(--sp-3);
+}
+
+/* The phone lock screen (U-55): over the app, under confirms and toasts */
+.app-lock {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-busy) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6);
+  background: var(--bg);
+}
+
+.app-lock-box {
+  width: 100%;
+  max-width: 360px;
+}
+
+.app-lock-box .notice[hidden] {
+  display: none;
 }

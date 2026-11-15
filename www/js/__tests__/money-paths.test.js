@@ -108,7 +108,7 @@ describe('new purchase save', () => {
         expect(document.getElementById('billTotal').textContent).toBe('2,580');
         expect(document.getElementById('totalPacketsInBill').textContent).toBe('3');
         expect(document.getElementById('manualLaborCharges').value).toBe('12');
-        expect(document.getElementById('laborCalculation').textContent).toBe('6 × 2');
+        expect(document.getElementById('laborCalculation').dataset.working).toBe('6 × 2');
         expect(document.getElementById('amountPayable').textContent).toBe('2,568');
     });
 
@@ -151,7 +151,7 @@ describe('new purchase save', () => {
         AppState.settings.laborRate = 8; // shared value from settings/app
         await buildBill();
         expect(document.getElementById('manualLaborCharges').value).toBe('16');
-        expect(document.getElementById('laborCalculation').textContent).toBe('8 × 2');
+        expect(document.getElementById('laborCalculation').dataset.working).toBe('8 × 2');
         expect(document.getElementById('amountPayable').textContent).toBe('2,564');
 
         for (const bad of ['', 'abc', 0, -3, null]) {

@@ -594,6 +594,7 @@ as they were before the rework; see the table above).
 - in `canCreateProfile()`: Self-registration only, always as a pending staff member, with the fields registration writes (repos/users.js createProfileIfMissing). A removed or rejected person keeps their profile, so they can't come back as pending (#84).
 - `ownerProfileGuardOk()`: An owner can't change their own role/status, nor demote or remove another owner (two owners removing each other at once would leave none).
 - `savedRangesOk()`: Saved period ranges (#140): "a|b;a|b", at most 10 pairs of the app's period presets.
+- `users/{uid}.lang` (U-86): the person may set their own app language, `en` or `hi` only (`canUpdateProfile`), so it follows them to any phone.
 - `canUpdateProfile()`: Users change only their own name (Settings › account) and their saved period ranges (#140; the list of their phones is deviceLog, #124); never while removed or rejected.
 
 #### phones per person (#124): deviceLog/{uid}.devices, "deviceId:YYYYMMDD"

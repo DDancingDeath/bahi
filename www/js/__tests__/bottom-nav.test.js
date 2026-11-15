@@ -106,7 +106,7 @@ test('the app bar shows the open page\'s menu name, and follows the language (re
     expect(title()).toBe('Rates');
     await setLang('hi');
     expect(title()).toBe('रेट');
-    expect(pageTitleKey('cash-management')).toBe('ui.nav.today');
+    expect(pageTitleKey('cash-management')).toBe('ui.today.cash_management');
     expect(pageTitleKey('settings')).toBe('ui.nav.settings');
     expect(pageTitleKey('rentals')).toBe('ui.biz.rentals');
     expect(pageTitleKey('unknown')).toBe('ui.app.name');

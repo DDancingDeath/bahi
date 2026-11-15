@@ -6,8 +6,8 @@
 
         <!-- Purchases | Sales, search, then All / Retail / Wholesale chips under Sales (redesign 5.3) -->
         <div class="seg due-seg" role="group">
-            <button type="button" class="filter-purchase active" aria-pressed="true" data-onclick="outstanding.filterDue('purchase', event)"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchases">Purchases</span></button>
-            <button type="button" class="filter-sale" aria-pressed="false" data-onclick="outstanding.filterDue('sale', event)"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.common.sales">Sales</span></button>
+            <button type="button" class="filter-purchase" aria-pressed="false" data-onclick="outstanding.filterDue('purchase', event)"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchases">Purchases</span> <span class="due-seg-total" id="dueSegTotalPurchase"></span></button>
+            <button type="button" class="filter-sale active" aria-pressed="true" data-onclick="outstanding.filterDue('sale', event)"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.common.sales">Sales</span> <span class="due-seg-total" id="dueSegTotalSale"></span></button>
         </div>
 
         <div class="due-search">
@@ -16,6 +16,7 @@
                    id="outstandingSearchInput"
                    placeholder="Search by supplier name or ID…"
                    data-oninput="outstanding.searchOutstanding()" data-i18n-placeholder="ui.outstanding.search_supplier_name_id" data-i18n-aria-label="ui.outstanding.search_supplier_name_id" aria-label="Search by supplier name or ID…">
+            <button type="button" class="btn btn-icon btn-ghost search-clear" id="outstandingSearchClear" hidden aria-label="Clear search" data-i18n-aria-label="ui.common.clear_search" data-onclick="outstanding.clearSearch()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
         </div>
 
         <div class="due-chips" id="dueSaleKinds" role="group" hidden>

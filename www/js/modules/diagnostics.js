@@ -497,7 +497,7 @@ const DiagnosticsManager = {
             </div>
 
             <div class="diag-controls">
-                <select id="diagTypeFilter" class="input" data-onchange="diagnostics.filterByType(this.value)">
+                <select id="diagTypeFilter" class="input" aria-label="${tx('ui.diag.filter_type')}" data-onchange="diagnostics.filterByType(this.value)">
                     <option value="all" ${sel('all')}>${tx('ui.diag.all_types')}</option>
                     <option value="uncaught" ${sel('uncaught')}>${tx('ui.diag.uncaught')}</option>
                     <option value="unhandledrejection" ${sel('unhandledrejection')}>${tx('ui.diag.rejections')}</option>
@@ -628,7 +628,7 @@ const DiagnosticsManager = {
         const sel = (v) => (this.auditFilter === v ? 'selected' : '');
         container.innerHTML = `
             <div class="diag-controls">
-                <select id="auditFilterAction" class="input" data-onchange="diagnostics.filterAuditLogs(this.value)">
+                <select id="auditFilterAction" class="input" aria-label="${tx('ui.diag.filter_action')}" data-onchange="diagnostics.filterAuditLogs(this.value)">
                     <option value="" ${sel('')}>${tx('ui.diag.all_actions')}</option>
                     <option value="CREATE_BILL" ${sel('CREATE_BILL')}>${tx('ui.diag.a_create_bill')}</option>
                     <option value="DELETE_BILL" ${sel('DELETE_BILL')}>${tx('ui.diag.a_delete_bill')}</option>

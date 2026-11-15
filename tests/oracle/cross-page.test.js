@@ -262,7 +262,8 @@ describe('H. H-TOTAL: History › Sale lists retail + wholesale; its ₹ total =
         <option value="custom"></option></select><div id="historyCustomRange" hidden><input id="historyFromDate"><input id="historyToDate"></div>
         <div id="historyRangeLabel" hidden></div><input id="historySearch" value=""><div id="historyList"></div></div>`;
     const label = () => document.getElementById('historyRangeLabel').textContent;
-    const rupees = (text) => Number(text.split('·').pop().replace(/[^\d.]/g, ''));
+    // period · N bills · ₹ total [· Due ₹] (U-73)
+    const rupees = (text) => Number(text.split('·')[2].replace(/[^\d.]/g, ''));
 
     beforeEach(() => {
         document.body.innerHTML = html;

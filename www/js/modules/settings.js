@@ -21,7 +21,7 @@ import { formatTimeOfDay } from '../utils/dates.js';
 import { emptyState } from '../ui/components.js';
 import { safeSetItem, STORAGE_FULL_KEY } from '../utils/storage-full.js';
 import { groupOf, settingsView, shownGroup } from '../utils/settings-sections.js';
-import { NavigationManager } from '../ui/navigation.js';
+import { NavigationManager, showShopName } from '../ui/navigation.js';
 import { BusinessSwitcher } from '../ui/business-switcher.js';
 import { PhotoWeights } from '../ui/photo-weights.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
@@ -448,6 +448,7 @@ export class SettingsManager {
         if (typeof appSettings?.businessName === 'string') AppState.settings.shopName = appSettings.businessName;
         if (typeof appSettings?.businessDetails === 'string') AppState.settings.businessDetails = appSettings.businessDetails;
         this.applySharedUpi(appSettings).catch(() => {});
+        showShopName();
         // Photo of weights (#374): the owner's switch for every phone, off unless set
         PhotoWeights.setShared(appSettings?.photoWeights);
         storeLocalSettings();
@@ -729,6 +730,7 @@ export class SettingsManager {
         AppState.settings.businessDetails = businessDetails;
         if (upiId !== undefined) this.applyUpiLocally(upiId);
         storeLocalSettings();
+        showShopName();
     }
 
     /**

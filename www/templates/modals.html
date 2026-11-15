@@ -3,7 +3,7 @@
         <div class="app-dialog dialog" id="modalBox" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalMessage" tabindex="-1">
             <div class="grabber" aria-hidden="true"></div>
             <div id="modalHeader">
-                <h3 class="dialog-title" id="modalTitle"><span data-i18n="ui.modals.alert">Alert</span></h3>
+                <h2 class="dialog-title" id="modalTitle"><span data-i18n="ui.modals.alert">Alert</span></h2>
             </div>
             <div class="dialog-body" id="modalBody">
                 <div id="modalMessage"><span data-i18n="ui.modals.this_is_a_message">This is a message</span></div>
@@ -30,11 +30,11 @@
                 <!-- Bill content will be inserted here -->
             </div>
             <div class="dialog-actions bill-details-footer">
-                <button type="button" class="btn btn-danger-outline" id="billVoidBtn" data-onclick="history.confirmVoidBill()" data-i18n="ui.void.button">Void</button>
-                <button type="button" class="btn btn-danger-outline" id="billDeleteBtn" hidden data-onclick="history.confirmDeleteBill()" data-i18n="ui.void.delete_permanently">Delete permanently</button>
                 <button type="button" class="btn btn-tonal" id="billReprintBtn" data-onclick="history.reprintBill()" title="Print a copy with the bill's date" data-i18n="ui.modals.reprint" data-i18n-title="ui.modals.print_copy_with_bill">Reprint</button>
                 <button type="button" class="btn btn-tonal" id="billShareBtn" data-onclick="history.shareBill()" title="Share on WhatsApp" data-i18n="ui.modals.share" data-i18n-title="ui.modals.share_on_whatsapp">Share</button>
                 <button type="button" class="btn btn-primary" id="billEditBtn" data-onclick="history.editCurrentBill()" data-i18n="ui.modals.edit">Edit</button>
+                <button type="button" class="btn btn-danger-outline" id="billVoidBtn" data-onclick="history.confirmVoidBill()" data-i18n="ui.void.button">Void</button>
+                <button type="button" class="btn btn-danger-outline" id="billDeleteBtn" hidden data-onclick="history.confirmDeleteBill()" data-i18n="ui.void.delete_permanently">Delete permanently</button>
             </div>
         </div>
     </div>
@@ -97,16 +97,15 @@
                     </div>
                 </div>
 
-                <div class="field">
-                    <label for="itemModalContactPerson" data-i18n="ui.modals.contact_person">Contact person</label>
-                    <input type="text" id="itemModalContactPerson" class="input"
-                           placeholder="Enter contact person name (optional)" data-i18n-placeholder="ui.modals.enter_contact_person_name">
-                </div>
-
                 <div id="itemModalHistorySection" class="field" hidden>
                     <label data-i18n="ui.modals.change_history">Change history</label>
                     <button type="button" id="itemModalHistoryBtn" class="btn btn-sm" data-onclick="items.loadModalHistory()" data-i18n="ui.modals.show_rate_name_changes">Show rate &amp; name changes</button>
                     <div id="itemModalHistoryList"></div>
+                </div>
+                <div class="field">
+                    <label for="itemModalContactPerson" data-i18n="ui.modals.contact_person">Usual supplier</label>
+                    <input type="text" id="itemModalContactPerson" class="input"
+                           placeholder="Who you usually buy it from (optional)" data-i18n-placeholder="ui.modals.enter_contact_person_name">
                 </div>
                 <div class="item-danger-zone">
                     <button type="button" class="btn btn-danger btn-sm" id="itemModalArchiveBtn" data-onclick="items.archiveFromModal()" hidden data-i18n="ui.items.archive_item">Archive item</button>

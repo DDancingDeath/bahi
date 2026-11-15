@@ -150,7 +150,7 @@ describe('sync pill (#70)', () => {
         go(false);
         let ack;
         status.trackWrite('purchases/p1', new Promise(r => { ack = r; }));
-        expect(pill().textContent).toBe('Offline · 1 change waiting to sync');
+        expect(pill().textContent).toBe('1 not sent · Offline');
 
         const pendingDoc = (path) => ({ ref: { path }, metadata: { hasPendingWrites: true } });
         status.noteSnapshot('purchases', {
@@ -159,16 +159,16 @@ describe('sync pill (#70)', () => {
         });
         status.noteSnapshot('expenses', { metadata: { hasPendingWrites: true }, docs: [pendingDoc('expenses/e1')] });
         expect(status.pendingCount()).toBe(3);
-        expect(pill().textContent).toBe('Offline · 3 changes waiting to sync');
+        expect(pill().textContent).toBe('3 not sent · Offline');
 
         go(true);
-        expect(pill().textContent).toBe('3 changes waiting to sync');
+        expect(pill().textContent).toBe('3 not sent');
         expect(pill().dataset.state).toBe('pending');
 
         ack();
         await flush();
         status.noteSnapshot('purchases', { metadata: { hasPendingWrites: false }, docs: [] });
-        expect(pill().textContent).toBe('1 change waiting to sync');
+        expect(pill().textContent).toBe('1 not sent');
         status.noteSnapshot('expenses', { metadata: { hasPendingWrites: false }, docs: [] });
         await flush();
         expect(pill().textContent).toBe('Synced');
@@ -190,7 +190,7 @@ describe('sync pill (#70)', () => {
         let refuse;
         status.trackWrite('purchases/p1', new Promise((_, reject) => { refuse = reject; }));
         jest.advanceTimersByTime(PENDING_SHOW_DELAY_MS);
-        expect(pill().textContent).toBe('1 change waiting to sync');
+        expect(pill().textContent).toBe('1 not sent');
         refuse(persistFull());
         await flush();
         expect(status.pendingCount()).toBe(0);
@@ -201,7 +201,7 @@ describe('sync pill (#70)', () => {
         status.trackWrite('purchases/p1', new Promise(() => {}));
         status.trackWrite('purchases/p2', new Promise(() => {}));
         setLang('hi');
-        expect(pill().textContent).toBe(`${t('ui.sync.offline', null, 'hi')} · ${t('ui.sync.waiting', { count: 2 }, 'hi')}`);
+        expect(pill().textContent).toBe(`${t('ui.sync.not_sent', { count: 2 }, 'hi')} · ${t('ui.sync.offline', null, 'hi')}`);
         expect(pill().textContent).not.toMatch(/[A-Za-z]/);
     });
 
@@ -209,7 +209,7 @@ describe('sync pill (#70)', () => {
         expect(syncStatusText({ online: true, pending: 0 })).toBe('');
         expect(syncStatusText({ online: true, pending: 0, synced: true })).toBe('Synced');
         expect(syncStatusText({ online: false, pending: 0 })).toBe('Offline');
-        expect(syncStatusText({ online: true, pending: 4 })).toBe('4 changes waiting to sync');
+        expect(syncStatusText({ online: true, pending: 4 })).toBe('4 not sent');
     });
 });
 

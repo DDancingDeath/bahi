@@ -340,6 +340,10 @@ describe('Hindi mode: no English UI words', () => {
         AdminManager.renderTabs();
         await AdminManager.renderUsers();
         grab();
+        // People are managed in Settings › Team (U-54)
+        document.body.insertAdjacentHTML('beforeend', '<div id="teamPeopleCard"><div id="teamPeople"></div></div>');
+        await AdminManager.renderTeam();
+        grab();
         AdminManager.renderData();
         AdminManager.storageStats = null;
         document.getElementById('adminContainer').insertAdjacentHTML('beforeend', '<div id="adminStorageStats"></div>');
@@ -362,7 +366,8 @@ describe('Hindi mode: no English UI words', () => {
         grab();
 
         document.body.innerHTML = html('items.html');
-        ItemsManager.renderItemsTable('zzz');
+        // A search that matches nothing echoes what was typed (U-72): a Hindi search here
+        ItemsManager.renderItemsTable('क्षक्ष');
         grab();
 
         document.body.innerHTML = html('diagnostics.html');
