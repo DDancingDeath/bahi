@@ -12,7 +12,7 @@ release, v1.0.0, also follows [happa-go-live.md](happa-go-live.md)):
 2. Tag a release candidate `v<x.y.z>-rc<n>` from that commit. It builds the signed
    APK and publishes it as a normal release marked latest, so the update banner and
    `/download` offer it to every phone: tag it after shop hours too.
-3. Run sections 1–5 and 7 below with the RC's `happa.apk`.
+3. Run sections 1–5 and 7 below with the RC's `bahi.apk` (`happa.apk` up to rc14; releases keep a `happa.apk` copy).
 4. All good: tag `v<x.y.z>` on the same commit, after shop hours (section 8).
 5. Section 6 (blocking old versions) only later, once every phone has the new APK.
 
@@ -36,7 +36,7 @@ Test against the live site and the RC APK, not the emulator.
 ## 2. Install over the previous APK
 
 - [ ] On a phone that has the **previous** release installed (with data and a
-      saved printer), install the RC's `happa.apk` from its GitHub release page.
+      saved printer), install the RC's `bahi.apk` from its GitHub release page.
       It must install **over** it with no "App not installed" error. That error
       means the signing key changed: stop, never ask users to uninstall.
       Exception: an APK for **another Firebase project** than the one before (rc13 used

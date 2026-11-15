@@ -63,7 +63,7 @@ describe('happa.config.json', () => {
         expect(JSON.parse(files['firebase.json']).hosting.site).toBe('happa-shop');
         expect(files['www/firebaseConfig.js']).toContain('"authDomain": "happa-shop.firebaseapp.com"');
         expect(files['www/download.html']).toContain('href="https://happa-shop.web.app"');
-        expect(files['www/download.html']).toContain('releases/latest/download/happa.apk');
+        expect(files['www/download.html']).toContain('releases/latest/download/bahi.apk');
         expect(files['android/app/build.gradle']).toMatch(/applicationId "com\.happa"/);
         expect(files['android/app/build.gradle']).toMatch(/namespace "com\.happa"/);
         // A new project moves the CSP's Auth frame with it (Google sign-in, docs/google-sign-in.md)
@@ -217,6 +217,10 @@ describe('Android build target (config/targets)', () => {
         expect(at('node scripts/happa-config.js target "$TARGET"')).toBeGreaterThan(at('run: npx jest --ci'));
         expect(at('node scripts/happa-config.js target "$TARGET"')).toBeLessThan(at('node scripts/release-notes.js'));
         expect(at('node scripts/happa-config.js target "$TARGET"')).toBeLessThan(at('run: npx cap sync android'));
+        // bahi.apk from rc15; the same file stays published as happa.apk for old links and bookmarks
+        expect(derive(loadConfig(ROOT)).apkDownloadUrl).toBe('https://github.com/DDancingDeath/happa/releases/latest/download/bahi.apk');
+        expect(android).toContain('cp android/app/build/outputs/apk/release/app-release.apk dist/happa.apk');
+        expect(android).toContain('files+=("dist/happa.apk")');
     });
 
     test('bahi-happa reaches every bundled file, with nothing left of happa-bfc07', () => {
@@ -224,7 +228,7 @@ describe('Android build target (config/targets)', () => {
         expect(configProblems(raw)).toEqual([]);
         expect(derive(raw)).toMatchObject({
             projectId: 'bahi-happa', siteUrl: 'https://bahi-happa.web.app', downloadPageUrl: 'https://bahi-happa.web.app/download',
-            androidPackage: 'com.happa', apkFile: 'happa.apk', googleSignIn: loadConfig(ROOT).googleSignIn
+            androidPackage: 'com.happa', apkFile: 'bahi.apk', googleSignIn: loadConfig(ROOT).googleSignIn
         });
         expect(derive(raw).webConfig).not.toHaveProperty('measurementId');
         const files = Object.fromEntries(plan(ROOT, raw).map((p) => [p.file, p.wanted]));

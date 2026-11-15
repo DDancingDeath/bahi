@@ -448,7 +448,7 @@ section 7) before pushing; don't commit one-off probe scripts.
 4. All good: push tag `v<x.y.z>` on the same commit, after shop hours.
    The tag-driven Android release workflow (#92 / PR #173) builds and signs
    the APK (Happa key, `HAPPA_*` secrets, pinned to `HAPPA_CERT_SHA256`) and
-   publishes a GitHub Release with `happa.apk`. The APK's versionCode comes
+   publishes a GitHub Release with `bahi.apk` (plus a `happa.apk` copy, the name up to rc14). The APK's versionCode comes
    from the tag (`scripts/android-version-code.js`: 1.0.0-rc11 → 10000011,
    1.0.0 → 10000999), so each tag installs over the one before; its
    versionName is the tag without `v`. The `androidVersionCode` in step 1 only
