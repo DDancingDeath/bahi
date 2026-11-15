@@ -19,7 +19,7 @@ import {
     ANOMALY_DEFAULTS, ANOMALY_TYPES, DETECTION_FIELDS, SEVERITIES, SEVERITY_LABELS, STATUS_LABELS,
     addDaysToKey, anomalyPatterns, anomalyText, billTime, buildDayReportText, detectAnomalies, filterAnomalies,
     istDayKey, istDayStartMs, mergeAnomalies, planAnomalyWrites, presetRange, sortAnomalies, summarizeAnomalies, summaryLine, typeLabel,
-    voidedByOthers, withoutStoredVoidTwins, withoutUnstockedOversell
+    voidedByOthers, withoutStoredVoidTwins, withoutUnstockedOversell, withoutVoidedBillChecks
 } from '../utils/anomalies.js';
 import { firstStockTimes } from '../utils/stock-check.js';
 import { auditScanCap } from '../utils/security-flags.js';
@@ -415,7 +415,8 @@ export const AnomaliesManager = {
         if (!card || !canSee()) return;
         const { today } = this.reportKeys();
         const isOpen = (a) => (a.status || 'open') === 'open';
-        const todays = this.reportList.filter(a => a.dayKey === today);
+        // A voided bill's checks leave the day report and its review queue (U-28)
+        const todays = withoutVoidedBillChecks(this.reportList.filter(a => a.dayKey === today), loadedVoided());
         const queue = todays.filter(isOpen);
         // Older not-reviewed records stay on the Anomalies page; only their count is shown here
         const pending = this.reportList.filter(a => a.dayKey !== today && isOpen(a)).length;
