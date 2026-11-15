@@ -132,44 +132,59 @@ describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
                 getAI: jest.fn((a, o) => { calls.ai = o; return { app: a }; }),
                 getGenerativeModel: jest.fn((ai, params, req) => { calls.model = [params, req]; return { generateContent: generate }; })
             },
-            { initializeAppCheck: jest.fn(), ReCaptchaV3Provider: function P(k) { this.key = k; } }
+            { initializeAppCheck: jest.fn(), ReCaptchaEnterpriseProvider: function P(k) { this.key = k; } }
         ];
         return { sdk, calls };
     };
     beforeEach(() => _resetPhotoWeightsAi());
 
-    test('the app\'s own config, JSON output with the schema, no App Check without a site key', async () => {
+    test('the app\'s own config, JSON output with the schema, App Check (reCAPTCHA Enterprise, auto refresh) on every call', async () => {
         const generate = jest.fn().mockResolvedValue({ response: { text: () => '{"weights":[],"crossed_out":[]}' } });
         const { sdk, calls } = fakeSdk(generate);
-        const startAppCheck = jest.fn();
-        const deps = { loadSdk: async () => sdk, options: () => ({ projectId: 'any-project', apiKey: 'k', appId: 'a' }), win: {}, startAppCheck, model: PHOTO_WEIGHTS_MODEL };
+        const startAppCheck = jest.fn().mockResolvedValue({});
+        const deps = { loadSdk: async () => sdk, options: () => ({ projectId: 'any-project', apiKey: 'k', appId: 'a' }), win: { APP_CHECK_SITE_KEY: ' site ' }, startAppCheck, model: PHOTO_WEIGHTS_MODEL };
         const out = await readWeightsPhoto(new Blob(['jpeg'], { type: 'image/jpeg' }), { deps });
         expect(out).toEqual({ weights: [], crossed_out: [] });
         expect(calls.init).toEqual([{ projectId: 'any-project', apiKey: 'k', appId: 'a' }, 'photo-weights']);
         expect(calls.ai.backend.kind).toBe('google');
-        expect(calls.ai.useLimitedUseAppCheckTokens).toBe(false);
         expect(calls.model[0]).toMatchObject({ model: PHOTO_WEIGHTS_MODEL, generationConfig: { responseMimeType: 'application/json', responseSchema: PHOTO_WEIGHTS_SCHEMA } });
-        expect(startAppCheck).not.toHaveBeenCalled();
-        expect(sdk[2].initializeAppCheck).not.toHaveBeenCalled();
+        expect(startAppCheck).toHaveBeenCalled();
+        const [checkApp, checkOpts] = sdk[2].initializeAppCheck.mock.calls[0];
+        expect(checkApp).toEqual({ name: 'photo-weights' });
+        expect(checkOpts.provider).toBeInstanceOf(sdk[2].ReCaptchaEnterpriseProvider);
+        expect(checkOpts.provider.key).toBe('site');
+        expect(checkOpts.isTokenAutoRefreshEnabled).toBe(true);
+        // AI Logic then asks App Check for a (limited-use) token and sends it with the request
+        expect(calls.ai.useLimitedUseAppCheckTokens).toBe(true);
         const [parts] = generate.mock.calls[0];
         expect(parts[1].inlineData).toEqual({ mimeType: 'image/jpeg', data: Buffer.from('jpeg').toString('base64') });
     });
 
-    test('with a site key App Check is used; a 429 comes back as it is (no retry)', async () => {
+    test('AI Logic enforces App Check: no site key, or App Check not started, never calls Gemini', async () => {
+        for (const [win, started] of [[{}, {}], [{ APP_CHECK_SITE_KEY: 'site' }, null]]) {
+            _resetPhotoWeightsAi();
+            const generate = jest.fn();
+            const { sdk } = fakeSdk(generate);
+            const deps = { loadSdk: async () => sdk, options: () => ({}), win, startAppCheck: jest.fn().mockResolvedValue(started), model: 'm' };
+            const err = await readWeightsPhoto(new Blob(['x']), { deps }).catch((e) => e);
+            expect(err).toMatchObject({ code: 'app-check' });
+            expect(photoErrorKey(err)).toBe('msg.photo_weights.unavailable');
+            expect(generate).not.toHaveBeenCalled();
+        }
+    });
+
+    test('a 429 comes back as it is (no retry)', async () => {
         const err = Object.assign(new Error('[429 ] quota'), { customErrorData: { status: 429 } });
         const generate = jest.fn().mockRejectedValue(err);
-        const { sdk, calls } = fakeSdk(generate);
+        const { sdk } = fakeSdk(generate);
         const deps = { loadSdk: async () => sdk, options: () => ({}), win: { APP_CHECK_SITE_KEY: 'site' }, startAppCheck: jest.fn().mockResolvedValue({}), model: 'm' };
         await expect(readWeightsPhoto(new Blob(['x']), { deps })).rejects.toBe(err);
         expect(generate).toHaveBeenCalledTimes(1);
-        expect(sdk[2].initializeAppCheck).toHaveBeenCalled();
-        expect(calls.ai.useLimitedUseAppCheckTokens).toBe(true);
-    });
-    test('cancelled before the upload: generateContent is never called (no free quota used)', async () => {
+    });    test('cancelled before the upload: generateContent is never called (no free quota used)', async () => {
         const generate = jest.fn();
         const { sdk } = fakeSdk(generate);
         const ctrl = new AbortController();
-        const deps = { loadSdk: async () => { ctrl.abort(); return sdk; }, options: () => ({}), win: {}, startAppCheck: jest.fn(), model: 'm' };
+        const deps = { loadSdk: async () => { ctrl.abort(); return sdk; }, options: () => ({}), win: { APP_CHECK_SITE_KEY: 'site' }, startAppCheck: jest.fn().mockResolvedValue({}), model: 'm' };
         await expect(readWeightsPhoto(new Blob(['x']), { signal: ctrl.signal, deps })).rejects.toMatchObject({ name: 'AbortError' });
         expect(generate).not.toHaveBeenCalled();
     });
@@ -179,7 +194,7 @@ describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
         const generate = jest.fn(() => new Promise((resolve, reject) => { finish = reject; }));
         const { sdk } = fakeSdk(generate);
         const ctrl = new AbortController();
-        const deps = { loadSdk: async () => sdk, options: () => ({}), win: {}, startAppCheck: jest.fn(), model: 'm' };
+        const deps = { loadSdk: async () => sdk, options: () => ({}), win: { APP_CHECK_SITE_KEY: 'site' }, startAppCheck: jest.fn().mockResolvedValue({}), model: 'm' };
         const reading = readWeightsPhoto(new Blob(['x']), { signal: ctrl.signal, deps });
         for (let i = 0; i < 50 && !generate.mock.calls.length; i++) await new Promise(r => setTimeout(r, 5));
         expect(generate.mock.calls[0][1]).toEqual({ signal: ctrl.signal });

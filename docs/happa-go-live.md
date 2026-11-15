@@ -78,9 +78,9 @@ runs fail instead of deploying. After rebasing on `main` they preview to happa.
 | `firebase.redirectHostingSites` | ✅ `["happaapp", "happa-bfc07"]` (301 to myhappa, no app files) |
 | `androidPackage` | ✅ `com.happa` (owner confirmed; it can never change after phones install v1.0.0) |
 | `appName` / `appNameHi` | ✅ `happa`: all lowercase wherever it is shown, the same in English and Hindi |
-| `apkName` | ✅ `happa` → `happa.apk` / `happa-vX.Y.Z.apk`, release "happa vX.Y.Z" |
+| `apkName` | ✅ `bahi` → `bahi.apk` / `bahi-vX.Y.Z.apk`, release "bahi vX.Y.Z" (from rc15; up to rc14 `happa`, and every release keeps a `happa.apk` copy) |
 | `ownerConfirmed` | ✅ `true` |
-| `appCheck.siteKey` | empty = App Check off. A reCAPTCHA v3 site key turns it on in monitor mode ([security.md](security.md), "App Check") |
+| `appCheck.siteKey` | empty = App Check off. A reCAPTCHA Enterprise (score) site key from the same project turns it on in monitor mode (AI Logic enforces it) ([security.md](security.md), "App Check") |
 
 All values are filled and `npm run check:happa-config` passes. The commands below are
 only needed if a value changes again. `apply` also moves `MainActivity.java` to the
@@ -336,7 +336,7 @@ install it, then set `minClientVersion: 5` on `settings/app`.
 
 ## 12. Install on the phones
 
-On each phone, open `https://myhappa.web.app/download`, download `happa.apk`
+On each phone, open `https://myhappa.web.app/download`, download `bahi.apk`
 and install it. It installs **next to** the old app; nothing is replaced. Sign in.
 Accounts and roles work as the migration README describes. Any user it did not
 carry over registers again, and the owner approves them in Admin.

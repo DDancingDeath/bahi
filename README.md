@@ -176,8 +176,9 @@ The version lives in four places that must agree: `www/changelog.json` (top entr
 4. Owner tags the merged commit: `git tag v<ver> && git push origin v<ver>`.
 5. The workflow runs the tests and `check:release`, checks the tag equals `package.json` `version`, builds the signed
    APK, verifies its signing certificate and package id, and creates the GitHub Release "happa v<ver>" (marked latest)
-   with notes from `www/changelog.json` and two assets: `happa.apk` (stable name used by
-   `releases/latest/download/happa.apk`, the app and the download page) and `happa-v<ver>.apk`.
+   with notes from `www/changelog.json` and the assets `bahi.apk` (stable name used by
+   `releases/latest/download/bahi.apk`, the app and the download page), `bahi-v<ver>.apk`, and the same file
+   as `happa.apk` (the name up to rc14, kept for old links, bookmarks and old apps; rc14 also got a `bahi.apk` copy).
    A release-candidate tag `v<ver>-rc<n>` (same commit) is published the same way, also marked latest.
    The APK's versionCode comes from the tag (`scripts/android-version-code.js`, e.g. 1.0.0-rc11 → 10000011,
    1.0.0 → 10000999) and its versionName is the tag without `v`; `androidVersionCode` only applies to local builds.

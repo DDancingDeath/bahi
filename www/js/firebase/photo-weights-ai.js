@@ -10,8 +10,8 @@
 import { PHOTO_WEIGHTS_MODEL, PHOTO_WEIGHTS_PROMPT, PHOTO_WEIGHTS_SCHEMA, READ_TIMEOUT_MS, parseModelJson } from '../utils/photo-weights.js';
 import { appCheckSiteKey, startAppCheck } from '../services/app-check.js';
 
-/** Set true once App Check is set up in the console for every app (web and Android) to refuse calls without it. */
-export const PHOTO_APP_CHECK_REQUIRED = false;
+/** AI Logic enforces App Check (since 2 Nov 2026): without a token the call would only be refused. */
+export const PHOTO_APP_CHECK_REQUIRED = true;
 const APP_NAME = 'photo-weights';
 
 /** @returns {Promise<[*, *, *]>} firebase-app, firebase-ai, firebase-app-check */
@@ -40,7 +40,7 @@ async function buildModel(deps) {
     const siteKey = appCheckSiteKey(deps.win);
     // startAppCheck makes sure reCAPTCHA is loaded and ready (and sets the localhost debug token)
     if (siteKey && await deps.startAppCheck()) {
-        check.initializeAppCheck(app, { provider: new check.ReCaptchaV3Provider(siteKey), isTokenAutoRefreshEnabled: false });
+        check.initializeAppCheck(app, { provider: new check.ReCaptchaEnterpriseProvider(siteKey), isTokenAutoRefreshEnabled: true });
         appCheck = true;
     }
     if (PHOTO_APP_CHECK_REQUIRED && !appCheck) throw Object.assign(new Error('App Check not started'), { code: 'app-check' });

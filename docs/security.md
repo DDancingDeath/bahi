@@ -64,7 +64,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 | `firebaseinstallations.googleapis.com` | not called today; listed for the Firebase SDKs that use it |
 | `content-firebaseappcheck.googleapis.com` (connect) | App Check token exchange (monitor mode, only with a site key; see "App Check" below) |
 | `firebasevertexai.googleapis.com` (connect) | Firebase AI Logic (Gemini Developer API): photo of weights (#374), only when the owner has switched it on and someone takes a photo. The SDK is vendored (`vendor/firebase/13.2.0/`, `'self'`); no Gemini key is in the app |
-| `www.google.com/recaptcha/`, `www.gstatic.com/recaptcha/` (script), `www.google.com/recaptcha/` (frame) | reCAPTCHA v3 for App Check: `api.js`, its versioned `recaptcha__*.js` and the invisible widget's frame. Path-limited (`/recaptcha/` only), not the whole Google origins; nothing loads from there without a site key |
+| `www.google.com/recaptcha/`, `www.gstatic.com/recaptcha/` (script), `www.google.com/recaptcha/` (frame) | reCAPTCHA Enterprise for App Check: `enterprise.js`, its versioned `recaptcha__*.js` and the invisible widget's frame. Path-limited (`/recaptcha/` only), not the whole Google origins; nothing loads from there without a site key |
 | `api.github.com` | the "Update available" check |
 | `data:` / `blob:` images | receipts and bill images drawn on a canvas, the inline favicon, downloads |
 | `'unsafe-inline'` (style) | ~800 `style=` attributes in 33 files and the `<style>` blocks in templates / `download.html` / the print window. Inline styles can't run code; moving them all to classes is a separate, larger change |
@@ -231,18 +231,18 @@ in place in **monitor** mode: tokens are sent and counted, nothing is refused.
   reCAPTCHA site key is public (it ships in every page), so it belongs in the config, not
   in secrets.
 - `www/js/services/app-check.js` (`startAppCheck()`): with a key and online, it first
-  loads reCAPTCHA (`https://www.google.com/recaptcha/api.js?render=explicit`, through
+  loads reCAPTCHA Enterprise (`https://www.google.com/recaptcha/enterprise.js?render=explicit`, through
   `loadScriptOnce`, which rejects on a load error) and waits up to 5 s for
-  `grecaptcha.ready`. Only then does it load the self-hosted
+  `grecaptcha.enterprise.ready`. Only then does it load the self-hosted
   `vendor/firebase/10.7.1/firebase-app-check-compat.js` (same version as the other SDK
   files, byte-identical to gstatic/npm, SRI-pinned; not precached, not installed by the
   service worker (`RUNTIME_ONLY` in `scripts/check-sw-assets.js`), cached by its fetch
   handler on first use; not a `<script>` in `index.html`) and call
-  `firebase.appCheck().activate(new ReCaptchaV3Provider(siteKey), true)` (token
-  auto-refresh on). The SDK then reuses `self.grecaptcha` instead of adding its own
-  `api.js` tag.
+  `firebase.appCheck().activate(new ReCaptchaEnterpriseProvider(siteKey), true)` (token
+  auto-refresh on). The SDK then reuses `self.grecaptcha.enterprise` instead of adding its own
+  `enterprise.js` tag.
   **Why the order matters:** the SDK's own reCAPTCHA loader has no error path. If
-  `api.js` never loads (offline, a blocker, google.com blocked), its "initialized" promise
+  `enterprise.js` never loads (offline, a blocker, google.com blocked), its "initialized" promise
   never settles, every `getToken()` waits forever, and Firestore and Auth wait on it, so
   sync and sign-in would stall until a reload. So it is never activated unless reCAPTCHA
   is proven working. Offline, a load error or a timeout: nothing is activated, a warning
@@ -250,12 +250,14 @@ in place in **monitor** mode: tokens are sent and counted, nothing is refused.
 - **When**: off the critical path. `main.js` starts it when the phone is idle **after**
   the first screen is shown (signed in), or after the login screen is shown (signed out,
   so the sign-in request already carries a token). Before that, nothing changes, so the
-  first screen does no extra work at all. Cost after it: reCAPTCHA v3 (`api.js` + its
+  first screen does no extra work at all. Cost after it: reCAPTCHA Enterprise (`enterprise.js` + its
   script and an invisible frame from Google), one ~23 KB same-origin script, then one
   token exchange per token lifetime (default 1 h; cached in IndexedDB across starts).
   The widget is rendered into a hidden `div` (and `render=explicit` stops reCAPTCHA from
   rendering its own), so no reCAPTCHA badge shows.
-- **Provider**: reCAPTCHA **v3** (free, score based, invisible) on the web. The **debug
+- **Provider**: reCAPTCHA **Enterprise** (a score-based website key, invisible) on the web. App Check stopped
+  accepting new reCAPTCHA v3 set-ups in Nov 2026. The key lives in the same Google Cloud project as
+  the Firebase app that uses it, so each project has its own key. The **debug
   provider** (`FIREBASE_APPCHECK_DEBUG_TOKEN = true`, the SDK then logs a debug token to
   register in the console) only in a browser on `localhost` / `127.0.0.1` (the emulators,
   `?emulator=1`, run there), never in production and never in the APK (which is also
@@ -270,7 +272,7 @@ in place in **monitor** mode: tokens are sent and counted, nothing is refused.
   with it in mind.
 
 **Android APK.** The APK runs this same web code in its WebView, so in monitor mode it
-uses the same reCAPTCHA v3 provider; no native dependency is added. The WebView's origin
+uses the same reCAPTCHA Enterprise provider; no native dependency is added. The WebView's origin
 is `https://localhost`, so its requests verify only if `localhost` is in the reCAPTCHA
 key's domains (adding it lets anyone's localhost get tokens too; leave it out while
 monitoring and expect the APK to show as unverified). **Follow-up before any enforcement
@@ -278,15 +280,24 @@ that covers the APK:** a Play Integrity provider through a native Capacitor plug
 `@capacitor-firebase/app-check`) feeding a `CustomProvider`, with the app's SHA-256
 (`HAPPA_CERT_SHA256`) registered in the console; its own PR, tested on a device.
 
+**Status (15 Nov 2026).** Firebase AI Logic enforces App Check, so photo of weights needs a token
+(`PHOTO_APP_CHECK_REQUIRED`, docs/photo-weights.md). `bahi-happa-dev`: key
+`6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd` (domains bahi-happa-dev.web.app, bahi-happa.web.app,
+localhost; the APK's WebView is `https://localhost`) registered as the Enterprise provider of its web
+app, AI Logic (`firebaseml.googleapis.com`) ENFORCED, Firestore and Auth unenforced (monitor). It is
+set only in the local bahi-happa-dev config branch. `bahi-happa` (prod, and the APK target) and
+`happa-bfc07` have no key yet: prod gets its own key in project "Bahi", then
+`config/targets/bahi-happa.json` gets `appCheck.siteKey` for rc15.
+
 **Firestore stays NOT enforced.** Enforcing App Check on Firestore would break the
 tenant link page `/r/`: it reads Firestore over REST with no SDK (its "tiny, no SDK"
 design), so it has no App Check token. It would also refuse every old APK at once.
 
 **Plan.**
 
-1. Owner (console, not code): create a reCAPTCHA v3 key for `myhappa.web.app` (plus the
-   preview hosts if wanted), register the web app with the reCAPTCHA v3 provider in
-   Firebase App Check (token TTL ~12 h so a phone needs about 2 assessments a day), and
+1. Owner (console, not code): create a reCAPTCHA Enterprise score key in the project's Google Cloud
+   project for its site (plus the preview hosts if wanted), register the web app with the reCAPTCHA
+   Enterprise provider in Firebase App Check (token TTL ~12 h so a phone needs about 2 assessments a day), and
    leave every product **unenforced**. Then put the site key in `happa.config.json`,
    run `npm run apply:happa-config`, and ship it (cache bump as usual).
 2. **Monitor for 2 weeks**: App Check › APIs shows verified / unverified / outdated

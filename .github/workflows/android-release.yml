@@ -336,6 +336,8 @@ jobs:
           name="$(node -p "require('./happa.config.json').apkName")"
           cp android/app/build/outputs/apk/release/app-release.apk "dist/$name.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "dist/$name-v$VERSION.apk"
+          # The APK was happa.apk up to rc14: keep that name too, for old links, bookmarks and old apps
+          [[ "$name" == "happa" ]] || cp android/app/build/outputs/apk/release/app-release.apk dist/happa.apk
           echo "$name" > dist/apk-name.txt
           (cd dist && sha256sum ./*.apk)
 
@@ -491,6 +493,7 @@ jobs:
           name="$(cat dist/apk-name.txt)"
           title="$name v$VERSION"
           files=("dist/$name.apk" "dist/$name-v$VERSION.apk")
+          [[ ! -f dist/happa.apk || "$name" == "happa" ]] || files+=("dist/happa.apk")
           # Every release, rc or final, is a normal release marked latest: releases/latest feeds
           # the update banner and /download. Only re-running an older tag leaves latest alone.
           latest=""
