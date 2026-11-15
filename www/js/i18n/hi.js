@@ -1299,6 +1299,7 @@ export default {
     'ui.today.total_in': "कुल आया",
     'ui.today.total_out': "कुल गया",
     'ui.today.transactions': "लेन-देन",
+    'ui.today.day_details': "दिन का पूरा हिसाब",
     'ui.wholesale.available_stock': "उपलब्ध स्टॉक",
     'ui.wholesale.avg_purchase_rate': "औसत खरीद रेट",
     'ui.wholesale.by_name': "— {name}",

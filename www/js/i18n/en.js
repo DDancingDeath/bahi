@@ -1299,6 +1299,7 @@ export default {
     'ui.today.total_in': "Total in",
     'ui.today.total_out': "Total out",
     'ui.today.transactions': "Transactions",
+    'ui.today.day_details': "Day details",
     'ui.wholesale.available_stock': "Available stock",
     'ui.wholesale.avg_purchase_rate': "Avg purchase rate",
     'ui.wholesale.by_name': "by {name}",
