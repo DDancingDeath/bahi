@@ -166,6 +166,25 @@ describe('bill drafts, auto-save and item frequency (billing.js)', () => {
         expect(PurchaseManager.getWeights()).toEqual([1]);
     });
 
+    test('shared drafts (U-37): a member sees and continues another worker\'s draft; it is marked taken, not deleted', async () => {
+        AppState.userRole = 'staff';
+        fake.seed('dev_drafts', [{ id: 'd4', userId: 'u2', userName: 'Mohan', shared: true, mode: 'purchase', timestamp: 4, date: '20/10/2026', items: [{ name: 'Dal', qty: 1, rate: 2, total: 2 }], weights: [7] }]);
+        await BillingManager.showDrafts();
+        await settle();
+        const html = document.getElementById('draftsContent').innerHTML;
+        expect(html).toContain("loadDraft('d4')");
+        expect(html).toContain('by Mohan');
+        expect(html).not.toContain("deleteDraft('d4')");
+        expect(html).toContain("deleteDraft('d1')");
+        rec.log.length = 0;
+        await BillingManager.loadDraft('d4');
+        pin('draft.load-shared', rec.log);
+        expect(fake.raw('dev_drafts').get('d4')).toMatchObject({ takenBy: 'u1' });
+        expect(PurchaseManager.getWeights()).toEqual([7]);
+        await BillingManager.showDrafts();
+        expect(document.getElementById('draftsContent').innerHTML).not.toContain('d4');
+    });
+
     test('a missing draft: one read, nothing else', async () => {
         await BillingManager.loadDraft('nope');
         pin('draft.load-missing', rec.log);

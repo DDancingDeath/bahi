@@ -740,6 +740,8 @@ const BillingManager = {
             id: Helpers.generateId(),
             userId: currentUser.uid,
             userName: AppState.userName || currentUser.email || 'User',
+            // Any worker of the shop can continue it (U-37)
+            shared: true,
             mode: mode,
             timestamp: Date.now(),
             date: Helpers.getCurrentDateTime()
@@ -910,9 +912,12 @@ const BillingManager = {
             }
 
             const mode = this.currentMode === 'purchase' ? 'purchase' : 'sale';
-            // A draft with no lines holds nothing to continue once a day has passed (U-37): removed, not listed
-            const all = await BillDrafts.listDrafts(currentUser.uid);
-            const stale = all.filter(d => !(d.items?.length) && Date.now() - (Number(d.timestamp) || 0) > EMPTY_DRAFT_KEEP_MS);
+            const uid = currentUser.uid;
+            // A draft with no lines holds nothing to continue once a day has passed (U-37): removed, not listed;
+            // so is one another worker took over. Only a draft this user may delete is removed.
+            const all = await BillDrafts.listDrafts(uid);
+            const stale = all.filter(d => this.mayDeleteDraft(d, uid)
+                && (d.takenBy || (!(d.items?.length) && Date.now() - (Number(d.timestamp) || 0) > EMPTY_DRAFT_KEEP_MS)));
             if (stale.length) {
                 Promise.all(stale.map(d => BillDrafts.deleteDraft(d.id)))
                     .then(() => this.updateDraftCount())
@@ -920,7 +925,7 @@ const BillingManager = {
             }
             // This mode's drafts first
             shownDrafts = all
-                .filter(d => !stale.includes(d) && (d.items?.length || 0) + (d.weights?.length || 0) > 0)
+                .filter(d => !stale.includes(d) && !d.takenBy && (d.items?.length || 0) + (d.weights?.length || 0) > 0)
                 .sort((a, b) => Number(b.mode === mode) - Number(a.mode === mode) || (b.timestamp || 0) - (a.timestamp || 0));
             const drafts = shownDrafts;
 
@@ -935,6 +940,11 @@ const BillingManager = {
                         ? `${tn('ui.billing.draft_lines', lines)} · ${formatRupees(amount)}`
                         : tn('ui.billing.draft_weights_only', draft.weights?.length || 0);
                     const when = formatDate(draft.date, 'datetime') || draft.date;
+                    const by = draft.userId !== uid && draft.userName ? ` · ${Helpers.escapeHtml(t('ui.billing.draft_by', { name: draft.userName }))}` : '';
+                    const del = this.mayDeleteDraft(draft, uid) ? `
+                                <button type="button" class="btn btn-ghost btn-sm draft-delete" data-onclick="billing.deleteDraft('${Helpers.escapeJsAttr(draft.id)}')">
+                                    ${Helpers.escapeHtml(t('ui.modals.delete'))}
+                                </button>` : '';
                     return `
                     <div class="panel draft">
                         <div class="draft-head">
@@ -942,11 +952,8 @@ const BillingManager = {
                             <span class="draft-meta">${Helpers.escapeHtml(meta)}</span>
                         </div>
                         <div class="draft-row">
-                            <div class="draft-date">${Helpers.escapeHtml(when)}${draft.customerName ? ` · <strong class="draft-customer">${Helpers.escapeHtml(draft.customerName)}</strong>` : ''}</div>
-                            <div class="draft-actions">
-                                <button type="button" class="btn btn-ghost btn-sm draft-delete" data-onclick="billing.deleteDraft('${Helpers.escapeJsAttr(draft.id)}')">
-                                    ${Helpers.escapeHtml(t('ui.modals.delete'))}
-                                </button>
+                            <div class="draft-date">${Helpers.escapeHtml(when)}${draft.customerName ? ` · <strong class="draft-customer">${Helpers.escapeHtml(draft.customerName)}</strong>` : ''}${by}</div>
+                            <div class="draft-actions">${del}
                                 <button type="button" class="btn btn-primary btn-sm" data-onclick="billing.loadDraft('${Helpers.escapeJsAttr(draft.id)}')">
                                     ${Helpers.escapeHtml(t('ui.billing.load'))}
                                 </button>
@@ -1021,6 +1028,12 @@ const BillingManager = {
                 UIManager.showToast(t('msg.billing.draft_not_found'));
                 return;
             }
+            const uid = firebase.auth().currentUser?.uid;
+            if (draft.takenBy && draft.takenBy !== uid) {
+                UIManager.showToast(t('msg.billing.draft_taken'));
+                await this.showDrafts();
+                return;
+            }
 
             const plan = await this.planRestore(draft);
             if (!plan) return;
@@ -1030,7 +1043,7 @@ const BillingManager = {
                 const opened = plan.saved.find(s => s.open);
                 if (!opened) return;
                 this.closeDrafts();
-                await BillDrafts.deleteDraft(draftId);
+                await this.finishDraft(draftId, draft, uid);
                 await this.updateDraftCount();
                 this.openSavedBill(opened);
                 return;
@@ -1041,7 +1054,7 @@ const BillingManager = {
             if (plan.edit) this.prepareBillDates();
             this.closeDrafts();
 
-            await BillDrafts.deleteDraft(draftId);
+            await this.finishDraft(draftId, draft, uid);
             await this.updateDraftCount();
 
             UIManager.showToast(t('msg.billing.draft_loaded'));
@@ -1050,6 +1063,17 @@ const BillingManager = {
             console.error('Failed to load draft:', error);
             UIManager.showToast(t('msg.billing.failed_load_draft'));
         }
+    },
+
+    /** Its maker, the owner or a manager may delete a draft (firestore.rules). */
+    mayDeleteDraft(draft, uid) {
+        return draft.userId === uid || ['owner', 'manager'].includes(AppState.userRole);
+    },
+
+    /** A continued draft goes; one of another worker's is marked taken instead (U-37). */
+    async finishDraft(draftId, draft, uid) {
+        if (this.mayDeleteDraft(draft, uid)) await BillDrafts.deleteDraft(draftId);
+        else await BillDrafts.takeDraft(draftId, uid);
     },
 
     /**
@@ -1063,8 +1087,8 @@ const BillingManager = {
             await BillDrafts.deleteDraft(draftId);
             await this.updateDraftCount();
             await this.showDrafts();
-            // Undo writes the same draft back (U-06)
-            if (!draft) {
+            // Undo writes the same draft back (U-06); only its maker may write it
+            if (!draft || draft.userId !== firebase.auth().currentUser?.uid) {
                 UIManager.showToast(t('msg.billing.draft_deleted'));
                 return;
             }

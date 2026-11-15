@@ -14,6 +14,7 @@
         "id": "gen-1",
         "userId": "u1",
         "userName": "Owner",
+        "shared": true,
         "mode": "purchase",
         "timestamp": 1792557000000,
         "date": "21/10/2026, 10:00:00 am",
@@ -59,6 +60,15 @@
     ],
     [
       "get"
+    ],
+    [
+      "where",
+      "shared",
+      "==",
+      true
+    ],
+    [
+      "get"
     ]
   ],
   "draft.list": [
@@ -71,6 +81,15 @@
       "userId",
       "==",
       "u1"
+    ],
+    [
+      "get"
+    ],
+    [
+      "where",
+      "shared",
+      "==",
+      true
     ],
     [
       "get"
@@ -95,6 +114,15 @@
       "userId",
       "==",
       "u1"
+    ],
+    [
+      "get"
+    ],
+    [
+      "where",
+      "shared",
+      "==",
+      true
     ],
     [
       "get"
@@ -132,6 +160,15 @@
       "userId",
       "==",
       "u1"
+    ],
+    [
+      "get"
+    ],
+    [
+      "where",
+      "shared",
+      "==",
+      true
     ],
     [
       "get"
@@ -176,6 +213,15 @@
       "get"
     ],
     [
+      "where",
+      "shared",
+      "==",
+      true
+    ],
+    [
+      "get"
+    ],
+    [
       "collection",
       "dev_drafts"
     ],
@@ -184,6 +230,15 @@
       "userId",
       "==",
       "u1"
+    ],
+    [
+      "get"
+    ],
+    [
+      "where",
+      "shared",
+      "==",
+      true
     ],
     [
       "get"
@@ -7778,6 +7833,56 @@
     ],
     [
       "batch.commit"
+    ]
+  ],
+  "draft.load-shared": [
+    [
+      "collection",
+      "dev_drafts"
+    ],
+    [
+      "doc",
+      "d4"
+    ],
+    [
+      "get"
+    ],
+    [
+      "collection",
+      "dev_drafts"
+    ],
+    [
+      "doc",
+      "d4"
+    ],
+    [
+      "update",
+      {
+        "takenBy": "u1",
+        "takenAt": 1792557000000
+      }
+    ],
+    [
+      "collection",
+      "dev_drafts"
+    ],
+    [
+      "where",
+      "userId",
+      "==",
+      "u1"
+    ],
+    [
+      "get"
+    ],
+    [
+      "where",
+      "shared",
+      "==",
+      true
+    ],
+    [
+      "get"
     ]
   ]
 }
