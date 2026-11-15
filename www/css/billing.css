@@ -136,7 +136,7 @@
     text-align: left;
   }
 
-  /* Each line in two rows (U-18): the item, then "151 kg × ₹24 · 3 packets: 52.5 · 48 · 50.5" */
+  /* Each line: the item, then "151 kg × ₹24", then all its packet weights, wrapping rather than cut (U-18, N-17) */
   #billTable tbody tr.bill-line > td:nth-child(1), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(1) {
     display: contents;
   }
@@ -151,16 +151,10 @@
   }
 
   tr.bill-line .bill-line-weights {
-    grid-column: 3;
-    grid-row: 2;
+    grid-column: 1 / 4;
+    grid-row: 3;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  tr.bill-line .bill-line-weights::before {
-    content: "· ";
+    overflow-wrap: anywhere;
   }
 
   tr.bill-line .bill-line-name {
