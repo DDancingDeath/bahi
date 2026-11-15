@@ -329,6 +329,36 @@ describe('7. lighter, safer bill form (U-05, U-06, U-18)', () => {
         expect(bar.classList.contains('show')).toBe(false);
     });
 
+    test('an Undo left showing never puts a removed line into the next bill', () => {
+        PurchaseManager.setPendingBill({ id: 'p1' });
+        PurchaseManager.setBillItems([rice(10), rice(20)]);
+        PurchaseManager.renderBill();
+        PurchaseManager.deleteBillItem(0);
+        const undo = document.querySelector('#undoBar .undo-bar-btn');
+        PurchaseManager.setPendingBill({ id: 'p2' });
+        PurchaseManager.setBillItems([rice(30)]);
+        undo.click();
+        expect(PurchaseManager.getBillItems().map(l => l.qty)).toEqual([30]);
+    });
+
+    test('clearing the bill or switching mode hides the Undo bar', () => {
+        PurchaseManager.setBillItems([rice(10), rice(20)]);
+        PurchaseManager.renderBill();
+        PurchaseManager.deleteBillItem(0);
+        const bar = document.getElementById('undoBar');
+        expect(bar.classList.contains('show')).toBe(true);
+        PurchaseManager.clearBill();
+        expect(bar.classList.contains('show')).toBe(false);
+        bar.querySelector('.undo-bar-btn').click();
+        expect(PurchaseManager.getBillItems()).toEqual([]);
+        RetailSaleManager.setSaleItems([rice(5)]);
+        RetailSaleManager.renderSalesBill();
+        RetailSaleManager.removeSaleItem(0);
+        expect(bar.classList.contains('show')).toBe(true);
+        BillingManager.switchMode('purchase', { currentTarget: $('purchaseModeBtn') });
+        expect(bar.classList.contains('show')).toBe(false);
+    });
+
     test('a removed weight comes back with Undo', () => {
         PurchaseManager.setWeights([40, 50]);
         PurchaseManager.renderWeights();

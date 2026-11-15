@@ -1,6 +1,7 @@
 // Classic async script for the start-up screen in index.html (U-25): shows it in the saved
 // language and, when the app is still not up after a few seconds, a slow-internet note and
-// Try again. main.js steps its text and removes it (js/ui/boot-splash.js).
+// Try again. main.js steps its text and removes it (js/ui/boot-splash.js). In the Android app the
+// system splash stays until this screen is drawn, so there is no blank frame between them.
 (function () {
     var TEXT = {
         en: { loading: 'Loading…', slow: 'Slow internet. Keep this page open, it is still loading.', retry: 'Try again' },
@@ -24,6 +25,14 @@
         if (retry) retry.textContent = words.retry;
     }
     if (retry) retry.addEventListener('click', function () { window.location.reload(); });
+    var shell = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppShell;
+    if (shell && typeof shell.splashDone === 'function') {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                Promise.resolve().then(function () { return shell.splashDone(); }).catch(function () { /* older APK */ });
+            });
+        });
+    }
     var since = (window.performance && performance.now) ? performance.now() : 0;
     setTimeout(function () {
         if (!root.isConnected) return;

@@ -16,7 +16,7 @@ import {
     paymentSplit, pendingLine, prefillPayment, restInDue, shownAmount, sumWeights, validatePaymentSplit
 } from '../utils/calc/billing.js';
 import { showAmount } from '../ui/number-input.js';
-import { showUndo } from '../ui/undo-bar.js';
+import { showUndo, hideUndo } from '../ui/undo-bar.js';
 import { showLastSaved } from '../ui/last-saved.js';
 import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
@@ -168,7 +168,7 @@ const PurchaseManager = {
             weightChecks = before.checks;
             this.renderWeights();
             if (this.billingManager) this.billingManager.triggerAutoSave();
-        });
+        }, { tag: () => pendingBill?.id ?? null });
     },
 
     /**
@@ -371,7 +371,7 @@ const PurchaseManager = {
             billItems.splice(Math.min(index, billItems.length), 0, line);
             this.renderBill();
             if (this.billingManager) this.billingManager.triggerAutoSave();
-        });
+        }, { tag: () => pendingBill?.id ?? null });
     },
 
     /**
@@ -782,6 +782,7 @@ const PurchaseManager = {
             ]);
             
             // Clear bill
+            hideUndo();
             pendingBill = null;
             billItems = [];
             emit(BILL_CLEARED, 'purchase');
@@ -900,6 +901,7 @@ const PurchaseManager = {
      * Clear the current bill
      */
     clearBill() {
+        hideUndo();
         pendingBill = null;
         billItems = [];
         emit(BILL_CLEARED, 'purchase');

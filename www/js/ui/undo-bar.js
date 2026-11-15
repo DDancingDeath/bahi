@@ -1,7 +1,8 @@
 /**
  * @fileoverview "Removed Wheat 151 kg · Undo" (U-06): a bar above the bill's action row for about
  * 6 s after a bill line, a weight, a draft or the whole bill is removed. Undo puts it back; one bar
- * at a time (a new removal replaces the old bar, whose removal then stays).
+ * at a time (a new removal replaces the old bar, whose removal then stays). Saving, clearing or
+ * switching the bill hides it; a tagged Undo does nothing once its form holds another bill.
  * @module ui/undo-bar
  */
 
@@ -49,14 +50,15 @@ export function hideUndo() {
  * Shows "message · Undo".
  * @param {string} message - what was removed
  * @param {() => void} onUndo - puts it back
- * @param {number} [ms]
+ * @param {{ms?: number, tag?: () => *}} [opts] - tag: the form's pending-bill id now; Undo only while it is unchanged
  */
-export function showUndo(message, onUndo, ms = UNDO_MS) {
+export function showUndo(message, onUndo, { ms = UNDO_MS, tag } = {}) {
     if (typeof document === 'undefined') return;
     const el = bar();
     /** @type {HTMLElement} */ (el.querySelector('.undo-bar-text')).textContent = message;
     /** @type {HTMLElement} */ (el.querySelector('.undo-bar-btn')).textContent = t('ui.common.undo');
-    pending = onUndo;
+    const was = tag ? tag() : undefined;
+    pending = tag ? () => { if (tag() === was) onUndo(); } : onUndo;
     el.classList.add('show');
     clearTimeout(timer);
     timer = setTimeout(hideUndo, ms);
