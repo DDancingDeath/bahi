@@ -24,6 +24,33 @@ function attachToBody(el) {
 let toastTimer = null;
 let loadingShown = false;
 let loadingHolds = 0;
+let loadingSpeak = null;
+
+/** The blocking spinner: the page behind is aria-busy and the spinner's live region says "Please wait…" (U-10). */
+function showLoadingOverlay() {
+    const overlay = attachToBody(document.getElementById('loadingOverlay'));
+    if (!overlay) return;
+    const wasActive = overlay.classList.contains('active');
+    overlay.classList.add('active');
+    document.getElementById('appContent')?.setAttribute('aria-busy', 'true');
+    const text = overlay.querySelector('#loadingText');
+    if (!text || wasActive) return;
+    clearTimeout(loadingSpeak);
+    // A live region that only now joined the screen is not read out: fill it a moment later
+    loadingSpeak = setTimeout(() => {
+        if (overlay.classList.contains('active')) text.textContent = t('ui.common.please_wait');
+    }, 50);
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (!overlay) return;
+    clearTimeout(loadingSpeak);
+    overlay.classList.remove('active');
+    document.getElementById('appContent')?.removeAttribute('aria-busy');
+    const text = overlay.querySelector('#loadingText');
+    if (text) text.textContent = '';
+}
 
 /** Confirm button of #modalOverlay: "OK", or a verb (and danger) for this one dialog. */
 function setConfirmButton({ confirmLabel = '', danger = false } = {}) {
@@ -216,7 +243,7 @@ export function buildSheet({ role = 'dialog', labelId, title, describedBy = '', 
     const grabber = document.createElement('div');
     grabber.className = 'grabber';
     grabber.setAttribute('aria-hidden', 'true');
-    const h = document.createElement('h3');
+    const h = document.createElement('h2');
     h.className = 'dialog-title';
     h.id = labelId;
     h.textContent = title;
@@ -280,8 +307,7 @@ const UIManager = {
      */
     showLoading() {
         loadingShown = true;
-        const overlay = attachToBody(document.getElementById('loadingOverlay'));
-        if (overlay) overlay.classList.add('active');
+        showLoadingOverlay();
     },
 
     /**
@@ -291,8 +317,7 @@ const UIManager = {
     hideLoading() {
         loadingShown = false;
         if (loadingHolds > 0) return;
-        const overlay = document.getElementById('loadingOverlay');
-        if (overlay) overlay.classList.remove('active');
+        hideLoadingOverlay();
     },
 
     /**
@@ -302,16 +327,14 @@ const UIManager = {
      */
     holdLoading() {
         loadingHolds++;
-        const overlay = attachToBody(document.getElementById('loadingOverlay'));
-        if (overlay) overlay.classList.add('active');
+        showLoadingOverlay();
         let released = false;
         return () => {
             if (released) return;
             released = true;
             loadingHolds--;
             if (loadingHolds > 0 || loadingShown) return;
-            const el = document.getElementById('loadingOverlay');
-            if (el) el.classList.remove('active');
+            hideLoadingOverlay();
         };
     },
 
@@ -368,6 +391,11 @@ const UIManager = {
         }
         
         attachToBody(toast);
+        // TalkBack (U-10): an error interrupts as an alert, anything else is a polite status
+        const urgent = type === 'error';
+        toast.setAttribute('role', urgent ? 'alert' : 'status');
+        toast.setAttribute('aria-live', urgent ? 'assertive' : 'polite');
+        toast.setAttribute('aria-atomic', 'true');
         if (type === 'error') {
             const ref = errorRef(message);
             toast.textContent = `${message} · ${t('msg.common.error_ref', { ref })}`;
@@ -503,36 +531,28 @@ const UIManager = {
     },
 
     /**
-     * Triggers haptic feedback vibration on supported devices.
+     * Triggers haptic feedback vibration on supported devices: the Capacitor Haptics plugin when the
+     * Android app has it, else navigator.vibrate (the APK declares VIBRATE so its WebView allows it).
      * @param {'light'|'medium'|'heavy'|'success'|'error'} [type='light'] - Type of haptic feedback
      * @returns {void}
      */
     hapticFeedback(type = 'light') {
+        const pattern = HAPTIC_PATTERNS[type];
+        if (!pattern) return;
         try {
-            if ('vibrate' in navigator) {
-                switch (type) {
-                    case 'light':
-                        navigator.vibrate(10);
-                        break;
-                    case 'medium':
-                        navigator.vibrate(20);
-                        break;
-                    case 'heavy':
-                        navigator.vibrate(50);
-                        break;
-                    case 'success':
-                        navigator.vibrate([10, 50, 10]);
-                        break;
-                    case 'error':
-                        navigator.vibrate([50, 100, 50]);
-                        break;
-                }
+            const haptics = window.Capacitor?.isNativePlatform?.() ? window.Capacitor?.Plugins?.Haptics : null;
+            if (typeof haptics?.vibrate === 'function') {
+                haptics.vibrate({ duration: Array.isArray(pattern) ? pattern[0] : pattern })?.catch?.(() => {});
+                return;
             }
+            if ('vibrate' in navigator) navigator.vibrate(pattern);
         } catch (e) {
             // Haptic feedback not supported on this device
         }
     }
 };
+
+const HAPTIC_PATTERNS = { light: 10, medium: 20, heavy: 50, success: [10, 50, 10], error: [50, 100, 50] };
 
 // Export UIManager
 export { UIManager };

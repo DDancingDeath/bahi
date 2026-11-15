@@ -51,7 +51,7 @@
     text-align: center;
 }
 
-.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: 44px; padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
+.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: var(--tap-min); padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
 
 .ins-more { align-self: flex-end; margin-top: var(--sp-1); }
 .ins-more[aria-expanded="true"] .ins-cmp-chev { transform: rotate(180deg); }

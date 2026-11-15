@@ -4,10 +4,12 @@
  * @module modules/billing
  */
 
+import { showAmount } from '../ui/number-input.js';
+import { showUndo } from '../ui/undo-bar.js';
 import { AppState } from '../utils/state.js';
 import { SecurityMonitor } from '../services/security-monitor.js';
 import { on, REFRESH, ITEM_FREQUENCY_CHANGED } from '../utils/events.js';
-import { UIManager } from '../ui/ui-manager.js';
+import { UIManager, buildSheet, closeSheet, openSheet } from '../ui/ui-manager.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import * as BillDrafts from '../firebase/repos/bill-drafts.js';
 import { PrinterService } from '../services/printer.js';
@@ -21,7 +23,7 @@ import { findBillIndex } from '../utils/history-window.js';
 import { TIME_MS, AUTO_SAVE_DELAY } from '../utils/constants.js';
 import { PurchaseManager } from './purchase.js';
 import { RetailSaleManager } from './retail-sale.js';
-import { t } from '../i18n/index.js';
+import { t, tn } from '../i18n/index.js';
 import { emptyState } from '../ui/components.js';
 import { refusedForClock } from '../utils/clock-skew.js';
 import { isStorageFullError, saveFailedText, STORAGE_FULL_KEY, SAVED_ON_PHONE_KEY } from '../utils/storage-full.js';
@@ -60,7 +62,7 @@ export function editRefusedMessage(bill) {
 }
 
 /** Draft fields that make the bill checks treat the form as an edit of `bill` (#37). */
-const editCheckContext = (bill) => ({
+export const editCheckContext = (bill) => ({
     isEdit: true, id: bill.id, editingBill: bill, date: bill.date, enteredAt: bill.enteredAt || bill.timestamp
 });
 
@@ -69,7 +71,7 @@ const editCheckContext = (bill) => ({
  * that is recorded: '' when nothing recorded changes, null when cancelled.
  * @returns {Promise<?string>}
  */
-async function askEditReason(bill, updated) {
+export async function askEditReason(bill, updated) {
     if (!hasEditChanges(billEditChanges(bill, updated))) return '';
     return askReason({ titleKey: 'ui.edits.reason_title', explainKey: 'ui.edits.reason_explain', labelKey: 'ui.edits.reason_label', confirmKey: 'ui.common.save' });
 }
@@ -101,8 +103,49 @@ export function syncBillNotes(inputId, open = false) {
     if (toggle) toggle.hidden = shown;
 }
 
+/**
+ * "Clear bill: 3 lines, ₹16,191?" with Keep as draft (focused) and Clear; Esc / Back keep the bill (U-06).
+ * @param {string} summary
+ * @returns {Promise<'draft'|'clear'|'cancel'>}
+ */
+function askClearBill(summary) {
+    return new Promise((resolve) => {
+        const { overlay, body, footer } = buildSheet({
+            role: 'alertdialog', labelId: 'clearBillTitle', title: t('ui.billing.clear_title'), describedBy: 'clearBillMessage', className: 'clear-bill-sheet'
+        });
+        const p = document.createElement('p');
+        p.id = 'clearBillMessage';
+        p.textContent = summary;
+        body.appendChild(p);
+        let done = false;
+        const finish = (/** @type {'draft'|'clear'|'cancel'} */ choice) => {
+            if (done) return;
+            done = true;
+            closeSheet(overlay);
+            overlay.remove();
+            resolve(choice);
+        };
+        const button = (cls, text, choice) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = cls;
+            b.dataset.choice = choice;
+            if (choice === 'cancel') b.dataset.dismiss = '';
+            b.textContent = text;
+            b.addEventListener('click', () => finish(choice));
+            footer.appendChild(b);
+            return b;
+        };
+        button('btn btn-ghost', t('ui.modals.cancel'), 'cancel');
+        button('btn btn-danger', t('ui.billing.clear'), 'clear');
+        const keep = button('btn btn-primary', t('ui.billing.keep_draft'), 'draft');
+        document.body.appendChild(overlay);
+        openSheet(overlay, { focus: keep });
+    });
+}
+
 /** Waits for a bill edit transaction; gives up waiting after EDIT_TIMEOUT_MS. */
-async function commitBillEdit(writePromise) {
+export async function commitBillEdit(writePromise) {
     let timer = null;
     try {
         return await Promise.race([
@@ -126,6 +169,8 @@ async function commitBillEdit(writePromise) {
 let autoSaveTimer = null;
 let autoSaveFullWarnedAt = 0;
 let restoring = false;
+/** Drafts on the open Drafts sheet (Undo after Delete writes one back). */
+let shownDrafts = [];
 
 const BILL_COLLECTIONS = { purchase: 'purchases', retail: 'retailSales', wholesale: 'wholesaleSales' };
 const historyOf = (billType) => (billType === 'purchase' ? AppState.purchaseHistory
@@ -793,13 +838,53 @@ const BillingManager = {
         this.deleteAutoSave().catch(e => console.warn('Auto-save cleanup failed:', e));
     },
 
-    /** Clear from the ⋯ menu: asks first when the bill has lines or weights. */
+    /**
+     * Clear from the ⋯ menu (U-06): with lines or weights it says what goes ("3 lines, ₹16,191")
+     * and offers Keep as draft; a clear can be undone for a few seconds.
+     */
     async confirmClear() {
-        if (!this.editorEmpty(this.currentMode)) {
-            const ok = await UIManager.showModal(t('msg.billing.clear_confirm'), t('ui.billing.clear'), true, { confirmLabel: t('ui.billing.clear'), danger: true });
-            if (!ok) return;
+        if (this.editorEmpty(this.currentMode)) {
+            this.clearBill();
+            return;
         }
+        const choice = await askClearBill(this.clearSummary());
+        if (choice === 'draft') {
+            await this.saveDraft();
+            return;
+        }
+        if (choice !== 'clear') return;
+        const snapshot = this.formSnapshot();
         this.clearBill();
+        showUndo(t('msg.billing.bill_cleared'), () => {
+            this.applyDraft(snapshot, { exact: true });
+            this.triggerAutoSave();
+        });
+    },
+
+    /** "3 lines, ₹16,191" for the Clear question. */
+    clearSummary() {
+        const purchase = this.currentMode === 'purchase';
+        const lines = purchase ? PurchaseManager.getBillItems() : RetailSaleManager.getSaleItems();
+        const amount = purchase ? PurchaseManager.computeTotals().grandTotal : computeRetailTotals(lines).total;
+        return lines.length
+            ? tn('msg.billing.clear_summary', lines.length, { amount: formatRupees(amount) })
+            : tn('msg.billing.clear_summary_weights', (purchase ? PurchaseManager.getWeights() : RetailSaleManager.getSaleWeights()).length);
+    },
+
+    /** The open form as a draft (not saved anywhere): what Undo after Clear puts back. */
+    formSnapshot() {
+        const mode = this.currentMode;
+        const purchase = mode === 'purchase';
+        return {
+            mode,
+            items: (purchase ? PurchaseManager.getBillItems() : RetailSaleManager.getSaleItems()).map(item => ({ ...item })),
+            weights: [...(purchase ? PurchaseManager.getWeights() : RetailSaleManager.getSaleWeights())],
+            pendingBill: purchase ? PurchaseManager.getPendingBill() : RetailSaleManager.getPendingBill(),
+            customerName: Helpers.getInputText(purchase ? 'customerName' : 'saleCustomerName'),
+            comments: Helpers.getInputText(purchase ? 'billComments' : 'saleComments'),
+            printComments: readPrintComments(purchase ? 'billPrintComments' : 'salePrintComments'),
+            ...(purchase ? { laborCharges: Helpers.getInputNumber('manualLaborCharges') } : {})
+        };
     },
 
     /**
@@ -818,30 +903,42 @@ const BillingManager = {
                 return;
             }
 
-            const drafts = (await BillDrafts.listDrafts(currentUser.uid))
-                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            const mode = this.currentMode === 'purchase' ? 'purchase' : 'sale';
+            // A draft with no lines and no weights holds nothing to continue (U-37); this mode's drafts first
+            shownDrafts = (await BillDrafts.listDrafts(currentUser.uid))
+                .filter(d => (d.items?.length || 0) + (d.weights?.length || 0) > 0)
+                .sort((a, b) => Number(b.mode === mode) - Number(a.mode === mode) || (b.timestamp || 0) - (a.timestamp || 0));
+            const drafts = shownDrafts;
 
             if (drafts.length === 0) {
                 content.innerHTML = emptyState({ icon: 'file', title: t('ui.billing.no_saved_drafts') });
             } else {
-                content.innerHTML = drafts.map((draft) => `
+                content.innerHTML = drafts.map((draft) => {
+                    const purchase = draft.mode === 'purchase';
+                    const lines = draft.items?.length || 0;
+                    const amount = Number(purchase ? draft.billTotal : draft.saleTotal) || 0;
+                    const meta = lines
+                        ? `${tn('ui.billing.draft_lines', lines)} · ${formatRupees(amount)}`
+                        : tn('ui.billing.draft_weights_only', draft.weights?.length || 0);
+                    return `
                     <div class="panel draft">
                         <div class="draft-head">
-                            <span class="draft-title"><span class="mode-dot${draft.mode === 'purchase' ? '' : ' sale'}" aria-hidden="true"></span>${Helpers.escapeHtml(t(draft.mode === 'purchase' ? 'ui.billing.purchase_draft' : 'ui.billing.sale_draft'))}</span>
-                            <span class="draft-meta">${Helpers.escapeHtml(t(draft.weights?.length > 0 ? 'ui.billing.draft_items_weights' : 'ui.billing.draft_items', { items: draft.items?.length || 0, weights: draft.weights?.length || 0 }))}</span>
+                            <span class="draft-title"><span class="mode-dot${purchase ? '' : ' sale'}" aria-hidden="true"></span>${Helpers.escapeHtml(t(purchase ? 'ui.billing.purchase_draft' : 'ui.billing.sale_draft'))}</span>
+                            <span class="draft-meta">${Helpers.escapeHtml(meta)}</span>
                         </div>
                         <div class="draft-date">${Helpers.escapeHtml(formatDate(draft.date, 'datetime') || draft.date)}</div>
-                        ${draft.customerName ? `<div class="draft-customer">${Helpers.escapeHtml(t('ui.common.customer'))} <strong>${Helpers.escapeHtml(draft.customerName)}</strong></div>` : ''}
+                        ${draft.customerName ? `<div class="draft-customer">${Helpers.escapeHtml(t(purchase ? 'ui.billing.supplier_label' : 'ui.billing.customer_label'))} <strong>${Helpers.escapeHtml(draft.customerName)}</strong></div>` : ''}
                         <div class="draft-actions">
                             <button type="button" class="btn btn-primary btn-sm" data-onclick="billing.loadDraft('${Helpers.escapeJsAttr(draft.id)}')">
                                 ${Helpers.escapeHtml(t('ui.billing.load'))}
                             </button>
-                            <button type="button" class="btn btn-danger btn-sm" data-onclick="billing.deleteDraft('${Helpers.escapeJsAttr(draft.id)}')">
+                            <button type="button" class="btn btn-ghost btn-sm draft-delete" data-onclick="billing.deleteDraft('${Helpers.escapeJsAttr(draft.id)}')">
                                 ${Helpers.escapeHtml(t('ui.modals.delete'))}
                             </button>
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             }
 
             UIManager.openSheet(overlay);
@@ -945,11 +1042,25 @@ const BillingManager = {
      * @param {string} draftId - Draft ID to delete
      */
     async deleteDraft(draftId) {
+        const draft = shownDrafts.find(d => d.id === draftId) || null;
         try {
             await BillDrafts.deleteDraft(draftId);
             await this.updateDraftCount();
             await this.showDrafts();
-            UIManager.showToast(t('msg.billing.draft_deleted'));
+            // Undo writes the same draft back (U-06)
+            if (!draft) {
+                UIManager.showToast(t('msg.billing.draft_deleted'));
+                return;
+            }
+            showUndo(t('msg.billing.draft_deleted'), () => {
+                Promise.resolve(BillDrafts.saveDraft(draft))
+                    .then(() => this.updateDraftCount())
+                    .then(() => (document.getElementById('draftsOverlay')?.classList.contains('active') ? this.showDrafts() : undefined))
+                    .catch(error => {
+                        console.error('Failed to put the draft back:', error);
+                        UIManager.showToast(saveFailedText(error, t('msg.billing.failed_save_draft')), 'error');
+                    });
+            });
         } catch (error) {
             console.error('Failed to delete draft:', error);
             UIManager.showToast(t('msg.billing.failed_delete_draft'));
@@ -1693,6 +1804,12 @@ const BillingManager = {
                 const i = findBillIndex(history, bill.id, -1);
                 if (i !== -1) resolvedIndex = i;
             }
+            if (billType === 'wholesale') {
+                // Wholesale bills are edited on the Wholesale page, with the same window and record (U-30)
+                UIManager.closeSheet(document.getElementById('billDetailsOverlay'));
+                await window.app?.wholesaleSales?.openEditor?.(bill);
+                return;
+            }
             this.openEditor(bill, billType, resolvedIndex);
         } catch (error) {
             console.error('Failed to load bill for editing:', error);
@@ -1739,15 +1856,15 @@ const BillingManager = {
             
             const paid = readPayment(bill);
             if (paid.online > 0) {
-                document.getElementById('onlinePayment').value = paid.online;
+                showAmount(document.getElementById('onlinePayment'), paid.online);
                 document.getElementById('onlineCheckbox').checked = true;
             }
             if (paid.cash > 0) {
-                document.getElementById('cashPayment').value = paid.cash;
+                showAmount(document.getElementById('cashPayment'), paid.cash);
                 document.getElementById('cashCheckbox').checked = true;
             }
             if (paid.due > 0) {
-                document.getElementById('dueAmount').value = paid.due;
+                showAmount(document.getElementById('dueAmount'), paid.due);
                 document.getElementById('dueCheckbox').checked = true;
             }
             
@@ -1770,17 +1887,17 @@ const BillingManager = {
             const cashValue = paid.cash;
             
             if (onlineValue > 0) {
-                document.getElementById('saleOnlinePayment').value = onlineValue;
+                showAmount(document.getElementById('saleOnlinePayment'), onlineValue);
                 document.getElementById('saleOnlineCheckbox').checked = true;
             }
             if (cashValue > 0) {
-                document.getElementById('saleCashPayment').value = cashValue;
+                showAmount(document.getElementById('saleCashPayment'), cashValue);
                 document.getElementById('saleCashCheckbox').checked = true;
             }
             
             const dueValue = paid.due;
             if (dueValue > 0) {
-                document.getElementById('saleDueAmount').value = dueValue;
+                showAmount(document.getElementById('saleDueAmount'), dueValue);
                 document.getElementById('saleDueCheckbox').checked = true;
             }
             
@@ -1866,7 +1983,7 @@ const BillingManager = {
                 if (!checks.ok) return undefined;
                 
                 const laborCalculationSpan = document.getElementById('laborCalculation');
-                const laborCalc = laborCalculationSpan?.textContent || null;
+                const laborCalc = laborCalculationSpan?.dataset.working || null;
 
                 const money = keepMoney ? {} : {
                     items: billItems,

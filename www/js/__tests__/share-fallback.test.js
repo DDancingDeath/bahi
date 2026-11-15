@@ -144,4 +144,25 @@ describe('bill picture: Download / share', () => {
         expect(preview).toHaveBeenCalledWith(canvas, 'purchase_bill_P20261101-001.png', expect.any(String), {});
         expect(downloadButton()).toBeTruthy();
     });
+
+    test('Android app: "Share / save" hands the PNG to the share sheet, never to a download the WebView drops', async () => {
+        const { Exporter } = await import('../services/exporter.js');
+        const saved = jest.spyOn(Exporter, 'saveBlob').mockResolvedValue(true);
+        window.Capacitor = { isNativePlatform: () => true };
+        try {
+            PrinterService.showImagePreview(previewCanvas(), 'sale_bill_S12.png', 'Bill');
+            const button = [...document.body.querySelectorAll('button')].find(b => b.textContent === 'Share / save');
+            expect(button).toBeTruthy();
+            let settle;
+            const finished = new Promise((resolve) => { settle = resolve; });
+            HTMLCanvasElement.prototype.toBlob = jest.fn(function (cb) { Promise.resolve(cb(blobResult)).then(settle); });
+            button.onclick();
+            await finished;
+            await new Promise(r => setTimeout(r, 0));
+            expect(saved).toHaveBeenCalledWith(BLOB, 'sale_bill_S12.png', { title: 'Bill' });
+            expect(clicked).toEqual([]);
+        } finally {
+            delete window.Capacitor;
+        }
+    });
 });

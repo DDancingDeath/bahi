@@ -42,12 +42,11 @@
     --negative-fill: #b3261e;
     --warning: #8f4a00;
     --warning-soft: #ffdcc0;
-    --focus: 0 0 0 3px rgba(103, 80, 164, 0.3);
     --e1: 0 1px 2px rgba(0, 0, 0, 0.12);
-    --panel-border: transparent;
     --panel-shadow: none;
     --input-bg: #fffbff;
-    --input-border: #79747e;
+    --line-control: #79747e;
+    --panel-border: #cac4d0;
     --bar-bg: #f3edf7;
     --seg-track: #ece6f0;
     --seg-on: #e8def8;
@@ -88,10 +87,10 @@
     --negative-soft: rgba(242, 184, 181, 0.14);
     --warning: #f0c36a;
     --warning-soft: rgba(240, 195, 106, 0.14);
-    --panel-border: transparent;
     --panel-shadow: none;
     --input-bg: #36343b;
-    --input-border: #938f99;
+    --line-control: #938f99;
+    --panel-border: #49454f;
     --bar-bg: #211f26;
     --seg-track: #2b2930;
     --seg-on: #4a4458;

@@ -12,7 +12,8 @@ import {
     REMINDER_MAX_BILLS, buildReminderText, buildStatement, cleanText, normalizePhone, whatsAppReminderUrl
 } from '../utils/due-reminder.js';
 import { OutstandingManager } from '../modules/outstanding.js';
-import { openExternal } from '../utils/open-external.js';
+import { openExternal, notOpenedKey } from '../utils/open-external.js';
+import { t } from '../i18n/index.js';
 import { PrinterService } from '../services/printer.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
@@ -470,5 +471,25 @@ describe('openExternal (WhatsApp / browser links)', () => {
         expect(openExternal('https://wa.me/?text=hi', w)).toBe('system');
         expect(w.open).toHaveBeenCalledWith('https://wa.me/?text=hi', '_system');
         expect(w.location.href).toBe('http://app/');
+    });
+
+    test('APK with AppShell: Android opens it, and says so when no app could', async () => {
+        const toast = jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
+        const w = fakeWin(null, true);
+        w.Capacitor.Plugins = { AppShell: { openUrl: jest.fn(async ({ url }) => ({ opened: !url.startsWith('upi:') })) } };
+        expect(openExternal('https://wa.me/?text=hi', w)).toBe('system');
+        expect(openExternal('upi://pay?pa=shop@upi', w)).toBe('system');
+        await new Promise(r => setTimeout(r, 0));
+        expect(w.open).not.toHaveBeenCalled();
+        expect(toast).toHaveBeenCalledTimes(1);
+        expect(toast).toHaveBeenCalledWith(t('msg.common.could_not_open_upi'), 'warning');
+        toast.mockRestore();
+    });
+
+    test('the "could not open" message names WhatsApp, UPI or a link', () => {
+        expect(notOpenedKey('https://wa.me/919999?text=x')).toBe('msg.common.could_not_open_whatsapp');
+        expect(notOpenedKey('whatsapp://send?text=x')).toBe('msg.common.could_not_open_whatsapp');
+        expect(notOpenedKey('upi://pay?pa=x')).toBe('msg.common.could_not_open_upi');
+        expect(notOpenedKey('https://example.com/a.apk')).toBe('msg.common.could_not_open_link');
     });
 });
