@@ -43,7 +43,7 @@ import { APP_IDENTITY } from '../config/app-identity.js';
 import { PrinterService } from '../services/printer.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
-import { linkedOutflows, linkedSource, setLinkedSource } from '../utils/linked-outflows.js';
+import { linkedOutflows, linkedSource, setLinkedSource, afterLinked } from '../utils/linked-outflows.js';
 import {
     compareBarHtml, writeBar, compareTableHtml, compareTarget, choosePreset, chooseCompare, applyDates, applySaved,
     saveCurrentRange, removeCurrentRange, periodText, presetSelectValue, summaryLines, summaryText, summaryCanvas, toggleCompareBar
@@ -481,7 +481,7 @@ export const MoneyManager = {
         if (AppState.userRole !== 'owner') { hide(); return; }
         const src = linkedSource();
         if (!src.workers || !src.billItems || Date.now() - src.at > LINKED_MAX_AGE_MS) this.loadLinked();
-        if (!src.workers && !src.billItems) { hide(); return; }
+        if (!src.workers?.length && !src.billItems?.length) { hide(); return; }
         const out = linkedOutflows(src.workers, src.billItems, r.from, r.to);
         const split = (o) => t('ui.money.cash_online', { cash: formatRupees(o.cash), online: formatRupees(o.online) });
         const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
@@ -490,10 +490,10 @@ export const MoneyManager = {
         show('moneyLinkedCash', any);
         show('moneyLinkedCard', true);
         this.html('moneyLinkedProfitTerm', moneyHtml(-out.total.total, TM));
-        if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(m.M6.total - out.total.total, TM));
+        if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(afterLinked(m.M6.total, out), TM));
         this.html('moneyLinkedCashOut', moneyHtml(out.total.total, TM));
         this.text('moneyLinkedCashSplit', split(out.total));
-        this.html('moneyNetAfterLinked', moneyHtml(m.M14 - out.total.total, TM));
+        this.html('moneyNetAfterLinked', moneyHtml(afterLinked(m.M14, out), TM));
         this.html('moneyLinkedWorkers', moneyHtml(out.workerPay.total, TM));
         this.text('moneyLinkedWorkersSplit', split(out.workerPay));
         this.html('moneyLinkedBills', moneyHtml(out.bills.total, TM));

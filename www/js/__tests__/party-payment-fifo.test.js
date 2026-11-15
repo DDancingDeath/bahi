@@ -35,6 +35,7 @@ import { billAgeOrder, dueEvents, partyDues, sumDueEvents } from '../utils/due-p
 import { allocateOldestFirst, checkAllocation } from '../utils/calc/billing.js';
 import { normalizePartyName } from '../utils/aging.js';
 import { outstandingDue } from '../utils/money.js';
+import { splitCashOldestFirst } from '../utils/due-split.js';
 import { withCanonicalDue } from '../firebase/repos/bill-due.js';
 
 const bill = (id, customerName, due, ts, extra = {}) => ({
@@ -431,6 +432,6 @@ describe('Receive payment dialog', () => {
         expect(server.r1.payments[0]).toMatchObject({ amount: 100, cash: 100, online: 0 });
         expect(server.r2.payments[0]).toMatchObject({ amount: 250, cash: 50, online: 200 });
         expect([server.r1.payment.due, server.r2.payment.due]).toEqual([0, 0]);
-        expect(OutstandingManager.splitCashOldestFirst([100, 250, 30], 120)).toEqual([100, 20, 0]);
+        expect(splitCashOldestFirst([100, 250, 30], 120)).toEqual([100, 20, 0]);
     });
 });

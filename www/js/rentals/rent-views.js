@@ -62,6 +62,12 @@ export function unitRows({ properties = [], units = [], leases = [], tenants = [
     });
 }
 
+/** This month's rent paid as a whole % (0–100) of the expected rent (U-31). */
+export function collectedPct(collected, expected) {
+    if (!(Number(expected) > 0)) return 0;
+    return Math.max(0, Math.min(100, Math.round((Number(collected) || 0) / Number(expected) * 100)));
+}
+
 /**
  * RENT-9: totals of a set of unit rows (a property, or all). Every total on the
  * Rent page is this sum, so property cards add up to the page totals.

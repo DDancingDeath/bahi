@@ -24,7 +24,7 @@ import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { isShareToken, publicLink } from './rent-public.js';
 import {
-    UNIT_TYPES, VIEW_KEY, unitRows, summarize, tenantRows, placeText, typedPlace, meterPending
+    UNIT_TYPES, VIEW_KEY, unitRows, summarize, collectedPct, tenantRows, placeText, typedPlace, meterPending
 } from './rent-views.js';
 import {
     PAYMENT_MODES, normalizeRentSettings, monthKey, monthLabel, monthsToCharge, chargeDue, leaseDues,
@@ -317,7 +317,7 @@ function renderMonth(d, ix, rows) {
 
 /** This month's rent paid as a bar with the % in words: a native <progress> looks full at 0 % in dark mode (U-31). */
 function progressBar(collected, expected) {
-    const pct = Math.max(0, Math.min(100, Math.round((Number(collected) || 0) / expected * 100)));
+    const pct = collectedPct(collected, expected);
     return `<div class="rent-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${esc(pct)}" aria-label="${et('ui.rent.collected')}"><span class="rent-bar-fill" style="--w:${esc(pct)}%"></span></div>
         <div class="row-meta rent-bar-pct">${et('ui.rent.paid_pct', { pct })}</div>`;
 }

@@ -56,6 +56,9 @@ export function linkedOutflows(workers, billItems, from, to) {
     return { workerPay, bills, total };
 }
 
+/** M25 = M6 − M24 and M26 = M14 − M24: a figure after worker pay and bills. */
+export const afterLinked = (/** @type {number} */ value, /** @type {{total: Outflow}} */ out) => (Number(value) || 0) - (out?.total?.total || 0);
+
 /**
  * The last workers / recurring-bill items loaded on this phone (the Workers and Recurring bills
  * pages set them on every load; Money loads them itself when they are missing or old).

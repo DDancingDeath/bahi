@@ -46,6 +46,7 @@ import { can } from '../utils/role-access.js';
 import {
     buildReminderText, buildStatement, normalizePhone, whatsAppReminderUrl
 } from '../utils/due-reminder.js';
+import { quickAmount, splitCash, onlineRest, splitCashOldestFirst, paymentParts } from '../utils/due-split.js';
 
 const PAYMENT_TOLERANCE = 0.01;
 /** Most bills one party payment is spread over (oldest first), as Complete all due. */
@@ -1315,43 +1316,24 @@ export class OutstandingManager {
                 UIManager.showToast(t('msg.outstanding.party_pay_cash_too_much'));
                 return;
             }
-            cashParts = OutstandingManager.splitCashOldestFirst(picked.map(x => x.amount), cash);
+            cashParts = splitCashOldestFirst(picked.map(x => x.amount), cash);
         }
         if (await this.partyLandedBeforeSend(billType, name, picked, method, cashParts)) return;
         await Helpers.runExclusive('due-payment', `${RECORD_PAYMENT_BUTTONS}, [data-complete-all], [data-party-pay]`,
             () => this._receiveFromParty(billType, name, picked, method, cashParts));
     }
 
-    /**
-     * Part cash, part online (U-68): the cash fills the bills oldest first, the rest of each part is online.
-     * @param {number[]} amounts each bill's part, oldest first
-     * @param {number} cash
-     * @returns {number[]} the cash of each part
-     */
-    static splitCashOldestFirst(amounts, cash) {
-        let rest = round2(Math.max(0, Number(cash) || 0));
-        return (amounts || []).map(a => {
-            const part = round2(Math.min(rest, Math.max(0, Number(a) || 0)));
-            rest = round2(rest - part);
-            return part;
-        });
-    }
-
-    /** The cash typed for a split, whole rupees from 0 to the total; null when more than the total. */
+    /** The cash typed for a split (U-68); null when more than the total. */
     static partyPayCash(total) {
-        const raw = String(document.getElementById('ppCash')?.value ?? '').trim();
-        const cash = raw === '' ? 0 : round2(Number(raw));
-        if (!Number.isFinite(cash) || cash < 0 || cash > round2(total) + PAYMENT_TOLERANCE) return null;
-        return Math.min(cash, round2(total));
+        return splitCash(document.getElementById('ppCash')?.value ?? '', total, PAYMENT_TOLERANCE);
     }
 
     /** Dialog: "Full ₹X" / "Oldest bill ₹Y" fill the amount. */
     static partyPayQuick(what) {
-        const dues = this.partyPay?.dues || [];
-        const amount = what === 'oldest' ? dues[0] : sumMoney(dues, d => d);
+        const amount = quickAmount(this.partyPay?.dues || [], what === 'oldest' ? 'oldest' : 'full');
         const el = document.getElementById('ppAmount');
-        if (!el || !(amount > 0)) return;
-        el.value = String(Math.ceil(round2(amount)));
+        if (!el || !amount) return;
+        el.value = String(amount);
         this.partyPayFill();
     }
 
@@ -1425,7 +1407,7 @@ export class OutstandingManager {
         const rest = document.getElementById('ppOnlineRest');
         if (rest) {
             const cash = check.ok ? this.partyPayCash(check.total) : null;
-            rest.textContent = cash === null ? '' : t('ui.outstanding.party_pay_online_rest', { amount: paiseText(round2(check.total - cash)) });
+            rest.textContent = cash === null ? '' : t('ui.outstanding.party_pay_online_rest', { amount: paiseText(onlineRest(check.total, cash)) });
         }
         el.textContent = check.ok
             ? t('ui.outstanding.party_pay_total', { total: paiseText(check.total) })
@@ -1569,9 +1551,7 @@ export class OutstandingManager {
                     return;
                 }
                 const amount = round2(amounts[i]);
-                const cashPart = method === 'split' ? round2(Math.min(amount, Number(cashParts?.[i]) || 0)) : null;
-                const parts = cashPart !== null ? { cash: cashPart, online: round2(amount - cashPart) }
-                    : method === 'online' ? { cash: 0, online: amount } : { cash: amount, online: 0 };
+                const parts = paymentParts(method, amount, cashParts?.[i]);
                 const entry = { id: ids[i], at, amount, ...parts, date: Helpers.getCurrentDateTime(), recordedBy, recordedById, bulk: true };
                 const out = duePaymentUpdate(fresh, parts, entry, PAYMENT_TOLERANCE);
                 if (!out.ok || fresh.cleared) throw Object.assign(new Error('A due changed'), { code: 'due-changed' });

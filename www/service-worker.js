@@ -155,6 +155,7 @@ const STATIC_ASSETS = [
     '/js/utils/anomalies.js',
     '/js/utils/party-due.js',
     '/js/utils/due-reminder.js',
+    '/js/utils/due-split.js',
     '/js/utils/open-external.js',
     '/js/utils/cash-session.js',
     '/js/utils/clock-skew.js',
