@@ -290,6 +290,8 @@ Dev" test APK). `bahi-happa` (prod, and the APK target) and
 `happa-bfc07` have no key yet: prod gets its own key in project "Bahi", then
 `config/targets/bahi-happa.json` gets `appCheck.siteKey` for rc15.
 
+**403 "App attestation failed" on bahi-happa-dev (16 Nov 2026).** The token exchange (`content-firebaseappcheck.googleapis.com/.../exchangeRecaptchaEnterpriseToken`) returns 403 for scripted browsers. The set-up is right (key, domains, both APIs on, the key registered for the web app); an assessment of such a token shows it valid for `bahi-happa-dev.web.app` with score 0.1, under the app's `minValidScore` 0.5. reCAPTCHA scores headless / automated browsers and data-centre IPs low, so review probes and E2E always see it. After a 403 the SDK waits a day before trying again in that browser. Check real phones in App Check › APIs and the key's score metrics before lowering the threshold.
+
 **Firestore stays NOT enforced.** Enforcing App Check on Firestore would break the
 tenant link page `/r/`: it reads Firestore over REST with no SDK (its "tiny, no SDK"
 design), so it has no App Check token. It would also refuse every old APK at once.

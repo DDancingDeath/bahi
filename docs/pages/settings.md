@@ -3,9 +3,11 @@
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settings.hi.md](settings.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
 - **Settings** is a short list: **Language** (English or Hindi; saved for the person, so it follows them to any
-  phone, with this phone's choice as the fallback), **Account** (your name with Save, email, Change password, Log out),
+  phone, with this phone's choice as the fallback), **Account** (your name with Save, email, Change password, Switch user, Log out; Switch user checks for changes
+  not sent yet like Log out, then shows an empty login card for the next person),
   for the owner and managers **Lock this phone** (off until a 4–6 digit lock number is set; after 2–30 minutes without use
-  the app asks for it; it stays on this phone as a salted hash; forgetting it means logging out), then one row per group. A row opens its group on its own page; **Back** (or the phone's
+  the app asks for it, also after the app is closed and opened again; it stays on this phone as a salted hash; forgetting
+  it means logging out; while it is on, the Android app hides its screen from recent apps and screenshots), then one row per group. A row opens its group on its own page; **Back** (or the phone's
   back gesture) returns to the list. Rows you may not open are not shown.
 - **Settings › Appearance** (everyone): Light, Dark or System (follows the device; saved on this device) and the
   **theme**: Modern Minimal (the default), Vintage, Classic, Nordic, Glass, Material, Fluent, Nature, Premium, Dark, Midnight or Cyberpunk. Vintage, Classic
@@ -22,14 +24,14 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
 - **Settings › Billing tools** (everyone): Voice billing and Beep after listening (per device), and **Photo of weights**
   (on or off for everyone; only the owner switches it).
 - **Settings › Aadhat** (owner and managers; a manager changes them only when Roles & access allows): business name
-  and details, UPI ID, labour rate and package weight, bill checks, bill numbers and this phone's code, opening stock.
+  and details, UPI ID (name@handle, checked by the app and the rules), labour rate and package weight, bill checks, bill numbers and this phone's code, opening stock.
   Each change saves for everyone when you leave the box ("Saved for everyone at …" under the title); the UPI ID in
   WhatsApp payment reminders is the shop's, the same on every phone (a UPI ID typed on one phone before is moved there
   once). Only "Enable automatic labour charges by default" stays on each phone.
 - **Settings › Rentals** (Rentals owner and managers): defaults for new leases and the tenant page header.
 - **Settings › Team** (owner only), the one place for people: **People** (Show people: Waiting to join with a role
   picker and Approve / Reject, everyone's role, Reset password, Remove from shop and Restore) and **Add a worker
-  without email** (name, username and a 6–8 digit pin as the password: the worker signs in with the username; the account's
+  without email** (name, username and an 8–12 digit pin as the password; such an account is always a Member, the rules refuse another role: the worker signs in with the username; the account's
   email is made up under a reserved domain no mail reaches, so a forgotten pin means removing the account and making a
   new one), **Roles & access** (pick Manager or Member, then one row per permission; edit window in days; Save for
   everyone; members don't see profit, stock value, purchase rates or past cash days unless the owner turns them on)
