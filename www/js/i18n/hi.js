@@ -1697,6 +1697,7 @@ export default {
     'ui.trends.need_history': "रेट का रुझान देखने के लिए एक बार सभी पुराने बिलों से इतिहास बनाना होगा।",
     'ui.trends.next_weeks': "आने वाले हफ़्ते (अनुमान)",
     'ui.trends.no_data': "डेटा नहीं",
+    'ui.trends.kg_needs_history': "महीने के हिसाब से kg, बिलों से इतिहास बनने के बाद दिखेगा। कारोबार › आइटम में अभी लोड हुए बिलों का kg है।",
     'ui.trends.no_history_item': "इस आइटम का रेट इतिहास अभी नहीं है।",
     'ui.trends.no_items': "कोई आइटम नहीं",
     'ui.trends.no_items_changes': "{date} के बाद रेट पेज पर रेट नहीं बदला।",

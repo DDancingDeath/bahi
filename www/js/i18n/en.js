@@ -1697,6 +1697,7 @@ export default {
     'ui.trends.need_history': "Rate trends need a one-time history built from all your past bills.",
     'ui.trends.next_weeks': "Next weeks (estimate)",
     'ui.trends.no_data': "No data",
+    'ui.trends.kg_needs_history': "Kg by month shows once the history from bills is built. Insights › Items has the kg of the bills loaded now.",
     'ui.trends.no_history_item': "No rate history for this item yet.",
     'ui.trends.no_items': "No items",
     'ui.trends.no_items_changes': "No Rates-page rate changes since {date}.",

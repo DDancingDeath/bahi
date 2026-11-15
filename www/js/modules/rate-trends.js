@@ -843,12 +843,12 @@ export const RateTrendsManager = {
         return { canvas, ctx };
     },
 
-    /** An empty chart is one short line, not an empty box (U-76). */
-    noData(c) {
+    /** An empty chart is one short line, not an empty box (U-76); `key` says why when it is known. */
+    noData(c, key = 'ui.trends.no_data') {
         c.canvas.hidden = true;
         const note = document.createElement('p');
         note.className = 'rt-nodata rt-muted';
-        note.textContent = t('ui.trends.no_data');
+        note.textContent = t(key);
         c.canvas.after(note);
     },
 
@@ -941,6 +941,15 @@ export const RateTrendsManager = {
                 ctx.fill();
             });
         });
+        // End labels (U-76): each line's last rate next to its last point, so lines differ by more than colour
+        series.filter(s => s.endLabel).forEach(s => {
+            const i = s.values.map(v => v !== null && v !== undefined).lastIndexOf(true);
+            if (i < 0) return;
+            ctx.fillStyle = s.color;
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = xAt(i) > canvas.width - 90 ? 'right' : 'left';
+            ctx.fillText(`${s.endLabel} ${formatRupees(s.values[i], { decimals: s.values[i] < 100 ? 1 : 0 })}`, xAt(i) + (ctx.textAlign === 'right' ? -6 : 6), yAt(s.values[i]) - 6);
+        });
         return undefined;
     },
 
@@ -956,8 +965,8 @@ export const RateTrendsManager = {
         const { periods, bills, items, cut } = this.lineData();
         const series = [];
         ITEM_RATE_KINDS.forEach(k => {
-            series.push({ values: periods.map(p => bills[k][p] ?? null), color: COLORS[k], dash: DASH, width: 2 });
-            if (cut) series.push({ values: periods.map(p => items[k][p] ?? null), color: COLORS[k] });
+            series.push({ values: periods.map(p => bills[k][p] ?? null), color: COLORS[k], dash: DASH, width: 2, endLabel: cut ? '' : t(KIND_KEYS[k]) });
+            if (cut) series.push({ values: periods.map(p => items[k][p] ?? null), color: COLORS[k], endLabel: t(KIND_KEYS[k]) });
         });
         const marker = cut ? { index: periods.indexOf(cut), label: t('ui.trends.cutoff_marker') } : null;
         this.drawLines(c, periods.map(p => this.axisLabel(p)), series, marker);
@@ -969,7 +978,8 @@ export const RateTrendsManager = {
         const { ctx, canvas } = c;
         const rows = this.visibleRows();
         const periods = this.periodAxis(rows.map(r => r.period));
-        if (!periods.length) return this.noData(c);
+        // Kg here comes from the history built from bills, not from the bills Insights › Items reads (U-76)
+        if (!periods.length) return this.noData(c, this.meta?.backfillDone ? 'ui.trends.no_data' : 'ui.trends.kg_needs_history');
         const byPeriod = new Map(rows.map(r => [r.period, r]));
         const max = chartScaleMax(rows.flatMap(r => [r.kgBought, r.kgSold]));
         const left = 46;
