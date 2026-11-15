@@ -53,6 +53,13 @@ public class AppShellPlugin extends Plugin {
         });
     }
 
+    /** The web start-up screen is drawn: the system splash may go. */
+    @PluginMethod
+    public void splashDone(PluginCall call) {
+        if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).webDrawn();
+        call.resolve();
+    }
+
     /** Phone lock on: the app's screen is hidden from the recent-apps preview (and screenshots). */
     @PluginMethod
     public void setSecure(PluginCall call) {

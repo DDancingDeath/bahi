@@ -7,12 +7,14 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.splashscreen.SplashScreen;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -25,6 +27,10 @@ import com.getcapacitor.BridgeActivity;
 // phone notifications on or taps "Send test notification" (Settings › Help & about).
 public class MainActivity extends BridgeActivity {
 
+    // The system splash stays until the web start-up screen is drawn (AppShell.splashDone), at most this long.
+    private static final long SPLASH_MAX_MS = 4000;
+    private volatile boolean webDrawn = false;
+
     private int topColor;
     private int bottomColor;
     private boolean lightTop;
@@ -33,8 +39,13 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SplashScreen splash = SplashScreen.installSplashScreen(this);
         registerPlugin(AppShellPlugin.class);
         super.onCreate(savedInstanceState);
+        long shownAt = SystemClock.uptimeMillis();
+        splash.setKeepOnScreenCondition(() -> !webDrawn && SystemClock.uptimeMillis() - shownAt < SPLASH_MAX_MS);
+        View web = bridge != null ? bridge.getWebView() : null;
+        if (web != null) web.setBackgroundColor(ContextCompat.getColor(this, R.color.splash_background));
 
         boolean night = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         topColor = bottomColor = ContextCompat.getColor(this, R.color.splash_background);
@@ -76,6 +87,10 @@ public class MainActivity extends BridgeActivity {
             return WindowInsetsCompat.CONSUMED;
         });
         paintBars();
+    }
+
+    void webDrawn() {
+        webDrawn = true;
     }
 
     void setBarColors(int top, int bottom, boolean lightTopBar, boolean lightBottomBar) {
