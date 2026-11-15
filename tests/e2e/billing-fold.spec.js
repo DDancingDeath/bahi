@@ -1,6 +1,6 @@
 /**
  * Billing fits the screen (#104): on a laptop (1366×768, 1280×720) the bill total and
- * Save / Print are on screen without scrolling the page; at 1280×800 Notes and Date are too, uncovered (3.5);
+ * Save / Print are on screen without scrolling the page; at 1280×800 the date line and Add note are too, uncovered (3.5);
  * on a small phone (360×640),
  * scrolled to the bottom, they show whole, not under the bottom bar. Both bill modes,
  * with a line on the bill so the totals column has its real height. The page scrolls
@@ -13,14 +13,14 @@ const { test, expect, login, showTab, settle } = require('./support/app');
 const SIZES = [
     { name: 'laptop 1366×768', width: 1366, height: 768, fold: true },
     { name: 'laptop 1280×720', width: 1280, height: 720, fold: true },
-    // 1280×800: Notes and Date fit between the totals and Save / Print too, none of them covered (3.5)
+    // 1280×800: the date line and Add note fit between the totals and Save / Print too, none of them covered (3.5)
     { name: 'laptop 1280×800', width: 1280, height: 800, fold: true, fields: true },
     { name: 'phone 360×640', width: 360, height: 640, fold: false }
 ];
 
 const MODES = {
-    purchase: { btn: '#purchaseModeBtn', item: '#billItem', rate: '#billRate', weight: '#newWeight', section: '#purchaseSection', totals: ['#billTotal', '#amountPayable'], actions: ['#saveBillBtn', '#printBillBtn'], fields: ['#billComments', '#billDate'], last: '#billDate', bar: ['#barPayable', '#amountPayable'] },
-    sale: { btn: '#saleModeBtn', item: '#saleItem', rate: '#saleRate', weight: '#saleWeight', section: '#saleSection', totals: ['#saleTotal'], actions: ['#saveSaleBtn', '#printSaleBtn'], fields: ['#saleComments', '#saleDate'], last: '#saleDate', bar: ['#barReceivable', '#amountReceivable'] }
+    purchase: { btn: '#purchaseModeBtn', item: '#billItem', rate: '#billRate', weight: '#newWeight', section: '#purchaseSection', totals: ['#billTotal', '#amountPayable'], actions: ['#saveBillBtn', '#printBillBtn'], fields: ['#billNoteToggle', '#billDateText'], last: '#billDateText', bar: ['#barPayable', '#amountPayable'] },
+    sale: { btn: '#saleModeBtn', item: '#saleItem', rate: '#saleRate', weight: '#saleWeight', section: '#saleSection', totals: ['#saleTotal'], actions: ['#saveSaleBtn', '#printSaleBtn'], fields: ['#saleNoteToggle', '#saleDateText'], last: '#saleDateText', bar: ['#barReceivable', '#amountReceivable'] }
 };
 
 /** Where an element is on screen, and whether it is the topmost thing at its centre. */
@@ -129,7 +129,7 @@ for (const size of SIZES) {
                 expect(p.top >= 0 && p.bottom <= p.vh && p.onTop, `${bar} on screen (${JSON.stringify(p)})`).toBe(true);
                 await expect(page.locator(bar)).toHaveText(await page.locator(card).textContent());
             }
-            // The fields between the totals and Save/Print (notes, date) can be reached by scrolling.
+            // The line between the totals and Save/Print (date, Add note) can be reached by scrolling.
             expect(await reachable(page, m.last), `${m.last} reachable by scrolling`).toBe(true);
             await scrollTab(page, 'top');
             await testInfo.attach(`billing-${mode}-${size.width}x${size.height}.png`, {
@@ -151,6 +151,9 @@ test('a long bill on a laptop: the totals and Save stay on screen all the way do
     const end = await page.evaluate(() => { const tab = document.querySelector('.tab.active'); return tab.scrollHeight - tab.clientHeight; });
     // Tabbing into the fields between the stuck totals and Save/Print shows them in the gap
     await page.evaluate((y) => document.querySelector('.tab.active').scrollTo({ top: y, behavior: 'instant' }), Math.round(end / 2));
+    // Unfolded (Add note; Change date, the owner's), the fields stay visible when focused
+    await page.click('#billNoteToggle');
+    await page.click('#billDateChange');
     for (const sel of ['#billComments', '#billDate']) {
         await page.focus(sel);
         await page.waitForTimeout(100);

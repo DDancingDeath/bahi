@@ -3866,6 +3866,13 @@ input[type="number"] {
   font-size: var(--fs-sm);
   color: var(--ink-2);
 }
+
+/* Phone and tablet: the likely next number is left out (a saved or retried bill's number stays) */
+@media (max-width: 1023.98px) {
+  .bill-no-hint[data-kind="next"] {
+    display: none;
+  }
+}
 /* Voice billing (#81): shown only when switched on in Settings */
 .btn[data-voice-mic] {
   margin-bottom: var(--sp-3);
@@ -3911,8 +3918,38 @@ input[type="number"] {
   font-weight: var(--w-label);
 }
 
-.bill-toolbar > .bill-clear {
+/* Save draft and Clear sit in the ⋯ menu at the end of the row (Drafts shows only when there are some) */
+.bill-menu {
+  position: relative;
   margin-left: auto;
+}
+
+.bill-menu > summary {
+  list-style: none;
+  color: var(--ink-2);
+}
+
+.bill-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bill-menu-list {
+  position: absolute;
+  right: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+}
+
+.bill-menu-list > .btn {
+  justify-content: flex-start;
+  font-weight: var(--w-label);
+}
+
+.bill-menu-list > .bill-clear {
   color: var(--negative);
 }
 
@@ -4864,10 +4901,14 @@ input[type="number"] {
   color: var(--info);
 }
 
-/* Cash + Online + Due must add up to the bill total (#23) */
+/* Cash + Online + Due must add up to the bill total (#23); the row shows only while some is not split */
 .pay-line.pay-rest {
   flex-wrap: wrap;
   gap: var(--sp-2);
+}
+
+.pay-line.pay-rest[hidden] {
+  display: none;
 }
 
 .pay-line.pay-rest strong {
@@ -4966,6 +5007,11 @@ input[type="number"] {
   color: var(--ink-3);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
+}
+
+/* Labour off: only its switch */
+.bill-labour > [hidden] {
+  display: none;
 }
 
 :is(#billing, .bill-page) .bill-money {
@@ -5095,20 +5141,66 @@ input[type="number"] {
   font-weight: var(--w-regular);
 }
 
-/* Notes | Date side by side (3.5); "Print in bill" on the Notes label's line */
+/* Under the totals: "Today · Change date" and "Add note" on one line; Notes and the Date box unfold below it
+   (Notes | Date side by side when both are open) */
 .bill-notes-date {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   column-gap: var(--sp-3);
-  align-items: end;
+  align-items: flex-end;
   margin-bottom: var(--sp-3);
+}
+
+.bill-notes-date > [hidden] {
+  display: none;
+}
+
+.bill-extras {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1) var(--sp-3);
+  min-height: var(--control-h);
+}
+
+.bill-date-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.bill-date-text:has(+ .bill-date-change:not([hidden]))::after {
+  content: " ·";
+}
+
+.bill-extras .btn-sm {
+  color: var(--bill-tone-text, var(--accent-text));
+}
+
+.bill-sale .bill-extras .btn-sm {
+  color: var(--positive);
+}
+
+.bill-notes-date > .bill-notes {
+  flex: 1.4 1 14em;
+  min-width: 0;
+}
+
+.bill-notes-date > .bill-date {
+  flex: 1 1 10em;
+  min-width: 0;
 }
 
 :is(#billing, .bill-page) .bill-notes-date > .bill-form-field.field {
   margin-bottom: 0;
 }
 
-:is(#billing, .bill-page) .bill-form-field.field.bill-notes {
+:is(#billing, .bill-page) .bill-form-field.field.bill-notes:not([hidden]) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -5165,6 +5257,12 @@ input[type="number"] {
   min-height: 48px;
 }
 
+/* Save and Print share the rest of the row equally */
+.bill-actions > :is(.btn-primary, .bill-print) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 /* Share is an icon (its words stay for screen readers and the tooltip) */
 .bill-actions > .bill-share {
   flex: none;
@@ -5189,11 +5287,11 @@ input[type="number"] {
   line-height: 1.4;
 }
 
-/* Phone and tablet: the row is compact (payable, Share icon, Save, Print icon) */
+/* Phone and tablet: the row is compact (payable, Share icon, Save and Print of equal width) */
 @media (max-width: 1023.98px) {
   :is(#billing, .bill-page) .bill-bar-total {
     display: block;
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
   }
 
@@ -5219,29 +5317,20 @@ input[type="number"] {
     text-overflow: ellipsis;
   }
 
-  :is(#billing, .bill-page) .bill-actions > .bill-print {
-    flex: none;
-    width: 48px;
-    padding: 0;
+  :is(#billing, .bill-page) .bill-actions > :is(.btn-primary, .bill-print) {
+    padding: 0 var(--sp-2);
   }
 
-  :is(#billing, .bill-page) .bill-actions > .bill-print .bill-print-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  :is(#billing, .bill-page) .bill-actions > .btn-primary {
-    flex: none;
-    min-width: 96px;
-    padding: 0 var(--sp-5);
-  }
-
+  /* Hints are for a keyboard; at 1023 px and below there is room for the words only */
   :is(#billing, .bill-page) .bill-actions > button[data-kbd]::before {
     content: none;
+  }
+}
+
+/* Below 360 px Print keeps its word, without the icon */
+@media (max-width: 359.98px) {
+  .bill-actions > .bill-print > .i {
+    display: none;
   }
 }
 
@@ -9538,7 +9627,6 @@ div.ins-wide,
   }
 
   .tab > .bill-toolbar {
-    overflow: hidden;
     min-height: var(--control-h);
     margin-bottom: var(--sp-4);
     padding-top: var(--sp-1);

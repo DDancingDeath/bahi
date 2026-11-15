@@ -44,6 +44,12 @@ While a bill is being typed:
   offers to open the saved bill instead of saving it again; an unsaved edit goes
   back on its bill, and if the bill changed since (a payment or an edit) the app
   first asks, showing both totals (BF-RESTORE).
+- **A short form**: the bill's lines and "Total packets" show once a line is added; "Not split yet"
+  shows only while Cash + Online + Due do not add up to the bill; Labour shows its working and amount only when
+  switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
+  The bill is for today ("Today"); the owner can tap **Change date** to pick another day. Save draft and Clear
+  (which asks first when the bill has lines) are in the ⋯ menu at the top; **Drafts** shows only when there are
+  drafts. On a phone the "Next bill no." hint is left out, and Save and Print are the same width.
 - **Voice** (VB-1; off until switched on in Settings › Voice billing): tap 🎤 and
   say the item, weight and rate. Several lines can be said in one go ("… and …"),
   and "customer" before a name fills the customer. The app shows what it understood

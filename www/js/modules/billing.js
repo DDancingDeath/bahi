@@ -28,7 +28,7 @@ import { isStorageFullError, saveFailedText, STORAGE_FULL_KEY, SAVED_ON_PHONE_KE
 import { accessFor, canEditBillWith } from '../utils/role-access.js';
 import { billEditChanges, hasEditChanges } from '../utils/bill-edits.js';
 import { askReason } from '../ui/bill-status.js';
-import { prepareBillDate } from '../ui/bill-date-input.js';
+import { prepareBillDate, renderBillDateLine, revealBillDate } from '../ui/bill-date-input.js';
 import { autoSaveSummary, nextBillNumberHint, restoreFigures } from '../utils/calc/billing.js';
 import { formatDateTimeIN, formatDate } from '../utils/dates.js';
 import { isArchivedItem } from '../utils/item-catalog.js';
@@ -79,6 +79,26 @@ const readPrintComments = (id) => !!document.getElementById(id)?.checked;
 function setPrintComments(id, value) {
     const el = document.getElementById(id);
     if (el) el.checked = !!value;
+    syncBillNotes(id === 'salePrintComments' ? 'saleComments' : 'billComments');
+}
+
+const NOTE_INPUTS = ['billComments', 'saleComments'];
+
+/**
+ * Notes and "Print in bill" fold behind "Add note"; a bill that has a note (a draft, a restored
+ * or edited bill) shows them open.
+ * @param {string} inputId
+ * @param {boolean} [open] force open; otherwise open only when there is a note
+ */
+export function syncBillNotes(inputId, open = false) {
+    const input = document.getElementById(inputId);
+    const field = input?.closest('.bill-notes');
+    if (!field) return;
+    const hasNote = !!input.value.trim() || !!field.querySelector('input[type="checkbox"]')?.checked;
+    const shown = open || hasNote;
+    field.hidden = !shown;
+    const toggle = field.parentElement?.querySelector('.bill-note-toggle');
+    if (toggle) toggle.hidden = shown;
 }
 
 /** Waits for a bill edit transaction; gives up waiting after EDIT_TIMEOUT_MS. */
@@ -277,6 +297,22 @@ const BillingManager = {
         prepareBillDate('saleDate', editing && this.editingBillType === 'retail' ? editing : null);
     },
 
+    /** "Change date" (owner): unfolds the Date box. */
+    showDate(id) {
+        revealBillDate(id);
+    },
+
+    /** "Add note": unfolds Notes and "Print in bill". */
+    showNotes(inputId) {
+        syncBillNotes(inputId, true);
+        document.getElementById(inputId)?.focus();
+    },
+
+    /** Notes open when the bill has one, folded otherwise (after a draft, restore, edit or clear). */
+    syncNotes() {
+        NOTE_INPUTS.forEach(id => syncBillNotes(id));
+    },
+
     /**
      * The bill number line above Save (#117, BF-NO): the edited bill's number, the
      * number this bill already got on a failed save, or the likely next one.
@@ -293,12 +329,14 @@ const BillingManager = {
             const known = editingMode === mode ? this.getEditingBill()?.billNumber : pending?.billNumber;
             if (editingMode === mode && !known) {
                 el.replaceChildren();
+                delete el.dataset.kind;
                 return;
             }
             const number = document.createElement('strong');
             number.lang = 'zxx';
             number.translate = false;
             number.textContent = known || nextBillNumberHint(prefix, bills);
+            el.dataset.kind = known ? 'known' : 'next';
             el.replaceChildren(document.createTextNode(`${t(known ? 'ui.billing.bill_no' : 'ui.billing.next_bill_no')} `), number);
         });
     },
@@ -755,6 +793,15 @@ const BillingManager = {
         this.deleteAutoSave().catch(e => console.warn('Auto-save cleanup failed:', e));
     },
 
+    /** Clear from the ⋯ menu: asks first when the bill has lines or weights. */
+    async confirmClear() {
+        if (!this.editorEmpty(this.currentMode)) {
+            const ok = await UIManager.showModal(t('msg.billing.clear_confirm'), t('ui.billing.clear'), true, { confirmLabel: t('ui.billing.clear'), danger: true });
+            if (!ok) return;
+        }
+        this.clearBill();
+    },
+
     /**
      * Show drafts overlay
      * @async
@@ -924,6 +971,8 @@ const BillingManager = {
             if (countElement) {
                 countElement.textContent = count;
             }
+            const draftsBtn = document.getElementById('draftsBtn');
+            if (draftsBtn) draftsBtn.hidden = !(count > 0);
         } catch (error) {
             console.error('Failed to update draft count:', error);
         }
@@ -2036,6 +2085,23 @@ if (typeof window !== 'undefined') {
     });
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') BillingManager.prepareBillDates();
+    });
+    window.addEventListener('aadhat:langchange', () => {
+        renderBillDateLine('billDate');
+        renderBillDateLine('saleDate');
+    });
+    // The ⋯ menu closes on a pick, a tap elsewhere or Esc
+    document.addEventListener('click', (event) => {
+        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
+            if (!menu.contains(event.target) || event.target.closest?.('.bill-menu-list .btn')) menu.open = false;
+        });
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
+            menu.open = false;
+            menu.querySelector('summary')?.focus();
+        });
     });
     // Name suggestions on the customer / supplier fields (#139 phase 1)
     bindPartySuggest();

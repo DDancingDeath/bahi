@@ -296,6 +296,8 @@ const PurchaseManager = {
         
         const totalPacketsInBillSpan = document.getElementById('totalPacketsInBill');
         const billTotalSpan = document.getElementById('billTotal');
+        const lines = document.getElementById('purchaseLines');
+        if (lines) lines.hidden = billItems.length === 0;
         
         if (billItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
@@ -440,7 +442,11 @@ const PurchaseManager = {
         const laborChargesInput = document.getElementById('manualLaborCharges');
         
         let laborCharges = 0;
-        if (autoLaborCheckbox?.checked) {
+        const labourOn = !!autoLaborCheckbox?.checked;
+        if (laborCalculationSpan) laborCalculationSpan.hidden = !labourOn;
+        const labourBox = laborChargesInput?.closest('.bill-money');
+        if (labourBox) labourBox.hidden = !labourOn;
+        if (labourOn) {
             // Shared rate for every device (#20); blank/invalid falls back to ₹6
             const suggested = autoLabour(AppState.settings, heavyPacketsCount);
             
@@ -859,6 +865,7 @@ const PurchaseManager = {
         
         resetBillDate('billDate');
         clearFieldError('billRate');
+        this.billingManager?.syncNotes?.();
         this.updateTotals();
         this.billingManager?.focusFirstItem?.();
     },

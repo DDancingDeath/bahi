@@ -354,7 +354,6 @@
   }
 
   .tab > .bill-toolbar {
-    overflow: hidden;
     min-height: var(--control-h);
     margin-bottom: var(--sp-4);
     padding-top: var(--sp-1);
