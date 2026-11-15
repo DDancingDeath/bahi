@@ -1,7 +1,8 @@
 /* ==================== DAY PAGE STYLES ==================== */
 
+/* The page's own gutter comes from .tab (--gutter); no second side padding here (U-64) */
 .day-container {
-  padding: var(--sp-5);
+  padding: 0;
 }
 
 .day-tabs {

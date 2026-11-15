@@ -64,6 +64,20 @@
   color: var(--ink);
 }
 
+/* Print preview (U-66): the receipt picture keeps its own black on white; the frame is an app dialog */
+.print-preview-img {
+  display: block;
+  max-width: 100%;
+  max-height: 62vh;
+  margin: 0 auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+.print-preview-hint {
+  margin: var(--sp-3) 0 0;
+}
+
 .dialog-body {
   flex: 1;
   min-height: 0;

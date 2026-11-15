@@ -94,7 +94,7 @@ fills (a pale accent, a light green sale fill), so white text there is unreadabl
 | `--btn-sale-bg` / `--mode-sale` | `--btn-sale-ink` (`--on-mode-sale`) |
 | `--mode-wholesale` | `--on-mode-wholesale` |
 | `--btn-danger-bg` / `--negative-fill` | `--btn-danger-ink` |
-| `--accent-strong` (hero cards, menu header, sign-in header) | `--on-accent-strong` |
+| `--accent-strong` (hero cards, menu header) | `--on-accent-strong` |
 | `--caution-soft` | `--on-caution-soft` |
 | `--toast-bg` | `--toast-ink` |
 
@@ -171,7 +171,10 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   (`role="group"`, each button `aria-pressed`; a `.mode-dot` span for purchase / sale); on / off is a **chip**
   `.chip` (`aria-pressed`) or a `.switch`. **Tags** `.tag` (`.pos/.neg/.warn/.info`). The old `.filter-buttons`,
   `.filter-btn`, `.sub-tabs`, `.sub-tab` and the bespoke `*-toggle-chip`s are gone (action buttons that used
-  `.filter-btn` are `.btn .btn-sm`).
+  `.filter-btn` are `.btn .btn-sm`). **One chosen look (U-61)**: the chosen segment, chip and tab all show `--seg-on-ink` with a
+  `--seg-on-line` edge (2 px on a segment, 1 px ring + soft accent fill on a chip, the underline on a tab), never a black fill.
+  **Period control** `.period` (old hooks `.ins-period`, `.wp-month`): ‹ `-icon` stepper, the period label (`.period-label`),
+  › stepper and a preset `<select>` drawn as a chip (`.period-preset` / `.ins-preset`); Money, Insights and Workers use it.
 - **Tab keyboard** (`www/js/ui/seg.js`, installed once on the document): every `role="tablist"` has a roving
   tabindex (only the selected tab is a Tab stop) and Left / Right / Home / End select a tab through its own
   click handler, also for tablists drawn later.
@@ -190,7 +193,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   the true minus outside `.cur` (−₹500), `—` when missing; its text is exactly `moneyText(amount, opts)`. `opts` is a
   named preset (`MONEY_PRESETS` in `utils/money.js`: `exact`, `rate`, `signed`, …), and plain screen text uses
   `moneyText(amount, preset)`; no page defines its own money formatter (F0). Billing's totals are grouped (₹6,28,782).
-- **Page head** `<header class="page-head"><h2>…</h2></header>` (optionally with `<div class="page-head-actions">` for the page's mode and actions): the page's title, in every page template, with the app bar's key (`pageTitleKey()` in `ui/bottom-nav.js`, or the page's own `title` key) and no emoji. It is the only page-title pattern. Below 1024 px it is not drawn (the app bar is the title); on desktop (4.2) the h2 is for screen readers, since the header bar shows the same title, and the row shows only when it has actions (an h2-only head takes no space). It is not a second banner landmark. `.sr-only` hides any other text that only screen readers need (Money keeps
+- **Page head** `<header class="page-head"><h2>…</h2></header>` (optionally with `<div class="page-head-actions">` for the page's mode and actions): the page's title, in every page template, with the app bar's key (`pageTitleKey()` in `ui/bottom-nav.js`, or the page's own `title` key) and no emoji. It is the only page-title pattern. Below 1024 px it is not drawn (the app bar `h1` is the title) but its `h2` stays for screen readers, so headings run `h1` (app bar) > `h2` (page) > `h3` (sections); dialog titles are `h2` (U-47); on desktop (4.2) the h2 is for screen readers, since the header bar shows the same title, and the row shows only when it has actions (an h2-only head takes no space). It is not a second banner landmark. `.sr-only` hides any other text that only screen readers need (Money keeps
   its ⚠ / ✓ status words that way beside the sprite icon).
 - **Money, Insights, Statements (5.7)**: plain hero figures (`.hero-num`), section titles above panels of `.row`s,
   Cash in / out as `.metrics`, `.tabs` for the sections and `.seg` for sub-views, `.notice` caveats and checks,
@@ -295,7 +298,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   (`#financeBreakdownSheet`, a wide dialog on desktop, no longer a side panel) and What's new (`#whatsNewSheet`); the
   desktop keyboard help (`#kbdHelpOverlay`) is a dialog. `.dialog-head` is a title row with its own Back / Close
   buttons, `.dialog-wide` a 560 px (desktop 680 px) dialog.
-- **App shell (phone and tablet, <1024 px)**: `header.app-bar` (`hamburger.css`) holds the open page's title (`#appBarTitle`, the menu name `t('ui.nav.*')` set by `ui/bottom-nav.js` on `aadhat:tabshown`), the sync pill (`#syncStatus`) and the bell; pages scroll under it (`--appbar-h`, `--tab-top`). The menu button shows only in Rentals (no tab bar). **More** opens `#sideNav` as a modal bottom sheet (`navigation.css`): the business switch and the pages not on the tab bar (`data-bar` links are hidden there) in groups (`.nav-group`); it takes focus, keeps Tab inside, closes on Esc, Back or a swipe down and gives focus back. The open page is the `main` landmark (`role="main"`, set by `showTab`).
+- **App shell (phone and tablet, <1024 px)**: `header.app-bar` (`hamburger.css`) holds the open page's title (`#appBarTitle`, the menu name `t('ui.nav.*')` set by `ui/bottom-nav.js` on `aadhat:tabshown`), the sync pill (`#syncStatus`) and the bell; pages scroll under it (`--appbar-h`, `--tab-top`). The menu button shows only in Rentals (no tab bar). **More** opens `#sideNav` as a modal bottom sheet (`navigation.css`), one scroll for the whole sheet with Settings as the last tile, headed by the Bahi mark (`.nav-mark`) and the shop name (`#navShopName`, U-63, U-90): the business switch and the pages not on the tab bar (`data-bar` links are hidden there) in groups (`.nav-group`); it takes focus, keeps Tab inside, closes on Esc, Back or a swipe down and gives focus back. The open page is the `main` landmark (`role="main"`, set by `showTab`).
 - **Desktop shell (≥1024 px, 4.2, `desktop.css`)**: the same `header.app-bar` becomes the 60 px page header beside the sidebar (`--desktop-header-h`): the page title (the same `#appBarTitle`), the sync pill and the bell; pages scroll under it. The sidebar is the same `#sideNav` on `--surface-2`: the Bahi mark (`.nav-mark`: the `i-bahi` symbol, white B with the sage corner on the charcoal `--brand-tile`, fixed in every theme; docs/brand), the name and role, the business switch, the same `.nav-group`s as the More sheet (a group shows only when the role may open one of its pages; links a role may not open carry `hidden`), Alt+1…9 hints (`.nav-kbd`, from `TAB_SHORTCUTS` in `keyboard-shortcuts.js`, which also sets `aria-keyshortcuts`), Settings and Shortcuts. At 1024–1279 px it is a 64 px icon rail (names stay for screen readers and show as tooltips). Density: `--control-h` 36, `--row-h` 44. Tab order: header, sidebar, page.
 - **Tones** for text written by scripts: `.tone-pos`, `.tone-neg`, `.tone-warn`, `.tone-info`,
   `.tone-muted`, instead of inline colours.

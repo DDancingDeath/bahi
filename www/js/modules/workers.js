@@ -11,6 +11,7 @@ import { Helpers } from '../utils/helpers.js';
 import { AppState } from '../utils/state.js';
 import { t, getLang } from '../i18n/index.js';
 import { emptyState } from '../ui/components.js';
+import { icon } from '../ui/icons.js';
 import { formatRupees, moneyText } from '../utils/money.js';
 import { formatMonth, formatDay, todayLocalISO } from '../utils/dates.js';
 import * as repo from '../firebase/repos/workers.js';
@@ -75,9 +76,9 @@ function metric(id, key, amount) {
 function renderSummary(sum) {
     const latest = state.month >= thisMonth();
     return `<div class="wp-month">
-            <button type="button" class="btn btn-ghost btn-sm" data-onclick="workers.step(-1)" aria-label="${et('ui.workers.prev_month')}">‹</button>
+            <button type="button" class="btn btn-icon" data-onclick="workers.step(-1)" aria-label="${et('ui.workers.prev_month')}">${icon('chevL')}</button>
             <b id="workersMonth">${monthText(state.month)}</b>
-            <button type="button" class="btn btn-ghost btn-sm" data-onclick="workers.step(1)" aria-label="${et('ui.workers.next_month')}"${latest ? ' disabled' : ''}>›</button>
+            <button type="button" class="btn btn-icon" data-onclick="workers.step(1)" aria-label="${et('ui.workers.next_month')}"${latest ? ' disabled' : ''}>${icon('chevR')}</button>
         </div>
         <div class="panel metrics wp-metrics">
             ${metric('WP-7', 'ui.workers.pay_month', sum.pay)}

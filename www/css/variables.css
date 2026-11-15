@@ -107,6 +107,7 @@
   --seg-on-line: var(--accent-text);
   --seg-on-ink: var(--accent-text);
   --seg-on-ring: inset 0 0 0 2px var(--seg-on-line);
+  --chip-on-ring: inset 0 0 0 1px var(--seg-on-line);
   /* A solid focus ring at 3:1 or more on every surface */
   --focus-ring: var(--accent-text);
   --focus: 0 0 0 3px var(--focus-ring);
@@ -125,6 +126,9 @@
   --btn-danger-bg: var(--negative-fill);
   --btn-danger-ink: #ffffff;
   --preview-apply-line: transparent;
+  /* Sign-in header: the deep accent in light; a dark surface with an accent stripe in dark (no bright block, U-48) */
+  --auth-head-bg: var(--accent-strong);
+  --auth-head-ink: var(--on-accent-strong);
   --r-md: calc(var(--r-control) + 2px);
   --r-lg: calc(var(--r-panel) + 2px);
 }
@@ -134,16 +138,17 @@
   [data-mode="dark"] {
     color-scheme: dark;
     --bg: #0d0d10;
-    --surface: #15151a;
-    --surface-2: #1c1c22;
-    --surface-3: #24242b;
+    /* Cards lifted off the page (U-48) */
+    --surface: #1e1e24;
+    --surface-2: #26262d;
+    --surface-3: #2f2f37;
     --line: rgba(255, 255, 255, 0.07);
     --line-strong: rgba(255, 255, 255, 0.14);
     --line-control: rgba(255, 255, 255, 0.38);
     --ink: #ececf1;
     --ink-2: #a8a8b5;
     --ink-3: #9a9aa7;
-    --ink-placeholder: #80808d;
+    --ink-placeholder: #8c8c99;
     --scrim: rgba(0, 0, 0, 0.56);
 
     --accent: #5b54e8;
@@ -180,6 +185,8 @@
     --state-hover: rgba(255, 255, 255, 0.06);
     --seg-on: var(--surface-3);
     --toast-bg: #2a2a32;
+    --auth-head-bg: var(--surface-2);
+    --auth-head-ink: var(--ink);
   }
 }
 
