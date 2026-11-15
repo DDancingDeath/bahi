@@ -9556,6 +9556,22 @@ div.ins-wide,
 .ins-cmp-table .ins-cmp-up { color: var(--positive); }
 .ins-cmp-table .ins-cmp-down { color: var(--negative); }
 
+/* Party ledger on phones (U-21): one stacked row per entry, the balance always in view on the right */
+@media screen and (max-width: 599.98px) {
+  .st-ledger-wrap { overflow-x: visible; }
+  .st-ledger { width: 100%; }
+  .st-ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .st-ledger tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "when what bal" "sold paid bal"; column-gap: var(--sp-2); align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px var(--rule-style) var(--line); }
+  .st-ledger td { display: block; height: auto; padding: 0; border: none; }
+  .st-ledger .st-when { grid-area: when; color: var(--ink-3); white-space: nowrap; }
+  .st-ledger .st-what { grid-area: what; overflow-wrap: anywhere; }
+  .st-ledger .st-sold { grid-area: sold; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-paid { grid-area: paid; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-sold:not(:empty)::before,
+  .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
+  .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
+}
+
 /* ---- css/desktop.css ---- */
 /* ==================== DESKTOP LAYOUT (wide screens only) ====================
    Everything here is inside min-width media queries so phones (<1024px) are

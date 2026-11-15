@@ -309,13 +309,16 @@ export const StatementsManager = {
         const title = `${t('ui.statements.party')} · ${l.name}`;
         const matches = Math.abs(l.closing - l.due) <= 1;
         const word = (v) => t(this.partyKind === 'supplier' ? 'ui.statements.to_pay' : 'ui.statements.to_receive', { amount: formatRupees(Math.abs(v)) });
-        const body = l.rows.map(r => `<tr><td>${esc(formatDay(r.t, { lang }))}</td><td>${esc([this.kindLabel(r.kind), r.billNo].filter(Boolean).join(' · '))}</td><td class="num">${r.debit ? moneyHtml(r.debit) : ''}</td><td class="num">${r.credit ? moneyHtml(r.credit) : ''}</td><td class="num">${moneyHtml(r.balance)}</td></tr>`).join('');
+        const soldLabel = esc(t(this.partyKind === 'supplier' ? 'ui.statements.bought_col' : 'ui.statements.sold_col'));
+        const paidLabel = esc(t('ui.statements.paid_col'));
+        // Phones stack each row (U-21): date and bill, then sold / paid, with the balance always on the right
+        const body = l.rows.map(r => `<tr><td class="st-when">${esc(formatDay(r.t, { lang, year: false }))}</td><td class="st-what">${esc([this.kindLabel(r.kind), r.billNo].filter(Boolean).join(' · '))}</td><td class="num st-sold" data-label="${soldLabel}">${r.debit ? moneyHtml(r.debit) : ''}</td><td class="num st-paid" data-label="${paidLabel}">${r.credit ? moneyHtml(r.credit) : ''}</td><td class="num st-bal">${moneyHtml(r.balance)}</td></tr>`).join('');
         const loadedNote = isFullHistoryLoaded() ? '' : `<p class="ins-hint">${esc(t('ui.statements.loaded_only'))} <button type="button" class="btn btn-ghost btn-sm" data-onclick="statements.loadOlder(null)">${esc(t('ui.money.load_older'))}</button></p>`;
         const html = `<h3 class="st-title">${esc(title)}</h3>`
             + `<div class="hero st-balance"><div class="hero-cap">${esc(t('ui.statements.balance'))}</div><div class="hero-fig display-num" data-metric-export="O4">${esc(word(l.closing))}</div>`
             + `<div class="notice ${matches ? 'pos' : 'warn'} st-match">${matches ? `${icon('check', 'i-sm')}<span class="grow"><span class="sr-only">✓ </span>${esc(t('ui.statements.matches_outstanding'))}</span>` : `${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(t('ui.statements.differs_outstanding', { amount: formatRupees(l.due) }))}</span>`}</div></div>`
             + loadedNote
-            + `<div class="ins-scroll"><table class="table"><thead><tr><th>${esc(t('ui.statements.date'))}</th><th>${esc(t('ui.statements.what'))}</th><th class="num">${esc(t(this.partyKind === 'supplier' ? 'ui.statements.bought_col' : 'ui.statements.sold_col'))}</th><th class="num">${esc(t('ui.statements.paid_col'))}</th><th class="num">${esc(t('ui.statements.balance'))}</th></tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`;
+            + `<div class="ins-scroll st-ledger-wrap"><table class="table st-ledger"><thead><tr><th>${esc(t('ui.statements.date'))}</th><th>${esc(t('ui.statements.what'))}</th><th class="num">${soldLabel}</th><th class="num">${paidLabel}</th><th class="num">${esc(t('ui.statements.balance'))}</th></tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`;
         const share = [title, word(l.closing), ...l.rows.slice(-10).map(r => `${formatDay(r.t, { lang })} ${this.kindLabel(r.kind)} ${r.billNo} ${r.debit ? `+${formatRupees(r.debit)}` : `−${formatRupees(r.credit)}`} = ${formatRupees(r.balance)}`)].join('\n');
         const cl = this.csvLang();
         const tc = (k) => t(k, null, cl);
