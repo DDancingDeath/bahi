@@ -3851,6 +3851,62 @@ body.typing .bottom-nav {
   font-style: italic;
 }
 
+.rates-tools .search-field {
+  position: relative;
+}
+
+.rates-tools .search-field > .search-clear {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-1);
+  transform: translateY(-50%);
+}
+
+.rates-tools .search-field > .search-clear[hidden] {
+  display: none;
+}
+
+/* Phones (U-70): one block per item, its rates labelled underneath (Buy · Retail · Wholesale), no hidden column */
+@media (max-width: 599.98px) {
+  .rates-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .rates-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px var(--rule-style) var(--line);
+  }
+
+  .rates-table tbody td {
+    display: block;
+    height: auto;
+    padding: 0;
+    border: none;
+  }
+
+  .rates-table tbody .rates-name {
+    flex: 1 1 100%;
+  }
+
+  .rates-table tbody .rates-figs[data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--ink-3);
+    font-size: var(--fs-sm);
+  }
+
+  .rates-table tbody td[colspan] {
+    flex: 1 1 100%;
+  }
+}
+
 /* ---- css/billing.css ---- */
 /* ---------- Bill lines (#billTable, #saleTable, .bill-lines) ---------- */
 /* A line's bag / packet weights: one small line under the item (U-18) */
@@ -6921,6 +6977,75 @@ tr.bill-check-line .bill-check-msg {
   color: var(--negative);
 }
 
+/* History top on one row (U-73): date choice and search side by side, the "Date" label for screen readers only */
+.history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.history-controls > .history-date-filter {
+  flex: 1 1 calc(3 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls > .history-search {
+  flex: 2 1 calc(5 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls .history-date-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.history-search > .search-clear[hidden] {
+  display: none;
+}
+
+/* Table view needs a wide screen (U-70): phones keep the cards */
+@media (max-width: 599.98px) {
+  .history-table-toggle {
+    display: none;
+  }
+}
+
+/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end */
+.bill-view-head {
+  display: grid;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.bill-view-party {
+  overflow-wrap: anywhere;
+}
+
+.bill-view-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.bill-view-chips:empty {
+  display: none;
+}
+
+.bill-view-more {
+  margin-top: var(--sp-3);
+}
+
+.bill-view-more > summary {
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
 /* ---- css/outstanding.css ---- */
 /* Outstanding (redesign 5.3, DIRECTION 3.6): Purchases | Sales, search, kind chips, the owed hero with its
    aging meter and legend, who to chase, party rows and the bill list (#46, #77, #125, #166). Tokens only. */
@@ -7606,6 +7731,11 @@ tr.bill-check-line .bill-check-msg {
 .stock-now {
   border-radius: var(--r-control);
   background: var(--surface-2);
+}
+
+/* Shown once an item is chosen (U-77) */
+.stock-now[hidden] {
+  display: none;
 }
 
 /* [data-history-item] is the hook (tests) */
@@ -8782,6 +8912,24 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .cash-note + .cash-note { margin-top: var(--sp-1); }
 .cash-note strong { color: var(--ink-2); }
 
+/* Day details fold (U-35): open for the owner and manager, folded for Members */
+.today-more > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h);
+  list-style: none;
+  cursor: pointer;
+}
+
+.today-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.today-more[open] > summary > .i {
+  transform: rotate(180deg);
+}
+
 /* ---- css/anomalies.css ---- */
 /* Anomalies (#187, #40; 5.8a): Today's Day report card and the Anomalies page on the shared components */
 
@@ -9080,6 +9228,28 @@ body.no-perm-contacts [data-perm~="contacts"] {
   margin: 0;
   padding-left: var(--sp-5);
   font-size: var(--fs-sm);
+}
+
+/* Results first (U-74): the six filters fold behind one "Filters · Last 7 days" chip */
+.anom-filter-box {
+  margin-bottom: var(--sp-3);
+}
+
+.anom-filter-box > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h);
+  list-style: none;
+  cursor: pointer;
+}
+
+.anom-filter-box > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anom-filter-box[open] > summary {
+  margin-bottom: var(--sp-2);
 }
 
 /* ---- css/finance.css ---- */
@@ -9868,7 +10038,15 @@ body.no-perm-contacts [data-perm~="contacts"] {
     .ins-head > .ins-period { order: 2; }
     .ins-head > .ins-more { order: 3; }
     .ins-head > .ins-abbar { order: 4; }
+
+    /* Scrolled under the header (U-71): only the tabs stay; scroll to the top for the period */
+    .ins-head.ins-compact > .ins-period,
+    .ins-head.ins-compact > .ins-more,
+    .ins-head.ins-compact > .ins-abbar { display: none; }
+    .ins-head.ins-compact { padding-bottom: var(--sp-1); }
 }
+
+.ins-head-mark { height: 1px; }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
 
@@ -10059,6 +10237,10 @@ div.ins-wide,
   .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
   .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
 }
+
+/* Day book: ‹ day › with a date box for a jump (U-94) */
+.st-day-step { flex-wrap: wrap; }
+.st-day-pick { flex: 0 1 auto; width: auto; }
 
 /* ---- css/desktop.css ---- */
 /* ==================== DESKTOP LAYOUT (wide screens only) ====================

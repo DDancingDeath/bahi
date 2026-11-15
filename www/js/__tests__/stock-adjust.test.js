@@ -110,6 +110,19 @@ describe('StockManager.applyStockAdjustment', () => {
         document.getElementById('adjustReasonCode').value = reason;
     };
 
+    test('U-77: the item list is A–Z without archived items (unless they still hold stock); current stock shows once one is chosen', () => {
+        document.body.insertAdjacentHTML('beforeend', '<div id="adjustStockNow" hidden></div>');
+        AppState.items = [{ id: 'w', name: 'Wheat' }, { id: 'old', name: 'Test item', archived: true }, { id: 'a', name: 'Chana' }, { id: 'r', name: 'Rice', archived: true }];
+        AppState.stock = { a: { quantity: 10, rate: 50 }, r: { quantity: 4, rate: 30 } };
+        StockManager.loadAdjustItemsDropdown();
+        expect([...document.querySelectorAll('#adjustItem option')].map(o => o.value)).toEqual(['', 'a', 'r', 'w']);
+        StockManager.loadAdjustItemStock();
+        expect(document.getElementById('adjustStockNow').hidden).toBe(true);
+        document.getElementById('adjustItem').value = 'a';
+        StockManager.loadAdjustItemStock();
+        expect(document.getElementById('adjustStockNow').hidden).toBe(false);
+    });
+
     test('remove beyond stock saves the effective quantity and the raw one', async () => {
         fill('remove', '25');
         await StockManager.applyStockAdjustment();

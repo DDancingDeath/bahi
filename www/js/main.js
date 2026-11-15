@@ -1058,6 +1058,7 @@ window.app = {
         renderTable: () => ItemsManager.renderItemsTable(),
         refreshTable: () => ItemsManager.refreshTable(),
         search: (query) => ItemsManager.renderItemsTable(query),
+        clearSearch: () => ItemsManager.clearSearch(),
         openAddModal: () => ItemsManager.openAddModal(),
         openEditModal: (id) => ItemsManager.openEditModal(id),
         closeItemModal: () => ItemsManager.closeItemModal(),
@@ -1298,6 +1299,7 @@ window.app = {
         showEdits: () => HistoryManager.showEdits(),
         filterHistory: (type, event) => HistoryManager.filterHistory(type, event),
         searchHistory: (searchTerm) => HistoryManager.searchHistory(searchTerm),
+        clearSearch: () => HistoryManager.clearSearch(),
         toggleView: () => HistoryManager.toggleView(),
         setDatePreset: (preset) => HistoryManager.setDatePreset(preset),
         setCustomRange: (from, to) => HistoryManager.setCustomRange(from, to),
@@ -1442,7 +1444,7 @@ window.app = {
     statements: {
         init: (route) => loadStatements().then(m => m.init(route))
             .catch(e => console.warn('Statements not loaded:', e?.message || e)),
-        ...Object.fromEntries(['open', 'back', 'set', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
+        ...Object.fromEntries(['open', 'back', 'set', 'stepDay', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
             .map(name => [name, (...args) => loadStatements().then(m => m[name](...args))]))
     },
 

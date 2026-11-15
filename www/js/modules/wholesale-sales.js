@@ -19,7 +19,7 @@ import { settlePendingLine } from '../ui/pending-line.js';
 import { checkLineRate } from '../ui/rate-check.js';
 import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import {
-    isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, rangeStatus, retryRange, applyRangeState, renderStaleHistoryHint
+    isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, rangeStatus, retryRange, applyRangeState, renderStaleHistoryHint, syncAllDatesLabel
 } from '../utils/history-window.js';
 import { filterHistoryBills, resolveHistoryRange, validateCustomRange, billTimeMs } from '../utils/history-filters.js';
 import { buildBillRow, buildOpeningGroup, addOpeningToggle, addVoidedToggle, billTableHtml, byNameHtml } from '../ui/bill-row.js';
@@ -1235,6 +1235,7 @@ export class WholesaleSalesManager {
     }
     /** Re-render the recent bills under the entry form and Wholesale › History. */
     static renderSalesHistory() {
+        syncAllDatesLabel(/** @type {?HTMLSelectElement} */ (document.getElementById('wholesaleHistoryPreset')));
         this.renderRecentSales();
         this.renderWholesaleHistory();
     }

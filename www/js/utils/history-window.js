@@ -386,3 +386,20 @@ export function renderStaleHistoryHint(anchor, { id, onRefreshed, isRelevant } =
     });
     hint.append(text, btn);
 }
+
+/**
+ * The "All dates" choice of a History date select says the loaded window while older bills are not
+ * loaded ("Since 1 Sep"), so it never contradicts the empty message (U-92).
+ * @param {?HTMLSelectElement} select
+ */
+export function syncAllDatesLabel(select) {
+    const opt = select?.querySelector('option[value="all"]');
+    if (!opt) return;
+    if (isFullHistoryLoaded()) {
+        opt.setAttribute('data-i18n', 'ui.history.all_dates');
+        opt.textContent = t('ui.history.all_dates');
+    } else {
+        opt.removeAttribute('data-i18n');
+        opt.textContent = t('ui.history.since_date', { date: formatWindowDate(historyLoadedFrom()) });
+    }
+}

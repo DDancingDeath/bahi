@@ -16,6 +16,7 @@
                        placeholder="Search items by name…" data-i18n-placeholder="ui.items.search_items_by_name"
                        aria-label="Search items by name…" data-i18n-aria-label="ui.items.search_items_by_name"
                        data-oninput="items.search(this.value)">
+                <button type="button" class="btn btn-icon btn-ghost search-clear" id="itemsSearchClear" hidden aria-label="Clear search" data-i18n-aria-label="ui.common.clear_search" data-onclick="items.clearSearch()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
             </div>
             <label class="rates-option"><input type="checkbox" id="itemsShowArchived" data-onchange="items.toggleArchived(this.checked)"> <span data-i18n="ui.items.show_archived">Show archived</span></label>
             <label class="rates-option"><input type="checkbox" id="itemsSortAz" data-onchange="items.setSortAz(this.checked)"> <span data-i18n="ui.items.sort_az">A–Z order</span></label>

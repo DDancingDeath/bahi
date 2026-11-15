@@ -180,6 +180,13 @@ export const DayManager = {
         });
         const { labour } = s;
         this.renderReminders();
+        // Day details (labour, payment split, dues, by bill type, items) open for the owner and manager,
+        // folded for Members, who need the cash, today's bills and reminders (U-35)
+        const more = /** @type {?HTMLDetailsElement} */ (document.getElementById('todayMore'));
+        if (more && AppState.userRole && !more.dataset.roleSet) {
+            more.dataset.roleSet = '1';
+            more.open = AppState.userRole === 'owner' || AppState.userRole === 'manager';
+        }
 
         // Update UI - Main Stats
         this.updateElement('todayTotalPurchases', moneyText(s.purchases));
