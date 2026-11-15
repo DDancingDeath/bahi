@@ -435,7 +435,7 @@ export class OutstandingManager {
             return `
             <div class="aging-party row aging-b${p.bucket}">
                 <span class="lead-icon aging-avatar" data-initials="${esc(initials(p.name))}" aria-hidden="true">${p.name ? '' : icon('user')}</span>
-                <button type="button" class="aging-party-main" data-onclick="outstanding.openParty('${attr(p.key)}')" aria-label="${tt('ui.outstanding.party_open_bills', { name: p.name || t('ui.outstanding.no_name') })}">
+                <button type="button" class="aging-party-main" data-onclick="outstanding.openParty('${attr(p.key)}')">
                     <span class="aging-party-name">${partyName(p)}${p.longOverdue ? ` <span class="aging-badge tag neg">${tt('ui.outstanding.long_overdue')}</span>` : ''}</span>
                     <span class="aging-party-meta">${esc(billsText(p.bills.length))} · <span class="aging-oldest${esc(AGE_TEXT_TONE[p.bucket])}">${tt('ui.outstanding.oldest', { age: daysText(p.oldestDays) })}</span>${p.overdue > 0 ? ` · ${withMoney(t('ui.outstanding.party_overdue', { amount: formatRupees(p.overdue) }), p.overdue)}` : ''}</span>
                 </button>
@@ -445,7 +445,7 @@ export class OutstandingManager {
                         : `<span class="aging-party-meta">${tt('ui.outstanding.party_pay_pick_list')}</span>`}
                     ${phone ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-party-call data-onclick="outstanding.callParty('${attr(p.key)}')" aria-label="${tt('ui.outstanding.call_name', { name: p.name || '' })}">${icon('phone', 'i-sm')}</button>` : ''}
                     <details class="aging-more">
-                        <summary class="btn btn-sm btn-ghost" aria-label="${tt('ui.outstanding.more_actions')}">${icon('dots', 'i-sm')}</summary>
+                        <summary class="btn btn-sm btn-ghost btn-icon" aria-label="${tt('ui.outstanding.more_actions')}">${icon('dots', 'i-sm')}</summary>
                         <div class="aging-more-menu">${more}</div>
                     </details>
                 </div>

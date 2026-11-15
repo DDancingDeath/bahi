@@ -557,7 +557,7 @@ export class HistoryManager {
                     </div>`;
         const paymentHTML = (parts.atSave.online > 0 || parts.atSave.cash > 0 || afterSave || parts.due > 0) ? `
             <div class="panel bill-view-panel">
-                <h4 class="bill-view-title">${L('ui.history.payment_details')}</h4>
+                <h3 class="bill-view-title">${L('ui.history.payment_details')}</h3>
                 ${parts.atSave.online > 0 ? payRow(afterSave ? 'ui.history.online_at_save' : 'ui.history.online', parts.atSave.online) : ''}
                 ${parts.atSave.cash > 0 ? payRow(afterSave ? 'ui.history.cash_at_save' : 'ui.history.cash', parts.atSave.cash) : ''}
                 ${parts.later.total > 0 ? payRow('ui.history.paid_later', parts.later.total, true) : ''}
@@ -591,11 +591,11 @@ export class HistoryManager {
                 ` : ''}
                 
                 ${weightBreakdownHTML ? `
-                    <h4 class="bill-view-title">${L('ui.history.weight_breakdown')}</h4>
+                    <h3 class="bill-view-title">${L('ui.history.weight_breakdown')}</h3>
                     <div class="panel">${weightBreakdownHTML}</div>
                 ` : ''}
                 
-                <h4 class="bill-view-title">${L(isPurchase ? 'ui.common.bill_items' : 'ui.history.sale_items')}</h4>
+                <h3 class="bill-view-title">${L(isPurchase ? 'ui.common.bill_items' : 'ui.history.sale_items')}</h3>
                 <table class="table bill-view-items">
                     <thead>
                         <tr>

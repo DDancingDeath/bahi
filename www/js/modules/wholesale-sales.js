@@ -1465,7 +1465,7 @@ export class WholesaleSalesManager {
                     </div>`;
         const paymentHTML = (payment.online > 0 || payment.cash > 0 || payment.due > 0) ? `
             <div class="panel bill-view-panel">
-                <h4 class="bill-view-title">${L('ui.history.payment_details')}</h4>
+                <h3 class="bill-view-title">${L('ui.history.payment_details')}</h3>
                 ${payment.online > 0 ? payRow('ui.history.online', payment.online) : ''}
                 ${payment.cash > 0 ? payRow('ui.history.cash', payment.cash) : ''}
                 ${payment.due > 0 ? payRow('ui.history.due', payment.due, true) : ''}
@@ -1474,7 +1474,7 @@ export class WholesaleSalesManager {
         
         const paymentsHistoryHTML = sale.payments && sale.payments.length > 0 ? `
             <div class="panel bill-view-panel">
-                <h4 class="bill-view-title">${L('ui.wholesale.payment_history')}</h4>
+                <h3 class="bill-view-title">${L('ui.wholesale.payment_history')}</h3>
                 ${sale.payments.map(p => `
                     <div class="row bill-view-row">
                         <span class="row-main">• ${Helpers.escapeHtml(p.date)}${p.recordedBy ? ` ${L('ui.wholesale.by_name', { name: p.recordedBy })}` : ''}${p.kind === 'writeOff' ? ` — ${L('ui.wholesale.written_off', { reason: p.reason || '' })}` : ''}</span>
@@ -1518,7 +1518,7 @@ export class WholesaleSalesManager {
                     </div>
                 ` : ''}
                 
-                <h4 class="bill-view-title">${L('ui.history.sale_items')}</h4>
+                <h3 class="bill-view-title">${L('ui.history.sale_items')}</h3>
                 <table class="table bill-view-items">
                     <thead>
                         <tr>
