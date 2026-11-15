@@ -42,10 +42,24 @@ While a bill is being typed:
   48.5?" **Fix weight** is the default; "Yes, 485 kg" adds it and records who confirmed
   it. A retail weight typed without packets is the line's total and wholesale kg are
   totals: they are not asked. The owner sees every confirmed bag on Today's Day report and in Anomalies.
-- **Share draft (not saved)**: sends the bill on the form to WhatsApp without
-  saving it; the message itself says "DRAFT, not saved". Save first to record it.
-- **Print** saves the bill, then prints it. With no printer connected the
-  receipt is only shown as a picture, and the message says "Not printed".
+- **The usual rate** (BF-USUAL): at Save a rate more than 2× (or under ½ of) the usual rate
+  warns, always with the unit: "Wheat: ₹50/kg is 2.1× the usual ₹24/kg". The usual rate is the
+  item's rate on the Rates page; only with none there, the middle rate of its last 10 bills (at
+  least 3, leaving out voided bills and bills that already carry a rate warning), so one wrong bill
+  never becomes "usual". The warnings of all lines show as one "Check rates" message.
+- **A per-quintal rate** (BF-UNITSLIP): a rate 50–200× the usual one says "₹2,400/kg looks like a
+  per-quintal rate — usually ₹24/kg" and offers **Use ₹24/kg** (at Add to bill it puts the rate in
+  the box; on a bill line it changes that line). The bill's rate column says "Rate ₹/kg".
+- **Share draft (not saved)**: the WhatsApp button shows once the bill has a line, with "Draft"
+  under it; it sends the bill on the form without saving it, and the message itself says "DRAFT,
+  not saved". Save first to record it. A purchase says "Supplier", a sale "Customer".
+- **Save & print** saves the bill, then prints it. In the Android app with no printer to print on,
+  it asks first: **Save only**, or Cancel to connect the printer in Settings. A print that fails
+  after the save keeps the bill saved and shows the picture with Print to try again.
+- **Back-dated**: a bill for another day than today shows "Back-dated: 12 Nov" beside the total
+  (and on the date line), day and month always.
+- **Numbers typed in Hindi**: digits typed on a Hindi keyboard (१२३) go into the boxes as 123.
+  Cash, Online and Due show commas the Indian way (1,25,000) once you leave the box.
 - "Save draft" keeps an unfinished bill; an unsaved bill is offered back at the
   next start. If that bill was saved meanwhile, Restore (or loading the draft)
   offers to open the saved bill instead of saving it again; an unsaved edit goes
@@ -54,7 +68,7 @@ While a bill is being typed:
 - **A short form**: the bill's lines and "Total packets" show once a line is added; "Not split yet"
   shows only while Cash + Online + Due do not add up to the bill; Labour shows its working and amount only when
   switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
-  The bill is for today ("Today"); the owner can tap **Change date** to pick another day. Save draft and Clear
+  The bill is for today ("Today"); the owner can tap **Change date** to pick another day ("Back-dated: 12 Nov"). Save draft and Clear
   (which asks first when the bill has lines) are in the ⋯ menu beside Purchase / Retail sale; **Drafts** is there too, with
   its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Supplier / Customer, Item, Rate,
   Weight) sits on the field's top edge and stays there after typing. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every

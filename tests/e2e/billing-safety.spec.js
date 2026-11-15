@@ -144,7 +144,9 @@ test('WhatsApp on the bill form shares a draft marked "not saved" and saves noth
     await page.click('#saleSection [data-add-line]');
     await page.fill('#saleCustomerName', customer);
     const share = page.locator('[data-onclick="billing.shareSaleWhatsApp()"]');
-    await expect(share).toHaveText('Share draft (not saved)');
+    // A visible "Draft" under the icon (U-27); the name still says it is not saved
+    await expect(share.locator('.bill-share-tag')).toHaveText('Draft');
+    await expect(share).toHaveAccessibleName('Share draft (not saved)');
     await share.scrollIntoViewIfNeeded();
     await shot(page, testInfo, 'S10-share-draft-button');
     await page.evaluate(() => { window.__opened = []; window.open = (url) => { window.__opened.push(url); return {}; }; });

@@ -74,6 +74,8 @@ www/js/modules/money.js: c.dir
 www/js/modules/money.js: card
 www/js/modules/money.js: change(now, then) (markup via compareHtml)
 www/js/modules/money.js: compareTableHtml(this.compareRows(m, b), { a, b: labels.b }) (sink via this.html)
+www/js/modules/money.js: doubtfulRatesNoticeHtml(['purchase', 'retail', 'wholesale']) (sink via this.html)
+www/js/modules/money.js: doubtfulRatesNoticeHtml(['purchase']) (sink via this.html)
 www/js/modules/money.js: figuresFromSnapshot(this.snapshots[lyKey(k)])?.M6 (markup via map(v => (v === null ? NaN : v)))
 www/js/modules/money.js: formatDay(k, { lang, year: false }) (markup via barsSvg)
 www/js/modules/money.js: formatDay(x.from, { lang, year }) (markup via this.renderCash)
@@ -298,6 +300,7 @@ www/js/modules/statements.js: totals.purchases ← totals from dayBook(this.src(
 www/js/modules/statements.js: totals.sales ← totals from dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions:  (markup via map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.stat))
 www/js/modules/statements.js: totals.salesCount ← totals from dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions:  (markup via map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.stat))
 www/js/modules/statements.js: totals.withdrawals ← totals from dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions:  (markup via map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.stat))
+www/js/modules/stock.js: doubtfulRatesNoticeHtml(['purchase']) (sink)
 www/js/modules/voice-billing.js: value
 www/js/modules/wholesale-sales.js: billTableHtml(bills, { openings: this.historyOpenings, voided: this.historyVoided, onclickFor: (sale) => `wholesaleSales.reprintSaleById('${ (sink)
 www/js/modules/wholesale-sales.js: editsRowHtml(sale, 'history.showEdits()')

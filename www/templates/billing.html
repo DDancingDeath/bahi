@@ -96,7 +96,7 @@
             <thead>
                 <tr>
                     <th data-i18n="ui.common.item_2">Item</th>
-                    <th data-i18n="ui.common.rate">Rate</th>
+                    <th data-i18n="ui.common.rate_per_kg">Rate ₹/kg</th>
                     <th data-i18n="ui.common.qty">Qty</th>
                     <th data-i18n="ui.common.total">Total</th>
                     <th><span class="sr-only" data-i18n="ui.billing.col_remove">Remove</span></th>
@@ -145,7 +145,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="onlineCheckbox" aria-describedby="onlinePaymentLabel" data-onchange="billing.fillPayableAmount('online')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="onlinePayment" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="onlinePayment" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
             <div class="pay-line">
@@ -153,7 +153,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="cashCheckbox" aria-describedby="cashPaymentLabel" data-onchange="billing.fillPayableAmount('cash')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="cashPayment" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="cashPayment" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -167,7 +167,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="dueCheckbox" aria-describedby="dueAmountLabel" data-onchange="billing.fillPayableAmount('due')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="dueAmount" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="dueAmount" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -197,7 +197,7 @@
 
         <div class="bill-form-field field bill-date" hidden>
             <label for="billDate" data-i18n="ui.billing.date_label">Date</label>
-            <input type="date" id="billDate" class="bill-date-input input" />
+            <input type="date" id="billDate" class="bill-date-input input" lang="en-IN" />
         </div>
         </div>
 
@@ -210,15 +210,16 @@
             <div class="bill-bar-total">
                 <span class="bill-bar-label" data-i18n="ui.billing.total_payable_label">Total payable</span>
                 <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barPayable">0</span></strong>
+                <span class="bill-backdated" data-backdated-for="billDate" role="status" hidden></span>
             </div>
-            <button type="button" data-onclick="billing.shareWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+            <button type="button" data-onclick="billing.shareWhatsApp()" class="btn bill-share" hidden title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                 <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
-                <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
+                <span class="bill-share-tag" aria-hidden="true" data-i18n="ui.billing.draft_tag">Draft</span><span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
             </button>
             <button type="button" class="btn btn-primary" id="saveBillBtn" data-onclick="billing.saveBill()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
             <button type="button" class="btn bill-print" id="printBillBtn" data-onclick="billing.printBill()" data-kbd="Ctrl P">
                 <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
-                <span class="bill-print-label" data-i18n="ui.common.print">Print</span>
+                <span class="bill-print-label" data-i18n="ui.billing.save_print">Save &amp; print</span>
             </button>
         </div>
         </div>
@@ -288,7 +289,7 @@
             <thead>
                 <tr>
                     <th data-i18n="ui.common.item_2">Item</th>
-                    <th data-i18n="ui.common.rate">Rate</th>
+                    <th data-i18n="ui.common.rate_per_kg">Rate ₹/kg</th>
                     <th data-i18n="ui.common.qty">Qty</th>
                     <th data-i18n="ui.common.total">Total</th>
                     <th><span class="sr-only" data-i18n="ui.billing.col_remove">Remove</span></th>
@@ -322,7 +323,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleOnlineCheckbox" aria-describedby="saleOnlinePaymentLabel" data-onchange="billing.fillReceivableAmount('online')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="saleOnlinePayment" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleOnlinePayment" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
             <div class="pay-line">
@@ -330,7 +331,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleCashCheckbox" aria-describedby="saleCashPaymentLabel" data-onchange="billing.fillReceivableAmount('cash')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="saleCashPayment" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleCashPayment" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -344,7 +345,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleDueCheckbox" aria-describedby="saleDueAmountLabel" data-onchange="billing.fillReceivableAmount('due')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="saleDueAmount" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleDueAmount" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -374,7 +375,7 @@
 
         <div class="bill-form-field field bill-date" hidden>
             <label for="saleDate" data-i18n="ui.billing.date_label">Date</label>
-            <input type="date" id="saleDate" class="bill-date-input input" />
+            <input type="date" id="saleDate" class="bill-date-input input" lang="en-IN" />
         </div>
         </div>
         <div class="bill-no-hint" id="saleBillNo"></div>
@@ -383,15 +384,16 @@
             <div class="bill-bar-total">
                 <span class="bill-bar-label" data-i18n="ui.billing.total_receivable_label">Total receivable</span>
                 <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barReceivable">0</span></strong>
+                <span class="bill-backdated" data-backdated-for="saleDate" role="status" hidden></span>
             </div>
-            <button type="button" data-onclick="billing.shareSaleWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+            <button type="button" data-onclick="billing.shareSaleWhatsApp()" class="btn bill-share" hidden title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                 <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
-                <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
+                <span class="bill-share-tag" aria-hidden="true" data-i18n="ui.billing.draft_tag">Draft</span><span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
             </button>
             <button type="button" class="btn btn-primary" id="saveSaleBtn" data-onclick="billing.completeSale()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
             <button type="button" class="btn bill-print" id="printSaleBtn" data-onclick="billing.printSale()" data-kbd="Ctrl P">
                 <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
-                <span class="bill-print-label" data-i18n="ui.common.print">Print</span>
+                <span class="bill-print-label" data-i18n="ui.billing.save_print">Save &amp; print</span>
             </button>
         </div>
         </div>

@@ -13,7 +13,7 @@ import * as BillDrafts from '../firebase/repos/bill-drafts.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
 import { Helpers } from '../utils/helpers.js';
-import { prepareBillDate, renderBillDateLine, resetBillDate, revealBillDate } from '../ui/bill-date-input.js';
+import { backdatedText, prepareBillDate, renderBillDateLine, resetBillDate, revealBillDate } from '../ui/bill-date-input.js';
 import { addLocalDays, formatDate, toLocalISODate } from '../utils/dates.js';
 import { validatePaymentSplit } from '../utils/calc/billing.js';
 
@@ -134,7 +134,10 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
         const yesterday = toLocalISODate(addLocalDays(new Date(), -1));
         $('billDate').value = yesterday;
         $('billDate').dispatchEvent(new Event('change'));
-        expect($('billDateText').textContent).toBe(formatDate(yesterday, 'full'));
+        expect($('billDateText').textContent).toBe(backdatedText(yesterday));
+
+        expect(backdatedText('2026-11-12', new Date(2026, 10, 15))).toBe('Back-dated: 12 Nov');
+        expect(backdatedText('2025-12-31', new Date(2026, 0, 2))).toBe('Back-dated: 31 Dec 2025');
 
         resetBillDate('billDate');
         expect(field('billDate').hidden).toBe(true);
@@ -154,7 +157,7 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
     test('an edited bill shows its own day; its date is locked, so no Change date even for the owner', () => {
         const day = addLocalDays(new Date(), -3);
         prepareBillDate('billDate', { timestamp: day.getTime() });
-        expect($('billDateText').textContent).toBe(formatDate(toLocalISODate(day), 'full'));
+        expect($('billDateText').textContent).toBe(backdatedText(toLocalISODate(day)));
         expect($('billDateChange').hidden).toBe(true);
         expect(field('billDate').hidden).toBe(true);
     });
@@ -169,7 +172,7 @@ describe('2. the date line: "Today" and, for the owner only, "Change date"', () 
         renderBillDateLine('billDate');
         expect(field('billDate').hidden).toBe(true);
         expect($('billDate').value).toBe(yesterday);
-        expect($('billDateText').textContent).toBe(formatDate(yesterday, 'full'));
+        expect($('billDateText').textContent).toBe(backdatedText(yesterday));
     });
 });
 

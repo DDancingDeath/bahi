@@ -669,7 +669,7 @@ export class HistoryManager {
         
         // Edit / Void only while this user may still change the bill (#87 edit window, #84, #75)
         const who = { uid: AppState.currentUser?.uid, role: AppState.userRole, raw: AppState.settings?.roleAccess };
-        setBillActions(bill, who, { editable: type !== 'wholesale' });
+        setBillActions(bill, who);
         if (isActiveBill(bill) && AppState.userRole !== 'owner' && !withinBillEditWindow(bill, who)) {
             document.getElementById('billDetailsContent').insertAdjacentHTML('beforeend',
                 `<div class="notice bill-window-note">${icon('lock', 'i-sm')}<span class="grow">${L('msg.roles.edit_window_closed', { days: accessFor(AppState.userRole, who.raw).editDays })}</span></div>`);

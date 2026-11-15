@@ -216,7 +216,7 @@
 /* The shared .cur (surfaces.css), over the older span rules above */
 :is(#billing, .bill-page) .money > .cur {
   color: var(--ink-3);
-  font-size: var(--fs-cur);
+  font-size: var(--fs-cur-bill);
   font-weight: var(--w-regular);
 }
 
@@ -552,11 +552,43 @@
   min-width: min-content;
 }
 
-/* Share is an icon (its words stay for screen readers and the tooltip) */
+/* Share is an icon with a visible "Draft" under it (the bill is not saved yet, U-27); shown once the bill has a line */
 .bill-actions > .bill-share {
   flex: none;
+  flex-direction: column;
+  gap: 0;
   width: 48px;
+  padding: 0;
   color: var(--positive);
+  line-height: 1.1;
+}
+
+.bill-actions > .bill-share[hidden] {
+  display: none;
+}
+
+/* "Back-dated: 12 Nov" beside the total when the bill's day is not today (U-78) */
+.bill-backdated:not([hidden]) {
+  display: inline-block;
+  margin-top: var(--sp-1);
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--fs-caption);
+  font-weight: var(--w-label);
+  white-space: nowrap;
+}
+
+.bill-date-back {
+  color: var(--warning);
+  font-weight: var(--w-label);
+}
+
+.bill-share-tag {
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+  font-weight: var(--w-regular);
 }
 
 .bill-actions > .bill-share .i {
@@ -594,6 +626,15 @@
 @media (max-width: 399.98px), (min-width: 1024px) {
   .bill-actions > .bill-print > .i {
     display: none;
+  }
+}
+
+/* "Save & print" may wrap to two lines on a narrow phone rather than squeeze Save */
+@media (max-width: 399.98px) {
+  .bill-actions > .bill-print {
+    white-space: normal;
+    line-height: 1.1;
+    text-align: center;
   }
 }
 

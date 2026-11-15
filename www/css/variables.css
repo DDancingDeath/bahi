@@ -243,6 +243,8 @@
   --fs-input: 16px;
   /* Floating field labels (.field-float): the 14 px minimum text size (#68) */
   --fs-label: 14px;
+  /* The ₹ beside bill totals and the action bar (U-29): at least 0.9 of the digits, never under the caption size */
+  --fs-cur-bill: max(var(--fs-caption), 0.9em);
   --fs-cur: max(12px, 0.9em);
   --lh-body: 1.45;
   --sp-1: 4px;

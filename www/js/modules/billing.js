@@ -4,6 +4,7 @@
  * @module modules/billing
  */
 
+import { showAmount } from '../ui/number-input.js';
 import { AppState } from '../utils/state.js';
 import { SecurityMonitor } from '../services/security-monitor.js';
 import { on, REFRESH, ITEM_FREQUENCY_CHANGED } from '../utils/events.js';
@@ -60,7 +61,7 @@ export function editRefusedMessage(bill) {
 }
 
 /** Draft fields that make the bill checks treat the form as an edit of `bill` (#37). */
-const editCheckContext = (bill) => ({
+export const editCheckContext = (bill) => ({
     isEdit: true, id: bill.id, editingBill: bill, date: bill.date, enteredAt: bill.enteredAt || bill.timestamp
 });
 
@@ -69,7 +70,7 @@ const editCheckContext = (bill) => ({
  * that is recorded: '' when nothing recorded changes, null when cancelled.
  * @returns {Promise<?string>}
  */
-async function askEditReason(bill, updated) {
+export async function askEditReason(bill, updated) {
     if (!hasEditChanges(billEditChanges(bill, updated))) return '';
     return askReason({ titleKey: 'ui.edits.reason_title', explainKey: 'ui.edits.reason_explain', labelKey: 'ui.edits.reason_label', confirmKey: 'ui.common.save' });
 }
@@ -102,7 +103,7 @@ export function syncBillNotes(inputId, open = false) {
 }
 
 /** Waits for a bill edit transaction; gives up waiting after EDIT_TIMEOUT_MS. */
-async function commitBillEdit(writePromise) {
+export async function commitBillEdit(writePromise) {
     let timer = null;
     try {
         return await Promise.race([
@@ -1693,6 +1694,12 @@ const BillingManager = {
                 const i = findBillIndex(history, bill.id, -1);
                 if (i !== -1) resolvedIndex = i;
             }
+            if (billType === 'wholesale') {
+                // Wholesale bills are edited on the Wholesale page, with the same window and record (U-30)
+                UIManager.closeSheet(document.getElementById('billDetailsOverlay'));
+                await window.app?.wholesaleSales?.openEditor?.(bill);
+                return;
+            }
             this.openEditor(bill, billType, resolvedIndex);
         } catch (error) {
             console.error('Failed to load bill for editing:', error);
@@ -1739,15 +1746,15 @@ const BillingManager = {
             
             const paid = readPayment(bill);
             if (paid.online > 0) {
-                document.getElementById('onlinePayment').value = paid.online;
+                showAmount(document.getElementById('onlinePayment'), paid.online);
                 document.getElementById('onlineCheckbox').checked = true;
             }
             if (paid.cash > 0) {
-                document.getElementById('cashPayment').value = paid.cash;
+                showAmount(document.getElementById('cashPayment'), paid.cash);
                 document.getElementById('cashCheckbox').checked = true;
             }
             if (paid.due > 0) {
-                document.getElementById('dueAmount').value = paid.due;
+                showAmount(document.getElementById('dueAmount'), paid.due);
                 document.getElementById('dueCheckbox').checked = true;
             }
             
@@ -1770,17 +1777,17 @@ const BillingManager = {
             const cashValue = paid.cash;
             
             if (onlineValue > 0) {
-                document.getElementById('saleOnlinePayment').value = onlineValue;
+                showAmount(document.getElementById('saleOnlinePayment'), onlineValue);
                 document.getElementById('saleOnlineCheckbox').checked = true;
             }
             if (cashValue > 0) {
-                document.getElementById('saleCashPayment').value = cashValue;
+                showAmount(document.getElementById('saleCashPayment'), cashValue);
                 document.getElementById('saleCashCheckbox').checked = true;
             }
             
             const dueValue = paid.due;
             if (dueValue > 0) {
-                document.getElementById('saleDueAmount').value = dueValue;
+                showAmount(document.getElementById('saleDueAmount'), dueValue);
                 document.getElementById('saleDueCheckbox').checked = true;
             }
             
