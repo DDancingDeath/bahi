@@ -55,6 +55,7 @@ import { InstallManager } from './services/install-prompt.js';
 import { SecurityMonitor } from './services/security-monitor.js';
 import { startLongTaskRecorder } from './utils/perf-probe.js';
 import { shortcutFromSearch, withoutShortcut } from './utils/launch-shortcut.js';
+import { chooseStartPage, routeFromHash } from './utils/start-page.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
@@ -452,18 +453,33 @@ function writeTipReport({ delta, failures }) {
     });
 }
 
-/** Opens the page of a home-screen shortcut (#151) once, after the first screen. */
-function openLaunchShortcut() {
-    const shortcut = shortcutFromSearch(window.location.search);
-    if (!shortcut) return;
-    window.history.replaceState(window.history.state, '', withoutShortcut(window.location.pathname, window.location.search, window.location.hash));
-    if (shortcut.tab !== 'billing') {
-        const shown = NavigationManager.showTab(shortcut.tab);
-        if (shown && typeof shown.then === 'function') shown.then(ok => { if (ok) NavigationManager.setActiveNavLink(shortcut.tab); });
-        else if (shown !== false) NavigationManager.setActiveNavLink(shortcut.tab);
+/** The page a launch URL asks for (#151 home-screen shortcut, or `#route`), taken from the URL once. */
+function takeLaunchLink() {
+    const { pathname, search, hash } = window.location;
+    const shortcut = shortcutFromSearch(search);
+    const hashed = routeFromHash(hash);
+    const route = hashed && NavigationManager.isKnownRoute(hashed) ? hashed : null;
+    if (shortcut || route) window.history.replaceState(window.history.state, '', withoutShortcut(pathname, search, route ? '' : hash));
+    if (shortcut) return shortcut;
+    return route ? { tab: route } : null;
+}
+
+/** Shows the start page; Billing keeps its start-up path (bill dates, no mode reset). */
+function openStartPage(tab) {
+    if (tab === 'billing') {
+        NavigationManager.showTab('billing');
+        BillingManager.prepareBillDates();
+        NavigationManager.setActiveNavLink('billing');
         return;
     }
-    if (shortcut.mode) BillingManager.switchMode(shortcut.mode, { currentTarget: document.getElementById(shortcut.mode === 'sale' ? 'saleModeBtn' : 'purchaseModeBtn') });
+    BillingManager.prepareBillDates();
+    NavigationManager.showTabFromNav(tab, null, { quiet: true });
+}
+
+/** A home-screen shortcut's bill mode (#151), after the auto-save check has started. */
+function openLaunchMode(launch) {
+    if (launch?.tab !== 'billing' || !launch.mode) return;
+    BillingManager.switchMode(launch.mode, { currentTarget: document.getElementById(launch.mode === 'sale' ? 'saleModeBtn' : 'purchaseModeBtn') });
 }
 
 async function initializeUserData() {
@@ -591,6 +607,11 @@ async function initializeUserData() {
             });
         }
 
+        // A launch link or a reloaded page may need the owner's Roles & access choices (settings/app)
+        const launch = takeLaunchLink();
+        const restored = NavigationManager.restoredRoute();
+        if (launch || restored) await Promise.race([appSettingsApplied, new Promise(resolve => setTimeout(resolve, VERSION_CHECK_WAIT_MS))]);
+
         // Stock is computed right after the first screen is painted (#13): the
         // screens show "Stock updating…" until then and re-render when it is
         // ready, so the first screen never waits on it.
@@ -619,7 +640,6 @@ async function initializeUserData() {
             }
         });
 
-        // Show the billing tab by default
         BottomNav.init({
             showTab: (tab) => NavigationManager.showTabFromNav(tab),
             // Pull-to-refresh reloads data only: filters, the bill being entered and forms stay as they are
@@ -642,9 +662,15 @@ async function initializeUserData() {
             },
             onRefreshed: () => UIManager.showToast(t('msg.nav.refreshed'))
         });
-        NavigationManager.showTab('billing');
-        BillingManager.prepareBillDates();
-        NavigationManager.setActiveNavLink('billing');
+        // Start page (utils/start-page.js): a launch link, else this tab's page before a reload, else the role's
+        const start = chooseStartPage({
+            role: AppState.userRole,
+            link: launch?.tab,
+            restored,
+            canOpen: (id) => NavigationManager.canOpenRoute(id)
+        });
+        NavigationManager.homeTab = start.home;
+        openStartPage(start.tab);
         NavigationManager.initBackNavigation();
         
         // Initialize UI
@@ -672,7 +698,7 @@ async function initializeUserData() {
         // Auto-saved bill: its banner shows when the read returns. The first screen doesn't wait for it
         // (a server read queues behind the listeners' server answers, #59); auto-save writes wait for it.
         BillingManager.checkAutoSave();
-        openLaunchShortcut();
+        openLaunchMode(launch);
         BillingManager.renderBillNumber();
         BillingManager.focusFirstItem();
         if (outdatedBlocked) {
@@ -799,6 +825,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 workers?.reset();
                 recurring?.reset();
                 BusinessSwitcher.reset();
+                NavigationManager.forgetRoute();
                 AppState.currentUser = null;
                 document.getElementById('printerPermissionBanner')?.remove();
                 document.getElementById('authScreen').style.display = 'flex';

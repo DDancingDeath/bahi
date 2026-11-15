@@ -196,6 +196,7 @@ const STATIC_ASSETS = [
     '/js/utils/qr-code.js',
     '/js/utils/labour.js',
     '/js/utils/launch-shortcut.js',
+    '/js/utils/start-page.js',
     '/js/utils/calc/billing.js',
     '/js/utils/calc/today.js',
     '/js/utils/calc/stock.js',
