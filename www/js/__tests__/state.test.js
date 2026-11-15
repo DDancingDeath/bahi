@@ -59,8 +59,8 @@ describe('AppState', () => {
             expect(AppState.transactionMode).toBe('purchase');
         });
 
-        it('should have currentDueFilter as purchase', () => {
-            expect(AppState.currentDueFilter).toBe('purchase');
+        it('should have currentDueFilter as sale (U-69)', () => {
+            expect(AppState.currentDueFilter).toBe('sale');
         });
         
         it('should have currentDateFilter as today', () => {

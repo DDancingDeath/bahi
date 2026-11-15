@@ -87,7 +87,7 @@ export const AppState = {
     /** @type {string} Analytics period: '7days', '30days', '90days', 'all' */
     analyticsPeriod: '30days',
     /** @type {string} Outstanding filter: 'purchase' or 'sale' */
-    currentDueFilter: 'purchase',
+    currentDueFilter: 'sale',
     
     // Edit State
     /** @type {Object|null} Bill currently being edited */

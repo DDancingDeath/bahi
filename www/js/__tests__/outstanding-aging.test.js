@@ -241,6 +241,41 @@ describe('#46/#77 Outstanding panel', () => {
         expect(document.querySelectorAll('#dueList [data-history-item]')).toHaveLength(2);
     });
 
+    test('U-19/U-20: bills fold under the parties; a party tap shows its bills; chase rows act; Call only with a phone', () => {
+        AppState.userRole = 'staff';
+        OutstandingManager.billsOpen = false;
+        OutstandingManager.partyFilter = null;
+        OutstandingManager.renderDue();
+        expect(document.getElementById('dueList').hidden).toBe(true);
+        expect(document.getElementById('dueBillsToggle').textContent).toContain('Bills (2)');
+        const chase = document.querySelector('.aging-chase li button');
+        expect(chase.getAttribute('data-onclick')).toMatch(/^outstanding\.receiveFromParty\(/);
+        expect(document.querySelectorAll('#dueAgingParties [data-party-pay]')).toHaveLength(2);
+        expect(document.querySelectorAll('#dueAgingParties [data-party-call]')).toHaveLength(1);
+        const open = jest.spyOn(window, 'open').mockImplementation(() => ({}));
+        OutstandingManager.callParty(normalizePartyName('Ram <img src=x onerror=alert(1)>'));
+        expect(open).toHaveBeenCalledWith('tel:+919876543210', '_blank');
+        OutstandingManager.openParty(normalizePartyName("O'Neil"));
+        expect(document.getElementById('dueList').hidden).toBe(false);
+        expect([...document.querySelectorAll('#dueList [data-history-item]')].map(el => el.textContent)).toEqual([expect.stringContaining('#R2')]);
+        OutstandingManager.clearPartyFilter();
+        AppState.userRole = 'owner';
+    });
+
+    test('U-72: a search hides the all-party totals and says when nothing matches, with Clear search', () => {
+        OutstandingManager.renderDue();
+        const input = document.getElementById('outstandingSearchInput');
+        input.value = 'zzz';
+        OutstandingManager.searchOutstanding();
+        expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(true);
+        expect(document.getElementById('dueList').hidden).toBe(false);
+        expect(document.querySelector('#dueList .no-results-message').textContent).toContain('Nothing matches “zzz”');
+        OutstandingManager.clearSearch();
+        expect(input.value).toBe('');
+        expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(false);
+        expect(document.querySelector('#dueList .no-results-message')).toBeNull();
+    });
+
     test('payables show no Remind button and no chase list', () => {
         AppState.currentDueFilter = 'purchase';
         AppState.purchaseHistory = [{ id: 'p1', customerName: 'Supplier', timestamp: Date.now(), payment: { cash: 0, online: 0, due: 70 } }];

@@ -16,7 +16,13 @@ test('the owner records a payment, then writes the rest off as bad debt; both ar
 
     const button = page.locator(`#dueList [data-write-off][data-onclick*="${sale.id}"]`);
     await expect(button).toHaveText('Write off as bad debt');
-    await button.click();
+    // The bill's Record / clear part is folded under its row (U-19): open it, then write off
+    await page.evaluate((id) => {
+        const btn = document.querySelector(`#dueList [data-write-off][data-onclick*="${id}"]`);
+        document.getElementById('dueList').hidden = false;
+        btn.closest('details').open = true;
+        btn.click();
+    }, sale.id);
     await expect(page.locator('#modalTitle')).toHaveText(/Write off ₹260 as bad debt/);
     await expect(page.locator('#modalMessage')).toContainText('Money counts it as a bad debt (a loss) under Dues written off');
     await page.fill('#writeOffReason', 'Customer left town');

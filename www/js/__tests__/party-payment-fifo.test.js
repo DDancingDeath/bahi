@@ -35,6 +35,7 @@ import { billAgeOrder, dueEvents, partyDues, sumDueEvents } from '../utils/due-p
 import { allocateOldestFirst, checkAllocation } from '../utils/calc/billing.js';
 import { normalizePartyName } from '../utils/aging.js';
 import { outstandingDue } from '../utils/money.js';
+import { splitCashOldestFirst } from '../utils/due-split.js';
 import { withCanonicalDue } from '../firebase/repos/bill-due.js';
 
 const bill = (id, customerName, due, ts, extra = {}) => ({
@@ -395,11 +396,42 @@ describe('Receive payment dialog', () => {
         expect(document.getElementById('ppSum').textContent).toBe('Total: ₹149.50 · ₹0.50 (paise of an old due) is not recorded');
     });
 
-    test('members can not use it', async () => {
+    test('members can use it (U-20): every role may record a payment', async () => {
         AppState.userRole = 'staff';
-        const modal = jest.spyOn(UIManager, 'showModalWithHtml');
+        expect(OutstandingManager.canReceiveFromParty()).toBe(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(false);
         await OutstandingManager.receiveFromParty(normalizePartyName('Ravi'));
-        expect(modal).not.toHaveBeenCalled();
-        expect(OutstandingManager.canReceiveFromParty()).toBe(false);
+        expect(modal).toHaveBeenCalled();
+    });
+
+    test('U-68: "Full" fills every due; part cash, part online splits each bill oldest first; the cash part is checked in the dialog', async () => {
+        const server = { r1: bill('r1', 'Ravi', 100, 1), r2: bill('r2', 'Ravi', 250, 2) };
+        serverTx(server);
+        let validate;
+        jest.spyOn(UIManager, 'showModalWithHtml').mockImplementation(async (html, title, cancel, opts) => {
+            document.body.innerHTML = `<div id="modal">${html}</div>`;
+            validate = opts.validate;
+            expect(validate()).toBe(false);
+            expect(document.getElementById('ppAmountError').textContent).toBe('Enter the amount');
+            expect(document.getElementById('ppAmount').getAttribute('aria-invalid')).toBe('true');
+            OutstandingManager.partyPayQuick('full');
+            expect(document.getElementById('ppAmount').value).toBe('350');
+            document.querySelector('input[name="partyPayMethod"][value="split"]').checked = true;
+            OutstandingManager.partyPaySplitShow();
+            expect(document.getElementById('ppCashField').hidden).toBe(false);
+            document.getElementById('ppCash').value = '400';
+            expect(validate()).toBe(false);
+            expect(document.getElementById('ppMethodError').textContent).toBe('The cash part is more than the amount');
+            document.getElementById('ppCash').value = '150';
+            OutstandingManager.partyPaySum();
+            expect(document.getElementById('ppOnlineRest').textContent).toBe('Online: ₹200');
+            expect(validate()).toBe(true);
+            return true;
+        });
+        await OutstandingManager.receiveFromParty(normalizePartyName('Ravi'));
+        expect(server.r1.payments[0]).toMatchObject({ amount: 100, cash: 100, online: 0 });
+        expect(server.r2.payments[0]).toMatchObject({ amount: 250, cash: 50, online: 200 });
+        expect([server.r1.payment.due, server.r2.payment.due]).toEqual([0, 0]);
+        expect(splitCashOldestFirst([100, 250, 30], 120)).toEqual([100, 20, 0]);
     });
 });

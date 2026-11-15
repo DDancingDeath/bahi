@@ -35,7 +35,7 @@ import {
     buildSnapshot, figuresFromSnapshot, rangeFigures, monthsToRoll, monthBounds,
     monthKeysBetween, lastMonthKeys, monthKeyOf, snapshotsFrom, staleToRebuild, outdatedOlderMonths
 } from '../utils/month-snapshots.js';
-import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways } from '../utils/takeaways.js';
+import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways, caveatKey } from '../utils/takeaways.js';
 import { can, canEditWorthAccounts, canReadWorthAccounts } from '../utils/role-access.js';
 import { dataSignature } from '../utils/render-memo.js';
 import { openExternal } from '../utils/open-external.js';
@@ -43,6 +43,7 @@ import { APP_IDENTITY } from '../config/app-identity.js';
 import { PrinterService } from '../services/printer.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
+import { linkedOutflows, linkedSource, setLinkedSource, afterLinked } from '../utils/linked-outflows.js';
 import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import {
     compareBarHtml, writeBar, compareTableHtml, compareTarget, choosePreset, chooseCompare, applyDates, applySaved,
@@ -69,7 +70,7 @@ export function routeAvailable(link) {
     return !!(document.getElementById(link) || document.getElementById(String(link).split('-')[0]));
 }
 
-const TAKEAWAY_RUPEES = ['amount', 'taken', 'kept'];
+const TAKEAWAY_RUPEES = ['amount', 'taken', 'kept', 'loss'];
 
 /** Takeaway params with the ₹ amounts grouped like the cards ("4,927"). */
 export function takeawayParams(params) {
@@ -151,6 +152,7 @@ export const MoneyManager = {
     sharedAccounts: { state: 'idle', list: null, map: null },
     accountEdits: 0,
     building: false,
+    linkedLoading: null,
     lastSummary: null,
     summaryCache: { sig: null, map: new Map(), computed: 0 },
 
@@ -465,7 +467,63 @@ export const MoneyManager = {
         this.renderProfit(ctx);
         if (this.section === 'cash') this.renderCash(ctx);
         if (this.section === 'spending') this.renderSpending(ctx);
+        this.renderLinked(ctx);
         this.renderChecks(ctx);
+    },
+
+    /**
+     * M22–M26 (U-22): worker pay and recurring-bill payments next to profit, spending and cash.
+     * Owner only (the rules let only the owner read workers and recurring bills). Opening Money reads
+     * nothing more: the lists come from the Workers / Recurring bills pages on this phone, or one tap here.
+     */
+    renderLinked({ m, r }) {
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
+        const owner = AppState.userRole === 'owner';
+        const src = linkedSource();
+        const loaded = !!src.workers && !!src.billItems;
+        const has = loaded && (src.workers.length > 0 || src.billItems.length > 0);
+        show('moneyLinkedCard', owner && (!loaded || has));
+        show('moneyLinkedLoad', owner && !loaded);
+        show('moneyLinkedRows', owner && has);
+        if (!owner || !has) {
+            show('moneyLinkedProfit', false);
+            show('moneyLinkedCash', false);
+            return;
+        }
+        const out = linkedOutflows(src.workers, src.billItems, r.from, r.to);
+        const split = (o) => t('ui.money.cash_online', { cash: formatRupees(o.cash), online: formatRupees(o.online) });
+        const any = out.total.count > 0;
+        show('moneyLinkedProfit', any && m.M6.total !== null);
+        show('moneyLinkedCash', any);
+        this.html('moneyLinkedProfitTerm', moneyHtml(-out.total.total, TM));
+        if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(afterLinked(m.M6.total, out), TM));
+        this.html('moneyLinkedCashOut', moneyHtml(out.total.total, TM));
+        this.text('moneyLinkedCashSplit', split(out.total));
+        this.html('moneyNetAfterLinked', moneyHtml(afterLinked(m.M14, out), TM));
+        this.html('moneyLinkedWorkers', moneyHtml(out.workerPay.total, TM));
+        this.text('moneyLinkedWorkersSplit', split(out.workerPay));
+        this.html('moneyLinkedBills', moneyHtml(out.bills.total, TM));
+        this.text('moneyLinkedBillsSplit', split(out.bills));
+        this.html('moneyLinkedTotal', moneyHtml(out.total.total, TM));
+    },
+
+    /** "Include worker pay and regular bills": reads workers and recurring bills (one read per document), then redraws. */
+    loadLinked() {
+        if (this.linkedLoading || AppState.userRole !== 'owner') return;
+        this.linkedLoading = (async () => {
+            try {
+                const [w, b] = await Promise.all([import('../firebase/repos/workers.js'), import('../firebase/repos/recurring-bills.js')]);
+                const [workers, items] = await Promise.all([w.loadWorkers(), b.loadBillItems()]);
+                setLinkedSource('workers', workers);
+                setLinkedSource('billItems', items);
+                if (document.getElementById('money')?.classList.contains('active')) this.render();
+            } catch (e) {
+                console.warn('Money: worker pay / recurring bills not loaded:', e?.code || e);
+                UIManager.showToast(t('msg.money.linked_failed'));
+            } finally {
+                this.linkedLoading = null;
+            }
+        })();
     },
 
     /**
@@ -566,7 +624,7 @@ export const MoneyManager = {
         const list = (m.caveats || []).filter(c => c.ids.some(id => ids.includes(id)));
         return list.map(c => {
             const params = { qty: c.qty, amount: formatAmount(c.estimate ?? c.amount ?? c.gap ?? 0) };
-            return `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${c.key}`, params)))}</span></div>`;
+            return `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${caveatKey(c)}`, params)))}</span></div>`;
         }).join('');
     },
 

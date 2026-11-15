@@ -273,7 +273,8 @@ const NavigationManager = {
         
         // Render outstanding when Due tab is shown
         if (tabId === 'due' && window.app?.outstanding) {
-            setTimeout(() => window.app.outstanding.filterDue('purchase'), 100);
+            // Sales first (collecting is the daily job, U-69), or the list last opened this session
+            setTimeout(() => window.app.outstanding.filterDue(window.app.outstanding.currentFilter?.() || 'sale'), 100);
         }
         
         // Wholesale page: Sales (entry) tab, or History for 'wholesale-history'

@@ -1323,6 +1323,14 @@ window.app = {
     // Outstanding
     outstanding: {
         filterDue: (filter, evt) => OutstandingManager.filterDue(filter, evt),
+        currentFilter: () => OutstandingManager.dueFilter(),
+        toggleBills: () => OutstandingManager.toggleBills(),
+        billMoreToggled: (id, open) => OutstandingManager.billMoreToggled(id, open),
+        openParty: (partyKey) => OutstandingManager.openParty(partyKey),
+        callParty: (partyKey) => OutstandingManager.callParty(partyKey),
+        clearSearch: () => OutstandingManager.clearSearch(),
+        partyPayQuick: (what) => OutstandingManager.partyPayQuick(what),
+        partyPaySplitShow: () => OutstandingManager.partyPaySplitShow(),
         render: () => OutstandingManager.renderDue(),
         renderDue: () => OutstandingManager.renderDue(),
         searchOutstanding: () => OutstandingManager.searchOutstanding(),
@@ -1406,7 +1414,7 @@ window.app = {
             .catch(e => console.warn('Money not loaded:', e?.message || e)),
         ...Object.fromEntries(['setSection', 'setPreset', 'step', 'loadOlder', 'buildHistory', 'toggleWithdrawalForm',
             'saveWithdrawal', 'saveAccount', 'removeAccount', 'useThisPhonesAccounts', 'render',
-            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare']
+            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare', 'loadLinked']
             .map(name => [name, (...args) => loadMoney().then(m => m[name](...args))]))
     },
     // Insights (redesign §5.3): insights.js is imported on first use

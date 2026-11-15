@@ -435,7 +435,8 @@ const UIManager = {
      * @param {string} htmlMessage - The HTML message to display
      * @param {string} [title='Alert'] - The modal title
      * @param {boolean} [showCancel=false] - Whether to show cancel button
-     * @param {{confirmLabel?: string, danger?: boolean}} [opts] - A verb for the confirm button; danger styles it destructive
+     * @param {{confirmLabel?: string, danger?: boolean, validate?: () => boolean}} [opts] - A verb for the confirm button; danger styles it destructive;
+     *   validate runs on confirm and keeps the dialog open when it returns false
      * @returns {Promise<boolean>} Resolves with user's choice
      */
     showModalWithHtml(htmlMessage, title = t('ui.modals.alert'), showCancel = false, opts = {}) {
@@ -465,6 +466,7 @@ const UIManager = {
             fill(modalMessage);
             if (cancelBtn) cancelBtn.style.display = showCancel ? '' : 'none';
             setConfirmButton(opts);
+            if (typeof opts?.validate === 'function') resolve.validate = opts.validate;
             openModal(overlay, resolve);
         });
     },
@@ -480,6 +482,8 @@ const UIManager = {
     closeModal(result) {
         const overlay = document.getElementById('modalOverlay');
         if (overlay) {
+            // A form dialog says what is wrong next to its field and stays open (opts.validate)
+            if (result === true && AppState.modalResolve?.validate?.() === false) return;
             closeSheet(overlay);
             const resolve = AppState.modalResolve;
             AppState.modalResolve = null;
