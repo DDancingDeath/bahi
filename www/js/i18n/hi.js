@@ -2023,7 +2023,7 @@ export default {
     'ui.cash.due_payments_recorded_one': "1 बकाया भुगतान दर्ज",
     'ui.quota.banner': "आज की मुफ़्त डेटा सीमा पूरी हो गई — लगभग दोपहर 12:30–1:30 बजे (भारत का समय) तक डेटा लोड या सेव नहीं हो सकता। अभी सेव किए गए बिल इसी डिवाइस में रखे गए हैं और बाद में अपने-आप सिंक हो जाएँगे।",
     'ui.admin.admin': "एडमिन",
-    'ui.admin.system_configuration_and_management': "ऐप की सेटिंग और देखरेख",
+    'ui.admin.system_configuration_and_management': "टीम का काम, डेटा और बैकअप",
     'ui.auth.login': "लॉगिन",
     'ui.auth.email_or_username': "ईमेल या यूज़रनेम",
     'ui.auth.enter_email_or_username': "ईमेल या यूज़रनेम",

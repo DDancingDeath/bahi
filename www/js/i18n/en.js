@@ -2023,7 +2023,7 @@ export default {
     'ui.cash.duplicate_days_one': "1 day has more than one cash session. Check it:",
     'ui.cash.due_payments_recorded_one': "1 due payment recorded",
     'ui.admin.admin': "Admin",
-    'ui.admin.system_configuration_and_management': "System configuration and management",
+    'ui.admin.system_configuration_and_management': "Team activity, data and backups",
     'ui.auth.login': "Log in",
     'ui.auth.email_or_username': "Email or username",
     'ui.auth.enter_email_or_username': "Email or username",
