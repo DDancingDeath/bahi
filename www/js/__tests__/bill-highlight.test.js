@@ -171,7 +171,7 @@ describe('save gate', () => {
         $('due').value = '400';
         const result = await BillChecksUI.confirmSave('test');
         expect(result.ok).toBe(false);
-        expect(toast).toHaveBeenCalledWith('Enter the name — a bill with Due needs a customer/supplier name.');
+        expect(toast).toHaveBeenCalledWith('Enter the name — a bill with Due needs a customer name.');
         expect(document.activeElement).toBe($('party'));
     });
 

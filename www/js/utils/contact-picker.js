@@ -38,6 +38,54 @@ export function contactPickerKind(win = globalThis) {
 /** @param {any} v */
 const firstText = (v) => String((Array.isArray(v) ? v.find((x) => x && String(x).trim()) : v) || '').trim();
 
+/**
+ * A phone number as the bill shows it: spaces, dashes, brackets and dots left out, and an Indian
+ * number's leading +91 / 91 / 0 dropped when 10 digits are left ("+91 98765-43210" → "9876543210").
+ * Anything else keeps its digits (and a leading +) as given.
+ * @param {*} raw
+ * @returns {string}
+ */
+export function normalisePhone(raw) {
+    const s = String(raw ?? '').trim().replace(/[\s\-().]/g, '');
+    const digits = s.replace(/^\+/, '');
+    if (/^\d+$/.test(digits)) {
+        if (digits.length === 10) return digits;
+        for (const p of ['91', '0']) if (digits.length === p.length + 10 && digits.startsWith(p)) return digits.slice(p.length);
+    }
+    return s;
+}
+
+/** @param {string} n */
+const isIndianMobile = (n) => /^[6-9]\d{9}$/.test(n);
+
+/**
+ * The first mobile number of a contact, normalised: the first marked mobile (Android), else the
+ * first that is an Indian mobile number, else the first number at all; '' when there is none.
+ * @param {Array<string | { number?: string, type?: string }>} phones
+ * @returns {string}
+ */
+export function firstMobile(phones) {
+    const all = (phones || []).map((p) => (typeof p === 'string' ? { number: p } : p || {}))
+        .map((p) => ({ type: String(p.type || '').toLowerCase(), number: normalisePhone(p.number) }))
+        .filter((p) => p.number);
+    const marked = all.filter((p) => p.type === 'mobile');
+    const pool = marked.length ? marked : all;
+    return (pool.find((p) => isIndianMobile(p.number)) || pool[0])?.number || '';
+}
+
+/**
+ * What a picked contact puts in the name field: "Name - Number", the name alone without a
+ * number, the number alone without a name.
+ * @param {string} name
+ * @param {string} phone
+ * @returns {string}
+ */
+export function contactLabel(name, phone) {
+    const n = String(name || '').trim();
+    const p = String(phone || '').trim();
+    return n && p ? `${n} - ${p}` : n || p;
+}
+
 /** @param {any} err */
 const isCancel = (err) => /cancel/i.test(String(err?.message || err || ''));
 /** @param {any} err */
@@ -66,7 +114,7 @@ async function pickNative(plugin) {
     if (!c) return { status: 'cancelled' };
     const n = c.name || {};
     const name = firstText(n.display) || [n.given, n.middle, n.family].map(firstText).filter(Boolean).join(' ');
-    const phone = firstText((c.phones || []).map((/** @type {any} */ p) => p?.number));
+    const phone = firstMobile(c.phones || []);
     return { status: 'picked', name, phone };
 }
 
@@ -75,7 +123,7 @@ async function pickWeb(contacts) {
     const list = await contacts.select(['name', 'tel'], { multiple: false });
     const c = list?.[0];
     if (!c) return { status: 'cancelled' };
-    return { status: 'picked', name: firstText(c.name), phone: firstText(c.tel) };
+    return { status: 'picked', name: firstText(c.name), phone: firstMobile(Array.isArray(c.tel) ? c.tel : [c.tel]) };
 }
 
 /**

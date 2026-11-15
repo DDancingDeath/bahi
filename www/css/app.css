@@ -5497,8 +5497,9 @@ input[type="number"] {
 :is(#billing, .bill-page) .bill-bar-label {
   display: block;
   overflow: hidden;
-  color: var(--ink-3);
-  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -7600,6 +7601,47 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   width: auto;
 }
 
+/* Billing's app-bar printer button (ui/printer-shortcut.js): the dot is the printer's state */
+.app-bar .printer-shortcut[hidden] {
+  display: none;
+}
+
+.printer-shortcut-dot {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  width: var(--sp-2);
+  height: var(--sp-2);
+  border-radius: var(--r-full);
+  outline: 2px solid var(--bg);
+  background: var(--ink-3);
+}
+
+.printer-shortcut[data-state="none"] .printer-shortcut-dot {
+  display: none;
+}
+
+.printer-shortcut[data-state="connected"] .printer-shortcut-dot {
+  background: var(--positive);
+}
+
+.printer-shortcut[data-state="connecting"] .printer-shortcut-dot {
+  background: var(--warning-dot);
+}
+
+/* The same printer panel inside Billing's sheet: no card of its own, the sheet's title is its heading */
+.printer-sheet .set-panel {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.printer-sheet .set-panel > .set-title {
+  display: none;
+}
+
 .usage-list {
   margin: 0;
   padding-left: var(--sp-5);
@@ -9627,6 +9669,28 @@ div.ins-wide,
   }
 
   .app-bar .notif-bell:hover {
+    background: var(--state-hover);
+    color: var(--ink);
+  }
+
+  .app-bar .printer-shortcut {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--control-h);
+    height: var(--control-h);
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+  }
+
+  .app-bar .printer-shortcut:hover {
     background: var(--state-hover);
     color: var(--ink);
   }

@@ -6,6 +6,7 @@ import { NavigationManager } from './ui/navigation.js';
 import { BottomNav } from './ui/bottom-nav.js';
 import { VoiceMic } from './ui/voice-mic.js';
 import { PhotoWeights } from './ui/photo-weights.js';
+import { PrinterShortcut } from './ui/printer-shortcut.js';
 import { CrashReports } from './services/crash-reports.js';
 import { BusinessSwitcher } from './ui/business-switcher.js';
 import { SyncStatus } from './ui/sync-status.js';
@@ -68,7 +69,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108gj-start-page';
+const BUILD_ID = '20261108gk-bt-shortcut';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -629,6 +630,16 @@ async function initializeUserData() {
             appContent.classList.remove('hidden');
         }
         
+        // Billing's printer button and sheet: the Settings printer panel, Settings put in first
+        PrinterShortcut.init({
+            loadPanel: async () => {
+                if (!(await TemplateLoader.ensurePage('settings'))) return null;
+                SettingsManager.syncPrinterPanel();
+                SettingsManager.updatePrinterStatus().catch(e => console.warn('Printer status:', e));
+                return document.getElementById('printerPanel');
+            }
+        });
+
         BottomNav.init({
             showTab: (tab) => NavigationManager.showTabFromNav(tab),
             // Pull-to-refresh reloads data only: filters, the bill being entered and forms stay as they are
@@ -1064,6 +1075,12 @@ window.app = {
         open: (page, evt) => BusinessSwitcher.openRentals(page, evt)
     },
     
+    // Billing's Bluetooth printer sheet (app bar, next to the bell)
+    printerSheet: {
+        open: () => PrinterShortcut.open(),
+        close: () => PrinterShortcut.close()
+    },
+
     // Notifications inbox (#12)
     notifications: {
         toggle: () => NotificationsManager.toggle(),

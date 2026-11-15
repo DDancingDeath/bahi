@@ -33,6 +33,9 @@ export const DATA_FRESHNESS_CHANGED = 'data:freshness';
 /** A bill's print status on this phone changed (utils/print-status.js, #132); payload: its key. */
 export const PRINT_STATUS_CHANGED = 'printStatus:changed';
 
+/** The Bluetooth printer's state was redrawn (services/printer.js updateStatus): connected, connecting, saved… */
+export const PRINTER_CHANGED = 'printer:changed';
+
 export const REMINDERS_CHANGED = 'reminders:changed';
 
 /** Billing's purchase or retail bill was saved or cleared (purchase.js, retail-sale.js); payload `'purchase'|'sale'`. */

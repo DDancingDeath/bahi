@@ -94,6 +94,28 @@
     color: var(--ink);
   }
 
+  .app-bar .printer-shortcut {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--control-h);
+    height: var(--control-h);
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+  }
+
+  .app-bar .printer-shortcut:hover {
+    background: var(--state-hover);
+    color: var(--ink);
+  }
+
   .app-bar .notif-badge {
     top: -2px;
     right: -4px;

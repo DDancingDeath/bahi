@@ -9,7 +9,7 @@
  * @module utils/party-match
  */
 
-import { partyDisplayNames, partyNameKey, partyNameSpelling } from './parties.js';
+import { nameWithoutPhone, partyDisplayNames, partyNameKey, partyNameSpelling } from './parties.js';
 import { devanagariToLatin } from './item-name-autofill.js';
 import { buildAging } from './aging.js';
 import { billDateOf } from './history-filters.js';
@@ -101,7 +101,7 @@ export function partyEntries(bills, { today = new Date(), excludeId = null } = {
  */
 export function matchParties(entries, typed, { limit = 5 } = {}) {
     const key = partyNameKey(typed);
-    const words = looseWords(typed);
+    const words = looseWords(nameWithoutPhone(typed));
     if (!key || !words.length) return [];
     return (entries || [])
         .filter(e => e.key !== key && words.every(w => e.words.some(x => x.startsWith(w))))
@@ -144,7 +144,7 @@ export function editDistance(a, b, max) {
 export function closeParty(entries, typed) {
     const key = partyNameKey(typed);
     if (!key || (entries || []).some(e => e.key === key)) return null;
-    const core = coreOf(looseWords(typed));
+    const core = coreOf(looseWords(nameWithoutPhone(typed)));
     if (core.length < 3) return null;
     /** @type {?PartyEntry} */
     let best = null;

@@ -209,7 +209,7 @@ describe('payment and name (moved from the save paths, behaviour unchanged)', ()
     test('Due without a name blocks with the #68 message split into EN / HI', () => {
         const issue = find(evaluateBill(draft({ payment: { due: 400 }, partyName: '  ' }), ctx()), 'party-required');
         expect(issue).toMatchObject({ field: 'party', severity: 'block', overridable: false });
-        expect(issue.en).toBe('Enter the name — a bill with Due needs a customer/supplier name.');
+        expect(issue.en).toBe('Enter the name — a bill with Due needs a customer name.');
         expect(issue.hi).toMatch(/^नाम लिखें/);
     });
 

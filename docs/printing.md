@@ -11,6 +11,19 @@ Classic, SPP/RFCOMM), wrapped by `cordovaTransport()` in `www/js/services/printe
 `cordova-plugin-android-permissions` asks for `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`
 (Android 12+) and location. Capacitor runs Cordova plugins as they are.
 
+The website has no Bluetooth path (no Web Bluetooth / Web Serial transport): Settings says
+"Printing works in the Android app", and Billing's printer button is not shown.
+
+### Billing's printer button
+
+`www/js/ui/printer-shortcut.js`: a button in the app bar next to the bell, on Billing and
+Wholesale, only where `PrinterService.isAvailable()` (the plugin is there). Its dot is
+`data-state` connected / connecting / saved / none, redrawn on `PRINTER_CHANGED`
+(`utils/events.js`, emitted by `PrinterService.updateStatus()`). A tap puts the Settings page in
+(`TemplateLoader.ensurePage('settings')`) and moves its `#printerPanel` into the `#printerSheet`
+sheet; closing (✕, scrim, Esc, Back, or leaving the page) moves it back. One copy of the
+panel, the same handlers, and the bill on the form is never touched.
+
 The two Capacitor printer plugins (`@capacitor-community/bluetooth-le`,
 `capacitor-thermal-printer`) and the `escpos-buffer` package were never used by the app
 and were removed (#135). `android/app/capacitor.build.gradle` and

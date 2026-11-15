@@ -6,8 +6,8 @@ Managers and members open the app on Billing; the owner opens on Today. A reload
 
 While a bill is being typed:
 
-- **Customer / supplier name**: typing lists the names already on the bills on this phone
-  (purchases for a supplier, retail sales for a customer), newest first, with what is open
+- **Customer name** (Purchase and Retail sale both say "Customer"): typing lists the names already on the bills on this phone
+  (purchases on Purchase, retail sales on Retail sale), newest first, with what is open
   on them, the same amount as the "Already owes" line (PARTY). Latin and Hindi spellings
   find each other ("ramesh" finds "रमेश कुमार"). Tap a name, or pick it with ↓ ↑ and Enter
   (Esc closes the list). Nothing extra is read from the internet. After you leave the
@@ -18,8 +18,12 @@ While a bill is being typed:
   app the phone asks once for the Contacts permission on the first tap; if it was refused, the
   app says where to allow it (phone Settings › Apps › this app › Permissions › Contacts). In
   Chrome on Android it opens Chrome's contact list. Elsewhere (computer, iPhone, other browsers)
-  the tap says picking contacts isn't available and puts you in the name field. Only the name is
-  used; nothing from the contacts is saved except the name on the bill. Hidden for roles with
+  the tap says picking contacts isn't available and puts you in the name field. The field is filled
+  as **Name - Number** (e.g. "Ramesh - 9876543210": the first mobile number, an Indian number as 10
+  digits; the name alone when there is no number, the number alone when there is no name), and that
+  is the name saved on the bill. Older bills under the plain name still show: the "Already owes" line
+  falls back to them, marked "(older bills)", and the suggestions and "Did you mean" offer the plain
+  name; nothing is merged by itself. Hidden for roles with
   Phone contacts off (Settings › Roles & access).
 - **Line amount** (BF-LINE) = kg × rate, rounded to the rupee.
 - **Bill total** (BF-TOTAL) = the sum of the lines.
@@ -48,6 +52,11 @@ While a bill is being typed:
   saving it; the message itself says "DRAFT, not saved". Save first to record it.
 - **Print** saves the bill, then prints it. With no printer connected the
   receipt is only shown as a picture, and the message says "Not printed".
+- **Printer button** (top bar, next to the bell; Billing and Wholesale, Android app only): a dot shows the
+  Bluetooth printer (green connected, amber connecting, grey saved but not connected, none when no printer is saved).
+  A tap opens the printer controls of Settings › Printing & receipts in a sheet over the bill: switch on, status,
+  saved printers (**Connect** with one tap), Scan, Test print, Disconnect. Closing the sheet leaves the bill as it was.
+  The website has no Bluetooth printing, so the button is not shown there.
 - "Save draft" keeps an unfinished bill; an unsaved bill is offered back at the
   next start. If that bill was saved meanwhile, Restore (or loading the draft)
   offers to open the saved bill instead of saving it again; an unsaved edit goes
@@ -58,9 +67,9 @@ While a bill is being typed:
   switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
   The bill is for today ("Today"); the owner can tap **Change date** to pick another day. Save draft and Clear
   (which asks first when the bill has lines) are in the ⋯ menu beside Purchase / Retail sale; **Drafts** is there too, with
-  its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Supplier / Customer, Item, Rate,
+  its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Customer, Item, Rate,
   Weight) sits on the field's top edge and stays there after typing. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
-  screen the Save / Print row starts with the bill's total (Total payable / Total receivable).
+  screen the Save / Print row starts with the bill's total: a short label (Payable / Receivable, 14 px) over the amount in large bold figures.
 - **Voice** (VB-1; off until switched on in Settings › Billing tools › Voice billing): tap 🎤 and
   say the item, weight and rate. Several lines can be said in one go ("… and …"),
   and "customer" before a name fills the customer. The app shows what it understood

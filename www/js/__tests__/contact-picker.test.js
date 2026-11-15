@@ -6,7 +6,7 @@ jest.mock('../ui/ui-manager.js', () => ({ UIManager: { showToast: jest.fn() } })
 
 import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
-import { contactPickerKind, resetContactPickerState } from '../utils/contact-picker.js';
+import { contactLabel, contactPickerKind, firstMobile, normalisePhone, resetContactPickerState } from '../utils/contact-picker.js';
 import { setLang } from '../i18n/index.js';
 import en from '../i18n/en.js';
 import hi from '../i18n/hi.js';
@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('Android app (native plugin)', () => {
-    test('asks for the permission on first use, then fills the name and returns the first phone', async () => {
+    test('asks for the permission on first use, then fills "Name - Number" with the first mobile, normalised', async () => {
         const plugin = nativePlugin();
         installNative(plugin);
         installWeb(jest.fn());
@@ -56,9 +56,9 @@ describe('Android app (native plugin)', () => {
         expect(plugin.requestPermissions).toHaveBeenCalledTimes(1);
         expect(plugin.pickContact).toHaveBeenCalledWith({ projection: { name: true, phones: true } });
         expect(navigator.contacts.select).not.toHaveBeenCalled();
-        expect(input().value).toBe('Ram Lal');
+        expect(input().value).toBe('Ram Lal - 9876543210');
         expect(seen).toHaveBeenCalled();
-        expect(res).toEqual({ name: 'Ram Lal', phone: '+91 98765 43210' });
+        expect(res).toEqual({ name: 'Ram Lal', phone: '9876543210' });
         expect(UIManager.showToast).not.toHaveBeenCalled();
     });
 
@@ -95,7 +95,7 @@ describe('Android app (native plugin)', () => {
 
         plugin.checkPermissions.mockResolvedValue({ contacts: 'granted' });
         await Helpers.pickContact('n');
-        expect(input().value).toBe('Ram Lal');
+        expect(input().value).toBe('Ram Lal - 9876543210');
     });
 
     test('cancel is silent (rejected with a cancel message, or no contact)', async () => {
@@ -127,12 +127,24 @@ describe('Android app (native plugin)', () => {
 });
 
 describe('browser (Contact Picker API)', () => {
-    test('fills the name and returns the first phone', async () => {
-        installWeb(jest.fn().mockResolvedValue([{ name: ['Asha'], tel: ['9000000001', '9000000002'] }]));
+    test('fills "Name - Number" with the first mobile number', async () => {
+        installWeb(jest.fn().mockResolvedValue([{ name: ['Asha'], tel: ['022 2345 6789', '+91 90000-00001', '9000000002'] }]));
         expect(contactPickerKind(window)).toBe('web');
+        const changed = jest.fn();
+        input().addEventListener('change', changed);
         expect(await Helpers.pickContact('n')).toEqual({ name: 'Asha', phone: '9000000001' });
         expect(navigator.contacts.select).toHaveBeenCalledWith(['name', 'tel'], { multiple: false });
+        expect(input().value).toBe('Asha - 9000000001');
+        expect(changed).toHaveBeenCalled();
+    });
+
+    test('no number: the name alone; no name: the number alone', async () => {
+        const select = jest.fn().mockResolvedValueOnce([{ name: ['Asha'], tel: [] }]).mockResolvedValueOnce([{ name: [], tel: ['098765 43210'] }]);
+        installWeb(select);
+        await Helpers.pickContact('n');
         expect(input().value).toBe('Asha');
+        await Helpers.pickContact('n');
+        expect(input().value).toBe('9876543210');
     });
 
     test('closing the picker is silent; a SecurityError shows a toast', async () => {
@@ -180,4 +192,38 @@ test('every message exists in English and Hindi', () => {
         expect(hi[k]).toBeTruthy();
         expect(hi[k]).not.toBe(en[k]);
     }
+});
+
+describe('"Name - Number" (owner, v730)', () => {
+    test('Indian numbers become 10 digits; other numbers keep their digits', () => {
+        expect(normalisePhone('+91 98765-43210')).toBe('9876543210');
+        expect(normalisePhone('91 98765 43210')).toBe('9876543210');
+        expect(normalisePhone('0 (98765) 43210')).toBe('9876543210');
+        expect(normalisePhone('98765.43210')).toBe('9876543210');
+        expect(normalisePhone('+44 20 7946 0958')).toBe('+442079460958');
+        expect(normalisePhone('12345')).toBe('12345');
+        expect(normalisePhone('')).toBe('');
+    });
+
+    test('the first number marked mobile, else the first Indian mobile, else the first number', () => {
+        expect(firstMobile([{ type: 'home', number: '9111111111' }, { type: 'mobile', number: '+91 98765 43210' }])).toBe('9876543210');
+        expect(firstMobile(['022 2345 6789', '98765 43210', '9000000002'])).toBe('9876543210');
+        expect(firstMobile(['022 2345 6789'])).toBe('2223456789');
+        expect(firstMobile([])).toBe('');
+    });
+
+    test('Android: a contact with no name fills the number alone', async () => {
+        installNative(nativePlugin({
+            checkPermissions: jest.fn().mockResolvedValue({ contacts: 'granted' }),
+            pickContact: jest.fn().mockResolvedValue({ contact: { name: {}, phones: [{ type: 'mobile', number: '+91 98765-43210' }] } }),
+        }));
+        await Helpers.pickContact('n');
+        expect(input().value).toBe('9876543210');
+    });
+
+    test('the separator is a plain " - "', () => {
+        expect(contactLabel('Ramesh', '9876543210')).toBe('Ramesh - 9876543210');
+        expect(contactLabel('Ramesh', '')).toBe('Ramesh');
+        expect(contactLabel('', '9876543210')).toBe('9876543210');
+    });
 });
