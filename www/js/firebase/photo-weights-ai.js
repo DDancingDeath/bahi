@@ -70,23 +70,34 @@ function base64Of(blob) {
     });
 }
 
+const aborted = () => Object.assign(new Error('cancelled'), { name: 'AbortError' });
+
+/** Stops before anything is uploaded once the sheet is cancelled or timed out (no free quota used). */
+function stopIfAborted(signal) {
+    if (signal?.aborted) throw aborted();
+}
+
 /**
  * Sends one photo; resolves to the model's JSON answer (utils/photo-weights normaliseReading reads it).
  * Rejects with the SDK's error (e.g. 429 when the free daily limit is used up); never retries.
+ * Rejects with an AbortError when `signal` aborts; the request in flight is cancelled too.
  * @param {Blob} blob - the downscaled JPEG
  * @param {{signal?: AbortSignal, deps?: Object}} [opts]
  * @returns {Promise<Object>}
  */
 export async function readWeightsPhoto(blob, { signal, deps } = {}) {
+    stopIfAborted(signal);
     const model = await modelFor({ ...defaults(), ...(deps || {}) });
+    stopIfAborted(signal);
     const data = await base64Of(blob);
+    stopIfAborted(signal);
     const call = model.generateContent([
         { text: PHOTO_WEIGHTS_PROMPT },
         { inlineData: { mimeType: blob.type || 'image/jpeg', data } }
-    ]);
+    ], signal ? { signal } : undefined);
+    // Settle at once on abort even if the SDK is slow to; the late result or error of `call` is consumed here
     const result = await new Promise((resolve, reject) => {
-        if (signal?.aborted) reject(Object.assign(new Error('cancelled'), { name: 'AbortError' }));
-        signal?.addEventListener('abort', () => reject(Object.assign(new Error('cancelled'), { name: 'AbortError' })), { once: true });
+        signal?.addEventListener('abort', () => reject(aborted()), { once: true });
         call.then(resolve, reject);
     });
     return parseModelJson(result.response.text());

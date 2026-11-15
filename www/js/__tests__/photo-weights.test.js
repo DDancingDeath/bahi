@@ -165,6 +165,28 @@ describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
         expect(sdk[2].initializeAppCheck).toHaveBeenCalled();
         expect(calls.ai.useLimitedUseAppCheckTokens).toBe(true);
     });
+    test('cancelled before the upload: generateContent is never called (no free quota used)', async () => {
+        const generate = jest.fn();
+        const { sdk } = fakeSdk(generate);
+        const ctrl = new AbortController();
+        const deps = { loadSdk: async () => { ctrl.abort(); return sdk; }, options: () => ({}), win: {}, startAppCheck: jest.fn(), model: 'm' };
+        await expect(readWeightsPhoto(new Blob(['x']), { signal: ctrl.signal, deps })).rejects.toMatchObject({ name: 'AbortError' });
+        expect(generate).not.toHaveBeenCalled();
+    });
+
+    test('the cancel signal goes to the SDK, and a cancel during the request ends the read at once', async () => {
+        let finish;
+        const generate = jest.fn(() => new Promise((resolve, reject) => { finish = reject; }));
+        const { sdk } = fakeSdk(generate);
+        const ctrl = new AbortController();
+        const deps = { loadSdk: async () => sdk, options: () => ({}), win: {}, startAppCheck: jest.fn(), model: 'm' };
+        const reading = readWeightsPhoto(new Blob(['x']), { signal: ctrl.signal, deps });
+        for (let i = 0; i < 50 && !generate.mock.calls.length; i++) await new Promise(r => setTimeout(r, 5));
+        expect(generate.mock.calls[0][1]).toEqual({ signal: ctrl.signal });
+        ctrl.abort();
+        await expect(reading).rejects.toMatchObject({ name: 'AbortError' });
+        finish(new DOMException('Aborted', 'AbortError'));
+    });
 });
 
 const DOM = `
@@ -350,6 +372,24 @@ describe('check sheet', () => {
         expect(sheet().querySelector('[data-photo-error]').dataset.photoError).toBe('msg.photo_weights.offline');
         expect(read).not.toHaveBeenCalled();
         online.mockRestore();
+    });
+
+    test('Cancel while reading: the sheet closes, nothing is added and the abort shows no error', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        let signal;
+        const read = jest.fn((blob, opts) => new Promise((resolve, reject) => {
+            signal = opts.signal;
+            opts.signal.addEventListener('abort', () => reject(Object.assign(new Error('cancelled'), { name: 'AbortError' })));
+        }));
+        const done = PhotoWeightsFlow.read(new Blob(['x']), 'purchase', { prepare, read });
+        await tick();
+        sheet().querySelector('[data-dismiss]').click();
+        await expect(done).resolves.toBe(false);
+        await tick();
+        expect(signal.aborted).toBe(true);
+        expect(sheet()).toBeNull();
+        expect(warn).not.toHaveBeenCalled();
+        expect(PurchaseManager.getWeights()).toEqual([]);
     });
 
     test('while the bill is saving nothing is added', async () => {
