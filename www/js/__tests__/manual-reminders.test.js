@@ -92,25 +92,61 @@ describe('Today: manual reminders', () => {
         AppState.userName = 'Owner';
     });
 
-    test('everyone sees due ones and Done; only owner/manager get Cancel and Add; text escaped', () => {
+    test('everyone sees due ones and Done; only owner/manager get Cancel and the + in the card head; text escaped', () => {
         ManualReminders.list = LIST;
+        Object.assign(AppState, { retailSalesHistory: [], purchaseHistory: [], salesHistory: [] });
+        document.body.innerHTML = '<div id="todayReminders"></div>';
         AppState.userRole = 'staff';
         const member = ManualReminders.html();
         expect(member).toContain('&lt;b&gt;Pay&lt;/b&gt; Gupta');
         expect(member).toContain('reminderDone(');
         expect(member).not.toContain('reminderCancel(');
-        expect(member).not.toContain('reminderForm(true)');
+        DayManager.renderReminders();
+        expect(document.querySelector('.today-reminders-add')).toBeNull();
         AppState.userRole = 'manager';
         expect(ManualReminders.html()).toContain('reminderCancel(');
-        expect(ManualReminders.html()).toContain('reminderForm(true)');
+        DayManager.renderReminders();
+        const add = document.querySelector('.disclosure-head > .today-reminders-add');
+        expect(add.getAttribute('data-onclick')).toBe('day.reminderForm(true)');
+        expect(add.getAttribute('aria-label')).toBe('Add reminder');
     });
 
-    test('members with nothing due see no block; owners see the Add button', () => {
+    test('an empty To do takes no room; with nothing to remind, owners get only a small Add link', () => {
         ManualReminders.list = [];
+        Object.assign(AppState, { retailSalesHistory: [], purchaseHistory: [], salesHistory: [] });
+        document.body.innerHTML = '<div id="todayReminders"></div>';
         AppState.userRole = 'staff';
         expect(ManualReminders.html()).toBe('');
+        DayManager.renderReminders();
+        expect(document.getElementById('todayReminders').hidden).toBe(true);
         AppState.userRole = 'owner';
-        expect(ManualReminders.html()).toContain('reminderForm(true)');
+        expect(ManualReminders.html()).toBe('');
+        localStorage.setItem('happa.restoreDrill', JSON.stringify({ uid: AppState.currentUser?.uid || '', at: Date.now(), exportedAt: null, docs: 1 }));
+        DayManager.renderReminders();
+        const host = document.getElementById('todayReminders');
+        expect(host.hidden).toBe(false);
+        expect(host.querySelector('.disclosure')).toBeNull();
+        expect(host.querySelector('.today-reminders-link').getAttribute('data-onclick')).toBe('day.reminderForm(true)');
+        localStorage.removeItem('happa.restoreDrill');
+    });
+
+    test('Add opens the closed card on the form and remembers it open', () => {
+        AppState.userRole = 'owner';
+        ManualReminders.list = LIST;
+        jest.spyOn(FirebaseService, 'listenOpenReminders').mockImplementation(() => () => {});
+        Object.assign(AppState, { retailSalesHistory: [], purchaseHistory: [], salesHistory: [] });
+        document.body.innerHTML = '<div id="todayReminders"></div>';
+        localStorage.removeItem('happa.open.today-reminders');
+        ManualReminders.onChange = () => DayManager.renderReminders();
+        DayManager.renderReminders();
+        expect(document.getElementById('todayRemindersBody').hidden).toBe(true);
+        ManualReminders.form(true);
+        expect(document.getElementById('todayRemindersBody').hidden).toBe(false);
+        expect(document.getElementById('todayRemindersToggle').getAttribute('aria-expanded')).toBe('true');
+        expect(document.querySelector('#todayRemindersBody #reminderTitle')).not.toBeNull();
+        expect(localStorage.getItem('happa.open.today-reminders')).toBe('1');
+        ManualReminders.form(false);
+        localStorage.removeItem('happa.open.today-reminders');
     });
 
     test('save checks first, then writes as the signed-in person', async () => {

@@ -3,7 +3,7 @@
  * it, sees it on Today (RB-11), then pays the rest; the entries are append-only in Firestore; the page
  * works in Hindi; managers and members cannot open it.
  */
-const { test, expect, login, showTab, clickAfterTyping } = require('./support/app');
+const { test, expect, login, showTab, clickAfterTyping, openDisclosure } = require('./support/app');
 const { listDocs } = require('./support/emulator');
 
 const row = (page, name) => page.locator('#recurringBody .row[data-rbill]', { hasText: name });
@@ -43,6 +43,9 @@ test('the owner adds bimonthly electricity, enters a bill, part-pays, then pays 
     await showTab(page, 'day');
     const bills = page.locator('#todayReminders [data-reminder="bills"]');
     await expect(bills).toContainText(/Bills due: \d+, ₹[\d,]+/);
+    // Reminders start closed to one line: its chip, then open it for the button
+    await expect(page.locator('#todayRemindersToggle')).toContainText(/Bills \d+/);
+    await openDisclosure(page, 'todayReminders');
     await bills.locator('button').click();
     await expect(page.locator('#recurring.tab.active')).toBeVisible();
     await expect(state(page, name)).toBeVisible({ timeout: 15000 });

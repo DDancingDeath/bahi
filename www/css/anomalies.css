@@ -1,31 +1,26 @@
 /* Anomalies (#187, #40; 5.8a): Today's Day report card and the Anomalies page on the shared components */
 
-/* Today: Day report card */
-.anom-card-head {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
+/* Today: Day report card, a disclosure (closed: date and the counts; open: the report) */
+.day-report .disclosure-body {
+  padding: var(--sp-2) var(--sp-4) var(--sp-4);
 }
 
-.anom-card-head > .anom-card-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: var(--fs-body);
-  font-weight: var(--w-strong);
-}
-
-.anom-card-tools {
+.anom-card-sub-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
 }
 
 .anom-card-sub {
-  margin: var(--sp-2) 0;
   font-size: var(--fs-sm);
 }
 
+.anom-all-clear {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
 .anom-chips {
   display: flex;
   flex-wrap: wrap;

@@ -478,10 +478,11 @@
     font-size: var(--fs-caption);
   }
 
-  /* ---------- Today: hero strip, the day's figures | needs attention (redesign 5.1) ---------- */
+  /* ---------- Today: hero strip, then the day's figures (left) | needs attention (right, from the key figures down) ---------- */
   #dayTodayContent:not([style*="none"]) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    grid-template-rows: repeat(4, auto) 1fr;
     grid-auto-flow: row dense;
     column-gap: var(--sp-6);
     align-items: start;
@@ -494,6 +495,14 @@
 
   #dayTodayContent > .today-main { grid-column: 1; }
   #dayTodayContent > .today-side { grid-column: 2; }
+
+  /* Fixed rows: the side column starts beside the key figures, whatever above it is hidden */
+  .today-summary > .updating-note { grid-row: 1; }
+  .today-summary > .tip-health { grid-row: 2; }
+  .today-summary > .hero { grid-row: 3; }
+  .today-summary > .today-main-top { grid-row: 4; }
+  .today-summary > .today-side { grid-row: 4 / span 2; }
+  .today-summary > .today-main:not(.today-main-top) { grid-row: 5; }
 
   #dayTodayContent .hero {
     margin-bottom: var(--sp-2);
@@ -511,10 +520,13 @@
 
   #dayTodayContent .today-side > *,
   #dayTodayContent .today-side .section-title,
-  #dayTodayContent .today-main > .section-title:first-child {
+  #dayTodayContent .today-main-top > .section-title {
     margin-top: 0;
   }
 
+  .today-main-top > .today-cash-prompt {
+    margin: 0 0 var(--sp-4);
+  }
   /* Today › Cash (5.2a): forms keep a readable width */
   .cash-body {
     max-width: 760px;
