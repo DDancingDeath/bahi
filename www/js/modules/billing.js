@@ -973,6 +973,11 @@ const BillingManager = {
             }
             const draftsBtn = document.getElementById('draftsBtn');
             if (draftsBtn) draftsBtn.hidden = !(count > 0);
+            const badge = document.getElementById('draftBadge');
+            if (badge) {
+                badge.textContent = String(count);
+                badge.hidden = !(count > 0);
+            }
         } catch (error) {
             console.error('Failed to update draft count:', error);
         }

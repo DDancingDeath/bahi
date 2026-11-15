@@ -1,21 +1,19 @@
 <div id="billing" class="tab active">
     <header class="page-head"><h2 data-i18n="ui.nav.billing">Billing</h2></header>
 
+        <div class="bill-mode-row">
         <div class="seg bill-mode" role="group">
             <button type="button" class="active" id="purchaseModeBtn" aria-pressed="true" data-onclick="billing.switchMode('purchase', event)"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchase">Purchase</span></button>
             <button type="button" id="saleModeBtn" aria-pressed="false" data-onclick="billing.switchMode('sale', event)"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.billing.sale">Retail sale</span></button>
         </div>
-        
-        <!-- Drafts -->
-        <div class="bill-toolbar">
-            <button type="button" id="draftsBtn" data-onclick="billing.showDrafts()" class="btn btn-ghost" hidden>
-                <svg class="i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
-                <span data-i18n="ui.billing.drafts">Drafts</span>
-                <span class="bill-count" id="draftCount">0</span>
-            </button>
             <details class="bill-menu" id="billMenu">
-                <summary class="btn btn-ghost btn-icon" title="More" aria-label="More" data-i18n-title="ui.billing.more" data-i18n-aria-label="ui.billing.more"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg></summary>
+                <summary class="btn btn-ghost btn-icon" title="More" aria-label="More" data-i18n-title="ui.billing.more" data-i18n-aria-label="ui.billing.more"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg><span class="bill-menu-badge" id="draftBadge" aria-hidden="true" hidden>0</span></summary>
                 <div class="panel bill-menu-list">
+                    <button type="button" id="draftsBtn" data-onclick="billing.showDrafts()" class="btn btn-ghost" hidden>
+                        <svg class="i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
+                        <span data-i18n="ui.billing.drafts">Drafts</span>
+                        <span class="bill-count" id="draftCount">0</span>
+                    </button>
                     <button type="button" id="saveDraftBtn" data-onclick="billing.saveDraft()" class="btn btn-ghost" data-i18n="ui.billing.save_draft">Save draft</button>
                     <button type="button" id="clearBillBtn" data-onclick="billing.confirmClear()" class="btn btn-ghost bill-clear" data-i18n="ui.billing.clear">Clear</button>
                 </div>
@@ -38,7 +36,7 @@
         <!-- PURCHASE SECTION -->
         <div id="purchaseSection" style="display: block;">
         <div class="bill-main">
-        <div class="bill-form-field field bill-customer">
+        <div class="field-float bill-customer">
             <label for="customerName" data-i18n="ui.billing.supplier_label">Supplier</label>
             <div class="bill-party">
                 <input type="text" class="input" id="customerName" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_supplier_name_optional"/>
@@ -47,20 +45,13 @@
             <datalist id="customerOptions"></datalist>
         </div>
 
-        <h3 class="bill-section-title" data-i18n="ui.billing.new_line">New line</h3>
-        <div class="panel panel-pad bill-line-form">
-            <button type="button" class="btn btn-tonal btn-block" data-voice-mic id="voiceMicPurchase" hidden data-onclick="voice.start('purchase')" data-i18n-title="ui.voice.mic_title" title="Say item, weight and rate"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg><span data-i18n="ui.voice.mic">Speak the line</span></button>
-            <div class="voice-strip" hidden>
-                <p class="voice-transcript" id="voiceTranscriptPurchase" role="status" aria-live="polite"></p>
-                <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoPurchase" hidden data-onclick="voice.undo('purchase')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
-            </div>
-            <div class="bill-form-field field">
-                <label for="billItem" data-i18n="ui.common.item_2">Item</label>
-                <select id="billItem" class="input" data-onchange="billing.loadRates()"></select>
-            </div>
-
-            <div class="bill-line-grid">
-                <div class="bill-form-field field">
+        <div class="panel panel-pad bill-line-form" role="group" aria-label="New line" data-i18n-aria-label="ui.billing.new_line">
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-item">
+                    <label for="billItem" data-i18n="ui.common.item_2">Item</label>
+                    <select id="billItem" class="input" data-onchange="billing.loadRates()"></select>
+                </div>
+                <div class="field-float bill-entry-rate">
                     <label for="billRate" data-i18n="ui.common.rate">Rate</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
@@ -68,17 +59,23 @@
                     </div>
                     <datalist id="rateOptions"></datalist>
                 </div>
-                <div class="bill-form-field field">
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicPurchase" hidden data-onclick="voice.start('purchase')" title="Say item, weight and rate" aria-label="Speak the line" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
+            </div>
+            <div class="voice-strip" hidden>
+                <p class="voice-transcript" id="voiceTranscriptPurchase" role="status" aria-live="polite"></p>
+                <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoPurchase" hidden data-onclick="voice.undo('purchase')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
+            </div>
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-weight">
                     <label for="newWeight" data-i18n="ui.billing.weight_label">Weight</label>
                     <div class="adorn">
-                        <input type="number" class="input" inputmode="decimal" id="newWeight" placeholder="Weight" data-onenter="event.preventDefault(); billing.addWeight(true)" data-i18n-placeholder="ui.billing.enter_weight"/>
+                        <input type="number" class="input" inputmode="decimal" id="newWeight" placeholder="0" data-onenter="event.preventDefault(); billing.addWeight(true)"/>
                         <span class="adorn-post" aria-hidden="true">kg</span>
                     </div>
                 </div>
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-photo-weights id="photoWeightsPurchase" hidden data-onclick="photoWeights.pick('purchase')" title="Take a photo of the weight sheet" aria-label="Photo of weights" data-i18n-title="ui.photo_weights.button_title" data-i18n-aria-label="ui.photo_weights.button"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-camera"/></svg></button>
                 <button type="button" class="btn" data-add-weight data-onclick="billing.addWeight()" data-i18n="ui.billing.add">Add</button>
             </div>
-
-            <button type="button" class="btn btn-tonal btn-block" data-photo-weights id="photoWeightsPurchase" hidden data-onclick="photoWeights.pick('purchase')" data-i18n-title="ui.photo_weights.button_title" title="Take a photo of the weight sheet"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-camera"/></svg><span data-i18n="ui.photo_weights.button">Photo of weights</span></button>
             <input type="file" id="photoWeightsInput" accept="image/*" capture="environment" hidden data-onchange="photoWeights.picked(this)" data-i18n-aria-label="ui.photo_weights.button_title" aria-label="Take a photo of the weight sheet"/>
 
             <div id="weightsDisplay" class="weights-compact"></div>
@@ -231,7 +228,7 @@
         <!-- SALE SECTION -->
         <div id="saleSection" class="bill-sale" style="display: none;">
         <div class="bill-main">
-        <div class="bill-form-field field bill-customer">
+        <div class="field-float bill-customer">
             <label for="saleCustomerName" data-i18n="ui.billing.customer_label">Customer</label>
             <div class="bill-party">
                 <input type="text" class="input" id="saleCustomerName" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_customer_name_optional"/>
@@ -240,20 +237,13 @@
             <datalist id="saleCustomerOptions"></datalist>
         </div>
 
-        <h3 class="bill-section-title" data-i18n="ui.billing.new_line">New line</h3>
-        <div class="panel panel-pad bill-line-form">
-            <button type="button" class="btn btn-tonal btn-block" data-voice-mic id="voiceMicSale" hidden data-onclick="voice.start('sale')" data-i18n-title="ui.voice.mic_title" title="Say item, weight and rate"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg><span data-i18n="ui.voice.mic">Speak the line</span></button>
-            <div class="voice-strip" hidden>
-                <p class="voice-transcript" id="voiceTranscriptSale" role="status" aria-live="polite"></p>
-                <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoSale" hidden data-onclick="voice.undo('sale')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
-            </div>
-            <div class="bill-form-field field">
-                <label for="saleItem" data-i18n="ui.common.item_2">Item</label>
-                <select id="saleItem" class="input" data-onchange="billing.loadSaleRates()"></select>
-            </div>
-
-            <div class="bill-line-grid">
-                <div class="bill-form-field field">
+        <div class="panel panel-pad bill-line-form" role="group" aria-label="New line" data-i18n-aria-label="ui.billing.new_line">
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-item">
+                    <label for="saleItem" data-i18n="ui.common.item_2">Item</label>
+                    <select id="saleItem" class="input" data-onchange="billing.loadSaleRates()"></select>
+                </div>
+                <div class="field-float bill-entry-rate">
                     <label for="saleRate" data-i18n="ui.common.rate">Rate</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
@@ -261,10 +251,17 @@
                     </div>
                     <datalist id="saleRateOptions"></datalist>
                 </div>
-                <div class="bill-form-field field">
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicSale" hidden data-onclick="voice.start('sale')" title="Say item, weight and rate" aria-label="Speak the line" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
+            </div>
+            <div class="voice-strip" hidden>
+                <p class="voice-transcript" id="voiceTranscriptSale" role="status" aria-live="polite"></p>
+                <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoSale" hidden data-onclick="voice.undo('sale')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
+            </div>
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-weight">
                     <label for="saleWeight" data-i18n="ui.billing.weight_label">Weight</label>
                     <div class="adorn">
-                        <input type="number" class="input" inputmode="decimal" id="saleWeight" placeholder="Weight" data-onenter="event.preventDefault(); billing.addSaleWeight()" data-i18n-placeholder="ui.billing.enter_weight"/>
+                        <input type="number" class="input" inputmode="decimal" id="saleWeight" placeholder="0" data-onenter="event.preventDefault(); billing.addSaleWeight()"/>
                         <span class="adorn-post" aria-hidden="true">kg</span>
                     </div>
                 </div>

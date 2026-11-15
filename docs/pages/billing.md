@@ -55,8 +55,9 @@ While a bill is being typed:
   shows only while Cash + Online + Due do not add up to the bill; Labour shows its working and amount only when
   switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
   The bill is for today ("Today"); the owner can tap **Change date** to pick another day. Save draft and Clear
-  (which asks first when the bill has lines) are in the ⋯ menu at the top; **Drafts** shows only when there are
-  drafts. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
+  (which asks first when the bill has lines) are in the ⋯ menu beside Purchase / Retail sale; **Drafts** is there too, with
+  its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Supplier / Customer, Item, Rate,
+  Weight) sits on the field's top edge and stays there after typing. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
   screen the Save / Print row starts with the bill's total (Total payable / Total receivable).
 - **Voice** (VB-1; off until switched on in Settings › Billing tools › Voice billing): tap 🎤 and
   say the item, weight and rate. Several lines can be said in one go ("… and …"),
@@ -68,7 +69,7 @@ While a bill is being typed:
   last voice change; Settings can add a short beep after listening. See
   [voice-billing.md](../voice-billing.md).
 - **Photo of weights** (PW-1; Purchase only; hidden until the owner switches it on in
-  Settings › Billing tools › Photo of weights): tap **Photo of weights** under the weight box
+  Settings › Billing tools › Photo of weights): tap the camera button beside the weight box
   and photograph the handwritten weight sheet. The app reads the weights and shows them
   for checking: the photo with a numbered box on each weight, then the weights in the
   same order. Yellow ones were not clear; crossed-out ones are listed apart and left out.

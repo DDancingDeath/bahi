@@ -230,7 +230,7 @@ export function renderNameHint(kind, draft = undefined) {
         el.id = hintId(kind);
         el.className = 'party-name-hint';
         el.setAttribute('role', 'status');
-        (input.closest('.bill-form-field') || input).insertAdjacentElement('afterend', el);
+        (input.closest('.bill-form-field, .field-float') || input).insertAdjacentElement('afterend', el);
     }
     const text = document.createElement('span');
     text.className = 'party-name-hint-text';

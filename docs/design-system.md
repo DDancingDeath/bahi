@@ -27,7 +27,7 @@ layer-2 tokens. Nothing else changes per theme.
 | **2. Component** | Shape and type roles (declared beside layer 1, on `:root, [data-theme]`); materials and button inks derived from layer 1 (on `:root, [data-theme], [data-mode]`) | `--r-2xs`, `--r-xs`, `--r-sm`, `--r-control`, `--r-md` (control + 2px), `--r-panel`, `--r-lg` (panel + 2px), `--r-chip`, `--r-sheet`, `--r-full`, `--r-round` (50%), `--rule-style`; `--font-ui`, `--font-display`, `--font-num`, `--font-hero`, `--w-regular`, `--w-strong`, `--w-display`, `--tracking-display`, `--title-style`, `--hero-nums`; `--page-bg`, `--panel-bg`, `--panel-border`, `--panel-shadow`, `--input-bg`, `--input-border`, `--bar-bg`, `--bar-border`, `--seg-track`, `--seg-on`, `--table-rule`, `--btn-primary-bg`, `--btn-primary-ink`, `--btn-primary-shadow`, `--btn-sale-bg`, `--btn-sale-ink`, `--btn-danger-bg`, `--btn-danger-ink`, `--toast-bg`, `--toast-ink`, `--toast-pos/-neg/-warn/-info`, `--preview-apply-line`, `--mode-purchase` | defaults in `variables.css`; a theme overrides only what makes it different |
 | **3. Components** | `.btn`, `.field`, `.seg`, `.panel`, `.row`, `.notice` … (§3) | read tokens, never raw colours | base CSS only |
 
-**Not per theme** (on `:root`): the type scale `--fs-caption|sm|body|lead|title|display|hero` (plus `--fs-input`, a fixed 16px for text fields so iOS does not zoom on focus),
+**Not per theme** (on `:root`): the type scale `--fs-caption|sm|body|lead|title|display|hero` (plus `--fs-input`, a fixed 16px for text fields so iOS does not zoom on focus, and `--fs-label`, 14px for floating field labels, the #68 minimum),
 `--lh-body`, `--w-label`, spacing `--sp-1…10`, `--gutter`,
 `--section-gap`, `--row-h`, `--control-h(-sm)`, motion `--ease`, `--dur-1…3`, layers `--z-*` (below), edge stripes `--stripe` / `--stripe-sm` (`box-shadow: var(--stripe) <colour>`) and the validation rings `--ring-danger` / `--ring-warning`. Layouts are therefore
 identical in every theme. Desktop (≥1024 px, `desktop.css`) sets `--control-h` 36, `--row-h` 44 and the desktop type scale (body 14, lead 16,
@@ -102,7 +102,7 @@ fills (a pale accent, a light green sale fill), so white text there is unreadabl
 
 Every text token keeps WCAG AA (4.5:1) on the surfaces it is used on, in every theme and mode:
 `--ink` on `--bg` / `--surface`, `--ink-2` / `--ink-3` and accent text also on `--surface-2`, the
-placeholder on `--input-bg`, each ink on its fill, status colours on surfaces and on their `-soft`
+placeholder on `--input-bg`, a floating field label (`--ink-2`, `--accent-text`) on `--input-bg` and `--panel-bg`, each ink on its fill, status colours on surfaces and on their `-soft`
 fills, the toast.
 
 - `tests/ci/theme-contrast.test.js` checks those pairs from the CSS (resolving `var()` chains and
@@ -123,8 +123,9 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   look (C2): Billing and Wholesale use Save `-primary`, Print and Share (`-icon`) the default (the bill's action row is
   Share, Save, Print: Print, the most used, is right-most, in DOM and tab order too; Share is a 48 px icon and Save and Print
   share the rest of the row in equal widths), Add to bill and
-  Rest → due `-tonal`, the draft toolbar (Drafts only when there are some; Save draft and Clear in the ⋯ `.bill-menu`, a
-  `<details>` like `.rent-menu`) and the contact picker `-ghost`; inside `.bill-sale` (Retail sale) and
+  Rest → due `-tonal`, the bill menu (⋯ `.bill-menu`, a `<details>` like `.rent-menu`, at the end of the Purchase / Retail sale
+  row `.bill-mode-row`: Drafts with its count only when there are some, Save draft, Clear; `.bill-menu-badge` on ⋯ counts the
+  drafts) and the contact picker `-ghost`; inside `.bill-sale` (Retail sale) and
   `.ws-entry` (Wholesale) the primary and tonal buttons take the mode's colour. `[data-add-line]` and
   `[data-add-weight]` are the E2E hooks. Bill details: the `.dialog-head` title "Bill #P…" with the party under it
   and the × (Close, `[data-dismiss]`); the footer has Void and Delete permanently (`-danger-outline`, left), Reprint and Share
@@ -139,6 +140,28 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   (`role="alert"`), `aria-invalid` and `aria-describedby` on the input, cleared on its next edit (Billing and
   Wholesale's "Please enter a valid rate"). A required field has no `*`: it takes `aria-required="true"`, and optional
   fields say "(optional)".
+- **Floating-label field** `.field-float > label[for] + control` (the control is an `.input`, an `.adorn`, or a wrapper
+  holding one, like Billing's `.bill-party` with its contact button): a compact field whose label sits on the
+  control's top border and **stays there**, with or without a value, so no extra row is spent on labels. It is a real
+  `<label for>` (never a placeholder as label; a placeholder may add a hint such as "Name (optional)" or "Pick"). The
+  label is `--fs-label` (14 px, the #68 minimum; nothing smaller), `--ink-2` (`--accent-text` while the field has focus),
+  one line with an ellipsis; its lower half takes `--input-bg` to cut the border and its upper half is clear, so it
+  needs no knowledge of the surface behind it (page, panel or sheet, any theme or mode). Leave about `--sp-3` free above
+  the field for the label's upper half. A field error or a party line goes after the `.field-float`
+  (`bill-highlight.js`, `party-due-line.js` and `party-suggest.js` look for it, as for `.bill-form-field`). Used by
+  Purchase and Retail sale (name, and the line's Item, Rate and Weight); other forms can take it as they are redesigned.
+  ```html
+  <div class="field-float">
+      <label for="billRate" data-i18n="ui.common.rate">Rate</label>
+      <div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input type="number" class="input" id="billRate" placeholder="Pick"/></div>
+  </div>
+  ```
+- **Billing line entry (option C)**: no "New line" heading (the card is `role="group"` named by `ui.billing.new_line`);
+  `.bill-entry-row`s: Item (wider, flex 1.6) | Rate (flex 1, ₹ in the field) | 🎙 `[data-voice-mic]` (only with Voice
+  billing on), then Weight (kg) | 📷 `[data-photo-weights]` (Purchase, only with Photo of weights on) | Add. The 🎙 and 📷
+  are 48 px `-tonal -icon` squares (`.bill-entry-tool`) with an `aria-label` and a `title`; a hidden one leaves its room
+  to the fields. What voice heard, and Undo voice, show right under the first row. Packets · Total and Add to bill share
+  the last row. Wholesale keeps its own entry (`.bill-line-grid.ws-entry-grid`, labels above) for now.
 - **One rule for switches (C3)**: page sections are **Tabs** `.tabs` (underline; `role="tablist"`, each
   button `role="tab"` with `aria-selected`); filters and modes are a **Segmented control** `.seg`
   (`role="group"`, each button `aria-pressed`; a `.mode-dot` span for purchase / sale); on / off is a **chip**
@@ -352,6 +375,7 @@ counts toward the 1.5 KB. A look that tokens can't express needs a new token in 
 |---|---|
 | `tests/ci/colour-guard.test.js` | a hard-coded colour outside the allowlist (see "Strict guards" below) |
 | `tests/ci/type-guard.test.js` | a raw `font-size` / `font-weight` outside the allowlist |
+| `www/js/__tests__/billing-entry.test.js`, `tests/e2e/billing-entry.spec.js` | `.field-float`: a field without its own `<label for>`, a label hidden or moved by whether the field has a value, `--fs-label` under 14 px; Billing's 🎙 / 📷 shown without their setting |
 | `tests/ci/ds-guard.test.js` | raw spacing, radius, shadow or z-index, `!important`, an `#id` or `.dark-mode` / `[data-theme]` selector, an inline style, an emoji, a Title Case label or a legacy component class outside the allowlist; an allowlist entry without a known list or a reason |
 | `tests/ci/themes.test.js` | a theme missing from the registry, `styles.css` or i18n; a non-token rule or a colour outside `@media screen` in a theme file; a theme over 1.5 KB gzip; a rule in `www/css` or a template `<style>` that sets an accent, sale, wholesale, positive or negative fill and white text together |
 | `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1 in any theme × mode |
