@@ -29,7 +29,7 @@ import { safeSetItem } from '../utils/storage-full.js';
 import { icon } from '../ui/icons.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { formatDate, formatDay } from '../utils/dates.js';
-import { disclosureHtml } from '../ui/disclosure.js';
+import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const jsAttr = (v) => Helpers.escapeJsAttr(String(v ?? ''));
@@ -446,6 +446,7 @@ export const AnomaliesManager = {
         const day = formatDay(today, { lang: getLang(), year: false });
         const summary = sevTags.length ? `<span>${esc(day)}</span>${sevTags.join('')}` : `<span>${esc(`${day} · ${t('ui.anom.no_issues')}`)}</span>`;
 
+        const hadFocus = document.activeElement?.id === 'dayReportToggle';
         card.style.display = 'block';
         card.innerHTML = disclosureHtml({
             key: DAY_REPORT_KEY, id: 'dayReport',
@@ -468,6 +469,7 @@ export const AnomaliesManager = {
                 <button type="button" class="btn btn-tonal" data-onclick="anomalies.openPage()">${icon('search')} ${esc(allLabel)}</button>
             </div>`
         });
+        refocusDisclosure('dayReport', hadFocus);
     },
 
     /** Reconciliation line for the card: today's cash close status. */

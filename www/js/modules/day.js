@@ -20,7 +20,7 @@ import { billsForKind } from '../utils/party-due.js';
 import { rentalsRole } from '../ui/business-switcher.js';
 import { formatRate, moneyText } from '../utils/money.js';
 import { ManualReminders, TODAY_REMINDERS_KEY } from '../ui/manual-reminders.js';
-import { disclosureHtml } from '../ui/disclosure.js';
+import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
 import { icon } from '../ui/icons.js';
 import { payDueReminder, billsDueReminder } from '../utils/pay-reminder.js';
 
@@ -388,6 +388,7 @@ export const DayManager = {
             host.innerHTML = manage ? `<button type="button" class="btn btn-ghost btn-sm today-reminders-link" data-onclick="day.reminderForm(true)">${e(t('ui.reminders.add'))}</button>` : '';
             return;
         }
+        const hadFocus = document.activeElement?.id === 'todayRemindersToggle';
         host.hidden = false;
         host.innerHTML = `<div class="panel today-reminder-list">${disclosureHtml({
             key: TODAY_REMINDERS_KEY, id: 'todayReminders', lead: `<span class="lead-icon">${icon('list')}</span>`,
@@ -397,6 +398,7 @@ export const DayManager = {
             tools: addBtn,
             body: parts.join('')
         })}</div>`;
+        refocusDisclosure('todayReminders', hadFocus);
         ManualReminders.restoreFocus();
     },
 

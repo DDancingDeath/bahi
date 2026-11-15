@@ -346,10 +346,12 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
         DayManager.renderReminders(TODAY);
         expect(toggle().getAttribute('aria-expanded')).toBe('true');
         expect(body().hidden).toBe(false);
+        toggle().focus();
         toggleDisclosure('today-reminders');
         DayManager.renderReminders(TODAY);
         expect(toggle().getAttribute('aria-expanded')).toBe('false');
         expect(body().hidden).toBe(true);
+        expect(document.activeElement).toBe(toggle());
     });
 
     test('Hindi chips', () => {

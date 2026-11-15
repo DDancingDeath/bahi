@@ -53,13 +53,24 @@ export function disclosureHtml(o) {
 }
 
 /**
+ * After a redraw: gives the focus back to a row that had it before (`id` as in disclosureHtml).
+ * @param {string} id
+ * @param {boolean} had
+ */
+export function refocusDisclosure(id, had) {
+    if (had && typeof document !== 'undefined') document.getElementById(`${id}Toggle`)?.focus();
+}
+
+/**
  * Opens or closes the disclosure(s) with this key on screen and remembers it.
  * @param {string} key
  * @param {boolean} [open] default: the other state
  * @returns {boolean} the new state
  */
 export function toggleDisclosure(key, open) {
-    const next = typeof open === 'boolean' ? open : !isDisclosureOpen(key);
+    const shown = typeof document !== 'undefined' ? document.querySelector(`[data-disclosure="${key}"] .disclosure-toggle`) : null;
+    const now = shown ? shown.getAttribute('aria-expanded') === 'true' : isDisclosureOpen(key);
+    const next = typeof open === 'boolean' ? open : !now;
     setDisclosureOpen(key, next);
     if (typeof document !== 'undefined') {
         document.querySelectorAll(`[data-disclosure="${key}"]`).forEach(box => {
