@@ -47,7 +47,7 @@ import { linkedOutflows, linkedSource, setLinkedSource, afterLinked } from '../u
 import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import {
     compareBarHtml, writeBar, compareTableHtml, compareTarget, choosePreset, chooseCompare, applyDates, applySaved,
-    saveCurrentRange, removeCurrentRange, periodText, presetSelectValue, summaryLines, summaryText, summaryCanvas, toggleCompareBar, bindCompactHead
+    saveCurrentRange, removeCurrentRange, periodText, presetSelectValue, summaryLines, summaryText, summaryCanvas, toggleCompareBar
 } from '../ui/period-compare.js';
 
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
@@ -160,7 +160,6 @@ export const MoneyManager = {
     init(section) {
         if (section && SECTIONS.includes(section)) this.section = section;
         this.setupTaps();
-        bindCompactHead('money');
         this.sharedAccounts = { ...this.sharedAccounts, stale: true };
         const sel = document.getElementById('moneyPreset');
         const { preset } = getInsightsContext();

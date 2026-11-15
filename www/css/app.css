@@ -2596,6 +2596,19 @@ a.row:active {
   font-weight: var(--w-strong);
 }
 
+/* Doubtful-rate notice (N-06): the sentence takes the full width, "Open bill" goes under it */
+.notice.doubtful-rates {
+  flex-wrap: wrap;
+}
+
+.notice.doubtful-rates > .grow {
+  flex: 1 1 70%;
+}
+
+.notice.doubtful-rates > .btn {
+  margin-left: auto;
+}
+
 .notice[hidden],
 .empty[hidden] {
   display: none;
@@ -7383,6 +7396,12 @@ tr.bill-check-line .bill-check-msg {
     margin-bottom: var(--sp-3);
 }
 
+/* At large text the total drops under the label instead of being cut (N-09) */
+.due-seg > button {
+    flex-wrap: wrap;
+    row-gap: 0;
+}
+
 .due-search {
     position: relative;
     margin-bottom: var(--sp-3);
@@ -7811,6 +7830,7 @@ tr.bill-check-line .bill-check-msg {
 .due-seg-total {
     color: var(--ink-3);
     font-size: var(--fs-caption);
+    white-space: nowrap;
 }
 
 .due-search > .search-clear {
@@ -7882,6 +7902,16 @@ tr.bill-check-line .bill-check-msg {
     flex-wrap: wrap;
     gap: var(--sp-2);
     margin-top: var(--sp-2);
+}
+
+.aging-more,
+.aging-more-menu > .btn {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.aging-more-menu > .btn {
+    white-space: normal;
 }
 
 .aging-bills-toggle {
@@ -10144,7 +10174,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
   padding: var(--sp-2) var(--sp-2) 0 var(--sp-4);
 }
 
-.notif-head h3 {
+.notif-head h2 {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -10483,26 +10513,26 @@ body.no-perm-contacts [data-perm~="contacts"] {
     background: inherit;
 }
 
-/* Phone: tabs, then the period, then "Compare & share" (#92) */
+/* Phone (U-71): only the tabs stay on screen when scrolling (about 56 px); the period and "Compare & share"
+   scroll away with the page. The head lets its children sit in the page, so the tabs stick for the whole page. */
 @media (max-width: 1023px) {
     .ins-head {
-        display: flex;
-        flex-direction: column;
+        display: contents;
     }
 
-    .ins-head > .tabs { order: 1; }
-    .ins-head > .ins-period { order: 2; }
-    .ins-head > .ins-more { order: 3; }
-    .ins-head > .ins-abbar { order: 4; }
+    .ins-head > .tabs {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-sticky);
+        padding-top: var(--sp-1);
+        background: var(--bg);
+    }
 
-    /* Scrolled under the header (U-71): only the tabs stay; scroll to the top for the period */
-    .ins-head.ins-compact > .ins-period,
-    .ins-head.ins-compact > .ins-more,
-    .ins-head.ins-compact > .ins-abbar { display: none; }
-    .ins-head.ins-compact { padding-bottom: var(--sp-1); }
+    .ins-head > .ins-more {
+        display: flex;
+        margin-left: auto;
+    }
 }
-
-.ins-head-mark { height: 1px; }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
 
@@ -10537,6 +10567,20 @@ body.no-perm-contacts [data-perm~="contacts"] {
 
 .ins-tap { cursor: pointer; }
 .ins-tap:focus-visible { outline: none; box-shadow: var(--focus); }
+/* The hero figure is its own button; its notes and links sit under it in the card, not inside it (N-02) */
+.hero-tap {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-md);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+.hero-tap > .metric-label { display: block; }
+.hero-tap > .hero-num { display: block; margin-top: var(--sp-1); color: var(--ink); }
 
 /* A group: section title above a panel (as on Today) */
 div.ins-wide,

@@ -33,7 +33,7 @@ import { attachScrollCue } from '../ui/scroll-cue.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { STORAGE_FULL_KEY } from '../utils/storage-full.js';
 import {
-    compareBarHtml, writeBar, compareTarget, choosePreset, chooseCompare, applyDates, applySaved, saveCurrentRange,     removeCurrentRange, periodText, presetSelectValue, toggleCompareBar, bindCompactHead
+    compareBarHtml, writeBar, compareTarget, choosePreset, chooseCompare, applyDates, applySaved, saveCurrentRange,     removeCurrentRange, periodText, presetSelectValue, toggleCompareBar
 } from '../ui/period-compare.js';
 
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
@@ -66,7 +66,6 @@ export const InsightsManager = {
         if (view) this.seasonView = view;
         if (!this.mayOpen(this.section)) this.section = SECTIONS.find(s => this.mayOpen(s)) || 'actions';
         this.setupTaps();
-        bindCompactHead('insights');
         const sel = document.getElementById('insightsPreset');
         const { preset } = getInsightsContext();
         if (sel) sel.value = presetSelectValue(preset);
