@@ -1,9 +1,7 @@
 <div id="settings" class="tab">
     <header class="page-head"><h2 data-i18n="ui.nav.settings">Settings</h2></header>
 
-    <section class="settings-section" id="settingsCommon" data-settings-section="common">
-        <h2 class="section-title settings-section-title" data-i18n="ui.settings.section_common">Common</h2>
-
+    <section class="settings-section" id="settingsHome" data-settings-section="home">
         <div class="panel panel-pad set-panel" id="languageSettingsCard">
             <h3 class="set-title" data-i18n="ui.settings.language">Language</h3>
             <div class="seg lang-switch" role="group" aria-label="Language" data-i18n-aria-label="ui.settings.language">
@@ -13,8 +11,40 @@
             <p class="setting-description" data-i18n="ui.settings.language_hint">App text and messages. Saved on this device.</p>
         </div>
 
+        <div class="panel panel-pad set-panel" id="accountCard">
+            <h3 class="set-title" data-i18n="ui.settings.account">Account</h3>
+            <div class="field">
+                <label for="settingUserName" data-i18n="ui.settings.your_name">Your name</label>
+                <div class="set-inline">
+                    <input type="text" class="input" id="settingUserName" maxlength="80" autocomplete="name" />
+                    <button class="btn btn-tonal" type="button" data-onclick="settings.saveName()" data-i18n="ui.common.save">Save</button>
+                </div>
+            </div>
+            <div class="set-kv"><span data-i18n="ui.settings.email">Email</span> <span id="userEmail">-</span></div>
+            <div class="set-actions">
+                <button class="btn" type="button" data-onclick="settings.changePassword()" data-i18n="ui.settings.change_password">Change password</button>
+                <button class="btn btn-danger" type="button" data-onclick="auth.logout()" data-i18n="ui.settings.logout">Log out</button>
+            </div>
+            <p class="setting-description" data-i18n="ui.settings.change_password_hint">We email you a link to set a new password.</p>
+        </div>
+
+        <nav class="panel set-groups" id="settingsGroups" aria-label="Settings" data-i18n-aria-label="ui.nav.settings">
+            <button type="button" class="row" data-settings-open="appearance" data-onclick="settings.openGroup('appearance')"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-palette"/></svg></span><span class="row-main"><span class="row-title" data-i18n="ui.settings.appearance">Appearance</span><span class="row-meta" data-i18n="ui.settings.group_appearance_hint">Light or dark, theme, Hindi item names</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+            <button type="button" class="row" data-settings-open="printing" data-onclick="settings.openGroup('printing')"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg></span><span class="row-main"><span class="row-title" data-i18n="ui.settings.group_printing">Printing &amp; receipts</span><span class="row-meta" data-i18n="ui.settings.group_printing_hint">Bluetooth printer and the printed bill</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+            <button type="button" class="row" data-settings-open="billing" data-onclick="settings.openGroup('billing')"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></span><span class="row-main"><span class="row-title" data-i18n="ui.settings.group_billing">Billing tools</span><span class="row-meta" data-i18n="ui.settings.group_billing_hint">Voice billing, photo of weights</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+            <button type="button" class="row" data-settings-open="shop" hidden data-onclick="settings.openGroup('shop')"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-wheat"/></svg></span><span class="row-main"><span class="row-title" data-i18n="ui.biz.shop">Aadhat</span><span class="row-meta" data-i18n="ui.settings.group_shop_hint">Business name, UPI, labour, bill checks</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+            <button type="button" class="row" data-settings-open="rentals" hidden data-onclick="settings.openGroup('rentals')"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-home"/></svg></span><span class="row-main"><span class="row-title" data-i18n="ui.biz.rentals">Rentals</span><span class="row-meta" data-i18n="ui.settings.group_rentals_hint">Rent due day, yearly increase, electricity rate</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+            <button type="button" class="row" data-settings-open="team" hidden data-onclick="settings.openGroup('team')"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-users"/></svg></span><span class="row-main"><span class="row-title" data-i18n="ui.settings.group_team">Team</span><span class="row-meta" data-i18n="ui.settings.group_team_hint">Roles &amp; access, people</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+            <button type="button" class="row" data-settings-open="help" data-onclick="settings.openGroup('help')"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg></span><span class="row-main"><span class="row-title" data-i18n="ui.settings.group_help">Help &amp; about</span><span class="row-meta" data-i18n="ui.settings.group_help_hint">Install, updates, about, usage</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+        </nav>
+    </section>
+
+    <section class="settings-section settings-group" id="settingsAppearance" data-settings-group="appearance" aria-labelledby="settingsAppearanceTitle" hidden>
+        <div class="set-bar">
+            <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
+            <h2 class="set-group-title" id="settingsAppearanceTitle" tabindex="-1" data-i18n="ui.settings.appearance">Appearance</h2>
+        </div>
         <div class="panel panel-pad set-panel">
-            <h3 class="set-title" data-i18n="ui.settings.appearance">Appearance</h3>
             <div class="seg set-appearance" role="group" aria-label="Appearance" data-i18n-aria-label="ui.settings.appearance">
                 <button type="button" data-appearance-choice="light" aria-pressed="false" data-onclick="settings.setAppearance('light')"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-sun"/></svg><span data-i18n="ui.settings.appearance_light">Light</span></button>
                 <button type="button" data-appearance-choice="dark" aria-pressed="false" data-onclick="settings.setAppearance('dark')"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg><span data-i18n="ui.settings.appearance_dark">Dark</span></button>
@@ -23,7 +53,7 @@
             <p class="setting-description" data-i18n="ui.settings.appearance_hint">System follows this device's light or dark setting. Saved on this device.</p>
 
             <div class="theme-gallery-head">
-                <h4 class="theme-gallery-title" data-i18n="ui.settings.theme">Theme</h4>
+                <h3 class="theme-gallery-title" data-i18n="ui.settings.theme">Theme</h3>
                 <button type="button" class="btn btn-ghost btn-sm theme-reset" data-onclick="settings.resetTheme()" data-i18n="ui.settings.theme_reset">Reset to default</button>
             </div>
             <div class="theme-layout">
@@ -55,59 +85,13 @@
             </label>
             <p class="setting-description phone-only-setting" data-i18n="ui.settings.swipe_tabs_hint">Moves between Billing, Today, History and Outstanding. Saved on this phone.</p>
         </div>
+    </section>
 
-        <div class="panel panel-pad set-panel" id="voiceBillingCard">
-            <h3 class="set-title" data-i18n="ui.settings.voice_billing">Voice billing</h3>
-            <label class="set-toggle">
-                <span data-i18n="ui.settings.voice_billing_toggle">Fill a bill line by speaking</span>
-                <input type="checkbox" class="switch" id="settingVoiceBilling" data-onchange="voice.setOn(this.checked)">
-            </label>
-            <p class="setting-description" data-i18n="ui.settings.voice_billing_hint">Off unless you switch it on. Tap "Speak the line" on Billing and say the item, weight and rate, e.g. "10 kg rice 30 rupees"; join several lines with "and", and say "customer" before a name. You see what was understood (and hear it, unless muted) before anything is filled: one line fills the form, several are added to the bill only after OK. Voice never saves. The phone's or browser's speech service turns speech into text (usually Google's; it may need the internet); the app keeps no recording or text. Saved on this device.</p>
-            <p class="setting-description" id="voiceBillingUnavailable" hidden data-i18n="ui.settings.voice_billing_unavailable">Not available on this device.</p>
-            <label class="set-toggle">
-                <span data-i18n="ui.settings.voice_beep_toggle">Beep after listening</span>
-                <input type="checkbox" class="switch" id="settingVoiceBeep" disabled data-onchange="voice.setBeep(this.checked)">
-            </label>
-            <p class="setting-description" data-i18n="ui.settings.voice_beep_hint">A high beep when the line was understood, a low one when not. Saved on this device.</p>
+    <section class="settings-section settings-group" id="settingsPrinting" data-settings-group="printing" aria-labelledby="settingsPrintingTitle" hidden>
+        <div class="set-bar">
+            <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
+            <h2 class="set-group-title" id="settingsPrintingTitle" tabindex="-1" data-i18n="ui.settings.group_printing">Printing &amp; receipts</h2>
         </div>
-
-        <div class="panel panel-pad set-panel" id="crashReportsCard" hidden>
-            <h3 class="set-title" data-i18n="ui.settings.crash_reports">Crash reports</h3>
-            <label class="set-toggle">
-                <span data-i18n="ui.settings.crash_reports_toggle">Send crash reports from this phone</span>
-                <input type="checkbox" class="switch" id="settingCrashReports">
-            </label>
-            <p class="setting-description" data-i18n="ui.settings.crash_reports_hint">Off unless you switch it on. Then, if the app crashes or stops responding, Google (Firebase Crashlytics) gets the error and its message, the phone model, the Android and app version, the phone's state (free memory and storage, whether it is rooted) and an install number; about once a day the app also checks Crashlytics' settings with Google, sending the phone details and install number. The app adds no names, bills or amounts, but an error message can include text the app was working on. Google keeps a report 90 days. Saved on this phone.</p>
-            <p class="setting-description" id="crashReportsNotSetUp" hidden data-i18n="ui.settings.crash_reports_not_set_up">Not set up in this version of the app yet.</p>
-        </div>
-
-        <div class="panel panel-pad set-panel" id="accountCard">
-            <h3 class="set-title" data-i18n="ui.settings.account">Account</h3>
-            <div class="field">
-                <label for="settingUserName" data-i18n="ui.settings.your_name">Your name</label>
-                <input type="text" class="input" id="settingUserName" maxlength="80" autocomplete="name" />
-            </div>
-            <div class="set-actions">
-                <button class="btn btn-tonal" type="button" data-onclick="settings.saveName()" data-i18n="ui.common.save">Save</button>
-            </div>
-            <div class="set-kv"><span data-i18n="ui.settings.email">Email</span> <span id="userEmail">-</span></div>
-            <div class="set-actions">
-                <button class="btn" type="button" data-onclick="settings.changePassword()" data-i18n="ui.settings.change_password">Change password</button>
-            </div>
-            <p class="setting-description" data-i18n="ui.settings.change_password_hint">We email you a link to set a new password.</p>
-            <div class="set-actions">
-                <button class="btn btn-danger" type="button" data-onclick="auth.logout()" data-i18n="ui.settings.logout">Log out</button>
-            </div>
-        </div>
-        <div class="panel panel-pad set-panel" id="notifSettingsCard" hidden>
-            <h3 class="set-title" data-i18n="ui.common.notifications">Notifications</h3>
-            <label class="set-toggle">
-                <span data-i18n="ui.settings.desktop_notifications">Desktop notifications</span>
-                <input type="checkbox" class="switch" id="settingSystemNotifications" data-onchange="notifications.toggleSystem(this.checked)">
-            </label>
-            <p class="setting-description" data-i18n="ui.settings.desktop_notifications_hint">Shows a computer notification for new updates while the app is open in another tab or window. Closed apps can't get notifications yet.</p>
-        </div>
-
         <div class="panel panel-pad set-panel">
             <h3 class="set-title" data-i18n="ui.settings.bluetooth_printer">Bluetooth printer</h3>
 
@@ -187,74 +171,44 @@
                 <button class="btn btn-tonal" type="button" data-onclick="settings.previewReceipt()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg><span data-i18n="ui.settings.receipt_preview">Preview the bill</span></button>
             </div>
         </div>
-
-        <div class="panel panel-pad set-panel" id="installAppCard" hidden>
-            <h3 class="set-title" data-i18n="ui.settings.install_app">Install app</h3>
-            <div class="set-actions">
-                <button type="button" class="btn btn-tonal" id="installAppBtn" data-onclick="install.prompt()" hidden data-i18n="ui.settings.install_app_on_device">
-                    Install app on this device
-                </button>
-            </div>
-            <p class="setting-description" id="installAppHint" hidden data-i18n="ui.settings.install_hint">Chrome/Edge: address bar → Install icon. iPhone/iPad Safari: Share → Add to Home Screen.</p>
-        </div>
-
-        <div class="panel panel-pad set-panel">
-            <h3 class="set-title" data-i18n="ui.settings.app_updates">App updates</h3>
-            <div class="set-kv"><span data-i18n="ui.settings.version">Version</span> <span id="appVersionText">-</span></div>
-            <div class="set-actions">
-                <button class="btn" type="button" data-onclick="updates.showWhatsNew()" data-i18n="ui.settings.what_s_new">What's new</button>
-                <button class="btn" type="button" data-onclick="updates.shareOnWhatsApp()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg><span data-i18n="ui.settings.share_on_whatsapp">Share on WhatsApp</span></button>
-                <button class="btn" type="button" id="shareAppNativeBtn" hidden data-onclick="updates.shareNative()" data-i18n="ui.settings.share_app">Share app</button>
-                <button class="btn" type="button" data-onclick="updates.openDownloadPage()" data-i18n="ui.settings.download_page">Download page</button>
-            </div>
-            <p class="setting-description" data-i18n="ui.settings.send_app_link_latest">Send the app link and latest changes to everyone who uses the app</p>
-        </div>
-
-        <div class="panel panel-pad set-panel">
-            <h3 class="set-title" data-i18n="ui.settings.about">About</h3>
-            <div class="set-kv"><span data-i18n="ui.settings.app">App</span> <span data-i18n="ui.app.name">Bahi</span></div>
-            <p class="setting-description" data-i18n="ui.app.by_brand">by happa</p>
-            <p class="set-text" data-i18n="ui.app.tagline">Your business, in one place</p>
-        </div>
-
-        <div class="panel panel-pad set-panel" id="usageCard">
-            <h3 class="set-title" data-i18n="ui.usage.title">Usage on this phone</h3>
-            <p class="setting-description" data-i18n="ui.usage.hint">What is used most on this phone. Kept only on this phone; nothing is sent.</p>
-            <div class="seg" id="usageRange" role="group" aria-label="Usage on this phone" data-i18n-aria-label="ui.usage.title">
-                <button type="button" data-range="today" aria-pressed="false" data-onclick="usage.setRange('today')" data-i18n="ui.usage.range_today">Today</button>
-                <button type="button" data-range="week" aria-pressed="true" data-onclick="usage.setRange('week')" data-i18n="ui.usage.range_week">Last 7 days</button>
-                <button type="button" data-range="month" aria-pressed="false" data-onclick="usage.setRange('month')" data-i18n="ui.usage.range_month">Last 30 days</button>
-            </div>
-            <div id="usageList"></div>
-            <div class="set-actions">
-                <button class="btn" type="button" data-onclick="usage.copy()" data-i18n="ui.usage.copy">Copy</button>
-                <button class="btn" type="button" data-onclick="usage.clear()" data-i18n="ui.usage.clear">Clear</button>
-            </div>
-        </div>
-        <div class="panel panel-pad set-panel" id="roleAccessCard" hidden>
-            <h3 class="set-title" data-i18n="ui.roles.title">Roles &amp; access</h3>
-            <p class="setting-description" data-i18n="ui.roles.hint">Choose what managers and members may see and do. The owner always sees everything.</p>
-            <div id="roleAccessGrid"></div>
-            <div class="set-actions">
-                <button class="btn btn-primary" type="button" data-onclick="roles.save()" data-i18n="ui.roles.save">Save for everyone</button>
-            </div>
-            <p class="setting-description" id="roleAccessStatus"></p>
-            <h4 class="set-subtitle" data-i18n="ui.roles.people">People</h4>
-            <p class="setting-description" data-i18n="ui.roles.people_load_hint">Each person's Aadhat role and Rentals role.</p>
-            <div class="set-actions">
-                <button class="btn" type="button" id="rolePeopleBtn" data-onclick="roles.loadPeople()" data-i18n="ui.roles.show_people">Show people</button>
-            </div>
-            <div id="rolePeopleList"></div>
-        </div>
-
     </section>
 
-    <div class="settings-biz-bar" id="settingsBizBar" hidden>
-        <h2 class="section-title settings-section-title" id="settingsBizTitle"></h2>
-        <button type="button" class="btn btn-ghost btn-sm" id="settingsBizToggle" hidden data-onclick="settings.showOther()"></button>
-    </div>
+    <section class="settings-section settings-group" id="settingsBilling" data-settings-group="billing" aria-labelledby="settingsBillingTitle" hidden>
+        <div class="set-bar">
+            <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
+            <h2 class="set-group-title" id="settingsBillingTitle" tabindex="-1" data-i18n="ui.settings.group_billing">Billing tools</h2>
+        </div>
+        <div class="panel panel-pad set-panel" id="voiceBillingCard">
+            <h3 class="set-title" data-i18n="ui.settings.voice_billing">Voice billing</h3>
+            <label class="set-toggle">
+                <span data-i18n="ui.settings.voice_billing_toggle">Fill a bill line by speaking</span>
+                <input type="checkbox" class="switch" id="settingVoiceBilling" data-onchange="voice.setOn(this.checked)">
+            </label>
+            <p class="setting-description" data-i18n="ui.settings.voice_billing_hint">Off unless you switch it on. Tap "Speak the line" on Billing and say the item, weight and rate, e.g. "10 kg rice 30 rupees"; join several lines with "and", and say "customer" before a name. You see what was understood (and hear it, unless muted) before anything is filled: one line fills the form, several are added to the bill only after OK. Voice never saves. The phone's or browser's speech service turns speech into text (usually Google's; it may need the internet); the app keeps no recording or text. Saved on this device.</p>
+            <p class="setting-description" id="voiceBillingUnavailable" hidden data-i18n="ui.settings.voice_billing_unavailable">Not available on this device.</p>
+            <label class="set-toggle">
+                <span data-i18n="ui.settings.voice_beep_toggle">Beep after listening</span>
+                <input type="checkbox" class="switch" id="settingVoiceBeep" disabled data-onchange="voice.setBeep(this.checked)">
+            </label>
+            <p class="setting-description" data-i18n="ui.settings.voice_beep_hint">A high beep when the line was understood, a low one when not. Saved on this device.</p>
+        </div>
 
-    <section class="settings-section" id="settingsShop" data-settings-section="shop" hidden>
+        <div class="panel panel-pad set-panel" id="photoWeightsCard">
+            <h3 class="set-title" data-i18n="ui.settings.photo_weights">Photo of weights</h3>
+            <label class="set-toggle">
+                <span data-i18n="ui.settings.photo_weights_toggle">Read bag weights from a photo</span>
+                <input type="checkbox" class="switch" id="settingPhotoWeights" disabled data-onchange="photoWeights.setOn(this.checked)">
+            </label>
+            <p class="setting-description" data-i18n="ui.settings.photo_weights_hint">Off unless the owner switches it on. Then everyone sees “Photo of weights” on Purchase billing: take a photo of the weight sheet, check the weights and add them to the bag weights. Nothing is saved until the bill is saved. The photo is sent to Google’s Gemini to be read and is not kept. Photograph only the weights, not names or phone numbers. Saved for everyone.</p>
+            <p class="setting-description" id="photoWeightsOwnerOnly" hidden data-i18n="ui.settings.photo_weights_owner_only">Only the owner can change this.</p>
+        </div>
+    </section>
+
+    <section class="settings-section settings-group" id="settingsShop" data-settings-group="shop" aria-labelledby="settingsShopTitle" hidden>
+        <div class="set-bar">
+            <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
+            <h2 class="set-group-title" id="settingsShopTitle" tabindex="-1" data-i18n="ui.settings.section_shop">Aadhat settings</h2>
+        </div>
         <p class="setting-description" id="settingsShopViewOnly" hidden data-i18n="ui.settings.shop_view_only">Only the owner, or a manager allowed in Roles &amp; access, can change these.</p>
 
         <div class="panel panel-pad set-panel" id="businessDetailsCard">
@@ -321,16 +275,6 @@
             <div id="settingsChecks" class="set-fields"></div>
         </div>
 
-        <div class="panel panel-pad set-panel" id="photoWeightsCard">
-            <h3 class="set-title" data-i18n="ui.settings.photo_weights">Photo of weights</h3>
-            <label class="set-toggle">
-                <span data-i18n="ui.settings.photo_weights_toggle">Read bag weights from a photo</span>
-                <input type="checkbox" class="switch" id="settingPhotoWeights" disabled data-onchange="photoWeights.setOn(this.checked)">
-            </label>
-            <p class="setting-description" data-i18n="ui.settings.photo_weights_hint">Off unless the owner switches it on. Then everyone sees “Photo of weights” on Purchase billing: take a photo of the weight sheet, check the weights and add them to the bag weights. Nothing is saved until the bill is saved. The photo is sent to Google’s Gemini to be read and is not kept. Photograph only the weights, not names or phone numbers. Saved for everyone.</p>
-            <p class="setting-description" id="photoWeightsOwnerOnly" hidden data-i18n="ui.settings.photo_weights_owner_only">Only the owner can change this.</p>
-        </div>
-
         <div class="panel panel-pad set-panel" id="billNumbersCard">
             <h3 class="set-title" data-i18n="ui.settings.bill_numbers">Bill numbers</h3>
             <p class="setting-description" data-i18n="ui.settings.bill_numbers_hint">Bills are numbered P (purchase), S (sale) or W (wholesale), then the date and a number for the day, the same on every phone. Offline, a bill gets this phone's code too.</p>
@@ -346,7 +290,102 @@
         </div>
     </section>
 
-    <section class="settings-section" id="settingsRentals" data-settings-section="rentals" hidden>
+    <section class="settings-section settings-group" id="settingsRentals" data-settings-group="rentals" aria-labelledby="settingsRentalsTitle" hidden>
+        <div class="set-bar">
+            <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
+            <h2 class="set-group-title" id="settingsRentalsTitle" tabindex="-1" data-i18n="ui.settings.section_rentals">Rentals settings</h2>
+        </div>
         <div id="settingsRentalsBody"></div>
+    </section>
+
+    <section class="settings-section settings-group" id="settingsTeam" data-settings-group="team" aria-labelledby="settingsTeamTitle" hidden>
+        <div class="set-bar">
+            <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
+            <h2 class="set-group-title" id="settingsTeamTitle" tabindex="-1" data-i18n="ui.settings.group_team">Team</h2>
+        </div>
+        <div class="panel panel-pad set-panel" id="roleAccessCard" hidden>
+            <h3 class="set-title" data-i18n="ui.roles.title">Roles &amp; access</h3>
+            <p class="setting-description" data-i18n="ui.roles.hint">Choose what managers and members may see and do. The owner always sees everything.</p>
+            <div id="roleAccessGrid"></div>
+            <div class="set-actions">
+                <button class="btn btn-primary" type="button" data-onclick="roles.save()" data-i18n="ui.roles.save">Save for everyone</button>
+            </div>
+            <p class="setting-description" id="roleAccessStatus"></p>
+            <h4 class="set-subtitle" data-i18n="ui.roles.people">People</h4>
+            <p class="setting-description" data-i18n="ui.roles.people_load_hint">Each person's Aadhat role and Rentals role.</p>
+            <div class="set-actions">
+                <button class="btn" type="button" id="rolePeopleBtn" data-onclick="roles.loadPeople()" data-i18n="ui.roles.show_people">Show people</button>
+            </div>
+            <div id="rolePeopleList"></div>
+        </div>
+    </section>
+
+    <section class="settings-section settings-group" id="settingsHelp" data-settings-group="help" aria-labelledby="settingsHelpTitle" hidden>
+        <div class="set-bar">
+            <button type="button" class="btn btn-icon" data-onclick="settings.back()" aria-label="Back to the list" data-i18n-aria-label="ui.settings.back"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
+            <h2 class="set-group-title" id="settingsHelpTitle" tabindex="-1" data-i18n="ui.settings.group_help">Help &amp; about</h2>
+        </div>
+        <div class="panel panel-pad set-panel" id="installAppCard" hidden>
+            <h3 class="set-title" data-i18n="ui.settings.install_app">Install app</h3>
+            <div class="set-actions">
+                <button type="button" class="btn btn-tonal" id="installAppBtn" data-onclick="install.prompt()" hidden data-i18n="ui.settings.install_app_on_device">
+                    Install app on this device
+                </button>
+            </div>
+            <p class="setting-description" id="installAppHint" hidden data-i18n="ui.settings.install_hint">Chrome/Edge: address bar → Install icon. iPhone/iPad Safari: Share → Add to Home Screen.</p>
+        </div>
+
+        <div class="panel panel-pad set-panel">
+            <h3 class="set-title" data-i18n="ui.settings.app_updates">App updates</h3>
+            <div class="set-kv"><span data-i18n="ui.settings.version">Version</span> <span id="appVersionText">-</span></div>
+            <div class="set-actions">
+                <button class="btn" type="button" data-onclick="updates.showWhatsNew()" data-i18n="ui.settings.what_s_new">What's new</button>
+                <button class="btn" type="button" data-onclick="updates.shareOnWhatsApp()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg><span data-i18n="ui.settings.share_on_whatsapp">Share on WhatsApp</span></button>
+                <button class="btn" type="button" id="shareAppNativeBtn" hidden data-onclick="updates.shareNative()" data-i18n="ui.settings.share_app">Share app</button>
+                <button class="btn" type="button" data-onclick="updates.openDownloadPage()" data-i18n="ui.settings.download_page">Download page</button>
+            </div>
+            <p class="setting-description" data-i18n="ui.settings.send_app_link_latest">Send the app link and latest changes to everyone who uses the app</p>
+        </div>
+
+        <div class="panel panel-pad set-panel">
+            <h3 class="set-title" data-i18n="ui.settings.about">About</h3>
+            <div class="set-kv"><span data-i18n="ui.settings.app">App</span> <span data-i18n="ui.app.name">Bahi</span></div>
+            <p class="setting-description" data-i18n="ui.app.by_brand">by happa</p>
+            <p class="set-text" data-i18n="ui.app.tagline">Your business, in one place</p>
+        </div>
+
+        <div class="panel panel-pad set-panel" id="usageCard">
+            <h3 class="set-title" data-i18n="ui.usage.title">Usage on this phone</h3>
+            <p class="setting-description" data-i18n="ui.usage.hint">What is used most on this phone. Kept only on this phone; nothing is sent.</p>
+            <div class="seg" id="usageRange" role="group" aria-label="Usage on this phone" data-i18n-aria-label="ui.usage.title">
+                <button type="button" data-range="today" aria-pressed="false" data-onclick="usage.setRange('today')" data-i18n="ui.usage.range_today">Today</button>
+                <button type="button" data-range="week" aria-pressed="true" data-onclick="usage.setRange('week')" data-i18n="ui.usage.range_week">Last 7 days</button>
+                <button type="button" data-range="month" aria-pressed="false" data-onclick="usage.setRange('month')" data-i18n="ui.usage.range_month">Last 30 days</button>
+            </div>
+            <div id="usageList"></div>
+            <div class="set-actions">
+                <button class="btn" type="button" data-onclick="usage.copy()" data-i18n="ui.usage.copy">Copy</button>
+                <button class="btn" type="button" data-onclick="usage.clear()" data-i18n="ui.usage.clear">Clear</button>
+            </div>
+        </div>
+
+        <div class="panel panel-pad set-panel" id="notifSettingsCard" hidden>
+            <h3 class="set-title" data-i18n="ui.common.notifications">Notifications</h3>
+            <label class="set-toggle">
+                <span data-i18n="ui.settings.desktop_notifications">Desktop notifications</span>
+                <input type="checkbox" class="switch" id="settingSystemNotifications" data-onchange="notifications.toggleSystem(this.checked)">
+            </label>
+            <p class="setting-description" data-i18n="ui.settings.desktop_notifications_hint">Shows a computer notification for new updates while the app is open in another tab or window. Closed apps can't get notifications yet.</p>
+        </div>
+
+        <div class="panel panel-pad set-panel" id="crashReportsCard" hidden>
+            <h3 class="set-title" data-i18n="ui.settings.crash_reports">Crash reports</h3>
+            <label class="set-toggle">
+                <span data-i18n="ui.settings.crash_reports_toggle">Send crash reports from this phone</span>
+                <input type="checkbox" class="switch" id="settingCrashReports">
+            </label>
+            <p class="setting-description" data-i18n="ui.settings.crash_reports_hint">Off unless you switch it on. Then, if the app crashes or stops responding, Google (Firebase Crashlytics) gets the error and its message, the phone model, the Android and app version, the phone's state (free memory and storage, whether it is rooted) and an install number; about once a day the app also checks Crashlytics' settings with Google, sending the phone details and install number. The app adds no names, bills or amounts, but an error message can include text the app was working on. Google keeps a report 90 days. Saved on this phone.</p>
+            <p class="setting-description" id="crashReportsNotSetUp" hidden data-i18n="ui.settings.crash_reports_not_set_up">Not set up in this version of the app yet.</p>
+        </div>
     </section>
 </div>

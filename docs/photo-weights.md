@@ -1,6 +1,6 @@
 # Photo of weights (#374)
 
-Status: in the app, **off until the owner switches it on** (Settings › Aadhat › Photo of
+Status: in the app, **off until the owner switches it on** (Settings › Billing tools › Photo of
 weights, saved for every phone in `settings/app.photoWeights`). It needs Firebase AI Logic
 switched on in the Firebase project first (console steps below). Purchase bills only for now.
 
@@ -70,7 +70,7 @@ free tier's own limit is the cap.
 - **Android app:** Capacitor opens the system camera (`ACTION_IMAGE_CAPTURE`) for this input
   (`accept` must be exactly `image/*`). No CAMERA permission is needed or added.
 - **Usage counters (on the phone only):** `photo_weights.read`, `photo_weights.added`,
-  `photo_weights.edited` (Settings › Usage on this phone): how often a reading needed a change.
+  `photo_weights.edited` (Settings › Help & about › Usage on this phone): how often a reading needed a change.
 
 ## Console steps for the owner (we don't do these)
 
@@ -92,7 +92,7 @@ follows whichever project the build's Firebase config points at. (The earlier pa
    provider is added). Never enforce Firestore here (#89 is separate).
 3. **Check the free limit.** AI Studio (signed in as the owner) › the project › rate limits:
    note the requests per day for `gemini-3.5-flash-lite`.
-4. **Then in the app** (as owner): Settings › Aadhat › Photo of weights › on. Test a few
+4. **Then in the app** (as owner): Settings › Billing tools › Photo of weights › on. Test a few
    real sheets on the dev site before switching it on for the live shop.
 
 ## Still to do

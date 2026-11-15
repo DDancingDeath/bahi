@@ -188,7 +188,7 @@ test('the gallery previews without saving; Cancel, leaving Settings and Apply be
     const html = () => page.evaluate(() => [document.documentElement.dataset.theme, document.documentElement.dataset.mode]);
     const bar = page.locator('#themePreviewBar');
 
-    await showTab(page, 'settings-common');
+    await showTab(page, 'settings-appearance');
     await expect(page.locator('#themeGallery .theme-tile')).toHaveCount(12);
     // Each card is a mini Billing in its own theme
     await expect(page.locator('[data-theme-choice="cyberpunk"] .tcp[data-theme="cyberpunk"][data-mode="dark"] .tcp-save')).toHaveText(/Save/);
@@ -210,7 +210,7 @@ test('the gallery previews without saving; Cancel, leaving Settings and Apply be
     expect(await html()).toEqual(['modern', 'light']);
     await expect(bar).toBeHidden();
 
-    await showTab(page, 'settings-common');
+    await showTab(page, 'settings-appearance');
     await page.click('[data-theme-choice="nature"]');
     await page.click('#themePreviewBar .theme-preview-apply');
     expect(await html()).toEqual(['nature', 'light']);

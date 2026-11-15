@@ -28,6 +28,7 @@ function focusOpener(prev) {
 //   tab     page element to show            section  sub-view handed to the page (see showTabFromNav)
 //   needs   extra TAB_ROLES/TAB_PERMISSIONS id   id   canonical id kept in history (aliases / old ids)
 //   nav     side-nav link to highlight (default: tab)
+//   parent  route a sub-page's Back returns to (history gets it beneath the sub-page)
 // To add a page's sub-routes, add one group below (one group per page)
 // and open the section for that page in showTabFromNav.
 const ROUTES = Object.freeze({
@@ -51,13 +52,18 @@ const ROUTES = Object.freeze({
     'wholesale-history': { tab: 'wholesale-sales', section: 'history', nav: 'wholesale-sales' },
     'wholesale-outstanding': { tab: 'wholesale-sales', section: 'outstanding', nav: 'wholesale-sales' },
 
-    // Settings sections (Common, Aadhat = internal 'shop', Rentals, Roles & access).
-    // Old ids: settings-aadhat, admin-configure (Admin › Configure moved to Settings › Aadhat).
-    'settings-common': { tab: 'settings', section: 'common' },
-    'settings-shop': { tab: 'settings', section: 'shop' },
+    // Settings groups (sub-pages of the Settings list; parent: Back returns there). Aadhat = internal 'shop'.
+    // Old ids: settings-common (the list), settings-roles (Team), settings-aadhat and admin-configure (Aadhat).
+    'settings-appearance': { tab: 'settings', section: 'appearance', parent: 'settings' },
+    'settings-printing': { tab: 'settings', section: 'printing', parent: 'settings' },
+    'settings-billing': { tab: 'settings', section: 'billing', parent: 'settings' },
+    'settings-shop': { tab: 'settings', section: 'shop', parent: 'settings' },
+    'settings-rentals': { tab: 'settings', section: 'rentals', parent: 'settings' },
+    'settings-team': { tab: 'settings', section: 'team', parent: 'settings' },
+    'settings-help': { tab: 'settings', section: 'help', parent: 'settings' },
+    'settings-common': { tab: 'settings', id: 'settings' },
+    'settings-roles': { tab: 'settings', section: 'team', id: 'settings-team' },
     'settings-aadhat': { tab: 'settings', section: 'shop', id: 'settings-shop' },
-    'settings-rentals': { tab: 'settings', section: 'rentals' },
-    'settings-roles': { tab: 'settings', section: 'roles' },
     'admin-configure': { tab: 'settings', section: 'shop', id: 'settings-shop' },
 
     // Ask (#88) replaced the unused Chat page.
@@ -420,14 +426,31 @@ const NavigationManager = {
         this.recordTab(resolveRoute(routeId).id);
     },
 
-    // One history entry per tab change, so the phone's back button returns to the previous tab
+    // One history entry per tab change, so the phone's back button returns to the previous tab;
+    // a sub-page (ROUTES parent) opened from elsewhere gets its parent beneath it, so Back shows the parent first
     recordTab(tabId, opts = {}) {
         const prev = this.currentTab;
         this.currentTab = tabId;
         if (opts.fromHistory || typeof history === 'undefined' || !history.replaceState) return;
-        const state = { ...(history.state || {}), happaTab: tabId };
-        if (!history.state || !history.state.happaTab) history.replaceState(state, '');
-        else if (prev !== tabId) history.pushState(state, '');
+        const parent = ROUTES[tabId]?.parent;
+        const entry = (id) => ({ ...(history.state || {}), happaTab: id });
+        if (!history.state || !history.state.happaTab) {
+            if (parent) {
+                history.replaceState(entry(parent), '');
+                history.pushState(entry(tabId), '');
+            } else history.replaceState(entry(tabId), '');
+        } else if (prev !== tabId) {
+            if (parent && prev !== parent) history.pushState(entry(parent), '');
+            history.pushState(entry(tabId), '');
+        }
+    },
+
+    // The open page's route changed without a new history entry (e.g. a group the role may not open shows its list)
+    replaceRoute(routeId) {
+        const id = resolveRoute(routeId).id;
+        this.currentTab = id;
+        if (typeof history === 'undefined' || !history.replaceState) return;
+        history.replaceState({ ...(history.state || {}), happaTab: id }, '');
     },
 
     // Closes the menu, the notifications panel or the top dialog; true when something was open

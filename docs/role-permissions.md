@@ -5,8 +5,8 @@ Owner decision on #87: *non-owner users may edit or delete a bill for 2 days.* S
 **voided** instead of deleted (same people, same window; see "Void and edit records").
 
 The owner sets, per role, which pages and numbers managers and members see, how far back
-History goes and for how many days bills can be changed. Screen: **Settings › Common › Roles & access**
-(owner only, English and Hindi; route `settings-roles`). The same card lists **People**: each
+History goes and for how many days bills can be changed. Screen: **Settings › Team › Roles & access**
+(owner only, English and Hindi; route `settings-team`, old `settings-roles`). The same card lists **People**: each
 approved user's Aadhat role (approved and changed in Admin › Users) and Rentals role (`users/{uid}.rentRole`,
 changed right there; this replaced the old Rentals › Access page, whose route now opens this card).
 
@@ -746,6 +746,11 @@ Property expenses (`rent_expenses`, #157): anyone with a rentals role adds one (
 its units), signed with their uid; only the owner edits or deletes one. They are never Aadhat expenses or
 Aadhat cash.
 
-Members (Aadhat or Rentals) see only Common. Old routes keep working: `settings`, `admin-configure`
-and `settings-aadhat` (→ Aadhat), `settings-shop`, `settings-rentals`, `settings-roles`; Admin's old
-Configure tab opens Settings › Aadhat.
+Settings is a short list (language, account, then one row per group); each group is a sub-page with Back
+(the phone's back gesture returns to the list too). Everyone sees Appearance, Printing & receipts, Billing tools
+(the Photo of weights switch stays owner-only) and Help & about; Settings › Aadhat shows for the Aadhat owner and
+managers (edits per `shopSettings`), Settings › Rentals for the Rentals owner and managers, Settings › Team (Roles &
+access, People) for the owner only. Routes: `settings` (the list), `settings-appearance`, `settings-printing`,
+`settings-billing`, `settings-shop`, `settings-rentals`, `settings-team`, `settings-help`; old ones keep working:
+`settings-common` (→ the list), `settings-roles` (→ Team), `admin-configure` and `settings-aadhat` (→ Aadhat), and
+Admin's old Configure tab opens Settings › Aadhat. A group the role may not see opens the list instead.

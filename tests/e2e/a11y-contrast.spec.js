@@ -12,7 +12,9 @@ const PAGES = [
     ['Billing', 'billing'], ['Today', 'day'], ['Today › Cash', 'day', "window.app.day.showSubTab('cash')"],
     ['History', 'history'], ['Outstanding', 'due'], ['Stock', 'stock'], ['Wholesale', 'wholesale-sales'],
     ['Expenses', 'expenses'], ['Cash', 'cash-management'], ['Rates', 'rates'], ['Money', 'money'],
-    ['Insights', 'insights'], ['Statements', 'statements'], ['Settings', 'settings-common'], ['Settings › Aadhat', 'settings-shop']
+    ['Insights', 'insights'], ['Statements', 'statements'], ['Settings', 'settings-common'],
+    ['Settings › Appearance', 'settings-appearance'], ['Settings › Printing', 'settings-printing'], ['Settings › Help', 'settings-help'],
+    ['Settings › Aadhat', 'settings-shop']
 ];
 
 // The specs that add data may run before this one in a shard: start from the seed.

@@ -701,7 +701,7 @@ reference only:
 `firestore.rules` in this repo is the source of truth for Firebase's
 deployed rules. **Editing these without updating Rules Playground tests
 can break every user immediately**. What each role may see and do is set by
-the owner in Settings → Roles & access (`settings/app.roleAccess`); the
+the owner in Settings › Team › Roles & access (`settings/app.roleAccess`); the
 permission list, defaults and which parts the rules enforce are in
 `docs/role-permissions.md`. Always:
 
@@ -756,7 +756,7 @@ own end-to-end test on the emulators: `npm run test:migration-e2e`
 changes `www/**`, the rules or the tool).
 
 **Bill edit window (#87, #84).** Everyone except the owner may edit or void a
-bill only for the role's `editDays` (Settings → Roles & access,
+bill only for the role's `editDays` (Settings › Team › Roles & access,
 `settings/app.roleAccess.<role>.editDays`, default **2**) after it was first
 saved (managers: edit any bill; others: their own; void: own bill only). The
 clock is the bill's `createdAt`, the server time written by `saveBill()` on

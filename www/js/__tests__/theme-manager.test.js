@@ -159,13 +159,15 @@ describe('preview (Settings › Appearance gallery)', () => {
         expect([localStorage.getItem(THEME_KEYS.theme), localStorage.getItem(THEME_KEYS.kind)]).toEqual(['midnight', 'dark']);
     });
 
-    test('leaving Settings › Common (another page or Settings section) ends a preview; the saved theme and unknown ids never start one', () => {
+    test('leaving Settings › Appearance (another page, the Settings list or another group) ends a preview; the saved theme and unknown ids never start one', () => {
         ThemeManager.init();
         ThemeManager.apply({ theme: 'modern', appearance: 'light' });
         ThemeManager.preview('nature');
-        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings' } }));
-        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings', section: 'common' } }));
+        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings', section: 'appearance' } }));
         expect(ThemeManager.previewing).toBe('nature');
+        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings' } }));
+        expect(ThemeManager.previewing).toBeNull();
+        ThemeManager.preview('nature');
         window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings', section: 'shop' } }));
         expect(ThemeManager.previewing).toBeNull();
         ThemeManager.preview('nature');

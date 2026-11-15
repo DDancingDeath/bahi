@@ -199,6 +199,22 @@
   }
 }
 
+/* The Bahi mark (docs/brand/icon-full.svg, #375): white B with the sage corner on charcoal, fixed in every theme;
+   on dark surfaces a faint ring keeps the tile's edge */
+:root {
+  --brand-tile: #16161d;
+  --brand-tile-top: #26262f;
+  --brand-ink: #ffffff;
+  --brand-corner: #89b284;
+  --brand-tile-ring: none;
+}
+
+@media screen {
+  [data-mode="dark"] {
+    --brand-tile-ring: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
+}
+
 /* Layout, type scale, density and motion: the same in every theme */
 :root {
   --w-label: 600;
@@ -7233,7 +7249,8 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 
 .set-panel[hidden],
 .set-printer[hidden],
-.settings-biz-bar[hidden],
+.settings-section[hidden],
+.set-groups > .row[hidden],
 .set-panel > div:empty,
 .set-printer > div:empty {
   display: none;
@@ -7419,34 +7436,63 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-size: var(--fs-caption);
 }
 
-/* Settings sections: Common, Aadhat, Rentals. A section title, not a page title: no .tab h2 underline */
-.tab h2.settings-section-title {
-  margin: var(--sp-2) 0 var(--sp-3);
-  padding-bottom: 0;
-  border-bottom: 0;
-  color: var(--ink-3);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-label);
+/* Settings groups: the main list's rows open a group (a sub-page with Back) */
+.set-groups {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin-bottom: var(--sp-4);
 }
 
-.tab h2.settings-section-title::after {
+.set-groups > .row {
+  min-height: 64px;
+}
+
+.set-groups > .row > .i {
+  flex: none;
+  color: var(--ink-3);
+}
+
+.set-groups .row-title,
+.set-groups .row-meta {
+  display: block;
+}
+
+/* Your name and its Save on one line */
+.set-inline {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.set-inline > .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.set-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-2) 0 var(--sp-3);
+}
+
+/* A group title, not a page title: no .tab h2 underline */
+.tab h2.set-group-title {
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+  font-size: var(--fs-lead);
+  letter-spacing: normal;
+}
+
+.tab h2.set-group-title::after {
   content: none;
 }
 
-.settings-biz-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
-  margin: var(--sp-6) 0 var(--sp-3);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--line);
+.set-group-title:focus {
+  outline: none;
 }
 
-.settings-biz-bar h2.settings-section-title {
-  margin: 0;
-}
 /* "Bluetooth permission needed" notice (#77): a .notice.float */
 .printer-perm-notice {
   z-index: var(--z-sheet);
@@ -9419,18 +9465,17 @@ div.ins-wide,
     justify-content: center;
     width: var(--control-h);
     height: var(--control-h);
+    overflow: hidden;
     border-radius: var(--r-sm);
-    background: var(--accent);
-    color: var(--on-accent);
+    background: linear-gradient(var(--brand-tile-top), var(--brand-tile) 55%);
+    box-shadow: var(--brand-tile-ring);
+    color: var(--brand-ink);
   }
 
-  .nav-mark-rentals,
-  body.biz-rentals .nav-mark-shop {
-    display: none;
-  }
-
-  body.biz-rentals .nav-mark-rentals {
-    display: inline-block;
+  .nav-mark-bahi {
+    width: 100%;
+    height: 100%;
+    fill: var(--brand-corner);
   }
 
   .nav-header h2 {
