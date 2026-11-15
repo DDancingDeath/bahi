@@ -208,15 +208,19 @@
 }
 
 .auth-lang-link {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
   background: none;
-  border: none;
-  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  padding: 0 var(--sp-4);
   font-size: var(--fs-sm);
   color: var(--ink-2);
   cursor: pointer;
 }
 
 .auth-lang-link[aria-pressed="true"] {
+  border-color: var(--seg-on-line);
   color: var(--accent-text);
   font-weight: var(--w-strong);
 }

@@ -13,9 +13,11 @@
   --surface-3: #e8e8ed;
   --line: #e6e6eb;
   --line-strong: #d4d4dc;
+  /* Edges of fields, buttons and chips: 3:1 on the page and panels (WCAG 1.4.11) */
+  --line-control: #858591;
   --ink: #16161d;
   --ink-2: #4a4a56;
-  --ink-3: #686875;
+  --ink-3: #5c5c69;
   --ink-placeholder: #737380;
   --scrim: rgba(16, 16, 24, 0.32);
 
@@ -59,7 +61,6 @@
   --e2: 0 1px 2px rgba(16, 16, 29, 0.06), 0 6px 16px -4px rgba(16, 16, 29, 0.12);
   --e3: 0 2px 6px rgba(16, 16, 29, 0.08), 0 24px 48px -12px rgba(16, 16, 29, 0.24);
   --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  --focus: 0 0 0 3px rgba(79, 70, 229, 0.24);
   --state-hover: rgba(16, 16, 29, 0.05);
 
   /* System faces only (the CSP has no font origin); Devanagari faces before the generic family */
@@ -96,14 +97,21 @@
   --mode-purchase: var(--accent);
   --mode-purchase-soft: var(--accent-soft);
   --panel-bg: var(--surface);
-  --panel-border: var(--line);
+  --panel-border: var(--line-strong);
   --panel-shadow: none;
   --input-bg: var(--surface);
-  --input-border: var(--line-strong);
+  --input-border: var(--line-control);
   --bar-bg: var(--surface);
   --bar-border: var(--line);
   --seg-track: var(--surface-2);
   --seg-on: var(--surface);
+  /* The chosen segment shows by a 2 px edge and its ink, not only by a lighter fill */
+  --seg-on-line: var(--accent-text);
+  --seg-on-ink: var(--accent-text);
+  --seg-on-ring: inset 0 0 0 2px var(--seg-on-line);
+  /* A solid focus ring at 3:1 or more on every surface */
+  --focus-ring: var(--accent-text);
+  --focus: 0 0 0 3px var(--focus-ring);
   --table-rule: var(--line);
   --toast-bg: #1d1d24;
   --toast-ink: #f4f4f7;
@@ -132,10 +140,11 @@
     --surface-2: #1c1c22;
     --surface-3: #24242b;
     --line: rgba(255, 255, 255, 0.07);
-    --line-strong: rgba(255, 255, 255, 0.12);
+    --line-strong: rgba(255, 255, 255, 0.14);
+    --line-control: rgba(255, 255, 255, 0.38);
     --ink: #ececf1;
     --ink-2: #a8a8b5;
-    --ink-3: #8c8c99;
+    --ink-3: #9a9aa7;
     --ink-placeholder: #80808d;
     --scrim: rgba(0, 0, 0, 0.56);
 
@@ -170,7 +179,6 @@
     --e2: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 24px -6px rgba(0, 0, 0, 0.6);
     --e3: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 56px -12px rgba(0, 0, 0, 0.75);
     --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-    --focus: 0 0 0 3px rgba(124, 120, 248, 0.4);
     --state-hover: rgba(255, 255, 255, 0.06);
     --seg-on: var(--surface-3);
     --toast-bg: #2a2a32;
@@ -218,8 +226,9 @@
 /* Layout, type scale, density and motion: the same in every theme */
 :root {
   --w-label: 600;
-  --fs-caption: 12px;
-  --fs-sm: 13px;
+  /* 14 px is the least for text people read (U-15); 13 px only for short labels: dates, tags, tab names */
+  --fs-caption: 13px;
+  --fs-sm: 14px;
   --fs-body: 15px;
   --fs-lead: 17px;
   --fs-title: 20px;
@@ -229,7 +238,7 @@
   --fs-input: 16px;
   /* Floating field labels (.field-float): the 14 px minimum text size (#68) */
   --fs-label: 14px;
-  --fs-cur: 0.78em;
+  --fs-cur: max(12px, 0.9em);
   --lh-body: 1.45;
   --sp-1: 4px;
   --sp-2: 8px;
@@ -245,8 +254,12 @@
   --appbar-h: 52px;
   --phone-col-max: 480px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
-  --control-h: 44px;
-  --control-h-sm: 32px;
+  /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
+  --tap-min: 48px;
+  /* The clear border round a switch's 22 px track that makes its tap area 48 px */
+  --switch-hit: 13px;
+  --control-h: 48px;
+  --control-h-sm: 40px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-1: 120ms;
   --dur-2: 200ms;
@@ -276,8 +289,8 @@
   --ring-danger: 0 0 0 2px rgba(220, 38, 38, 0.25);
   --ring-warning: 0 0 0 2px rgba(217, 119, 6, 0.25);
 
-  --text-xs: 12px;
-  --text-sm: 13px;
+  --text-xs: 13px;
+  --text-sm: 14px;
   --text-base: 14px;
   --text-md: 15px;
   --text-lg: 17px;
@@ -294,6 +307,7 @@ html.platform-android {
 /* Devanagari: larger type, more leading, regular labels (Nirmala UI / Noto Sans Devanagari have no 500 or 600) */
 html[lang="hi"] {
   --w-label: 400;
+  --fs-caption: 14px;
   --fs-sm: 14px;
   --fs-body: 16px;
   --lh-body: 1.6;
@@ -407,6 +421,7 @@ input[type="number"],
     --surface-3: #e6d9bd;
     --line: #ddcfb1;
     --line-strong: #c4b18b;
+    --line-control: #8c7a5c;
     --ink: #2e2418;
     --ink-2: #57472f;
     --ink-3: #6a5840;
@@ -431,7 +446,6 @@ input[type="number"],
     --warning: #87560a;
     --warning-soft: #f6e6c2;
     --warning-dot: #c98a1b;
-    --focus: 0 0 0 3px rgba(143, 58, 34, 0.25);
     --e1: 0 1px 0 rgba(90, 60, 20, 0.12);
     --panel-shadow: 0 1px 0 #d6c6a4, 0 2px 0 rgba(90, 60, 20, 0.06);
     --input-bg: #fffdf6;
@@ -606,7 +620,6 @@ input[type="number"],
     --panel-border: transparent;
     --panel-shadow: 0 1px 2px rgba(30, 50, 60, 0.04);
     --input-bg: #f7f9f9;
-    --input-border: #cbd5d7;
     --seg-on: #fdfefe;
     --btn-primary-shadow: none;
   }
@@ -644,7 +657,6 @@ input[type="number"],
     --warning: #e6c07a;
     --warning-soft: rgba(230, 192, 122, 0.12);
     --input-bg: #1d2329;
-    --input-border: rgba(220, 235, 245, 0.18);
     --seg-on: #39434d;
     --toast-bg: #313a43;
   }
@@ -689,12 +701,9 @@ input[type="number"],
     --negative-soft: #fde9ee;
     --warning: #8a4204;
     --warning-soft: #fdf0dc;
-    --focus: 0 0 0 3px rgba(99, 102, 241, 0.3);
     --e1: 0 1px 2px rgba(30, 40, 100, 0.08);
-    --panel-border: #ffffff;
     --panel-shadow: 0 10px 30px -14px rgba(30, 40, 100, 0.25);
     --input-bg: #fdfdff;
-    --input-border: #d6d6ec;
     --bar-bg: #f6f6fe;
     --seg-track: #e4e3f6;
     --seg-on: #fbfbff;
@@ -732,10 +741,8 @@ input[type="number"],
     --negative-soft: rgba(251, 113, 133, 0.16);
     --warning: #fcd34d;
     --warning-soft: rgba(251, 191, 36, 0.14);
-    --panel-border: rgba(255, 255, 255, 0.12);
     --panel-shadow: 0 10px 30px -14px rgba(0, 0, 0, 0.6);
     --input-bg: #11132a;
-    --input-border: rgba(255, 255, 255, 0.16);
     --bar-bg: #12142b;
     --seg-track: #11132a;
     --seg-on: #2c3058;
@@ -790,12 +797,11 @@ input[type="number"],
     --negative-fill: #b3261e;
     --warning: #8f4a00;
     --warning-soft: #ffdcc0;
-    --focus: 0 0 0 3px rgba(103, 80, 164, 0.3);
     --e1: 0 1px 2px rgba(0, 0, 0, 0.12);
-    --panel-border: transparent;
     --panel-shadow: none;
     --input-bg: #fffbff;
-    --input-border: #79747e;
+    --line-control: #79747e;
+    --panel-border: #cac4d0;
     --bar-bg: #f3edf7;
     --seg-track: #ece6f0;
     --seg-on: #e8def8;
@@ -836,10 +842,10 @@ input[type="number"],
     --negative-soft: rgba(242, 184, 181, 0.14);
     --warning: #f0c36a;
     --warning-soft: rgba(240, 195, 106, 0.14);
-    --panel-border: transparent;
     --panel-shadow: none;
     --input-bg: #36343b;
-    --input-border: #938f99;
+    --line-control: #938f99;
+    --panel-border: #49454f;
     --bar-bg: #211f26;
     --seg-track: #2b2930;
     --seg-on: #4a4458;
@@ -899,10 +905,8 @@ input[type="number"],
     --warning-soft: #fff4ce;
     --focus: 0 0 0 2px #ffffff, 0 0 0 4px #1a1a1a;
     --e1: 0 1px 2px rgba(0, 0, 0, 0.06);
-    --panel-border: #e5e5e5;
     --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     --input-bg: #ffffff;
-    --input-border: #d1d1d1;
     --bar-bg: #f3f3f3;
     --seg-track: #ececec;
     --seg-on: #ffffff;
@@ -942,10 +946,8 @@ input[type="number"],
     --warning: #fce100;
     --warning-soft: rgba(252, 225, 0, 0.1);
     --focus: 0 0 0 2px #000000, 0 0 0 4px #ffffff;
-    --panel-border: rgba(255, 255, 255, 0.06);
     --panel-shadow: none;
     --input-bg: #2d2d2d;
-    --input-border: rgba(255, 255, 255, 0.14);
     --bar-bg: #202020;
     --seg-track: #323232;
     --seg-on: #3a3a3a;
@@ -995,7 +997,6 @@ input[type="number"],
     --warning: #85570c;
     --warning-soft: #f3e5c3;
     --warning-dot: #c9932a;
-    --panel-border: #e6e0cf;
     --panel-shadow: 0 2px 10px -6px rgba(60, 50, 20, 0.18);
     --seg-on: #fbfaf5;
     --toast-bg: #24301f;
@@ -1035,7 +1036,6 @@ input[type="number"],
     --negative-soft: rgba(240, 154, 140, 0.13);
     --warning: #e7c06c;
     --warning-soft: rgba(231, 192, 108, 0.12);
-    --panel-border: rgba(220, 235, 200, 0.07);
     --panel-shadow: none;
     --seg-on: #2c3a29;
     --toast-bg: #273425;
@@ -1088,8 +1088,6 @@ input[type="number"],
     --warning: #85580a;
     --warning-soft: #f5ead0;
     --warning-dot: #c9a65a;
-    --focus: 0 0 0 3px rgba(201, 166, 90, 0.45);
-    --panel-border: #ebe5d9;
     --panel-shadow: 0 1px 2px rgba(60, 40, 10, 0.04), 0 12px 32px -20px rgba(60, 40, 10, 0.25);
     --seg-on: #fffdf9;
     --btn-primary-shadow: inset 0 0 0 1px #3a3128, 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -1133,7 +1131,6 @@ input[type="number"],
     --negative-soft: rgba(238, 154, 146, 0.12);
     --warning: #e6c47c;
     --warning-soft: rgba(230, 196, 124, 0.12);
-    --panel-border: rgba(212, 176, 106, 0.1);
     --panel-shadow: none;
     --bar-bg: #13110e;
     --seg-on: #2e2922;
@@ -1243,7 +1240,6 @@ input[type="number"],
     --e1: 0 1px 2px rgba(0, 0, 0, 0.5);
     --e2: 0 0 0 1px rgba(148, 180, 255, 0.1), 0 12px 32px -8px rgba(0, 0, 0, 0.8);
     --e3: 0 0 0 1px rgba(148, 180, 255, 0.12), 0 24px 56px -12px rgba(0, 0, 0, 0.85);
-    --focus: 0 0 0 3px rgba(124, 196, 250, 0.35);
     --input-bg: #080d1b;
     --seg-on: #1c2946;
     --toast-bg: #18233d;
@@ -1304,10 +1300,8 @@ input[type="number"],
     --e3: 0 0 0 1px rgba(255, 43, 214, 0.3), 0 24px 56px -12px rgba(0, 0, 0, 0.9);
     --highlight: 0 0 #0000;
     --focus: 0 0 0 2px #07070d, 0 0 0 4px #00f0ff;
-    --panel-border: rgba(0, 240, 255, 0.18);
     --panel-shadow: none;
     --input-bg: #0a0a14;
-    --input-border: rgba(0, 240, 255, 0.3);
     --bar-bg: #0a0a14;
     --seg-track: #0a0a14;
     --seg-on: #1e1e36;
@@ -1368,7 +1362,7 @@ input[type="number"],
   color: var(--toast-ink);
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
-  line-height: 18px;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1456,9 +1450,9 @@ html[data-updating] .updating-mark {
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0 var(--sp-4);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r-control);
   background-color: var(--surface);
   color: var(--ink);
@@ -1511,14 +1505,15 @@ html[data-updating] .updating-mark {
   font-size: var(--fs-sm);
 }
 
-/* Tap targets (#68): every button, also .btn-sm and the Outstanding / Cash payment actions, is at least 44 px tall */
+/* Tap targets (#68, U-14): every button, also .btn-sm and the Outstanding / Cash payment actions, is --tap-min tall
+   (48 px on phones) */
 [data-record-payment],
 [data-mark-cleared] {
-  min-height: 44px;
+  min-height: var(--tap-min);
 }
 
 .btn-icon {
-  width: 44px;
+  width: var(--tap-min);
   padding: 0;
 }
 
@@ -1616,6 +1611,7 @@ select,
 input[type="number"],
 input[type="text"] {
   width: 100%;
+  min-height: var(--tap-min);
   padding: 13px 15px;
   border: 1px solid var(--input-border);
   border-radius: var(--r-control);
@@ -1761,16 +1757,33 @@ input[type="radio"] {
   accent-color: var(--accent);
 }
 
+/* 24 px boxes (WCAG 2.5.8); a label holding one is a 48 px row, so the whole line takes the tap (U-14) */
+:where(input[type="checkbox"]:not(.switch), input[type="radio"]) {
+  width: 24px;
+  height: 24px;
+}
+
+:where(label):has(> input[type="checkbox"], > input[type="radio"]) {
+  min-height: var(--tap-min);
+  align-items: center;
+}
+
+/* The switch draws 36 × 22 but takes taps on 62 × 48: a clear border around the track that the negative margin
+   gives back to the layout */
 input[type="checkbox"].switch,
 .checkbox-label input[type="checkbox"].switch {
   -webkit-appearance: none;
   appearance: none;
   flex: none;
+  box-sizing: content-box;
   width: 36px;
   height: 22px;
-  margin: 0;
+  margin: calc(-1 * var(--switch-hit));
+  border: var(--switch-hit) solid transparent;
   border-radius: var(--r-full);
   background: radial-gradient(circle at 11px 50%, var(--surface) 8px, transparent 8.5px), var(--ink-3);
+  background-clip: content-box;
+  background-origin: content-box;
   cursor: pointer;
   transition: background var(--dur-1) var(--ease);
 }
@@ -1778,12 +1791,15 @@ input[type="checkbox"].switch,
 input[type="checkbox"].switch:checked,
 .checkbox-label input[type="checkbox"].switch:checked {
   background: radial-gradient(circle at 25px 50%, var(--on-accent) 8px, transparent 8.5px), var(--accent);
+  background-clip: content-box;
+  background-origin: content-box;
 }
 
 input[type="checkbox"].switch:focus-visible,
 .checkbox-label input[type="checkbox"].switch:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -12px;
+  box-shadow: none;
 }
 
 /* ---------- Segmented control: .seg, aria-pressed (modes and filters) ---------- */
@@ -1802,8 +1818,8 @@ input[type="checkbox"].switch:focus-visible,
   gap: var(--sp-2);
   flex: 1;
   min-width: 0;
-  min-height: 44px;
-  padding: 0 var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-3);
   border: none;
   border-radius: var(--r-control);
   background-color: transparent;
@@ -1812,20 +1828,24 @@ input[type="checkbox"].switch:focus-visible,
   font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+  line-height: 1.25;
+  overflow-wrap: break-word;
   cursor: pointer;
 }
 
+/* The chosen option: its fill, a 2 px edge at 3:1 on the track and the accent ink (U-16) */
 .seg > .on,
 .seg > [aria-pressed="true"],
 .seg > [aria-selected="true"] {
   background-color: var(--seg-on);
-  color: var(--ink);
-  box-shadow: var(--e1);
+  color: var(--seg-on-ink);
+  box-shadow: var(--seg-on-ring), var(--e1);
 }
 
 .seg > button:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+  box-shadow: none;
 }
 
 /* These set display, which would otherwise beat the hidden attribute */
@@ -1844,8 +1864,8 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 .tabs > button {
-  min-height: 44px;
-  padding: 0 var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-3);
   margin-bottom: -1px;
   border: none;
   border-bottom: 2px solid transparent;
@@ -1855,6 +1875,7 @@ input[type="checkbox"].switch:focus-visible,
   font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+  line-height: 1.25;
   cursor: pointer;
   transition: color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
@@ -1869,16 +1890,24 @@ input[type="checkbox"].switch:focus-visible,
   color: var(--ink);
 }
 
-/* ---------- Chips: .chip + aria-pressed (on/off), and tags ---------- */
+/* ---------- Chips: .chip + aria-pressed (on/off), and tags ----------
+   A chip draws 40 px; its tap area reaches 48 px (the ::after), so rows of chips stay compact (U-14) */
 .chip {
-  min-height: 32px;
+  position: relative;
+  min-height: var(--control-h-sm);
   padding: 0 14px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r-chip);
   background-color: var(--surface);
   color: var(--ink);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+}
+
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--control-h-sm) - var(--tap-min)) / 2) 0;
 }
 
 .chip.on,
@@ -1904,6 +1933,32 @@ input[type="checkbox"].switch:focus-visible,
 .tag.neg { background: var(--negative-soft); color: var(--negative); }
 .tag.warn { background: var(--warning-soft); color: var(--warning); }
 .tag.info { background: var(--info-soft); color: var(--info); }
+
+/* ---------- Tap floor (U-14): small controls keep their look but take taps on --tap-min ---------- */
+/* A disclosure line is a full row */
+:where(summary) {
+  min-height: var(--tap-min);
+  padding-block: var(--sp-3);
+}
+
+/* Text buttons and the list's Load more / Retry get the button height */
+.infinite-scroll-more,
+.history-range-retry {
+  min-height: var(--tap-min);
+}
+
+/* A link-like button inside a line of text (a bill number): an invisible 48 px tap area round the words */
+.due-bill-link,
+.bill-edits__view {
+  position: relative;
+}
+
+.due-bill-link::after,
+.bill-edits__view::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
+}
 
 /* -------------------- UTILITIES -------------------- */
 button, a, input[type="checkbox"] {
@@ -2025,11 +2080,14 @@ a.row:active {
   min-width: 0;
 }
 
+/* Large text (U-17): a title or subtitle takes up to two lines before it is cut */
 .row-title,
 .row-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .row-title {
@@ -2758,15 +2816,19 @@ a.row:active {
 }
 
 .auth-lang-link {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
   background: none;
-  border: none;
-  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  padding: 0 var(--sp-4);
   font-size: var(--fs-sm);
   color: var(--ink-2);
   cursor: pointer;
 }
 
 .auth-lang-link[aria-pressed="true"] {
+  border-color: var(--seg-on-line);
   color: var(--accent-text);
   font-weight: var(--w-strong);
 }
@@ -2838,8 +2900,8 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: var(--tap-min);
+    height: var(--tap-min);
     padding: 0;
     border: 0;
     border-radius: var(--r-full);
@@ -3015,8 +3077,8 @@ body {
   background: none;
   border: none;
   color: var(--ink-2);
-  width: 40px;
-  height: 40px;
+  width: var(--tap-min);
+  height: var(--tap-min);
   border-radius: var(--r-full);
   cursor: pointer;
   display: flex;
@@ -3049,7 +3111,7 @@ body {
 .nav-menu a {
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--tap-min);
   box-sizing: border-box;
   padding: var(--sp-2) var(--sp-6);
   color: var(--ink);
@@ -3106,7 +3168,7 @@ body {
   margin-top: var(--sp-3);
 }
 .biz-switch button {
-  min-height: 40px;
+  min-height: var(--tap-min);
   padding: var(--sp-1) var(--sp-3);
   border-radius: var(--r-sm);
   font-size: var(--fs-body);
@@ -3183,8 +3245,6 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
   .nav-close {
     grid-column: 2;
     grid-row: 1 / span 2;
-    width: 44px;
-    height: 44px;
   }
 
   /* Not "all": an inherited visibility change would be animated too, and the sheet's controls could not take focus as it opens */
@@ -3233,9 +3293,11 @@ body.biz-rentals .nav-menu a:not([data-biz]) { display: none; }
     margin: 0;
     padding: var(--sp-1) 0 var(--sp-2);
     font-size: var(--fs-caption);
+    font-weight: var(--w-label);
     line-height: 1.25;
     text-align: center;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
   .nav-menu a:hover,
@@ -3320,13 +3382,14 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: var(--sp-1) 0;
+  padding: var(--sp-1) var(--sp-1);
   border: none;
   background: none;
   color: var(--ink-2);
   font: inherit;
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
 }
@@ -3338,11 +3401,15 @@ body {
   transition: background var(--dur-2) var(--ease);
 }
 
+/* Large text (U-17): a label wraps to two lines instead of being cut */
 .bottom-nav-label {
   max-width: 100%;
-  white-space: nowrap;
+  text-align: center;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .bottom-nav-item.active {
@@ -7530,8 +7597,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 .role-table input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .role-table input[type="number"] {
@@ -9455,6 +9522,7 @@ div.ins-wide,
     --desktop-gutter: max(var(--sp-8), calc((100vw - var(--desktop-nav-width) - var(--desktop-content-max)) / 2));
     /* Desktop density (DIRECTION §5): 36 px controls, 44 px rows */
     --control-h: 36px;
+    --tap-min: 44px;
     --row-h: 44px;
     /* Desktop type scale (DIRECTION §3.2); html[lang="hi"] keeps its larger --fs-sm / --fs-body */
     --fs-body: 14px;

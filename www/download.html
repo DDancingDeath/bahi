@@ -24,14 +24,13 @@
             --mode-sale: #047857;
             --on-mode-sale: #ffffff;
             --state-hover: rgba(16, 16, 29, 0.05);
-            --focus: 0 0 0 3px rgba(79, 70, 229, 0.24);
             --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", "Helvetica Neue", Arial, "Noto Sans Devanagari", "Nirmala UI", sans-serif;
             --w-regular: 400;
             --w-strong: 600;
             --r-control: 8px;
             --r-panel: 12px;
-            --fs-caption: 12px;
-            --fs-sm: 13px;
+            --fs-caption: 13px;
+            --fs-sm: 14px;
             --fs-body: 15px;
             --fs-lead: 17px;
             --fs-title: 20px;
@@ -56,7 +55,7 @@
         li { margin: var(--sp-1) 0; }
         .download-btn { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 52px; background: var(--mode-sale); color: var(--on-mode-sale); text-decoration: none; font-size: var(--fs-lead); font-weight: var(--w-strong); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-control); margin: var(--sp-3) 0 var(--sp-2); }
         .download-btn:active { background-image: linear-gradient(var(--state-hover), var(--state-hover)); }
-        .download-btn:focus-visible, .lang-switch button:focus-visible { outline: none; box-shadow: var(--focus); }
+        .download-btn:focus-visible, .lang-switch button:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; }
         .download-btn svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .muted { color: var(--ink-2); font-size: var(--fs-sm); }
         .facts { margin: 0; color: var(--ink-2); font-size: var(--fs-sm); }
