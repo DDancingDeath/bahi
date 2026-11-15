@@ -23,7 +23,7 @@ import { approxStockNote, lowStockItems, lowStockLevel, stockedItemKeys, DEFAULT
 import { isArchivedItem } from '../utils/item-catalog.js';
 import { evaluateStockAdjustment, toFlags } from '../utils/bill-checks.js';
 import { findDeadStock, daysSinceLabel, localDaysBetween, DEAD_STOCK_DAY_OPTIONS, DEFAULT_DEAD_STOCK_DAYS } from '../utils/dead-stock.js';
-import { t, hasCatalogue, loadAllCatalogues } from '../i18n/index.js';
+import { t, tn, hasCatalogue, loadAllCatalogues } from '../i18n/index.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
 import { pickLang } from '../i18n/localize.js';
@@ -415,7 +415,7 @@ export class StockManager {
             UIManager.showToast(t('msg.stock.count_none'));
             return;
         }
-        const sure = await UIManager.showModal(t('msg.stock.count_confirm', { n: changes.length }), t('ui.stock.count_title'), true);
+        const sure = await UIManager.showModal(tn('msg.stock.count_confirm', changes.length), t('ui.stock.count_title'), true);
         if (!sure) return;
         const saved = await Helpers.runExclusive('stock-adjust', '[data-stock-adjust]', () => {
             let n = 0;
@@ -431,7 +431,7 @@ export class StockManager {
             return n;
         });
         if (saved) {
-            UIManager.showToast(t('msg.stock.count_saved', { n: saved }));
+            UIManager.showToast(tn('msg.stock.count_saved', saved));
             await this.refreshAfterAdjustment();
         }
     }
@@ -631,7 +631,7 @@ export class StockManager {
                     ? t('ui.deadstock.window_note', { date: formatWindowDate(windowStart), days: windowDays })
                     : t('ui.deadstock.all_bills');
                 summary.innerHTML = rows.length
-                    ? `${txMoney('ui.deadstock.summary', { n: rows.length, value: formatAmount(totalValue) }, totalValue)}<br>${e(windowNote)}`
+                    ? `${txMoney(rows.length === 1 ? 'ui.deadstock.summary_one' : 'ui.deadstock.summary', { n: rows.length, value: formatAmount(totalValue) }, totalValue)}<br>${e(windowNote)}`
                     : e(windowNote);
             }
 

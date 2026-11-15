@@ -400,7 +400,7 @@ const NotificationsManager = {
             const rent = x.kind === 'rent';
             const title = rent ? `${t('ui.today.reminder_rent')} ${formatRupees(x.rent.due)}`
                 : `${[x.lease.place, x.lease.tenant].filter(Boolean).join(' · ')}: ${leaseReminderText(x.lease)}`;
-            const meta = rent ? `${t('ui.today.reminder_rent_units', { count: x.rent.dueUnits, late: x.rent.late })} · ${asOf(x.at)}` : asOf(x.at);
+            const meta = rent ? `${tn('ui.today.reminder_rent_units', x.rent.dueUnits, { late: x.rent.late })} · ${asOf(x.at)}` : asOf(x.at);
             return `
                 <button type="button" class="row notif-item${this.rentNew.has(x.key) ? ' unread' : ''}" data-reminder="${e(x.kind)}" data-onclick="notifications.openReminder('${rent ? 'rent' : 'tenants'}')">
                     <span class="lead-icon">${rent ? icon('home') : icon('file')}</span>

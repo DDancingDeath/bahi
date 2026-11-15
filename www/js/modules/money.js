@@ -1194,7 +1194,7 @@ export const MoneyManager = {
                     this.staleSeen[k] = Date.now();
                 }
             });
-            UIManager.showToast(t('msg.money.history_built', { count: written }), 'success');
+            UIManager.showToast(tn('msg.money.history_built', written), 'success');
         } catch (e) {
             console.error('Money: building month history failed:', e);
             UIManager.showToast(t('msg.money.could_not_load'));

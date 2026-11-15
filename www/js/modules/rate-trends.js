@@ -769,7 +769,7 @@ export const RateTrendsManager = {
             return `<div class="rt-outlook rt-outlook-${o.direction}">
                 <div class="rt-outlook-head"><span class="rt-arrow">${arrow}</span> ${esc(label)}: ${esc(t(DIRECTION_KEYS[o.direction]))}</div>
                 <div class="rt-outlook-meta"><span class="rt-conf rt-conf-${o.confidence}">${esc(t(CONFIDENCE_KEYS[o.confidence]))}</span>
-                    ${esc(t('ui.trends.years_of_data', { n: o.seasons }))}</div>
+                    ${esc(tn('ui.trends.years_of_data', o.seasons))}</div>
                 <div class="rt-muted">${esc(why)}</div></div>`;
         }).join('');
     },

@@ -10,7 +10,7 @@ import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { CHANGED_ELSEWHERE, writeErrorKey } from '../utils/write-conflict.js';
-import { t } from '../i18n/index.js';
+import { t, tn } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { emptyState } from '../ui/components.js';
 import { tip, tipTargets, tipReasons } from '../tip/index.js';
@@ -150,7 +150,7 @@ export const HealthManager = {
         const today = dayKeyOf(Date.now());
         const status = document.getElementById('healthStatus');
         if (status) {
-            status.textContent = t('ui.health.updated', {
+            status.textContent = t(docs.length === 1 ? 'ui.health.updated_one' : 'ui.health.updated', {
                 time: Helpers.formatTime(at || Date.now()),
                 docs: docs.length
             });
@@ -244,7 +244,7 @@ export const HealthManager = {
             const rows = Object.entries(policies).map(([key, p]) => {
                 const s = tip.policyState(key);
                 const mode = p.telemetryOnly ? t('ui.health.report_only') : t('ui.health.switches_safe_mode');
-                const now = s.tripped ? t('ui.health.policy_tripped', { rate: s.passrate }) : t('ui.health.policy_ok', { runs: s.runs });
+                const now = s.tripped ? t('ui.health.policy_tripped', { rate: s.passrate }) : tn('ui.health.policy_ok', s.runs, { runs: s.runs });
                 return `<li><strong>${esc(key)}</strong> (${esc(testLabel(p.test))}, ${esc(mode)}): ${esc(now)}</li>`;
             });
             state.innerHTML = rows.length ? `<ul class="hl-list">${rows.join('')}</ul>` : `<div class="hl-muted">${L('ui.health.no_policies')}</div>`;

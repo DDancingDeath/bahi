@@ -319,7 +319,7 @@ export class CashManagementManager {
             const closedCount = results.filter(Boolean).length;
             
             if (closedCount > 0) {
-                UIManager.showToast(t('msg.cash.auto_closed_previous_session_s', { closedCount }));
+                UIManager.showToast(tn('msg.cash.auto_closed_previous_session_s', closedCount, { closedCount }));
             }
         } catch (error) {
             console.error('Error auto signing out previous sessions:', error);

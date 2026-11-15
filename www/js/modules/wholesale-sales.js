@@ -30,7 +30,7 @@ import { historyCutoff } from '../utils/role-access.js';
 import { OutstandingManager } from './outstanding.js';
 import { partyNameKey } from '../utils/parties.js';
 import { partyDues } from '../utils/due-payments.js';
-import { getLang, t } from '../i18n/index.js';
+import { getLang, t, tn } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
@@ -1052,8 +1052,8 @@ export class WholesaleSalesManager {
         const html = `
             <div class="due-dlg">
                 <div><strong>${esc(String(name).trim())}</strong><br>
-                    ${esc(t('msg.wholesale.complete_all_due_summary', { count: shown.bills.length, total: amount }))}</div>
-                ${shown.bills.length < group.bills.length ? `<div class="due-dlg-note">${esc(t('msg.wholesale.complete_all_due_oldest', { count: shown.bills.length, all: group.bills.length }))}</div>` : ''}
+                    ${esc(tn('msg.wholesale.complete_all_due_summary', shown.bills.length, { total: amount }))}</div>
+                ${shown.bills.length < group.bills.length ? `<div class="due-dlg-note">${esc(tn('msg.wholesale.complete_all_due_oldest', shown.bills.length, { all: group.bills.length }))}</div>` : ''}
                 <div class="due-dlg-head">${esc(t('ui.wholesale.complete_all_due_how'))}</div>
                 <label class="due-dlg-opt"><input type="radio" name="completeAllMethod" value="cash"> ${esc(t('ui.wholesale.complete_all_due_cash'))}</label>
                 <label class="due-dlg-opt"><input type="radio" name="completeAllMethod" value="online"> ${esc(t('ui.wholesale.complete_all_due_online'))}</label>
@@ -1115,7 +1115,7 @@ export class WholesaleSalesManager {
             return;
         }
         settled.forEach(s => Object.assign(s.bill, s.fields));
-        UIManager.showToast(t('msg.wholesale.complete_all_due_done', { count: settled.length, total: formatRupees(total) }));
+        UIManager.showToast(tn('msg.wholesale.complete_all_due_done', settled.length, { total: formatRupees(total) }));
         UIManager.hapticFeedback('light');
         // Saved: a screen that fails to redraw must not look like a failed payment
         try {

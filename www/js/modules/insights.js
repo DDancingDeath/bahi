@@ -278,7 +278,7 @@ export const InsightsManager = {
         }
         const deadCount = this.deadStockCount(now);
         this.html('insightsActionsLinks',
-            (deadCount > 0 ? this.actionCard(icon('box'), t('ui.insights.act_dead_stock', { n: deadCount }), 'stock', t('ui.insights.open_stock')) : '')
+            (deadCount > 0 ? this.actionCard(icon('box'), tn('ui.insights.act_dead_stock', deadCount), 'stock', t('ui.insights.open_stock')) : '')
             + this.actionCard(icon('flag'), t('ui.insights.act_anomalies'), 'anomalies', t('ui.insights.open_anomalies')));
         const any = ['insightsActionsDues', 'insightsActionsBelow', 'insightsActionsLow', 'insightsActionsStock']
             .some(id => (document.getElementById(id)?.innerHTML || '').trim());
@@ -429,7 +429,7 @@ export const InsightsManager = {
         const lyCheck = kind === 'sales' ? this.stoppedCheck(src, new Date()) : { list: [], known: true };
         const stopped = lyCheck.list;
         let tk = share.pct !== null ? `<p>${esc(t(kind === 'sales' ? 'ui.insights.tk_top5_customers' : 'ui.insights.tk_top5_suppliers', { pct: share.pct }))}</p>` : '';
-        if (stopped.length) tk += `<p>${esc(t('ui.insights.tk_stopped', { n: stopped.length, days: this.cfg().stoppedComingDays }))}</p>`;
+        if (stopped.length) tk += `<p>${esc(tn('ui.insights.tk_stopped', stopped.length, { days: this.cfg().stoppedComingDays }))}</p>`;
         this.html('insightsPartiesTakeaway', tk);
         const card = document.getElementById('insightsStoppedCard');
         if (card) card.hidden = kind !== 'sales';

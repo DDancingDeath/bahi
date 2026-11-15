@@ -10,7 +10,7 @@ import { AppState } from '../utils/state.js';
 import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { UIManager } from '../ui/ui-manager.js';
-import { t, getLang } from '../i18n/index.js';
+import { t, tn, getLang } from '../i18n/index.js';
 import { formatRupees, formatAmount, formatKg } from '../utils/money.js';
 import { caveatKey } from '../utils/takeaways.js';
 import { formatDay, formatMonth, formatDayTime, toLocalISODate, parseLocalDate, todayLocalISO, monthStart, endOfLocalDayExclusive, addLocalDays } from '../utils/dates.js';
@@ -394,7 +394,7 @@ export const StatementsManager = {
         if (!this.covered(from)) return this.notLoaded(label, from);
         const rows = exportLines(this.src(), AppState.items || [], { from, to });
         const bills = new Set(rows.map(r => `${r.type}|${r.billNo}|${r.date}`)).size;
-        const html = `<h3 class="st-title">${esc(title)}</h3><p>${esc(t('ui.statements.csv_ready', { lines: rows.length, bills }))}</p>`;
+        const html = `<h3 class="st-title">${esc(title)}</h3><p>${esc(t('ui.statements.csv_ready', { lines: tn('ui.statements.n_lines', rows.length), bills: tn('ui.statements.n_bills', bills) }))}</p>`;
         const cl = this.csvLang();
         const rates = this.perms().purchaseRates;
         const csvHeader = ['date', 'type', 'bill_no', 'party', 'item', 'kg', 'rate', 'line_amount', 'labour', 'amount_after_labour', 'bill_total', 'cash', 'online', 'due']
@@ -404,7 +404,7 @@ export const StatementsManager = {
             const hide = r.type === 'purchase' && !rates;
             return [r.date, this.kindLabel(r.type, cl), r.billNo, r.party, r.item, r.qty, hide ? '' : r.rate, hide ? '' : r.lineAmount, r.labour, hide ? '' : r.amount, r.billTotal, r.cash, r.online, r.due];
         });
-        return { title, html, share: `${title}\n${t('ui.statements.csv_ready', { lines: rows.length, bills })}`, csvHeader, csvRows };
+        return { title, html, share: `${title}\n${t('ui.statements.csv_ready', { lines: tn('ui.statements.n_lines', rows.length), bills: tn('ui.statements.n_bills', bills) })}`, csvHeader, csvRows };
     },
 
     renderAccountant() {
@@ -418,7 +418,7 @@ export const StatementsManager = {
         const sessions = this.sessions({ from, to });
         const rows = accountantLines(this.src(), { from, to }, { sessions: sessions.list });
         const bills = rows.filter(r => r.entry === 'bill').length;
-        const ready = t('ui.statements.accountant_ready', { bills, payments: rows.length - bills });
+        const ready = t('ui.statements.accountant_ready', { bills: tn('ui.statements.n_bills', bills), payments: tn('ui.statements.n_payments', rows.length - bills) });
         const html = `<h3 class="st-title">${esc(title)}</h3>${this.duesCaveat(sessions)}`
             + `<p>${esc(ready)}</p>`
             + `<p class="ins-hint">${esc(t('ui.statements.accountant_hint'))}</p>`;

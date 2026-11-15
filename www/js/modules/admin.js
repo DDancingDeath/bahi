@@ -18,7 +18,7 @@ import { historyLoadedFrom } from '../utils/history-window.js';
 import { getLang } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { buildBackup, isDeleteConfirmed, DELETE_CONFIRM_WORD, canClearCollection } from '../utils/data-export.js';
-import { t } from '../i18n/index.js';
+import { t, tn } from '../i18n/index.js';
 import { UserAdmin, isRemovedProfile, logUserAction } from '../services/user-admin.js';
 import { icon } from '../ui/icons.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
@@ -637,7 +637,7 @@ const AdminManager = {
                 box.innerHTML = `<p>${tx('ui.duefix.checked', { checked: check.checked })}</p>`
                     + (count
                         ? `<p>${tx('ui.duefix.todo', { count, missing: check.byReason.missing, notNumber: check.byReason.notNumber, mirror: check.byReason.mirror })}</p>
-                           <button type="button" class="btn btn-primary admin-action" data-onclick="admin.backfillDueFields()">${icon('check', 'i-sm')} ${tx('ui.duefix.run', { count })}</button>`
+                           <button type="button" class="btn btn-primary admin-action" data-onclick="admin.backfillDueFields()">${icon('check', 'i-sm')} ${tx(count === 1 ? 'ui.duefix.run_one' : 'ui.duefix.run', { count })}</button>`
                         : `<p>${tx('ui.duefix.none')}</p>`)
                     + (check.changes.length ? `<p>${tx('ui.duefix.changes', { count: check.changes.length })}</p>` : '');
             } catch (error) {
@@ -667,7 +667,7 @@ const AdminManager = {
                     checked: check.checked, listed: count, written: result.written, failed: result.failed, ...check.byReason
                 });
                 if (box) {
-                    box.textContent = t(result.failed ? 'ui.duefix.done_failed' : 'ui.duefix.done', { written: result.written, failed: result.failed });
+                    box.textContent = (result.failed ? t('ui.duefix.done_failed', { written: result.written, failed: result.failed }) : tn('ui.duefix.done', result.written, { written: result.written }));
                 }
             } catch (error) {
                 console.error('Due backfill failed:', error);
@@ -732,13 +732,13 @@ const AdminManager = {
         const lang = getLang();
         if (!r.ok) {
             const items = r.problems.map(p => `<li>${e(t(`ui.backup.p_${p.code}`, { coll: p.coll, at: p.at, id: p.id, file: p.file, manifest: p.manifest }))}</li>`).join('');
-            const more = r.problemCount > r.problems.length ? `<p>${e(t('ui.backup.more_problems', { count: r.problemCount - r.problems.length }))}</p>` : '';
+            const more = r.problemCount > r.problems.length ? `<p>${e(tn('ui.backup.more_problems', r.problemCount - r.problems.length))}</p>` : '';
             return `<div class="notice neg backup-result backup-bad" data-backup-ok="false">${icon('x', 'i-sm')}<div class="grow"><p><b>${e(t('ui.backup.bad'))}</b></p><ul>${items}</ul>${more}</div></div>`;
         }
         const rows = [...r.collections, ...r.subcollections].map(c => `<tr><td lang="en" translate="no">${e(c.name)}</td><td class="num">${e(c.docs.toLocaleString('en-IN'))}</td></tr>`).join('');
         const lines = [
             t('ui.backup.good_docs', { docs: r.totalDocs.toLocaleString('en-IN'), collections: r.collections.length }),
-            r.exportedAt ? t('ui.backup.good_saved', { when: formatDayTime(r.exportedAt, { lang }), days: r.ageDays }) : '',
+            r.exportedAt ? tn('ui.backup.good_saved', r.ageDays, { when: formatDayTime(r.exportedAt, { lang }), days: r.ageDays }) : '',
             r.newestBillAt ? t('ui.backup.good_newest', { when: formatDay(r.newestBillAt, { lang }) }) : ''
         ].filter(Boolean);
         return `<div class="notice pos backup-result backup-good" data-backup-ok="true">${icon('check', 'i-sm')}<div class="grow"><p><b>${e(t('ui.backup.good'))}</b></p>`

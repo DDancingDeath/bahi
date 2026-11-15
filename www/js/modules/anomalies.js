@@ -925,7 +925,7 @@ export const AnomaliesManager = {
         const rep = document.getElementById('anomalyRepeat');
         if (rep) {
             const block = (title, rows) => `<div class="anom-repeat-block"><h4>${title}</h4>${rows.length
-                ? `<ul>${rows.map(r => `<li><strong>${esc(r.name)}</strong> — ${esc(t('ui.anom.repeat_times', { count: r.count, days: r.days }))} <span class="tone-muted">(${r.types.map(ty => loc(typeLabel(ty))).join(', ')})</span></li>`).join('')}</ul>`
+                ? `<ul>${rows.map(r => `<li><strong>${esc(r.name)}</strong> — ${esc(t(r.days === 1 ? 'ui.anom.repeat_times_one_day' : 'ui.anom.repeat_times', { count: r.count, days: r.days }))} <span class="tone-muted">(${r.types.map(ty => loc(typeLabel(ty))).join(', ')})</span></li>`).join('')}</ul>`
                 : `<div class="tone-muted">${esc(t('ui.anom.none'))}</div>`}</div>`;
             rep.innerHTML = block(esc(t('ui.anom.repeat_items')), p.repeat.items) + block(esc(t('ui.anom.repeat_users')), p.repeat.users) + block(esc(t('ui.anom.repeat_parties')), p.repeat.parties);
         }

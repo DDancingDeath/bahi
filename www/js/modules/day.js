@@ -307,7 +307,7 @@ export const DayManager = {
         const party = (p) => `<li class="today-reminder-party"><span>${e(p.name || t('ui.reports.unknown'))}</span>`
             + ` <strong>${e(moneyText(p.total))}</strong>`
             + ` <span class="today-reminder-days">${e([t('ui.outstanding.party_overdue', { amount: moneyText(p.overdue) }),
-                ...(p.oldestDays !== null && p.oldestDays !== undefined ? [t('ui.today.reminder_days', { count: p.oldestDays })] : [])].join(' · '))}</span>`
+                ...(p.oldestDays !== null && p.oldestDays !== undefined ? [tn('ui.today.reminder_days', p.oldestDays)] : [])].join(' · '))}</span>`
             + '</li>';
         const block = (kind, r, open) => reminderOpen(kind)
             + `<div class="today-reminder-head"><strong>${e(t(`ui.today.reminder_${kind}`))}</strong> ${e(moneyText(r.total))}</div>`
@@ -345,7 +345,7 @@ export const DayManager = {
                 chips.push(t('ui.today.rem_chip_rent', { amount: moneyText(rent.due) }));
                 late = late || rent.late > 0;
                 parts.push(`${reminderOpen('rent')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_rent'))}</strong> ${e(moneyText(rent.due))}</div>`
-                    + `<div>${e(t('ui.today.reminder_rent_units', { count: rent.dueUnits, late: rent.late }))}</div>`
+                    + `<div>${e(tn('ui.today.reminder_rent_units', rent.dueUnits, { late: rent.late }))}</div>`
                     + `<div class="today-reminder-more">${e(t('ui.today.reminder_as_of', { time: formatDayTime(rent.at, { lang: getLang() }) }))}</div>`
                     + `<button type="button" class="btn btn-sm" data-onclick="rentals.open('rent', event)">${e(t('ui.today.reminder_open_rent'))}</button></div></div>`);
             }
@@ -412,7 +412,7 @@ export const DayManager = {
             if (drill?.due) {
                 chips.push(t('ui.today.rem_chip_backup'));
                 parts.push(`${reminderOpen('backup')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_backup'))}</strong></div>`
-                    + `<div>${e(drill.lastAt === null ? t('ui.today.reminder_backup_never') : t('ui.today.reminder_backup_days', { count: drill.days }))}</div>`
+                    + `<div>${e(drill.lastAt === null ? t('ui.today.reminder_backup_never') : tn('ui.today.reminder_backup_days', drill.days))}</div>`
                     + `<button type="button" class="btn btn-sm" data-onclick="day.openBackupCheck()">${e(t('ui.today.reminder_open_backup'))}</button></div></div>`);
             }
         }
