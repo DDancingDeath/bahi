@@ -6,7 +6,7 @@ The owner opens the app on Today (managers and members open on Billing).
 
 Today's figures, from today's bills, expenses and cash sessions.
 
-The page opens with the net figure for the day (T12) and total in / out (T10, T11). Below it comes what needs attention: the cash drawer prompt, the reminders and, for owners and managers, the Day report. Then the day's figures, the bills and the items. On a computer the reminders and the Day report stand in a column on the right.
+The page opens with the net figure for the day (T12) and total in / out (T10, T11), then the cash drawer prompt (when bills were saved but the drawer isn't open) and Purchases, Sales and expenses (T1, T2, T4, T5). Below them come the Reminders and, for owners and managers, the Day report, each **closed to one line**: Reminders shows a short chip per reminder (for example "Udhaar ₹265 · Rent ₹68,000 · Backup") with an amber dot when something is overdue or late, and the Day report shows the date and either "No issues" or the counts in their colours ("High 2 · Review 3"). Tap the line to open the full card and again to close it; this phone remembers the choice. A reminder with nothing in it takes no room; when there is nothing to remind, owners and managers only see a small **＋ Add reminder** (with reminders, it is the **＋** at the end of the Reminders line). Opened with nothing found, the Day report says "No anomalies · Nothing to review" in one line. Then the rest of the day's figures, the bills and the items. On a computer Reminders and the Day report stand in a column on the right, beside the figures, closed the same way.
 
 | On screen | How it is worked out |
 |---|---|

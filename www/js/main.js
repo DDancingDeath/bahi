@@ -30,6 +30,7 @@ import { SettingsManager } from './modules/settings.js';
 import { CashManagementManager } from './modules/cash-management.js';
 import { DayManager, loadAnomalies, loadedAnomalies } from './modules/day.js';
 import { ManualReminders } from './ui/manual-reminders.js';
+import { toggleDisclosure } from './ui/disclosure.js';
 import { RolesAccessManager } from './modules/roles-access.js';
 import { tip, configureTip, startTipReporting, tipDeviceId } from './tip/index.js';
 import { dayKeyOf } from './tip/tip.js';
@@ -1462,6 +1463,11 @@ window.app = {
         ...Object.fromEntries(['selectItem', 'setRange', 'setPeriod', 'setView', 'setWeeks', 'setCompareKind', 'setBudget',
             'startBackfill', 'continueBackfill', 'setTrafficMonth', 'setTrafficItem', 'setTrafficWeeks']
             .map(name => [name, (...args) => loadRateTrends().then(m => m[name](...args))]))
+    },
+
+    // Disclosure cards (ui/disclosure.js): Today's Reminders and Day report
+    disclosure: {
+        toggle: (key) => toggleDisclosure(key)
     },
 
     // Day (Today's Summary + Cash Management)

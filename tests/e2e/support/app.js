@@ -114,4 +114,16 @@ async function clickAfterTyping(page, selector) {
     await page.click(selector);
 }
 
-module.exports = { test, expect: base.expect, isReady, login, openApp, showTab, settle, expectToast, confirmModalIfOpen, clickAfterTyping };
+/**
+ * Opens a closed disclosure card (ui/disclosure.js; Today's Reminders `todayReminders`, Day report `dayReport`)
+ * by tapping its row, as a person would. Already open: nothing.
+ */
+async function openDisclosure(page, id) {
+    const toggle = page.locator(`#${id}Toggle`);
+    await base.expect(toggle).toBeVisible();
+    if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
+    await base.expect(page.locator(`#${id}Toggle`)).toHaveAttribute('aria-expanded', 'true');
+    await base.expect(page.locator(`#${id}Body`)).toBeVisible();
+}
+
+module.exports = { test, expect: base.expect, isReady, login, openApp, showTab, settle, expectToast, confirmModalIfOpen, clickAfterTyping, openDisclosure };
