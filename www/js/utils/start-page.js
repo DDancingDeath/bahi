@@ -13,6 +13,9 @@ export const ROLE_START_PAGES = Object.freeze({ owner: 'day' });
 /** Tried in order when the role's start page is switched off for it. */
 export const START_FALLBACKS = Object.freeze(['billing', 'day', 'history', 'due', 'settings']);
 
+/** Roles with Aadhat access; anyone else (Rentals-only) keeps the old start: Billing, also after a reload. */
+const SHOP_ROLES = Object.freeze(['owner', 'manager', 'staff']);
+
 /**
  * @param {?string|undefined} role - AppState.userRole
  * @returns {string}
@@ -41,6 +44,6 @@ export function chooseStartPage({ role, link, restored, canOpen }) {
     const wanted = roleStartPage(role);
     const home = [wanted, ...START_FALLBACKS].find(id => canOpen(id)) || wanted;
     if (link) return { tab: link, home, source: 'link' };
-    if (restored && canOpen(restored)) return { tab: restored, home, source: 'session' };
+    if (restored && SHOP_ROLES.includes(String(role)) && canOpen(restored)) return { tab: restored, home, source: 'session' };
     return { tab: home, home, source: 'role' };
 }

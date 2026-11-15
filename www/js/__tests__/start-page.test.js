@@ -14,6 +14,7 @@ describe('start page per role', () => {
         for (const role of ['none', undefined, null, 'tenant']) {
             expect(roleStartPage(role)).toBe('billing');
             expect(chooseStartPage({ role, canOpen: all }).tab).toBe('billing');
+            expect(chooseStartPage({ role, restored: 'settings', canOpen: all })).toMatchObject({ tab: 'billing', source: 'role' });
         }
     });
 

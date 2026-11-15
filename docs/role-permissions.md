@@ -173,7 +173,7 @@ Code: `www/js/utils/start-page.js` (`chooseStartPage`), used by `initializeUserD
 | Owner | Today (`day`) |
 | Manager | Billing |
 | Member (`staff`) | Billing |
-| Rentals-only (`none` + `rentRole`) and anything else | Billing, as before (the app always starts on Aadhat; Rentals opens from the switch) |
+| Rentals-only (`none` + `rentRole`) and anything else | Billing, as before, also after a reload (the app always starts on Aadhat; Rentals opens from the switch) |
 
 - **Order:** a launch link, else the page this browser tab showed before a reload, else the
   role's page. If the role may not open its page, the first it may open of Billing, Today,
