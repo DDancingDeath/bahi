@@ -16,8 +16,12 @@ While a bill is being typed:
   app the phone asks once for the Contacts permission on the first tap; if it was refused, the
   app says where to allow it (phone Settings › Apps › this app › Permissions › Contacts). In
   Chrome on Android it opens Chrome's contact list. Elsewhere (computer, iPhone, other browsers)
-  the tap says picking contacts isn't available and puts you in the name field. Only the name is
-  used; nothing from the contacts is saved except the name on the bill. Hidden for roles with
+  the tap says picking contacts isn't available and puts you in the name field. The field is filled
+  as **Name - Number** (e.g. "Ramesh - 9876543210": the first mobile number, an Indian number as 10
+  digits; the name alone when there is no number, the number alone when there is no name), and that
+  is the name saved on the bill. Older bills under the plain name still show: the "Already owes" line
+  falls back to them, marked "(older bills)", and the suggestions and "Did you mean" offer the plain
+  name; nothing is merged by itself. Hidden for roles with
   Phone contacts off (Settings › Roles & access).
 - **Line amount** (BF-LINE) = kg × rate, rounded to the rupee.
 - **Bill total** (BF-TOTAL) = the sum of the lines.
