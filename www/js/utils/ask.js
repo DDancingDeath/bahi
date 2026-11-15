@@ -447,3 +447,20 @@ export function answerQuestion(q, src = {}, { role = 'staff', wholesale = false,
     return { intent, spec, page: null };
 }
 
+/**
+ * Names for the Ask example chips (U-96): the customer who owes the most and the item with the most
+ * stock, so a first tap gives a real answer; null when the shop has none yet.
+ * @param {{retailSales?: Array<Rec>, wholesaleSales?: Array<Rec>, items?: Array<Rec>, stock?: Rec}} src
+ * @param {{wholesale?: boolean, hindi?: boolean}} [opts]
+ * @returns {{party: ?string, item: ?string}}
+ */
+export function exampleNames(src = {}, { wholesale = true, hindi = false } = {}) {
+    const top = buildAging(dueRows(src, 'sale', { wholesale })).parties
+        .filter((/** @type {Rec} */ p) => p.name)
+        .sort((/** @type {Rec} */ a, /** @type {Rec} */ b) => b.total - a.total)[0];
+    const rows = stockRows(src.stock || {}, (src.items || []).filter((/** @type {Rec} */ i) => i && !i.archived)).rows
+        .filter(r => !r.isOrphan && r.quantity > 0)
+        .sort((a, b) => b.quantity - a.quantity);
+    const item = rows[0] ? (hindi && rows[0].hindiName ? rows[0].hindiName : rows[0].name) : null;
+    return { party: top ? String(top.name) : null, item: item ? String(item) : null };
+}
