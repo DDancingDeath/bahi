@@ -39,6 +39,10 @@ Test against the live site and the RC APK, not the emulator.
       saved printer), install the RC's `happa.apk` from its GitHub release page.
       It must install **over** it with no "App not installed" error. That error
       means the signing key changed: stop, never ask users to uninstall.
+      Exception: an APK for **another Firebase project** than the one before (rc13 used
+      `happa-bfc07`, rc14 and later use `bahi-happa`). It installs over the old one, but
+      the old project's cached settings and drafts would stay on the phone, so for that
+      one release users uninstall the old APK first (after it has synced) and sign in again.
 - [ ] After opening: still signed in, the language, the printer and any
       unsynced bills are still there; Settings › Help & about › About shows the new version.
 - [ ] The "What's new" sheet shows once, in the app language.

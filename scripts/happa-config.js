@@ -8,6 +8,8 @@
  *   node scripts/happa-config.js check            # release gate: in sync, no placeholders, owner confirmed
  *   node scripts/happa-config.js check --sync-only
  *   node scripts/happa-config.js get <key>        # print one derived value (siteUrl, projectId, apkFile, ...)
+ *   node scripts/happa-config.js target <name>    # CI build only: put config/targets/<name>.json over
+ *                                                 # happa.config.json, then apply (never commit the result)
  *   node scripts/happa-config.js guard [--require-ready] [--sa-env NAME] [--require-sa]
  *                                                 # CI: resolve the Firebase project, refuse the old one
  */
@@ -28,6 +30,24 @@ const QR_FILE = 'www/img/download-qr.svg';
 
 function loadConfig(root = DEFAULT_ROOT) {
     return JSON.parse(fs.readFileSync(path.join(root, CONFIG_FILE), 'utf8'));
+}
+
+const TARGETS_DIR = 'config/targets';
+const TARGET_KEYS = ['firebase', 'googleSignIn', 'appCheck'];
+
+/** A build target (config/targets/<name>.json): another project's public web config for the same app. */
+function loadTarget(name, root = DEFAULT_ROOT) {
+    if (!/^[a-z0-9-]+$/.test(String(name || ''))) throw new Error(`Bad target name "${name}"`);
+    const target = JSON.parse(fs.readFileSync(path.join(root, TARGETS_DIR, `${name}.json`), 'utf8'));
+    const extra = Object.keys(target).filter((k) => !TARGET_KEYS.includes(k));
+    if (extra.length) throw new Error(`Target ${name} may only set ${TARGET_KEYS.join(', ')} (not ${extra.join(', ')})`);
+    if (!target.firebase || !target.firebase.projectId) throw new Error(`Target ${name} has no firebase.projectId`);
+    return target;
+}
+
+/** happa.config.json with a target's blocks swapped in whole (no field of the base project survives). */
+function withTarget(raw, target) {
+    return { ...raw, ...JSON.parse(JSON.stringify(target)) };
 }
 
 function derive(raw) {
@@ -494,11 +514,24 @@ function main(argv) {
         console.log(`project=${r.projectId} site=${r.site} redirects=${r.redirectSites.join(',')} ready=${r.ready}`);
         return r.ok ? 0 : 1;
     }
-    console.error('Usage: node scripts/happa-config.js apply|check [--sync-only]|get <key>|guard [--require-ready] [--require-sa] [--sa-env NAME]');
+    if (cmd === 'target') {
+        const name = rest[0];
+        const raw = withTarget(loadConfig(), loadTarget(name));
+        const problems = configProblems(raw);
+        if (problems.length) {
+            console.error(`Target ${name} is not usable:\n  ${problems.join('\n  ')}`);
+            return 1;
+        }
+        fs.writeFileSync(path.join(DEFAULT_ROOT, CONFIG_FILE), JSON.stringify(raw, null, 2) + '\n');
+        const changed = apply(DEFAULT_ROOT, { qr: !has('--no-qr') });
+        console.log(`Built for target ${name} (project ${raw.firebase.projectId}). Updated:\n  ${[CONFIG_FILE, ...changed].join('\n  ')}`);
+        return 0;
+    }
+    console.error('Usage: node scripts/happa-config.js apply|check [--sync-only]|get <key>|target <name>|guard [--require-ready] [--require-sa] [--sa-env NAME]');
     return 1;
 }
 
-module.exports = { loadConfig, derive, configProblems, hostingProblems, plan, outOfSync, apply, check, guard, TARGETS, RETIRED_PROJECT_IDS, PLACEHOLDER_RE };
+module.exports = { loadConfig, loadTarget, withTarget, derive, configProblems, hostingProblems, plan, outOfSync, apply, check, guard, TARGETS, RETIRED_PROJECT_IDS, PLACEHOLDER_RE };
 
 if (require.main === module) {
     process.exitCode = main(process.argv.slice(2));

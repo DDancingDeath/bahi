@@ -4,6 +4,7 @@
     var appName = document.querySelector('h1').textContent;
     var titles = { en: appName + ' — Download', hi: appName + ' — डाउनलोड' };
     var releaseNotes = null;
+    var tagShown = false;
 
     function fillNotes(lang) {
         var list = document.getElementById('notesList');
@@ -44,10 +45,27 @@
         .then(function (data) {
             var latest = data && Array.isArray(data.releases) ? data.releases[0] : null;
             if (!latest) return;
-            document.getElementById('latestVersion').textContent = 'v' + String(latest.version || '');
-            if (latest.date) document.getElementById('latestDate').textContent = '(' + String(latest.date) + ')';
+            if (!tagShown) {
+                document.getElementById('latestVersion').textContent = 'v' + String(latest.version || '');
+                if (latest.date) document.getElementById('latestDate').textContent = '(' + String(latest.date) + ')';
+            }
             releaseNotes = latest.notes || {};
             fillNotes(root.lang);
         })
         .catch(function () { /* page still works without notes */ });
+
+    // The published APK's own tag (e.g. v1.0.0-rc14), from the repo the download button points at.
+    var repo = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/releases\//.exec(document.getElementById('downloadBtn').href);
+    if (repo) {
+        fetch('https://api.github.com/repos/' + repo[1] + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (rel) {
+                if (!rel || !/^v\d+\.\d+\.\d+(-rc\d+)?$/.test(String(rel.tag_name))) return;
+                tagShown = true;
+                document.getElementById('latestVersion').textContent = rel.tag_name;
+                var day = String(rel.published_at || '').slice(0, 10);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(day)) document.getElementById('latestDate').textContent = '(' + day + ')';
+            })
+            .catch(function () { /* keep the changelog's version */ });
+    }
 })();

@@ -3,7 +3,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { loadConfig, derive, configProblems, hostingProblems, plan, check, guard } = require('../../../scripts/happa-config.js');
+const { loadConfig, loadTarget, withTarget, derive, configProblems, hostingProblems, plan, check, guard } = require('../../../scripts/happa-config.js');
 
 const ROOT = path.join(__dirname, '..', '..', '..');
 
@@ -198,5 +198,53 @@ describe('CI guard', () => {
         expect(derive(raw).downloadPageUrl).toBe('https://happa-shop.web.app/download');
         raw.firebase.hostingSite = 'happa-app';
         expect(derive(raw).siteUrl).toBe('https://happa-app.web.app');
+    });
+});
+
+describe('Android build target (config/targets)', () => {
+    const workflow = (name) => fs.readFileSync(path.join(ROOT, '.github', 'workflows', name), 'utf8');
+    const bahi = () => withTarget(loadConfig(ROOT), loadTarget('bahi-happa', ROOT));
+
+    test('the web deploy keeps happa-bfc07; only the APK build switches to bahi-happa', () => {
+        expect(derive(loadConfig(ROOT))).toMatchObject({ projectId: 'happa-bfc07', hostingSite: 'myhappa' });
+        expect(JSON.parse(fs.readFileSync(path.join(ROOT, '.firebaserc'), 'utf8')).projects.default).toBe('happa-bfc07');
+        for (const name of ['firebase-hosting-merge.yml', 'firebase-hosting-pull-request.yml', 'firestore-rules-deploy.yml']) {
+            expect({ name, target: /happa-config\.js target|config\/targets/.test(workflow(name)) }).toEqual({ name, target: false });
+        }
+        const android = workflow('android-release.yml');
+        expect(android).toContain("TARGET: ${{ inputs.target || 'bahi-happa' }}");
+        const at = (s) => android.indexOf(s);
+        expect(at('node scripts/happa-config.js target "$TARGET"')).toBeGreaterThan(at('run: npx jest --ci'));
+        expect(at('node scripts/happa-config.js target "$TARGET"')).toBeLessThan(at('node scripts/release-notes.js'));
+        expect(at('node scripts/happa-config.js target "$TARGET"')).toBeLessThan(at('run: npx cap sync android'));
+    });
+
+    test('bahi-happa reaches every bundled file, with nothing left of happa-bfc07', () => {
+        const raw = bahi();
+        expect(configProblems(raw)).toEqual([]);
+        expect(derive(raw)).toMatchObject({
+            projectId: 'bahi-happa', siteUrl: 'https://bahi-happa.web.app', downloadPageUrl: 'https://bahi-happa.web.app/download',
+            androidPackage: 'com.happa', apkFile: 'happa.apk', googleSignIn: loadConfig(ROOT).googleSignIn
+        });
+        expect(derive(raw).webConfig).not.toHaveProperty('measurementId');
+        const files = Object.fromEntries(plan(ROOT, raw).map((p) => [p.file, p.wanted]));
+        expect(files['www/firebaseConfig.js']).toContain('"projectId": "bahi-happa"');
+        expect(files['www/js/config/app-identity.js']).toContain('"siteUrl": "https://bahi-happa.web.app"');
+        expect(files['www/download.html']).toContain('>bahi-happa.web.app/download<');
+        for (const [file, text] of Object.entries(files)) {
+            expect({ file, old: /happa-bfc07|516108799937|myhappa|happaapp/.test(text) }).toEqual({ file, old: false });
+        }
+    });
+
+    test('a target may only swap the Firebase blocks, not the app identity', () => {
+        const dir = fs.mkdtempSync(path.join(ROOT, '.happa-test-'));
+        try {
+            fs.mkdirSync(path.join(dir, 'config', 'targets'), { recursive: true });
+            fs.writeFileSync(path.join(dir, 'config', 'targets', 'x.json'), JSON.stringify({ firebase: { projectId: 'happa-x' }, androidPackage: 'com.other' }));
+            expect(() => loadTarget('x', dir)).toThrow(/androidPackage/);
+            expect(() => loadTarget('../x', dir)).toThrow(/Bad target name/);
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 });

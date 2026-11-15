@@ -184,6 +184,17 @@ The version lives in four places that must agree: `www/changelog.json` (top entr
    Tag builds also run `npm run check:happa-config` (no placeholders left in `happa.config.json`).
    The web app still deploys on merge to `main` as before.
 
+**Which Firebase project the APK uses.** The committed `happa.config.json` is the web deploy's project
+(`happa-bfc07`, myhappa.web.app). The APK is built for a *target* instead: the workflow runs
+`node scripts/happa-config.js target <name>` (input `target`, default `bahi-happa`), which puts
+`config/targets/<name>.json` (that project's public web config) over `happa.config.json` and re-applies it
+in the runner only, before the release notes and `cap sync`. So the APK, its download links and its
+release notes point at that project and its site (bahi-happa.web.app) while `main` and the web deploy stay
+on `happa-bfc07`. A target may only swap the `firebase`, `googleSignIn` and `appCheck` blocks, never the
+package or app name. The `GOOGLE_SERVICES_JSON` secret must be the same project's Android app config:
+the build stops when it isn't, and the signed APK's bundled `firebaseConfig.js` is checked too. Never
+run `target` in a checkout you commit from.
+
 Installed Android apps check `releases/latest` (at most every 12 h) and show an "Update available" banner;
 https://myhappa.web.app/download (site from `happa.config.json`; happaapp.web.app and happa-bfc07.web.app redirect there) always links to the latest APK. After updating, each user sees a one-time
 "What's new" sheet (Settings › Help & about › App updates reopens it and has "Share on WhatsApp" for sending the download link).

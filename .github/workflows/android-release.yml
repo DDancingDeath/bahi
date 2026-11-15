@@ -1,4 +1,7 @@
 # Builds the Happa Android APK (identity from happa.config.json).
+#  - The APK talks to the build target's Firebase project (input "target", default bahi-happa):
+#    config/targets/<target>.json is put over happa.config.json in the runner only. The web deploy
+#    keeps the committed happa.config.json (happa-bfc07).
 #  - Tag push v<version> (or manual re-run with a tag): signed release APK,
 #    verified against the production signing cert, published as a GitHub Release
 #    marked latest. A v<version>-rc<n> tag is published the same way: the shop
@@ -29,6 +32,7 @@ on:
       - 'scripts/release-notes.js'
       - 'scripts/happa-config.js'
       - 'happa.config.json'
+      - 'config/targets/**'
       - 'tests/fixtures/google-services.dummy.json'
       - '.github/workflows/android-release.yml'
   workflow_dispatch:
@@ -36,6 +40,11 @@ on:
       tag:
         description: 'Existing release tag to (re)build and publish, e.g. v1.3.0 or v1.3.0-rc1. Leave empty for a build-only run.'
         required: false
+        type: string
+      target:
+        description: 'Firebase project the APK uses (config/targets/<target>.json).'
+        required: false
+        default: 'bahi-happa'
         type: string
   pull_request:
     paths:
@@ -49,6 +58,7 @@ on:
       - 'scripts/release-notes.js'
       - 'scripts/happa-config.js'
       - 'happa.config.json'
+      - 'config/targets/**'
       - 'tests/fixtures/google-services.dummy.json'
       - '.github/workflows/android-release.yml'
 
@@ -125,6 +135,13 @@ jobs:
 
       - name: Check release consistency (versions + changelog)
         run: npm run check:release
+
+      - name: Point the APK at its Firebase project
+        env:
+          TARGET: ${{ inputs.target || 'bahi-happa' }}
+        run: |
+          node scripts/happa-config.js target "$TARGET"
+          echo "APK target: $TARGET (project $(node scripts/happa-config.js get projectId), site $(node scripts/happa-config.js get siteUrl))" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Check Happa config (no placeholders, owner confirmed)
         if: steps.mode.outputs.release == 'true'
@@ -212,7 +229,13 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-            echo "google-services.json added: crash reports can be switched on in the app; Google sign-in can start."
+            want="$(node scripts/happa-config.js get projectId)"
+            got="$(jq -r '.project_info.project_id' android/app/google-services.json)"
+            if [[ "$got" != "$want" ]]; then
+              echo "::error::GOOGLE_SERVICES_JSON is for project '$got' but the APK's web config is '$want'. Set the secret to $want's Android app config."
+              exit 1
+            fi
+            echo "google-services.json ($got) added: crash reports can be switched on in the app; Google sign-in can start."
           else
             echo "No GOOGLE_SERVICES_JSON secret: the APK has no crash reporting and no Google sign-in."
           fi
@@ -298,6 +321,12 @@ jobs:
             echo "::error::APK must have versionCode '$VERSION_CODE' and versionName '$VERSION' (from the tag)."
             exit 1
           fi
+          want_project="$(node scripts/happa-config.js get projectId)"
+          if ! unzip -p "$apk" assets/public/firebaseConfig.js | grep -q "\"projectId\": \"$want_project\""; then
+            echo "::error::The APK's bundled web config is not for project '$want_project'."
+            exit 1
+          fi
+          echo "Bundled web config: project $want_project."
 
       - name: Stage release files
         if: steps.mode.outputs.release == 'true'

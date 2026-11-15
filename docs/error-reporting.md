@@ -91,7 +91,7 @@ grow about as much; turning on R8 would win most of it back.
 
 **Set-up (owner, once).** Until this is done the APK builds and runs as before
 and the switch says "Not set up in this version of the app yet":
-1. Firebase console › project `happa-bfc07` › Project settings › Add app ›
+1. Firebase console › project `bahi-happa` (the APK's project from rc14; `happa-bfc07` before) › Project settings › Add app ›
    Android, package name `com.happa` (no SHA-1 needed for Crashlytics; Google sign-in needs the
    release key's SHA-1 and SHA-256: [google-sign-in.md](google-sign-in.md), which uses the same file and secret).
 2. Download `google-services.json`. It is configuration, not a secret, but keep
@@ -104,11 +104,15 @@ and the switch says "Not set up in this version of the app yet":
 5. On a test phone: Settings › Help & about › Crash reports on, then send a test crash (below). Crashlytics
    shows the app once a crash has been sent (it sends on the next app start after a crash).
 
-The project moves to `bahi-happa` at the Firebase cutover (#72): the Android app
-`com.happa` is registered there and its `google-services.json` becomes the `GOOGLE_SERVICES_JSON`
-secret, so from the first APK built after that the reports are in **bahi-happa**'s console, not
-`happa-bfc07`'s. Crash collection still stays off on every phone until its user switches it on.
-(The earlier target `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026; it never had crash data.)
+The APK moved to `bahi-happa` with **v1.0.0-rc14** (15 Nov 2026): the release workflow builds it for
+`config/targets/bahi-happa.json`, the Android app `com.happa` ("Bahi",
+`1:6046579556:android:4281bc2d303169b2fb9871`) is registered there with the release key's SHA-1 and
+SHA-256, and its `google-services.json` is the `GOOGLE_SERVICES_JSON` secret (set 15 Nov 2026; the
+build refuses a file for another project). So steps 1, 2 and 4 are done for `bahi-happa`, and reports
+from rc14 on are in **bahi-happa**'s console, not `happa-bfc07`'s. Still to do by the owner: step 3
+(enable Crashlytics in bahi-happa's console) and step 5. Crash collection stays off on every phone until
+its user switches it on. (The earlier target `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026;
+it never had crash data.)
 
 ## Check that reports arrive (owner)
 
