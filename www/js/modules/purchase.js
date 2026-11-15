@@ -12,9 +12,10 @@ import { PrinterService } from '../services/printer.js';
 import { Helpers } from '../utils/helpers.js';
 import { KEPT_SERVER_PAYMENT_KEY, normalizeLabourSettings, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
 import {
-    autoLabour, bagChecks, buildPaymentSplit, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
+    autoLabour, bagChecks, buildPaymentSplit, withLineRate, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
     paymentSplit, pendingLine, prefillPayment, restInDue, shownAmount, sumWeights, validatePaymentSplit
 } from '../utils/calc/billing.js';
+import { showAmount } from '../ui/number-input.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
@@ -298,6 +299,8 @@ const PurchaseManager = {
         const billTotalSpan = document.getElementById('billTotal');
         const lines = document.getElementById('purchaseLines');
         if (lines) lines.hidden = billItems.length === 0;
+        const share = document.querySelector('#purchaseSection .bill-share');
+        if (share) share.hidden = billItems.length === 0;
         
         if (billItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
@@ -374,6 +377,18 @@ const PurchaseManager = {
         this.renderBill();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+    },
+
+    /**
+     * Change a bill line's rate in place (per-quintal slip fixed with one tap, U-01).
+     * @param {number} index
+     * @param {number} rate
+     */
+    setLineRate(index, rate) {
+        if (!billItems[index] || !(rate > 0)) return;
+        billItems[index] = withLineRate(billItems[index], rate);
+        this.renderBill();
+        if (this.billingManager) this.billingManager.triggerAutoSave();
     },
 
     /**
@@ -541,7 +556,7 @@ const PurchaseManager = {
             return;
         }
         const dueInput = document.getElementById('dueAmount');
-        if (dueInput) dueInput.value = rest.due;
+        showAmount(dueInput, rest.due);
         const dueCheckbox = document.getElementById('dueCheckbox');
         if (dueCheckbox) dueCheckbox.checked = rest.dueTicked;
         this.updatePaymentTotal();
@@ -590,6 +605,12 @@ const PurchaseManager = {
         if (Helpers.isBusy('purchase')) return;
         if (billItems.length === 0 && this.entryLineEmpty()) {
             UIManager.showToast(t('msg.common.no_items_in_bill'));
+            return;
+        }
+        const ready = await PrinterService.beforeSavePrint();
+        if (ready === 'cancel') return;
+        if (ready === 'save') {
+            await this.saveBillToHistory();
             return;
         }
         
@@ -1015,6 +1036,7 @@ BillChecksUI.register('purchase', {
     tableSelector: '#billTable',
     saveButtons: '#saveBillBtn, #printBillBtn',
     getDraft: () => PurchaseManager.getCheckDraft(),
+    applyRate: (index, rate) => PurchaseManager.setLineRate(index, rate),
     fields: {
         party: { inputs: ['customerName'] },
         payment: { inputs: ['cashPayment', 'onlinePayment', 'dueAmount'], anchor: 'purchaseSplitRemaining' },

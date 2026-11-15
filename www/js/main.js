@@ -1271,7 +1271,13 @@ window.app = {
         fillReceivableAmount: (type) => WholesaleSalesManager.fillReceivableAmount(type),
         putRestInDue: () => WholesaleSalesManager.putRestInDue(),
         pickContact: () => WholesaleSalesManager.pickContact(),
-        clearOutstandingParty: () => WholesaleSalesManager.clearOutstandingParty()
+        clearOutstandingParty: () => WholesaleSalesManager.clearOutstandingParty(),
+        // Edit a saved sale (U-30): the page is put in first when it was never opened (#66)
+        openEditor: async (bill) => {
+            await NavigationManager.showTab('wholesale-sales');
+            WholesaleSalesManager.openEditor(bill);
+        },
+        cancelEdit: () => WholesaleSalesManager.cancelEdit()
     },
     
     // History
@@ -1364,7 +1370,7 @@ window.app = {
     
     // Anomalies (#187, #40): Day report card on Today + Anomalies page (anomalies.js is imported on first use)
     anomalies: {
-        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'review',
+        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'correctRate', 'review',
             'shareDayReport', 'printDayReport', 'refreshNow']
             .map(name => [name, (...args) => loadAnomalies().then(m => m[name](...args))])),
         // The cash-close screen's line, when the code is loaded (owner/manager phones load it after the first screen)

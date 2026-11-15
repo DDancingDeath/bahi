@@ -58,18 +58,40 @@ export function prepareBillDate(id, editingBill = null) {
 export const canChangeBillDate = () => AppState.userRole === 'owner';
 
 /**
- * The line under the bill (Billing only, `[data-date-line]`): "Today" or the bill's day, and
- * "Change date" for the owner. The Date box stays folded until "Change date" is tapped.
+ * "Back-dated: 12 Nov" (day-month always; the year only when it is not this year).
+ * @param {string} day YYYY-MM-DD
+ * @param {Date} [now]
+ * @returns {string}
+ */
+export function backdatedText(day, now = new Date()) {
+    const sameYear = String(day).slice(0, 4) === String(now.getFullYear());
+    return t('ui.billing.backdated', { day: formatDate(day, sameYear ? 'short' : 'full') });
+}
+
+/**
+ * The line under the bill (Billing only, `[data-date-line]`): "Today" or "Back-dated: 12 Nov", and
+ * "Change date" for the owner. The Date box stays folded until "Change date" is tapped. A day that is
+ * not today also shows as a tag beside the bill's total (`[data-backdated-for]`, U-78), on every form.
  * @param {string} id the date input's id
  * @param {Date} [now]
  */
 export function renderBillDateLine(id, now = new Date()) {
-    const line = document.querySelector(`[data-date-line="${id}"]`);
     const input = document.getElementById(id);
-    if (!line || !input) return;
+    if (!input) return;
     const day = input.value || toLocalISODate(now);
+    const back = day !== toLocalISODate(now);
+    const backText = back ? backdatedText(day, now) : '';
+    document.querySelectorAll(`[data-backdated-for="${id}"]`).forEach(tag => {
+        tag.hidden = !back;
+        tag.textContent = backText;
+    });
+    const line = document.querySelector(`[data-date-line="${id}"]`);
+    if (!line) return;
     const text = line.querySelector('.bill-date-text');
-    if (text) text.textContent = day === toLocalISODate(now) ? t('ui.billing.date_today') : formatDate(day, 'full');
+    if (text) {
+        text.textContent = back ? backText : t('ui.billing.date_today');
+        text.classList.toggle('bill-date-back', back);
+    }
     const can = canChangeBillDate() && !input.disabled;
     const open = can && input.dataset.open === '1';
     const field = input.closest('.bill-date');

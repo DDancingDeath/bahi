@@ -17,13 +17,14 @@ import { UIManager } from './ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { AuditService } from '../services/audit.js';
 import {
-    bannerText, buildCheckContext, canOverride, evaluateBill, saveGate, toFlags, toOverrides
+    bannerText, buildCheckContext, canOverride, combineRateWarnings, evaluateBill, saveGate, toFlags, toOverrides
 } from '../utils/bill-checks.js';
 import { hidePartyDue, renderPartyDue } from './party-due-line.js';
 import { closeSuggestions, hideNameHint, renderNameHint } from './party-suggest.js';
 import { confirmLineRates } from './rate-check.js';
 import { lineItemIdentity } from '../utils/item-catalog.js';
-import { screenRateText } from '../utils/money.js';
+import { formatRate, screenRateText } from '../utils/money.js';
+import { parseNumberText } from '../utils/number-text.js';
 import { getLang, t } from '../i18n/index.js';
 import { tip } from '../tip/index.js';
 import { AUTO_ROLLBACK_REASON } from '../tip/scenarios/bill-save.js';
@@ -60,11 +61,11 @@ const byId = (id) => (typeof document === 'undefined' ? null : document.getEleme
 export function readTypedNumber(id) {
     const raw = byId(id)?.value;
     if (raw === undefined || raw === null || String(raw).trim() === '') return null;
-    const n = parseFloat(raw);
+    const n = parseNumberText(raw);
     return Number.isFinite(n) ? n : null;
 }
 /** Rules whose text carries rates (stored with paise, "₹2,400.00"); the screen shows them as rates ("₹2,400"). */
-const RATE_RULES = new Set(['rate-high', 'rate-low', 'below-cost']);
+const RATE_RULES = new Set(['rate-high', 'rate-low', 'below-cost', 'rate-check']);
 const text = (i) => {
     const s = getLang() === 'hi' ? i.hi : i.en;
     return RATE_RULES.has(i.id) ? screenRateText(s) : s;
@@ -159,11 +160,56 @@ function mark(el, severity, msgId) {
     }
 }
 
-function messageEl(issue, msgId) {
+/**
+ * "Use ₹24/kg" on a per-quintal-looking line rate (BF-UNITSLIP), when the form can change a line's rate.
+ * @returns {?HTMLButtonElement}
+ */
+function rateFixButton(cfg, part) {
+    if (!(part?.suggestRate > 0)) return null;
+    const entryInput = part.field === 'entry.rate' ? cfg?.fields?.['entry.rate']?.inputs?.[0] : null;
+    if (!entryInput && !(cfg?.applyRate && Number.isInteger(part.line))) return null;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm btn-tonal bill-check-fix';
+    b.textContent = t('ui.rate_check.use', { rate: formatRate(part.suggestRate) });
+    b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const input = entryInput ? byId(entryInput) : null;
+        if (input) {
+            input.value = String(part.suggestRate);
+            input.focus?.();
+        } else cfg.applyRate(part.line, part.suggestRate);
+        BillChecksUI.run(cfg.kind);
+    });
+    return b;
+}
+
+function messageEl(issue, msgId, cfg = null) {
     const div = document.createElement('div');
     div.className = `bill-check-msg ${CLASS[issue.severity]}`;
     div.id = msgId;
-    div.textContent = `${ICON[issue.severity]} ${text(issue)}`;
+    if (Array.isArray(issue.parts)) {
+        // One rate warning per bill (U-01): a heading and one row per line
+        const head = document.createElement('div');
+        head.textContent = `${ICON[issue.severity]} ${t('ui.checks.check_rates')}`;
+        div.appendChild(head);
+        issue.parts.forEach(part => {
+            const row = document.createElement('div');
+            row.className = 'bill-check-part';
+            const span = document.createElement('span');
+            span.textContent = text(part);
+            row.appendChild(span);
+            const fix = rateFixButton(cfg, part);
+            if (fix) row.appendChild(fix);
+            div.appendChild(row);
+        });
+        return div;
+    }
+    const span = document.createElement('span');
+    span.textContent = `${ICON[issue.severity]} ${text(issue)}`;
+    div.appendChild(span);
+    const fix = rateFixButton(cfg, issue);
+    if (fix) div.appendChild(fix);
     return div;
 }
 
@@ -183,7 +229,7 @@ function placeFieldIssue(cfg, issue, n) {
     const row = anchor.closest('.bill-form-field, .field-float, .pay-line') || anchor;
     let after = row;
     while (after.nextElementSibling?.classList.contains('bill-check-msg')) after = after.nextElementSibling;
-    after.insertAdjacentElement('afterend', messageEl(issue, msgId));
+    after.insertAdjacentElement('afterend', messageEl(issue, msgId, cfg));
     return inputs[0] || anchor;
 }
 
@@ -202,7 +248,7 @@ function placeLineIssue(cfg, issue, n) {
         msgRow.className = 'bill-check-line';
         const td = document.createElement('td');
         td.colSpan = tr.children.length || 5;
-        td.appendChild(messageEl(issue, msgId));
+        td.appendChild(messageEl(issue, msgId, cfg));
         msgRow.appendChild(td);
         let after = tr;
         while (after.nextElementSibling?.classList.contains('bill-check-line')) after = after.nextElementSibling;
@@ -292,7 +338,8 @@ export function renderIssues(kind, issues) {
     clearMarks(section);
     const unplaced = [];
     let firstTarget = null;
-    issues.forEach((issue, n) => {
+    const shown = combineRateWarnings(issues);
+    shown.forEach((issue, n) => {
         let target = null;
         if (issue.field === 'items' || issue.field.startsWith('items.')) target = placeLineIssue(cfg, issue, n);
         else target = placeFieldIssue(cfg, issue, n);
@@ -303,7 +350,7 @@ export function renderIssues(kind, issues) {
     const saveState = !blocks.length ? 'ok'
         : (!hardBlocks.length && canOverride(AppState.userRole) ? 'override' : 'blocked');
     if (issues.length) section.classList.add(issues.some(i => i.severity === 'block') ? 'bill-checks-block' : 'bill-checks-warn');
-    renderBanner(cfg, section, issues, unplaced, firstTarget || section);
+    renderBanner(cfg, section, shown, unplaced, firstTarget || section);
     renderSaveButtons(cfg, saveState);
 }
 
@@ -435,6 +482,15 @@ export const BillChecksUI = {
         if (rateDraft) {
             const rates = await confirmLineRates(rateDraft);
             if (!rates.ok) {
+                const cfg = forms[kind];
+                if (rates.use && cfg?.applyRate) {
+                    const line = rateDraft.items?.[/** @type {number} */ (rates.index)];
+                    cfg.applyRate(rates.index, rates.use);
+                    BillChecksUI.run(kind);
+                    const name = line ? lineItemIdentity(line, AppState.items, AppState.settings?.showHindi).label : '';
+                    UIManager.showToast(t('msg.rate_check.rate_changed', { item: name || '', rate: formatRate(rates.use) }), 'warning');
+                    return stop;
+                }
                 showLine(kind, /** @type {number} */ (rates.index));
                 return stop;
             }
@@ -471,7 +527,7 @@ export const BillChecksUI = {
             }).catch(e => console.warn('Audit log failed:', e));
         }
 
-        const confirmList = [...autoOverride, ...warns];
+        const confirmList = [...autoOverride, ...combineRateWarnings(warns)];
         if (confirmList.length) {
             const list = confirmList.map(w => text(w)).join('\n');
             const ok = await UIManager.showModal(

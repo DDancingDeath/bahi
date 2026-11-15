@@ -752,6 +752,19 @@ const PrinterService = {
         return this.manager.link.transport.available();
     },
 
+    /**
+     * Save & print (U-26): in the Android app with no printer to print on (none saved, or
+     * Disconnect pressed), asks before the bill is saved: Save only, or Cancel (connect the
+     * printer first). In a browser Print shows the bill picture, so nothing is asked.
+     * @returns {Promise<'print'|'save'|'cancel'>}
+     */
+    async beforeSavePrint() {
+        if (!this.isAvailable() || this.canPrint()) return 'print';
+        const ok = await UIManager.showModal(t('msg.printer.not_ready_before_save'), t('ui.billing.printer_not_connected'), true,
+            { confirmLabel: t('ui.billing.save_only') });
+        return ok ? 'save' : 'cancel';
+    },
+
     /** Connected in this app session (the link is not kept across restarts). */
     isConnected() {
         return this.isAvailable() && !!this.manager.device;

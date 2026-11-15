@@ -43,6 +43,7 @@ import { APP_IDENTITY } from '../config/app-identity.js';
 import { PrinterService } from '../services/printer.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
+import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import {
     compareBarHtml, writeBar, compareTableHtml, compareTarget, choosePreset, chooseCompare, applyDates, applySaved,
     saveCurrentRange, removeCurrentRange, periodText, presetSelectValue, summaryLines, summaryText, summaryCanvas, toggleCompareBar
@@ -589,7 +590,7 @@ export const MoneyManager = {
             salesVsLastYear: change(m.M1.total, ly?.M1 ?? null),
             noSales
         })));
-        this.html('moneyProfitCaveats', this.caveatsHtml(m, ['M2', 'M6']));
+        this.html('moneyProfitCaveats', this.caveatsHtml(m, ['M2', 'M6']) + doubtfulRatesNoticeHtml(['purchase', 'retail', 'wholesale']));
         this.html('moneySales', moneyHtml(m.M1.total, TM));
         const splitLink = routeAvailable('insights-items')
             ? ` <button type="button" class="btn btn-ghost btn-sm" data-go="insights-items" data-metric-ref="I2">${esc(t('ui.money.split_link'))} ›</button>` : '';
@@ -921,8 +922,9 @@ export const MoneyManager = {
         this.html('moneyWorthCompare', seeStock && Number.isFinite(stock) && (cmp.c || cmp.unknown) ? compareHtml([cmp]) : '');
         this.html('moneyWorthTakeaway', seeStock ? takeawayHtml(worthTakeaways({ worth, change: null, receivable: dues.receivable.total, sinceLabel, accountsKnown: accounts !== null || !cfg.netWorthTerms.includes('accounts') })) : '');
         const drawerWhy = drawerKnown ? '' : t(`ui.money.drawer_${drawer.state}`, { days: DRAWER_MAX_AGE_DAYS });
-        this.html('moneyWorthCaveats', seeStock && worth !== null && cfg.netWorthTerms.includes('drawer') && !drawerKnown
-            ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(t('ui.money.worth_no_drawer', { why: drawerWhy }))}</span></div>` : '');
+        this.html('moneyWorthCaveats', (seeStock && worth !== null && cfg.netWorthTerms.includes('drawer') && !drawerKnown
+            ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(t('ui.money.worth_no_drawer', { why: drawerWhy }))}</span></div>` : '')
+            + (seeStock ? doubtfulRatesNoticeHtml(['purchase']) : ''));
         const go = (link) => `<button type="button" class="btn btn-ghost btn-sm" data-go="${esc(link)}">${esc(t(`ui.money.home_${link.replace(/-/g, '_')}`))} ›</button>`;
         const term = (label, value, link, ref) => `<div class="row ins-line"><span class="row-main">${esc(t(label))}</span><span class="row-trail"><span class="row-amt"${ref ? ` data-metric-ref="${ref}"` : ''}>${moneyHtml(value, TM)}</span> ${go(link)}</span></div>`;
         // C9 not known (loading, not loaded, no count in 30 days): "—" and why, never ₹0 (#92)

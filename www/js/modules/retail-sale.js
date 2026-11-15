@@ -13,8 +13,9 @@ import { Helpers } from '../utils/helpers.js';
 import { KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
 import {
     bagChecks, buildPaymentSplit, computeLine, computeRetailTotals, editSplitFor, paidOnScreen, paymentSplit, pendingLine, prefillPayment, restInDue,
-    shownAmount, sumWeights, validatePaymentSplit, weightsForEdit
+    shownAmount, sumWeights, validatePaymentSplit, weightsForEdit, withLineRate
 } from '../utils/calc/billing.js';
+import { showAmount } from '../ui/number-input.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
@@ -280,6 +281,8 @@ const RetailSaleManager = {
         this.billingManager?.renderBillNumber?.();
         const lines = document.getElementById('saleLines');
         if (lines) lines.hidden = saleItems.length === 0;
+        const share = document.querySelector('#saleSection .bill-share');
+        if (share) share.hidden = saleItems.length === 0;
         
         if (saleItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
@@ -346,6 +349,18 @@ const RetailSaleManager = {
      * Remove a sale item by index
      * @param {number} index - Index of item to remove
      */
+    /**
+     * Change a bill line's rate in place (per-quintal slip fixed with one tap, U-01).
+     * @param {number} index
+     * @param {number} rate
+     */
+    setLineRate(index, rate) {
+        if (!saleItems[index] || !(rate > 0)) return;
+        saleItems[index] = withLineRate(saleItems[index], rate);
+        this.renderSalesBill();
+        if (this.billingManager) this.billingManager.triggerAutoSave();
+    },
+
     removeSaleItem(index) {
         saleItems.splice(index, 1);
         this.renderSalesBill();
@@ -471,7 +486,7 @@ const RetailSaleManager = {
             return;
         }
         const dueInput = document.getElementById('saleDueAmount');
-        if (dueInput) dueInput.value = rest.due;
+        showAmount(dueInput, rest.due);
         const dueCheckbox = document.getElementById('saleDueCheckbox');
         if (dueCheckbox) dueCheckbox.checked = rest.dueTicked;
         this.updateSalePaymentTotal();
@@ -806,6 +821,12 @@ const RetailSaleManager = {
             UIManager.showToast(t('msg.retail.no_items_in_sale'));
             return;
         }
+        const ready = await PrinterService.beforeSavePrint();
+        if (ready === 'cancel') return;
+        if (ready === 'save') {
+            await this.completeSale();
+            return;
+        }
         
         let printPromise = null;
         const report = {};
@@ -946,6 +967,7 @@ BillChecksUI.register('retail', {
     tableSelector: '#saleTable',
     saveButtons: '#saveSaleBtn, #printSaleBtn',
     getDraft: () => RetailSaleManager.getCheckDraft(),
+    applyRate: (index, rate) => RetailSaleManager.setLineRate(index, rate),
     fields: {
         party: { inputs: ['saleCustomerName'] },
         payment: { inputs: ['saleCashPayment', 'saleOnlinePayment', 'saleDueAmount'], anchor: 'saleSplitRemaining' },
