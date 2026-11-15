@@ -8,9 +8,9 @@
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0 var(--sp-4);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r-control);
   background-color: var(--surface);
   color: var(--ink);
@@ -63,14 +63,15 @@
   font-size: var(--fs-sm);
 }
 
-/* Tap targets (#68): every button, also .btn-sm and the Outstanding / Cash payment actions, is at least 44 px tall */
+/* Tap targets (#68, U-14): every button, also .btn-sm and the Outstanding / Cash payment actions, is --tap-min tall
+   (48 px on phones) */
 [data-record-payment],
 [data-mark-cleared] {
-  min-height: 44px;
+  min-height: var(--tap-min);
 }
 
 .btn-icon {
-  width: 44px;
+  width: var(--tap-min);
   padding: 0;
 }
 
@@ -168,6 +169,7 @@ select,
 input[type="number"],
 input[type="text"] {
   width: 100%;
+  min-height: var(--tap-min);
   padding: 13px 15px;
   border: 1px solid var(--input-border);
   border-radius: var(--r-control);
@@ -313,16 +315,33 @@ input[type="radio"] {
   accent-color: var(--accent);
 }
 
+/* 24 px boxes (WCAG 2.5.8); a label holding one is a 48 px row, so the whole line takes the tap (U-14) */
+:where(input[type="checkbox"]:not(.switch), input[type="radio"]) {
+  width: 24px;
+  height: 24px;
+}
+
+:where(label):has(> input[type="checkbox"], > input[type="radio"]) {
+  min-height: var(--tap-min);
+  align-items: center;
+}
+
+/* The switch draws 36 × 22 but takes taps on 62 × 48: a clear border around the track that the negative margin
+   gives back to the layout */
 input[type="checkbox"].switch,
 .checkbox-label input[type="checkbox"].switch {
   -webkit-appearance: none;
   appearance: none;
   flex: none;
+  box-sizing: content-box;
   width: 36px;
   height: 22px;
-  margin: 0;
+  margin: calc(-1 * var(--switch-hit));
+  border: var(--switch-hit) solid transparent;
   border-radius: var(--r-full);
   background: radial-gradient(circle at 11px 50%, var(--surface) 8px, transparent 8.5px), var(--ink-3);
+  background-clip: content-box;
+  background-origin: content-box;
   cursor: pointer;
   transition: background var(--dur-1) var(--ease);
 }
@@ -330,12 +349,15 @@ input[type="checkbox"].switch,
 input[type="checkbox"].switch:checked,
 .checkbox-label input[type="checkbox"].switch:checked {
   background: radial-gradient(circle at 25px 50%, var(--on-accent) 8px, transparent 8.5px), var(--accent);
+  background-clip: content-box;
+  background-origin: content-box;
 }
 
 input[type="checkbox"].switch:focus-visible,
 .checkbox-label input[type="checkbox"].switch:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -12px;
+  box-shadow: none;
 }
 
 /* ---------- Segmented control: .seg, aria-pressed (modes and filters) ---------- */
@@ -354,8 +376,8 @@ input[type="checkbox"].switch:focus-visible,
   gap: var(--sp-2);
   flex: 1;
   min-width: 0;
-  min-height: 44px;
-  padding: 0 var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-3);
   border: none;
   border-radius: var(--r-control);
   background-color: transparent;
@@ -364,20 +386,24 @@ input[type="checkbox"].switch:focus-visible,
   font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+  line-height: 1.25;
+  overflow-wrap: break-word;
   cursor: pointer;
 }
 
+/* The chosen option: its fill, a 2 px edge at 3:1 on the track and the accent ink (U-16) */
 .seg > .on,
 .seg > [aria-pressed="true"],
 .seg > [aria-selected="true"] {
   background-color: var(--seg-on);
-  color: var(--ink);
-  box-shadow: var(--e1);
+  color: var(--seg-on-ink);
+  box-shadow: var(--seg-on-ring), var(--e1);
 }
 
 .seg > button:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+  box-shadow: none;
 }
 
 /* These set display, which would otherwise beat the hidden attribute */
@@ -396,8 +422,8 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 .tabs > button {
-  min-height: 44px;
-  padding: 0 var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-3);
   margin-bottom: -1px;
   border: none;
   border-bottom: 2px solid transparent;
@@ -407,6 +433,7 @@ input[type="checkbox"].switch:focus-visible,
   font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+  line-height: 1.25;
   cursor: pointer;
   transition: color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
@@ -417,15 +444,17 @@ input[type="checkbox"].switch:focus-visible,
 
 .tabs > .on,
 .tabs > [aria-selected="true"] {
-  border-bottom-color: var(--ink);
-  color: var(--ink);
+  border-bottom-color: var(--seg-on-line);
+  color: var(--seg-on-ink);
 }
 
-/* ---------- Chips: .chip + aria-pressed (on/off), and tags ---------- */
+/* ---------- Chips: .chip + aria-pressed (on/off), and tags ----------
+   A chip draws 40 px; its tap area reaches 48 px (the ::after), so rows of chips stay compact (U-14) */
 .chip {
-  min-height: 32px;
+  position: relative;
+  min-height: var(--control-h-sm);
   padding: 0 14px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r-chip);
   background-color: var(--surface);
   color: var(--ink);
@@ -433,11 +462,55 @@ input[type="checkbox"].switch:focus-visible,
   font-weight: var(--w-label);
 }
 
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--control-h-sm) - var(--tap-min)) / 2) 0;
+}
+
+/* The chosen chip looks like the chosen segment (U-61): one "selected" look across segments, chips and tabs */
 .chip.on,
 .chip[aria-pressed="true"] {
-  border-color: var(--ink);
-  background-color: var(--ink);
-  color: var(--bg);
+  border-color: var(--seg-on-line);
+  background-color: var(--accent-soft);
+  box-shadow: var(--chip-on-ring);
+  color: var(--seg-on-ink);
+}
+
+/* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
+   .period is the component; .ins-period and .wp-month are its old hooks */
+:is(.period, .ins-period, .wp-month) {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+:is(.period, .ins-period, .wp-month) > .btn {
+  flex: none;
+  width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+}
+
+:is(.period-label, .ins-period-label),
+.wp-month > b {
+  flex: 1 0 auto;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: var(--w-strong);
+  text-align: center;
+}
+
+/* At large text the preset gives way first; the month name wraps only between words */
+:is(.period-preset, .ins-preset) {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: 45%;
+  border-color: var(--line-control);
+  border-radius: var(--r-chip);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
 }
 
 .tag {
@@ -456,6 +529,32 @@ input[type="checkbox"].switch:focus-visible,
 .tag.neg { background: var(--negative-soft); color: var(--negative); }
 .tag.warn { background: var(--warning-soft); color: var(--warning); }
 .tag.info { background: var(--info-soft); color: var(--info); }
+
+/* ---------- Tap floor (U-14): small controls keep their look but take taps on --tap-min ---------- */
+/* A disclosure line is a full row */
+:where(summary) {
+  min-height: var(--tap-min);
+  padding-block: var(--sp-3);
+}
+
+/* Text buttons and the list's Load more / Retry get the button height */
+.infinite-scroll-more,
+.history-range-retry {
+  min-height: var(--tap-min);
+}
+
+/* A link-like button inside a line of text (a bill number): an invisible 48 px tap area round the words */
+.due-bill-link,
+.bill-edits__view {
+  position: relative;
+}
+
+.due-bill-link::after,
+.bill-edits__view::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
+}
 
 /* -------------------- UTILITIES -------------------- */
 button, a, input[type="checkbox"] {

@@ -81,4 +81,24 @@ describe('showToast (#51)', () => {
         expect(toast().textContent).toBe('Plain');
         expect(seen).toEqual([]);
     });
+
+    test('TalkBack reads a toast: an error is an alert, the others a polite status (U-10)', () => {
+        UIManager.showToast('Failed to save', 'error');
+        expect(toast().getAttribute('role')).toBe('alert');
+        expect(toast().getAttribute('aria-live')).toBe('assertive');
+        UIManager.showToast('Saved', 'success');
+        expect(toast().getAttribute('role')).toBe('status');
+        expect(toast().getAttribute('aria-live')).toBe('polite');
+    });
+
+    test('the spinner marks the page busy and says "Please wait" once shown (U-10)', () => {
+        document.body.innerHTML = '<div id="appContent"></div><div class="app-loading" id="loadingOverlay" role="status" aria-live="polite"><span class="sr-only" id="loadingText"></span></div>';
+        UIManager.showLoading();
+        expect(document.getElementById('appContent').getAttribute('aria-busy')).toBe('true');
+        jest.advanceTimersByTime(60);
+        expect(document.getElementById('loadingText').textContent).toBe(t('ui.common.please_wait'));
+        UIManager.hideLoading();
+        expect(document.getElementById('appContent').hasAttribute('aria-busy')).toBe(false);
+        expect(document.getElementById('loadingText').textContent).toBe('');
+    });
 });

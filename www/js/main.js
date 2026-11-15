@@ -12,6 +12,7 @@ import { SyncStatus } from './ui/sync-status.js';
 import { startClockCheck } from './ui/clock-banner.js';
 import { installStickyFocus } from './ui/sticky-focus.js';
 import { ThemeManager, CHOICE_AT_LOAD } from './ui/theme.js';
+import { watchSystemBars, keepFocusInView } from './utils/native-shell.js';
 import { AuthManager } from './auth/authentication.js';
 import { FirebaseService } from './firebase/firestore-service.js';
 import { userProfile, saveOwnSavedRanges } from './firebase/repos/users.js';
@@ -756,6 +757,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     ThemeManager.init(CHOICE_AT_LOAD);
     await injectTemplates();
     markStartup('shell');
+    watchSystemBars();
+    keepFocusInView();
     
     // STEP 2: Initialize auth tabs after templates are loaded
     AuthManager.initAuthTabs();

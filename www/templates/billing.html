@@ -2,7 +2,7 @@
     <header class="page-head"><h2 data-i18n="ui.nav.billing">Billing</h2></header>
 
         <div class="bill-mode-row">
-        <div class="seg bill-mode" role="group">
+        <div class="seg bill-mode" role="group" aria-label="Bill type" data-i18n-aria-label="ui.billing.bill_type">
             <button type="button" class="active" id="purchaseModeBtn" aria-pressed="true" data-onclick="billing.switchMode('purchase', event)"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchase">Purchase</span></button>
             <button type="button" id="saleModeBtn" aria-pressed="false" data-onclick="billing.switchMode('sale', event)"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.billing.sale">Retail sale</span></button>
         </div>
@@ -39,7 +39,7 @@
         <div class="field-float bill-customer">
             <label for="customerName" data-i18n="ui.billing.supplier_label">Supplier</label>
             <div class="bill-party">
-                <input type="text" class="input" id="customerName" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_supplier_name_optional"/>
+                <input type="text" class="input" id="customerName" enterkeyhint="next" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_supplier_name_optional"/>
                 <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
             </div>
             <datalist id="customerOptions"></datalist>
@@ -55,7 +55,7 @@
                     <label for="billRate" data-i18n="ui.common.rate">Rate</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="billRate" list="rateOptions" step="any" placeholder="Pick" data-i18n-placeholder="ui.billing.select_enter_rate"/>
+                        <input type="number" class="input" inputmode="decimal" id="billRate" enterkeyhint="next" list="rateOptions" step="any" placeholder="Pick" data-i18n-placeholder="ui.billing.select_enter_rate"/>
                     </div>
                     <datalist id="rateOptions"></datalist>
                 </div>
@@ -69,7 +69,7 @@
                 <div class="field-float bill-entry-weight">
                     <label for="newWeight" data-i18n="ui.billing.weight_label">Weight</label>
                     <div class="adorn">
-                        <input type="number" class="input" inputmode="decimal" id="newWeight" placeholder="0" data-onenter="event.preventDefault(); billing.addWeight(true)"/>
+                        <input type="number" class="input" inputmode="decimal" id="newWeight" enterkeyhint="enter" placeholder="0" data-onenter="event.preventDefault(); billing.addWeight(true)"/>
                         <span class="adorn-post" aria-hidden="true">kg</span>
                     </div>
                 </div>
@@ -99,7 +99,7 @@
                     <th data-i18n="ui.common.rate_per_kg">Rate ₹/kg</th>
                     <th data-i18n="ui.common.qty">Qty</th>
                     <th data-i18n="ui.common.total">Total</th>
-                    <th></th>
+                    <th><span class="sr-only" data-i18n="ui.billing.col_remove">Remove</span></th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -126,7 +126,7 @@
                 <span id="laborCalculation" class="bill-labour-calc">6 × 0</span>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">−₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="manualLaborCharges" value="0"
+                    <input type="number" class="input" inputmode="decimal" id="manualLaborCharges" enterkeyhint="next" value="0"
                        data-onchange="billing.markLabourManual(this); billing.updateTotals()"
                        data-onfocus="billing.markLabourManual(this)"
                        placeholder="0" aria-label="Labour" data-i18n-aria-label="ui.billing.labour_label" />
@@ -145,7 +145,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="onlineCheckbox" aria-describedby="onlinePaymentLabel" data-onchange="billing.fillPayableAmount('online')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="onlinePayment" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="onlinePayment" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
             <div class="pay-line">
@@ -153,7 +153,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="cashCheckbox" aria-describedby="cashPaymentLabel" data-onchange="billing.fillPayableAmount('cash')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="cashPayment" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="cashPayment" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -167,7 +167,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="dueCheckbox" aria-describedby="dueAmountLabel" data-onchange="billing.fillPayableAmount('due')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="dueAmount" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="dueAmount" enterkeyhint="next" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -188,7 +188,7 @@
         </div>
         <div class="bill-form-field field bill-notes" hidden>
             <label for="billComments" data-i18n="ui.billing.notes_label">Notes</label>
-            <input type="text" class="input" id="billComments" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
+            <input type="text" class="input" id="billComments" enterkeyhint="done" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
             <label class="checkbox-label bill-note-print">
                 <input type="checkbox" id="billPrintComments" />
                 <span data-i18n="ui.billing.print_in_bill">Print in bill</span>
@@ -232,7 +232,7 @@
         <div class="field-float bill-customer">
             <label for="saleCustomerName" data-i18n="ui.billing.customer_label">Customer</label>
             <div class="bill-party">
-                <input type="text" class="input" id="saleCustomerName" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_customer_name_optional"/>
+                <input type="text" class="input" id="saleCustomerName" enterkeyhint="next" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_customer_name_optional"/>
                 <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickSaleContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
             </div>
             <datalist id="saleCustomerOptions"></datalist>
@@ -248,7 +248,7 @@
                     <label for="saleRate" data-i18n="ui.common.rate">Rate</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="saleRate" list="saleRateOptions" step="any" placeholder="Pick" data-i18n-placeholder="ui.billing.select_enter_rate"/>
+                        <input type="number" class="input" inputmode="decimal" id="saleRate" enterkeyhint="next" list="saleRateOptions" step="any" placeholder="Pick" data-i18n-placeholder="ui.billing.select_enter_rate"/>
                     </div>
                     <datalist id="saleRateOptions"></datalist>
                 </div>
@@ -262,7 +262,7 @@
                 <div class="field-float bill-entry-weight">
                     <label for="saleWeight" data-i18n="ui.billing.weight_label">Weight</label>
                     <div class="adorn">
-                        <input type="number" class="input" inputmode="decimal" id="saleWeight" placeholder="0" data-onenter="event.preventDefault(); billing.addSaleWeight()"/>
+                        <input type="number" class="input" inputmode="decimal" id="saleWeight" enterkeyhint="enter" placeholder="0" data-onenter="event.preventDefault(); billing.addSaleWeight()"/>
                         <span class="adorn-post" aria-hidden="true">kg</span>
                     </div>
                 </div>
@@ -292,7 +292,7 @@
                     <th data-i18n="ui.common.rate_per_kg">Rate ₹/kg</th>
                     <th data-i18n="ui.common.qty">Qty</th>
                     <th data-i18n="ui.common.total">Total</th>
-                    <th></th>
+                    <th><span class="sr-only" data-i18n="ui.billing.col_remove">Remove</span></th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -323,7 +323,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleOnlineCheckbox" aria-describedby="saleOnlinePaymentLabel" data-onchange="billing.fillReceivableAmount('online')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleOnlinePayment" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleOnlinePayment" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
             <div class="pay-line">
@@ -331,7 +331,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleCashCheckbox" aria-describedby="saleCashPaymentLabel" data-onchange="billing.fillReceivableAmount('cash')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleCashPayment" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleCashPayment" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -345,7 +345,7 @@
                 <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleDueCheckbox" aria-describedby="saleDueAmountLabel" data-onchange="billing.fillReceivableAmount('due')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleDueAmount" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
+                    <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="saleDueAmount" enterkeyhint="next" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
@@ -366,7 +366,7 @@
         </div>
         <div class="bill-form-field field bill-notes" hidden>
             <label for="saleComments" data-i18n="ui.billing.notes_label">Notes</label>
-            <input type="text" class="input" id="saleComments" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
+            <input type="text" class="input" id="saleComments" enterkeyhint="done" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
             <label class="checkbox-label bill-note-print">
                 <input type="checkbox" id="salePrintComments" />
                 <span data-i18n="ui.billing.print_in_bill">Print in bill</span>

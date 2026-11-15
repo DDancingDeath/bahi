@@ -27,6 +27,7 @@ import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, resetBillDate } from '../ui/bill-date-input.js';
+import { openExternal } from '../utils/open-external.js';
 
 /** Name to show for a catalogue item or bill line in the chosen item-name language. */
 const lineLabel = (line) => lineItemIdentity(line && 'itemId' in line ? line : { itemId: line?.id, name: line?.name }, AppState.items, AppState.settings.showHindi).label;
@@ -136,7 +137,7 @@ const RetailSaleManager = {
                 ${saleWeights.map((w, i) => `
                     <div class="weight-chip">
                         <span>${formatKg(w)}</span>
-                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="retailSale.removeSaleWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="retailSale.removeSaleWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatKg(w) }))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>
@@ -808,7 +809,7 @@ const RetailSaleManager = {
         });
         
         const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        openExternal(url);
     },
 
     /**

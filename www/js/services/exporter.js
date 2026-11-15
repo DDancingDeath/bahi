@@ -15,6 +15,7 @@ import { SITE_HOST } from '../utils/release-info.js';
 import { exportStamp, exportAuditDetails } from '../utils/export-stamp.js';
 import { ensureXLSXWriter } from '../utils/lazy-scripts.js';
 import { printMinus } from '../utils/money.js';
+import { shellMethod } from '../utils/native-shell.js';
 
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -64,18 +65,19 @@ export const Exporter = {
      * share files (so it can go to Drive / WhatsApp), else a download.
      * @param {Blob} blob
      * @param {string} filename
-     * @param {{shareFirst?: boolean, quiet?: boolean}} [opts] quiet: no message when the Android app can't save it
+     * @param {{shareFirst?: boolean, quiet?: boolean, title?: string}} [opts] quiet: no message when the Android app can't save it;
+     *   title: the share sheet's title (default the file name)
      * @returns {Promise<boolean>} true when the share sheet or download was started (the browser
      *   can't confirm the file was kept); false when sharing was cancelled, or in the Android app
      *   when sharing isn't available (its WebView drops downloads; it says so unless `quiet`)
      */
-    async saveBlob(blob, filename, { shareFirst = true, quiet = false } = {}) {
+    async saveBlob(blob, filename, { shareFirst = true, quiet = false, title = filename } = {}) {
         const native = !!window.Capacitor?.isNativePlatform?.();
         if ((shareFirst || native) && typeof File !== 'undefined' && navigator.canShare) {
             const file = new File([blob], filename, { type: blob.type });
             if (navigator.canShare({ files: [file] })) {
                 try {
-                    await navigator.share({ files: [file], title: filename });
+                    await navigator.share({ files: [file], title });
                     return true;
                 } catch (e) {
                     if (e?.name === 'AbortError') return false;
@@ -84,7 +86,7 @@ export const Exporter = {
             }
         }
         if (native) {
-            const shared = await this.shareNative(blob, filename);
+            const shared = await this.shareNative(blob, filename, title);
             if (shared !== null) return shared;
             if (!quiet) UIManager.showToast(t('msg.export.needs_website', { site: SITE_HOST }), 'error');
             return false;
@@ -132,10 +134,11 @@ export const Exporter = {
      * (its WebView has no Web Share and drops downloads).
      * @param {Blob} blob
      * @param {string} filename
+     * @param {string} [title] the share sheet's title
      * @returns {Promise<?boolean>} true shared, false cancelled or failed, null when the
      *   plugins are missing (an APK built before they were added)
      */
-    async shareNative(blob, filename) {
+    async shareNative(blob, filename, title = filename) {
         if (!this.canShareNative()) return null;
         const { Filesystem, Share } = window.Capacitor.Plugins;
         try {
@@ -148,7 +151,7 @@ export const Exporter = {
             // One export file at a time in the app's cache: the last one goes when the next is made.
             await Filesystem.rmdir({ path: 'exports', directory: 'CACHE', recursive: true }).catch(() => {});
             const { uri } = await Filesystem.writeFile({ path: `exports/${filename}`, data, directory: 'CACHE', recursive: true });
-            await Share.share({ title: filename, files: [uri] });
+            await Share.share({ title, files: [uri] });
             return true;
         } catch (e) {
             // The plugin rejects with "Share canceled" when the person closes the sheet.
@@ -161,21 +164,54 @@ export const Exporter = {
 
     /**
      * A printable page (Print / Save as PDF) with the stamp under the title; figures keep the hyphen (printMinus).
+     * The Android app's WebView can't open a window or print, so there Android's print screen (which also saves
+     * a PDF) prints it, or an APK without that shares the page as an .html file.
      * @param {{title: string, html: string, stampText: string, lang: string}} page
-     * @returns {boolean} false when the browser blocked the window
+     * @returns {boolean|Promise<boolean>} false when the browser blocked the window or nothing was shared
      */
     printPage({ title, html, stampText, lang }) {
+        const doc = printDocument({ title, html, stampText, lang });
+        if (window.Capacitor?.isNativePlatform?.()) return this.printInApp(title, doc);
         const w = window.open('', '_blank');
         if (!w) {
             UIManager.showToast(t('msg.statements.popup_blocked'));
             return false;
         }
-        const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        w.document.write(`<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8"><title>${esc(title)}</title>`
-            + '<style>body{font-family:system-ui,sans-serif;margin:24px;color:#111}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;vertical-align:top}td.num,th.num{text-align:right}.ins-line{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:6px 0}.ins-total{font-weight:700}.hero{border:1px solid #ccc;padding:10px;border-radius:8px;margin:8px 0}.hero-fig{font-size:22px;font-weight:700}.export-stamp{color:#555;font-size:12px;margin:0 0 12px}button,.ins-hint,svg.i{display:none}.sr-only{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:normal}@page{size:A4;margin:14mm}</style>'
-            + `</head><body><p class="export-stamp">${esc(stampText)}</p>${printMinus(html)}</body></html>`);
+        w.document.write(doc);
         w.document.close();
         w.onload = () => w.print();
         return true;
+    },
+
+    /**
+     * @param {string} title
+     * @param {string} doc the whole printable page
+     * @returns {Promise<boolean>}
+     */
+    async printInApp(title, doc) {
+        const print = shellMethod('printHtml');
+        if (print) {
+            try {
+                await print({ html: doc, title });
+                return true;
+            } catch (e) {
+                console.warn('Print failed:', e?.message || e);
+                UIManager.showToast(t('msg.export.print_failed'), 'error');
+                return false;
+            }
+        }
+        const name = `${String(title || 'statement').replace(/[^\w-]+/g, '_')}.html`;
+        return this.saveBlob(new Blob([doc], { type: 'text/html' }), name, { title });
     }
 };
+
+/**
+ * @param {{title: string, html: string, stampText: string, lang: string}} page
+ * @returns {string} the printable HTML document
+ */
+function printDocument({ title, html, stampText, lang }) {
+    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return `<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8"><title>${esc(title)}</title>`
+        + '<style>body{font-family:system-ui,sans-serif;margin:24px;color:#111}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;vertical-align:top}td.num,th.num{text-align:right}.ins-line{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:6px 0}.ins-total{font-weight:700}.hero{border:1px solid #ccc;padding:10px;border-radius:8px;margin:8px 0}.hero-fig{font-size:22px;font-weight:700}.export-stamp{color:#555;font-size:12px;margin:0 0 12px}button,.ins-hint,svg.i{display:none}.sr-only{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:normal}@page{size:A4;margin:14mm}</style>'
+        + `</head><body><p class="export-stamp">${esc(stampText)}</p>${printMinus(html)}</body></html>`;
+}
