@@ -499,36 +499,28 @@ const UIManager = {
     },
 
     /**
-     * Triggers haptic feedback vibration on supported devices.
+     * Triggers haptic feedback vibration on supported devices: the Capacitor Haptics plugin when the
+     * Android app has it, else navigator.vibrate (the APK declares VIBRATE so its WebView allows it).
      * @param {'light'|'medium'|'heavy'|'success'|'error'} [type='light'] - Type of haptic feedback
      * @returns {void}
      */
     hapticFeedback(type = 'light') {
+        const pattern = HAPTIC_PATTERNS[type];
+        if (!pattern) return;
         try {
-            if ('vibrate' in navigator) {
-                switch (type) {
-                    case 'light':
-                        navigator.vibrate(10);
-                        break;
-                    case 'medium':
-                        navigator.vibrate(20);
-                        break;
-                    case 'heavy':
-                        navigator.vibrate(50);
-                        break;
-                    case 'success':
-                        navigator.vibrate([10, 50, 10]);
-                        break;
-                    case 'error':
-                        navigator.vibrate([50, 100, 50]);
-                        break;
-                }
+            const haptics = window.Capacitor?.isNativePlatform?.() ? window.Capacitor?.Plugins?.Haptics : null;
+            if (typeof haptics?.vibrate === 'function') {
+                haptics.vibrate({ duration: Array.isArray(pattern) ? pattern[0] : pattern })?.catch?.(() => {});
+                return;
             }
+            if ('vibrate' in navigator) navigator.vibrate(pattern);
         } catch (e) {
             // Haptic feedback not supported on this device
         }
     }
 };
+
+const HAPTIC_PATTERNS = { light: 10, medium: 20, heavy: 50, success: [10, 50, 10], error: [50, 100, 50] };
 
 // Export UIManager
 export { UIManager };

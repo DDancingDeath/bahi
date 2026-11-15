@@ -149,7 +149,7 @@ const ItemsManager = {
             // Build purchase rates HTML
             const purchaseRatesHTML = item.rates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input purchase" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitRate(${id}, ${rateIndex})"
@@ -161,7 +161,7 @@ const ItemsManager = {
             // Build sale rates HTML
             const saleRatesHTML = item.saleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input sale" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateSaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitSaleRate(${id}, ${rateIndex})"
@@ -173,7 +173,7 @@ const ItemsManager = {
             // Build wholesale rates HTML
             const wholesaleRatesHTML = item.wholesaleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input wholesale" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateWholesaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitWholesaleRate(${id}, ${rateIndex})"
@@ -953,7 +953,7 @@ const ItemsManager = {
         const purchaseContainer = document.getElementById('itemModalPurchaseRates');
         purchaseContainer.innerHTML = this.modalRates.purchase.map((rate, idx) => `
             <div class="rate-group">
-                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input purchase" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('purchase', ${idx}, this.value)"
                        placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
@@ -965,7 +965,7 @@ const ItemsManager = {
         const wholesaleContainer = document.getElementById('itemModalWholesaleRates');
         wholesaleContainer.innerHTML = this.modalRates.wholesale.map((rate, idx) => `
             <div class="rate-group">
-                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input wholesale" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('wholesale', ${idx}, this.value)"
                        placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
@@ -977,7 +977,7 @@ const ItemsManager = {
         const saleContainer = document.getElementById('itemModalSaleRates');
         saleContainer.innerHTML = this.modalRates.sale.map((rate, idx) => `
             <div class="rate-group">
-                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input sale" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('sale', ${idx}, this.value)"
                        placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
