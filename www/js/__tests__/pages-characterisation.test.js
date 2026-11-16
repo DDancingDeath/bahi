@@ -213,7 +213,7 @@ describe('Stock screen, pinned (S1–S4, adjustment value)', () => {
         pin('stock.owner', await stockScreen());
     });
 
-    test('staff: "Available" above 100 kg, rate shown', async () => {
+    test('staff: real kg (U-09), value and rate per Roles & access', async () => {
         stockPage({ role: 'staff' });
         await StockManager.renderStock();
         pin('stock.staff', [...document.querySelectorAll('#stockList [data-stock-item]')].map(el => squash(el.textContent)));

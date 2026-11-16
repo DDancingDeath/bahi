@@ -9,6 +9,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { icon } from '../ui/icons.js';
 
 /** Warn once when a single app session has read more documents than this. */
 export const HEAVY_SESSION_READS = 3000;
@@ -178,7 +179,7 @@ export function createQuotaGuard(env = {}) {
         const close = doc.createElement('button');
         close.type = 'button';
         close.setAttribute('aria-label', t('ui.kbd.close'));
-        close.textContent = '×';
+        close.innerHTML = icon('x');
         close.style.cssText = 'position:absolute;right:8px;top:6px;border:0;background:transparent;font-size:22px;line-height:1;color:#664d03;cursor:pointer;';
         close.addEventListener('click', () => {
             el.remove();

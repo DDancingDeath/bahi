@@ -11,7 +11,7 @@
 
 import {
     bagChecks, bagWeightGuess, BAG_WEIGHT_LIMIT_KG, extremeRate, heavyBag, linesNeedingRateCheck, rateCheckFigures,
-    rateCheckRecord, savedRateCheck, todaysRates, weightCheckRecord
+    rateCheckRecord, savedRateCheck, todaysRates, unitSlip, weightCheckRecord
 } from '../utils/calc/billing.js';
 import { formatKg, formatRate, formatRupees, readLineItem } from '../utils/money.js';
 import { AppState } from '../utils/state.js';
@@ -21,10 +21,11 @@ import { buildSheet, openSheet, closeSheet } from './ui-manager.js';
 
 /**
  * A blocking question with two answers; "fix" is focused and is what Esc does.
- * @param {{kind: 'rate'|'bag', title: string, message: string, fix: string, confirm: string}} q
- * @returns {Promise<'fix'|'confirm'>}
+ * @param {{kind: 'rate'|'bag', title: string, message: string, fix: string, confirm: string, use?: string}} q
+ *   use: a third answer that puts a suggested value in (a per-quintal rate typed per kg)
+ * @returns {Promise<'fix'|'confirm'|'use'>}
  */
-function askFixOrConfirm({ kind, title, message, fix, confirm }) {
+function askFixOrConfirm({ kind, title, message, fix, confirm, use }) {
     return new Promise((resolve) => {
         const { overlay, body, footer } = buildSheet({
             role: 'alertdialog', labelId: `${kind}CheckTitle`, title, describedBy: `${kind}CheckMessage`, className: `rate-check-sheet ${kind}-check-dialog`
@@ -34,7 +35,7 @@ function askFixOrConfirm({ kind, title, message, fix, confirm }) {
         p.textContent = message;
         body.appendChild(p);
 
-        const button = (/** @type {string} */ cls, /** @type {string} */ text, /** @type {'fix'|'confirm'} */ choice) => {
+        const button = (/** @type {string} */ cls, /** @type {string} */ text, /** @type {'fix'|'confirm'|'use'} */ choice) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = cls;
@@ -51,29 +52,47 @@ function askFixOrConfirm({ kind, title, message, fix, confirm }) {
             return b;
         };
         button('btn btn-danger-outline rate-check-confirm', confirm, 'confirm');
-        const fixBtn = button('btn btn-primary', fix, 'fix');
+        const fixBtn = button(use ? 'btn' : 'btn btn-primary', fix, 'fix');
+        const useBtn = use ? button('btn btn-primary rate-check-use', use, 'use') : null;
 
         document.body.appendChild(overlay);
-        openSheet(overlay, { focus: fixBtn });
+        openSheet(overlay, { focus: useBtn || fixBtn });
     });
 }
 
 /**
  * Asks whether an extreme rate is right.
+ * About 100× today's rate (BF-UNITSLIP) also offers the per-kg rate ("use").
  * @param {{label: string, qty: number, rate: number, todayRate: number, amount: number, todayAmount: number}} c
- * @returns {Promise<'fix'|'confirm'>}
+ * @returns {Promise<'fix'|'confirm'|'use'>}
  */
 export function askRateCheck({ label, qty, rate, todayRate, amount, todayAmount }) {
+    const slip = unitSlip(rate, todayRate);
+    const prompt = t('msg.rate_check.prompt', {
+        item: label || '', kg: formatKg(qty), rate: formatRate(rate), amount: formatRupees(amount),
+        today: formatRate(todayRate), todayAmount: formatRupees(todayAmount)
+    });
     return askFixOrConfirm({
         kind: 'rate',
         title: t('ui.rate_check.title'),
-        message: t('msg.rate_check.prompt', {
-            item: label || '', kg: formatKg(qty), rate: formatRate(rate), amount: formatRupees(amount),
-            today: formatRate(todayRate), todayAmount: formatRupees(todayAmount)
-        }),
+        message: slip ? `${t('msg.rate_check.per_quintal', { rate: formatRate(rate), today: formatRate(todayRate) })} ${prompt}` : prompt,
         fix: t('ui.rate_check.fix'),
-        confirm: t('ui.rate_check.confirm', { rate: formatRate(rate) })
+        confirm: t('ui.rate_check.confirm', { rate: formatRate(rate) }),
+        ...(slip ? { use: t('ui.rate_check.use', { rate: formatRate(slip.suggest) }) } : {})
     });
+}
+
+/**
+ * "Use ₹24/kg": the per-kg rate goes into the rate box (the line is added with the next tap).
+ * @param {string} id
+ * @param {number} rate
+ */
+function putRate(id, rate) {
+    const input = /** @type {?HTMLInputElement} */ (document.getElementById(id));
+    if (!input) return;
+    input.value = String(rate);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
 }
 
 /**
@@ -119,6 +138,10 @@ export async function checkLineRate({ kind, item, label, rate, qty, rateInputId,
     const hit = extremeRate(rate, todaysRates(item, kind));
     if (!hit) return { ok: true, rateCheck: null };
     const choice = await askRateCheck({ label, qty, rate, todayRate: hit.todayRate, ...rateCheckFigures({ rate, qty, todayRate: hit.todayRate }) });
+    if (choice === 'use') {
+        putRate(rateInputId, /** @type {{suggest: number}} */ (unitSlip(rate, hit.todayRate)).suggest);
+        return { ok: false, rateCheck: null };
+    }
     if (choice !== 'confirm') {
         focusInput(rateInputId);
         return { ok: false, rateCheck: null };
@@ -195,7 +218,8 @@ export function keptBagChecks(weights, records) {
  * Save: lines with an extreme rate not confirmed at Add to bill (e.g. a restored
  * bill) are asked one by one; a confirm is put on the line (`rateCheck`).
  * @param {{kind: 'purchase'|'retail'|'wholesale', items: Array<Object>, editingBill?: ?Object}} draft
- * @returns {Promise<{ok: boolean, index?: number, confirmed: number}>} ok false: "Fix rate" on line `index`; confirmed: lines confirmed now
+ * @returns {Promise<{ok: boolean, index?: number, use?: number, confirmed: number}>} ok false: "Fix rate" on line `index`
+ *   (`use`: the per-kg rate chosen for it, BF-UNITSLIP); confirmed: lines confirmed now
  */
 export async function confirmLineRates(draft) {
     const items = Array.isArray(draft?.items) ? draft.items : [];
@@ -205,6 +229,7 @@ export async function confirmLineRates(draft) {
         const line = items[index];
         const { rate, qty } = readLineItem(line);
         const choice = await askRateCheck({ label: lineItemIdentity(line, AppState.items, AppState.settings?.showHindi).label, qty, rate, todayRate, ...rateCheckFigures({ rate, qty, todayRate }) });
+        if (choice === 'use') return { ok: false, index, use: /** @type {{suggest: number}} */ (unitSlip(rate, todayRate)).suggest, confirmed };
         if (choice !== 'confirm') return { ok: false, index, confirmed };
         line.rateCheck = rateCheckRecord({ rate, todayRate, ...who() });
         confirmed += 1;

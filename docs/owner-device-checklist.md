@@ -10,6 +10,8 @@ first release after it) and note the result in the follow-up issue "[Owner] Devi
 | 2. Voice billing, Hindi and English | #81 | Shop phone, Android app | 15 min |
 | 3. Thermal printer from the shop PC | #133 | Shop PC, Chrome or Edge | 10 min |
 | 4. One test crash | #122 | Shop phone, Android app, after the cut-over | 5 min |
+| 5. Screen edges, keyboard and Back | UX review 2026-11-15 | An Android 15 phone and an older one | 15 min |
+| 6. Lock, start-up, files and sharing | UX review, PR #519 | Shop phone, Android app (two phones for drafts) | 20 min |
 
 ## 1. Cold start (#59)
 
@@ -83,6 +85,54 @@ Only after the cut-over to **bahi-happa**, once the `GOOGLE_SERVICES_JSON` secre
 
 **Pass:** the "Test crash sent by the owner from Diagnostics" report shows within a few minutes. Also
 tap **Send a test error**: it shows under Diagnostics › Errors and as a non-fatal in Crashlytics.
+
+## 5. Screen edges, keyboard and Back (UX review 2026-11-15)
+
+Do it on an **Android 15** phone (both **gesture** and **3-button** navigation: Settings › Display ›
+Navigation) and once on an Android 11–14 phone, in Light and in Dark (Settings › Appearance).
+
+1. **Bars:** on Billing, the page title is below the clock and battery, and the tab bar and the
+   Total / Save / Print row sit above the Back / Home buttons (or the gesture line). The phone's top bar
+   has the app bar's colour and the bottom bar the tab bar's, with readable icons, also after switching
+   Light / Dark or the theme.
+2. **Keyboard:** tap Weight, Rate and Cash: the number pad opens (Gboard and the Samsung keyboard). Type a
+   Hindi supplier name: the letters land where the cursor is and the list filters. Fill a partly paid bill:
+   Due and Notes stay visible above the keyboard, and Next moves to the next field.
+3. **Back:** open the ⋯ bill menu, press Back: only the menu closes. On an empty Billing, Back shows
+   "Press Back again…", a second Back leaves; opening the app again is quick. With a line on the bill,
+   Back asks first; after leaving, the bill is still there.
+4. **On its side:** turn the phone: Save stays at the bottom above a lower tab bar.
+5. **No prompts at start:** a fresh install asks nothing before sign-in (no notifications prompt).
+6. **Vibration:** adding a weight gives a short buzz (when the phone's touch vibration is on).
+
+**Pass:** all of the above; note the phone model, Android version and the keyboard used.
+
+## 6. Lock, start-up, files and sharing (UX review, PR #519)
+
+On the shop phone with the APK built from #519 (or the first release with it), Light and Dark.
+
+1. **Start-up:** close the app fully and open it: the Bahi splash stays until the "Loading…" screen
+   shows, with no white or blank screen between them (also in Dark). On slow data the screen says
+   "Slow internet…" and offers Try again.
+2. **Phone lock:** Settings › Lock this phone, set a PIN and 2 minutes. Leave the app for 3 minutes and
+   come back: the lock shows. Swipe the app away and open it again: the lock still shows. While it is
+   locked, the recent apps view shows no amounts and screenshots are blocked. Five wrong PINs make it
+   wait, also after reopening the app.
+3. **Switch user:** Settings › Account › Switch user: it asks first (and warns when changes are not
+   sent yet), then shows the login card with username and PIN empty.
+4. **Worker without email:** Settings › Team › Add a worker without email: the role is Member only;
+   the PIN must be 8 to 12 digits; the worker can sign in with the username and PIN on another phone.
+5. **Shared drafts:** a worker keeps a bill as a draft; on another phone a second worker opens Drafts,
+   sees "by <name>" and continues it; the draft is gone from both lists. Only the maker, owner or
+   manager sees Delete.
+6. **Files and links:** Print/PDF and Download (statements, CSV) open the share/save sheet; WhatsApp
+   share and UPI links open the app, and a missing app shows a message instead of nothing.
+7. **Printer setup:** pairing asks only for Nearby devices (no Location prompt on Android 12+); a
+   refusal shows a Hindi/English message in the app language.
+8. **Write-off note (U-08, by design):** when a Member writes off or clears a due, the owner gets a
+   notification.
+
+**Pass:** all of the above; note the phone model and Android version.
 
 ## Closure notes
 

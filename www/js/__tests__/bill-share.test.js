@@ -10,7 +10,7 @@ jest.mock('../services/audit.js', () => ({ AuditService: { log: jest.fn(), ACTIO
 jest.mock('../ui/infinite-scroll.js', () => ({ attachOlderHistoryScroll: jest.fn() }));
 
 import {
-    copyMark, buildReprintPayload, buildBillShareText, receiptDateTime, formatReceiptDateTime
+    copyMark, buildReprintPayload, buildBillShareText, buildDraftShareText, receiptDateTime, formatReceiptDateTime
 } from '../utils/bill-share.js';
 import { BluetoothPrinterManager, PrinterService, loadReceiptDrawing } from '../services/printer.js';
 import { HistoryManager } from '../modules/history.js';
@@ -99,6 +99,11 @@ describe('buildBillShareText', () => {
 
     test('purchase shows labour and payable; comments only when marked for print', () => {
         const text = buildBillShareText(PURCHASE, 'purchase');
+        expect(text).toContain('Customer: Ram');
+        const draft = buildDraftShareText({ kind: 'purchase', customer: 'Ram', items: PURCHASE.items, total: 1000 });
+        expect(draft).toContain('Customer: Ram');
+        expect(draft).toContain('DRAFT, not saved');
+        expect(buildDraftShareText({ kind: 'retail', customer: 'Gita', items: [], total: 0 })).toContain('Customer: Gita');
         expect(text).toContain('*Purchase bill*');
         expect(text).toContain('Date: 03/10/2026 02:45 pm');
         expect(text).toContain('Labour: ₹12');

@@ -132,12 +132,18 @@ describe('Today: manual reminders', () => {
         AppState.userRole = 'owner';
         expect(ManualReminders.html()).toBe('');
         localStorage.setItem('happa.restoreDrill', JSON.stringify({ uid: AppState.currentUser?.uid || '', at: Date.now(), exportedAt: null, docs: 1 }));
+        // A set-up shop: no first-run list and the phone lock already offered (U-58, U-55)
+        const uid = AppState.currentUser?.uid || '';
+        localStorage.setItem(`happa.firstRun.hidden.${uid}`, '1');
+        localStorage.setItem(`happa.appLockAsked.${uid}`, '1');
         DayManager.renderReminders();
         const host = document.getElementById('todayReminders');
         expect(host.hidden).toBe(false);
         expect(host.querySelector('.disclosure')).toBeNull();
         expect(host.querySelector('.today-reminders-link').getAttribute('data-onclick')).toBe('day.reminderForm(true)');
         localStorage.removeItem('happa.restoreDrill');
+        localStorage.removeItem(`happa.firstRun.hidden.${uid}`);
+        localStorage.removeItem(`happa.appLockAsked.${uid}`);
     });
 
     test('Add opens the closed card on the form and remembers it open', () => {

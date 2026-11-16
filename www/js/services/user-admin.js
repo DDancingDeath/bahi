@@ -13,6 +13,7 @@ import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { authErrorMessage } from '../auth/authentication.js';
 import { AuditService } from './audit.js';
 import { removalCheck, activeOwnerIds } from '../utils/owner-roles.js';
@@ -112,7 +113,7 @@ export const UserAdmin = {
         } catch (error) {
             console.error('Error removing user:', error);
             UIManager.showToast(error?.code === 'last-owner' ? t('msg.owners.last_owner')
-                : t('msg.common.failed_delete_user', { message: error?.message || '' }), 'error');
+                : t('msg.common.failed_delete_user', { message: friendlyError(error) }), 'error');
             return false;
         } finally {
             UIManager.hideLoading();

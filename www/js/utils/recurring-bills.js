@@ -3,7 +3,7 @@
  * @fileoverview Recurring bills (#437 phase 1, docs/calculations.md RB-1 … RB-11): electricity,
  * water, rent and other repeating payments. Each bill item has a cadence; each period has a bill
  * amount, payments and a balance carried to the next period (as worker arrears, WP-5). Pure; whole
- * rupees. Not linked to Money (owner decision pending).
+ * rupees. Payments show in Money (M22–M24, utils/linked-outflows.js).
  * @module utils/recurring-bills
  */
 

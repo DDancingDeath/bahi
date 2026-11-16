@@ -2,7 +2,8 @@
 /**
  * @fileoverview Which Settings groups a user sees and may edit. Everyone: Appearance,
  * Printing & receipts, Billing tools, Help & about. Aadhat (internal id 'shop') for its
- * owner/manager, Rentals for its owner/manager, Team (Roles & access, People) for the owner.
+ * owner/manager, Rentals for anyone with a rentals role (its defaults editable by its owner/manager),
+ * Team (Roles & access, People) for the owner.
  * Pure: no DOM, Firestore or AppState.
  * @module utils/settings-sections
  */
@@ -58,7 +59,7 @@ export function settingsView({ userRole, rentRole, roleAccess } = {}) {
             editable: shopRole === 'owner' || (shopRole === 'manager' && can('manager', 'shopSettings', roleAccess))
         },
         rentals: {
-            visible: rentalsRole === 'owner' || rentalsRole === 'manager',
+            visible: rentalsRole !== null,
             editable: rentalsRole === 'owner' || rentalsRole === 'manager'
         },
         team: { visible: owner, editable: owner },

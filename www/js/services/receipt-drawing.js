@@ -10,10 +10,12 @@ import { AppState } from '../utils/state.js';
 import { DEFAULT_SETTINGS } from '../utils/constants.js';
 import { billQrText, copyMark, receiptDateTime, receiptPayable } from '../utils/bill-share.js';
 import { billLabour, billLineTotal, outstandingDue, readPayment, formatKg, formatRupees } from '../utils/money.js';
+import { labourWorkingParts } from '../utils/calc/billing.js';
 import { parseAnyBillDate } from '../utils/dates.js';
-import { t, tn } from '../i18n/index.js';
+import { getLang, t, tn } from '../i18n/index.js';
 import { PAPER_DOTS } from '../utils/printer-settings.js';
 import { encodeQr } from '../utils/qr-code.js';
+import { APP_IDENTITY } from '../config/app-identity.js';
 import { canvasToEscPos } from './printer.js';
 
 /** Receipts are laid out for 58 mm paper; wider paper scales them up. */
@@ -22,19 +24,6 @@ const LAYOUT_DOTS = PAPER_DOTS[58];
 const SLIP_ROWS = 2600;
 /** Browsers refuse canvases taller than this. */
 const MAX_CANVAS_ROWS = 32767;
-
-/** "by happa" (docs/brand/by-happa-black.svg) as 1-bit rows, 87 × 24 dots, MSB = left dot (#109). */
-const MAKER_MARK = {
-    width: 87,
-    rows: [
-        'e000000e00000000000000', 'e000000e00000000000000', 'e000000e00000000000000', 'e000000e00000000000000',
-        'e000000e00000000000000', 'e000000e00000000000000', 'e004180e00006600600006', 'ff0e380ff01fe7f87f81fe',
-        'ff86380ff83fe7fc7fc3fe', 'fbc7380f3c7be7de79e7be', 'e1c7700e0c70e70e70e70e', 'e0e7700e0ee0e70660ee0e',
-        'e0e3f00e0ee0e70660ee0e', 'e1c3e00e0e70e70e70e70e', 'ffc3e00e0e7fe7fe7fe7fe', 'ff81c00e0e3fe7fc7fc3fe',
-        'ff01c00e0e1fe7f87f81fe', '0001c00000000700600000', '0003800000000700600000', '0003800000000700600000',
-        '0003800000000700600000', '0007000000000700600000', '0007000000000700600000', '0007000000000700600000'
-    ]
-};
 
 /** Logo bits (packMonochromeRaster layout, base64) as a black-on-white canvas. */
 function logoCanvas(logo) {
@@ -145,10 +134,16 @@ class ReceiptDrawing {
         return this._receipt?.lang;
     }
 
-    /** Item name on the slip: the Hindi name when there is one, except on an English receipt. */
+    /** Item name on the slip: the Hindi name on a Hindi receipt (the receipt language, else the app's), else the bill's name (N-16). */
     _itemName(itemObj, item) {
-        if (this._receipt?.lang !== 'en' && itemObj?.hindiName) return itemObj.hindiName;
+        if ((this._receipt?.lang || getLang()) === 'hi' && itemObj?.hindiName) return itemObj.hindiName;
         return item.name;
+    }
+
+    /** "3 bags × ₹6" from the bill's stored working ("6 × 3"), when it still gives the labour taken off. */
+    _labourWords(billData, labour) {
+        const parts = labourWorkingParts(billData.laborCalc, labour);
+        return parts ? this._tn('ui.print.labour_bags', parts.bags, { rate: formatRupees(parts.rate, 'rate') }) : '';
     }
 
     /** Footer line and bill QR (#107), below the totals. */
@@ -190,23 +185,9 @@ class ReceiptDrawing {
         return y;
     }
 
-    /** The small "by happa" maker line, last on the slip (#109). */
+    /** The app's name, small and last on the slip (U-89; it was the "by happa" mark, #109). */
     _drawMakerFooter(ctx, config, y) {
-        const left = Math.round((config.width - MAKER_MARK.width) / 2);
-        const top = y - 4;
-        ctx.fillStyle = '#000000';
-        MAKER_MARK.rows.forEach((hex, r) => {
-            let start = -1;
-            for (let c = 0; c <= MAKER_MARK.width; c++) {
-                const on = c < MAKER_MARK.width && (parseInt(hex[c >> 2], 16) >> (3 - (c & 3))) & 1;
-                if (on && start < 0) start = c;
-                if (!on && start >= 0) {
-                    ctx.fillRect(left + start, top + r, c - start, 1);
-                    start = -1;
-                }
-            }
-        });
-        return top + MAKER_MARK.rows.length + 4;
+        return this._createDrawingUtils(ctx, config).drawCenter(APP_IDENTITY.appName, y + config.spacing.small, config.fonts.small);
     }
 
     _drawReceiptHeader(ctx, billData, config, utils, y) {
@@ -328,24 +309,17 @@ class ReceiptDrawing {
             y += config.spacing.line;
         }
         
-        // Labor charges (only for purchases)
+        // Labour (purchases): "Labour:  3 bags × ₹6  ₹18" in the receipt language (N-16)
         if (labour > 0) {
-            if (billData.laborCalc) {
-                // Show calculation in middle and amount on right
-                ctx.fillText(`${this._t('ui.bill.labour')}:`, config.padding.left, y);
-                const calcWidth = ctx.measureText(billData.laborCalc).width;
-                const calcX = (config.width - calcWidth) / 2;
-                ctx.fillText(billData.laborCalc, calcX, y);
-                const laborText = formatRupees(billLabour(billData), { exact: true });
-                const laborWidth = ctx.measureText(laborText).width;
-                ctx.fillText(laborText, config.width - laborWidth - config.padding.left, y);
-            } else {
-                // No calculation, just show amount
-                ctx.fillText(`${this._t('ui.bill.labour')}:`, config.padding.left, y);
-                const laborText = formatRupees(billLabour(billData), { exact: true });
-                const laborWidth = ctx.measureText(laborText).width;
-                ctx.fillText(laborText, config.width - laborWidth - config.padding.left, y);
+            const words = this._labourWords(billData, labour);
+            ctx.fillText(`${this._t('ui.bill.labour')}:`, config.padding.left, y);
+            if (words) {
+                const calcWidth = ctx.measureText(words).width;
+                ctx.fillText(words, (config.width - calcWidth) / 2, y);
             }
+            const laborText = formatRupees(labour, { exact: true });
+            const laborWidth = ctx.measureText(laborText).width;
+            ctx.fillText(laborText, config.width - laborWidth - config.padding.left, y);
             y += config.spacing.line;
         }
         

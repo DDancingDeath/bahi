@@ -1,6 +1,6 @@
 /**
  * Settings groups: a short main list for everyone; Aadhat (internal 'shop') and
- * Rentals only for their owner/manager, Team only for the owner; each group is a
+ * Rentals for anyone in Rentals (editable by its owner/manager), Team only for the owner; each group is a
  * sub-page whose Back (and the back gesture) returns to the list; old routes and
  * deep links still land on the right group; the business is called Aadhat / आढ़त.
  */
@@ -33,7 +33,7 @@ describe('settingsView (pure)', () => {
     const visible = (p) => SETTINGS_GROUPS.filter(g => settingsView(p)[g].visible);
     test.each([
         ['staff', null, undefined, ['appearance', 'printing', 'billing', 'help']],
-        ['staff', 'member', undefined, ['appearance', 'printing', 'billing', 'help']],
+        ['staff', 'member', undefined, ['appearance', 'printing', 'billing', 'rentals', 'help']],
         ['staff', 'manager', undefined, ['appearance', 'printing', 'billing', 'rentals', 'help']],
         ['manager', null, undefined, ['appearance', 'printing', 'billing', 'shop', 'help']],
         ['manager', null, { manager: { shopSettings: true } }, ['appearance', 'printing', 'billing', 'shop', 'help']],
@@ -58,7 +58,7 @@ describe('settingsView (pure)', () => {
         expect(settingsView({ userRole: 'manager', roleAccess: { manager: { shopSettings: true } } }).shop.editable).toBe(true);
         expect(settingsView({ userRole: 'staff', roleAccess: { staff: { shopSettings: true } } }).shop.editable).toBe(false);
         expect(settingsView({ userRole: 'staff', rentRole: 'manager' }).rentals.editable).toBe(true);
-        expect(settingsView({ userRole: 'staff', rentRole: 'member' }).rentals.visible).toBe(false);
+        expect(settingsView({ userRole: 'staff', rentRole: 'member' }).rentals).toEqual({ visible: true, editable: false });
         expect(settingsView({ userRole: 'manager', roleAccess: { manager: { shopSettings: true } } }).team.visible).toBe(false);
     });
 });
@@ -142,9 +142,9 @@ describe('Settings page sections (jsdom)', () => {
         expect(document.getElementById('settingLaborRate').disabled).toBe(true);
         expect(document.getElementById('settingCheck_cashOkRs').disabled).toBe(true);
         expect(shown('settingsShopViewOnly')).toBe(true);
-        // the opening stock shortcut and the per-device UPI stay usable
+        // the shop's UPI ID is shown, and changed only by those who may change shop settings (U-62)
         expect(document.getElementById('settingUpiId').value).toBe('gupta@upi');
-        expect(document.getElementById('settingUpiId').disabled).toBe(false);
+        expect(document.getElementById('settingUpiId').disabled).toBe(true);
     });
 
     test('manager allowed in Roles & access edits the Aadhat settings', () => {
@@ -173,13 +173,16 @@ describe('Settings page sections (jsdom)', () => {
         expect(open()).toEqual(['team']);
     });
 
-    test('rentals manager (Aadhat member) opens Rentals; a rentals member does not', async () => {
+    test('rentals manager (Aadhat member) opens Rentals; a rentals member opens it view-only (U-65); no rentals role does not', async () => {
         as('staff', 'manager');
         SettingsManager.open('rentals');
         await new Promise(r => setTimeout(r));
         expect(open()).toEqual(['rentals']);
         expect(document.getElementById('rentMounted')).not.toBeNull();
         as('staff', 'member');
+        SettingsManager.open('rentals');
+        expect(open()).toEqual(['rentals']);
+        as('staff', null);
         jest.spyOn(NavigationManager, 'replaceRoute').mockImplementation(() => {});
         SettingsManager.open('rentals');
         expect(open()).toEqual([]);
@@ -212,7 +215,8 @@ describe('Settings page sections (jsdom)', () => {
         document.getElementById('settingBusinessName').value = '  Sharma   Aadhat ';
         document.getElementById('settingBusinessDetails').value = 'Mandi road';
         expect(await SettingsManager.saveBusinessDetails()).toBe(true);
-        expect(save).toHaveBeenCalledWith({ businessName: 'Sharma Aadhat', businessDetails: 'Mandi road' });
+        expect(save).toHaveBeenCalledWith({ businessName: 'Sharma Aadhat', businessDetails: 'Mandi road', upiId: 'gupta@upi' });
+        expect(document.getElementById('settingsShopSaveNote').textContent).toMatch(/^Saved for everyone at \d/);
         expect(AppState.settings.shopName).toBe('Sharma Aadhat');
         // #85: the change is audited with before → after, only the changed field
         expect(note).toHaveBeenCalledWith('SETTINGS_CHANGE', { section: 'business', changes: 'businessName: Old Name → Sharma Aadhat' });
@@ -240,6 +244,32 @@ describe('Settings page sections (jsdom)', () => {
         expect(AppState.settings).toMatchObject({ shopName: 'Shared', businessDetails: 'Line' });
         await SettingsManager.applySharedSettings({ laborRate: 6 });
         expect(AppState.settings.shopName).toBe('Shared');
+    });
+
+    test('UPI ID is shop-wide (U-62): read from settings/app; a UPI kept on one phone is shared once', async () => {
+        const share = jest.spyOn(FirebaseService, 'saveShopUpi').mockResolvedValue();
+        as('staff');
+        await SettingsManager.applySharedSettings({ laborRate: 6 });
+        expect(share).not.toHaveBeenCalled();
+        as('owner');
+        await SettingsManager.applySharedSettings({ laborRate: 6 });
+        expect(share).toHaveBeenCalledWith('gupta@upi', { checked: false });
+        share.mockClear();
+        await SettingsManager.applySharedSettings({ laborRate: 6, upiId: 'shop@upi' });
+        expect(AppState.settings.upiId).toBe('shop@upi');
+        expect(share).not.toHaveBeenCalled();
+
+        SettingsManager.open('shop');
+        const save = jest.spyOn(FirebaseService, 'saveBusinessDetails').mockResolvedValue();
+        document.getElementById('settingUpiId').value = ' new @upi ';
+        expect(await SettingsManager.saveBusinessDetails()).toBe(true);
+        expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ upiId: 'new@upi' }));
+        expect(AppState.settings.upiId).toBe('new@upi');
+        save.mockClear();
+        document.getElementById('settingUpiId').value = 'ram traders';
+        expect(await SettingsManager.saveBusinessDetails()).toBe(false);
+        expect(save).not.toHaveBeenCalled();
+        expect(AppState.settings.upiId).toBe('new@upi');
     });
 });
 

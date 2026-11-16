@@ -49,10 +49,11 @@ export function asOfText(at, now = Date.now()) {
  * @returns {string}
  */
 export function syncStatusText({ online, pending, synced = false, asOf = '', updating = false, stale = false }) {
-    const waiting = pending > 0 ? tn('ui.sync.waiting', pending) : '';
+    // The count comes first and stays short so the pill never cuts it off (U-04); the sheet has the rest.
+    const waiting = pending > 0 ? tn('ui.sync.not_sent', pending) : '';
     if (!online) {
-        const offline = asOf ? t('ui.sync.offline_as_of', { time: asOf }) : t('ui.sync.offline');
-        return waiting ? `${offline} · ${waiting}` : offline;
+        if (waiting) return `${waiting} · ${t('ui.sync.offline')}`;
+        return asOf ? t('ui.sync.offline_as_of', { time: asOf }) : t('ui.sync.offline');
     }
     if (waiting) return waiting;
     if (synced) return t('ui.sync.synced');
@@ -188,9 +189,32 @@ export function createSyncStatus({ win = null, doc = null, pendingWrites: initia
     const paint = (text, kind) => {
         const node = element();
         if (!node) return;
-        node.textContent = text;
+        const tappable = !!text && (kind === 'pending' || kind === 'offline');
+        const showIcon = tappable && pendingCount() > 0;
+        if (node.textContent !== text || !!node.querySelector('svg') !== showIcon) {
+            node.textContent = '';
+            if (showIcon && doc) {
+                const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'i i-sm');
+                svg.setAttribute('aria-hidden', 'true');
+                svg.setAttribute('focusable', 'false');
+                const use = doc.createElementNS('http://www.w3.org/2000/svg', 'use');
+                use.setAttribute('href', '#i-refresh');
+                svg.appendChild(use);
+                node.appendChild(svg);
+            }
+            node.appendChild(doc.createTextNode(text));
+        }
         node.hidden = !text;
         node.dataset.state = text ? kind : '';
+        // Tap opens the list of what is waiting (U-04)
+        if (tappable) {
+            node.tabIndex = 0;
+            node.title = t('ui.sync.open_aria');
+        } else {
+            node.removeAttribute('tabindex');
+            node.removeAttribute('title');
+        }
     };
 
     const flashSynced = () => {
@@ -429,6 +453,48 @@ export function createSyncStatus({ win = null, doc = null, pendingWrites: initia
             render();
         },
         pendingCount,
+        /**
+         * What this phone has not got onto the server yet (U-04 sheet).
+         * @returns {Array<{collection: string, id: string}>} collection without the dev_ prefix
+         */
+        pendingItems() {
+            return [...pendingKeys()].map(p => {
+                const parts = String(p).split('/');
+                const id = parts.pop();
+                return { collection: (parts.pop() || '').replace(/^dev_/, ''), id };
+            });
+        },
+        /** When this phone last got data from the server (ms), or null. */
+        serverDataAt: () => serverDataAt,
+        /**
+         * Before sign-out (U-03): how many changes are not on the server yet. 0 when the SDK
+         * says nothing is queued within waitMs; -1 when it may still hold some (count unknown).
+         * @param {number} [waitMs]
+         * @returns {Promise<number>}
+         */
+        async unsentCount(waitMs = 1500) {
+            const known = pendingCount();
+            if (known > 0) return known;
+            const sent = await this.waitUntilSent(waitMs);
+            return sent ? 0 : -1;
+        },
+        /**
+         * Resolves true once the SDK has sent every queued write, false after waitMs (or offline
+         * with writes queued). True when it can't be asked and nothing is tracked.
+         * @param {number} waitMs
+         * @returns {Promise<boolean>}
+         */
+        async waitUntilSent(waitMs) {
+            let waiter = null;
+            try { waiter = pendingWrites(); } catch (_) { waiter = null; }
+            if (typeof waiter !== 'function') return pendingCount() === 0;
+            let timer = null;
+            const timeout = new Promise(resolve => { timer = setTimeout(() => resolve(false), waitMs); });
+            const done = Promise.resolve().then(() => waiter()).then(() => true, () => false);
+            const sent = await Promise.race([done, timeout]);
+            clearTimeout(timer);
+            return sent;
+        },
         isOnline: () => online,
         /** When this phone last saw one of its changes reach the server (ms), null this session. */
         lastSyncAt: () => lastSyncAt,

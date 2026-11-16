@@ -12,13 +12,18 @@ import { PrinterService } from '../services/printer.js';
 import { Helpers } from '../utils/helpers.js';
 import { KEPT_SERVER_PAYMENT_KEY, normalizeLabourSettings, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
 import {
-    autoLabour, bagChecks, buildPaymentSplit, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
+    autoLabour, bagChecks, buildPaymentSplit, withLineRate, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
     paymentSplit, pendingLine, prefillPayment, restInDue, shownAmount, sumWeights, validatePaymentSplit
 } from '../utils/calc/billing.js';
+import { showAmount } from '../ui/number-input.js';
+import { showUndo, hideUndo } from '../ui/undo-bar.js';
+import { showLastSaved } from '../ui/last-saved.js';
+import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
 import { t, tn } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { icon } from '../ui/icons.js';
 import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
@@ -26,6 +31,7 @@ import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, resetBillDate } from '../ui/bill-date-input.js';
+import { openExternal } from '../utils/open-external.js';
 
 /** Name to show for a catalogue item or bill line in the chosen item-name language. */
 const lineLabel = (line) => lineItemIdentity(line && 'itemId' in line ? line : { itemId: line?.id, name: line?.name }, AppState.items, AppState.settings.showHindi).label;
@@ -137,7 +143,7 @@ const PurchaseManager = {
                 ${weights.map((w, i) => `
                     <div class="weight-chip">
                         <span>${formatKg(w)}</span>
-                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatKg(w) }))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>
@@ -149,11 +155,20 @@ const PurchaseManager = {
      * @param {number} index - Index of weight to remove
      */
     removeWeight(index) {
+        if (weights[index] === undefined) return;
+        const before = { weights: [...weights], checks: [...weightChecks] };
+        const kg = weights[index];
         weights.splice(index, 1);
         weightChecks = bagChecks(weights, weightChecks).confirmed;
         this.renderWeights();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.weight_removed', { kg: formatKg(kg) }), () => {
+            weights = before.weights;
+            weightChecks = before.checks;
+            this.renderWeights();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        }, { tag: () => pendingBill?.id ?? null });
     },
 
     /**
@@ -298,6 +313,8 @@ const PurchaseManager = {
         const billTotalSpan = document.getElementById('billTotal');
         const lines = document.getElementById('purchaseLines');
         if (lines) lines.hidden = billItems.length === 0;
+        const share = document.querySelector('#purchaseSection .bill-share');
+        if (share) share.hidden = billItems.length === 0;
         
         if (billItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
@@ -308,40 +325,14 @@ const PurchaseManager = {
             return;
         }
         
-        // Render weight breakdown for items with 2 or more packets
-        if (weightBreakdownSection) {
-            const itemsWithMultipleWeights = billItems.filter(item => item.weights.length >= 2);
-            
-            if (itemsWithMultipleWeights.length > 0) {
-                weightBreakdownSection.innerHTML = itemsWithMultipleWeights.map(item => {
-                    const weightsPerLine = 6;
-                    const weightLines = [];
-                    for (let i = 0; i < item.weights.length; i += weightsPerLine) {
-                        const lineWeights = item.weights.slice(i, i + weightsPerLine);
-                        weightLines.push(lineWeights.map(w => formatKg(w)).join('&nbsp;&nbsp;'));
-                    }
-                    
-                    return `
-                        <div class="bill-weights bill-weights-purchase">
-                            <div class="bill-weights-title">
-                                ${Helpers.escapeHtml(lineLabel(item))} (${Helpers.escapeHtml(tn('ui.print.packets_kg', item.weights.length, { kg: formatKg(item.qty) }))})
-                            </div>
-                            <div class="bill-weights-list">
-                                ${weightLines.join('<br>')}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                weightBreakdownSection.innerHTML = '';
-            }
-        }
+        // Each line once (U-18): its bag weights go on the line itself
+        if (weightBreakdownSection) weightBreakdownSection.innerHTML = '';
         
         // Render bill items table
         tbody.innerHTML = billItems.map((item, index) => {
             return `
                 <tr class="bill-line" data-onclick="purchase.editBillItem(${index})">
-                    <td>${Helpers.escapeHtml(lineLabel(item))}</td>
+                    <td>${lineNameHtml(lineLabel(item), item.weights)}</td>
                     <td>${formatRate(item.rate)}</td>
                     <td>${formatKg(item.qty)} kg</td>
                     <td>${formatRupees(shownAmount(item.total))}</td>
@@ -370,10 +361,29 @@ const PurchaseManager = {
      * @param {number} index - Index of item to delete
      */
     deleteBillItem(index) {
+        const line = billItems[index];
+        if (!line) return;
         billItems.splice(index, 1);
         this.renderBill();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+        showUndo(t('msg.billing.line_removed', { item: lineLabel(line), kg: formatKg(line.qty) }), () => {
+            billItems.splice(Math.min(index, billItems.length), 0, line);
+            this.renderBill();
+            if (this.billingManager) this.billingManager.triggerAutoSave();
+        }, { tag: () => pendingBill?.id ?? null });
+    },
+
+    /**
+     * Change a bill line's rate in place (per-quintal slip fixed with one tap, U-01).
+     * @param {number} index
+     * @param {number} rate
+     */
+    setLineRate(index, rate) {
+        if (!billItems[index] || !(rate > 0)) return;
+        billItems[index] = withLineRate(billItems[index], rate);
+        this.renderBill();
+        if (this.billingManager) this.billingManager.triggerAutoSave();
     },
 
     /**
@@ -444,6 +454,7 @@ const PurchaseManager = {
         let laborCharges = 0;
         const labourOn = !!autoLaborCheckbox?.checked;
         if (laborCalculationSpan) laborCalculationSpan.hidden = !labourOn;
+        if (!labourOn) this.toggleLabourDetail(false);
         const labourBox = laborChargesInput?.closest('.bill-money');
         if (labourBox) labourBox.hidden = !labourOn;
         if (labourOn) {
@@ -457,11 +468,19 @@ const PurchaseManager = {
             if (laborChargesInput) {
                 laborChargesInput.disabled = false;
             }
-            if (laborCalculationSpan) {
-                laborCalculationSpan.textContent = suggested.working;
-            }
-            
             laborCharges = parseFloat(laborChargesInput?.value || 0);
+            if (laborCalculationSpan) {
+                // One line on screen (N-07): "7 bags × ₹6 = ₹42"; the full working and the box open on tap.
+                // The bill and the slip keep the short working ("6 × 7").
+                laborCalculationSpan.dataset.working = suggested.working;
+                const { heavyWeightThreshold } = normalizeLabourSettings(AppState.settings);
+                const amount = formatRupees(suggested.box);
+                laborCalculationSpan.textContent = (laborCharges || 0) === suggested.box
+                    ? tn('ui.billing.labour_short', heavyPacketsCount, { rate: formatRupees(suggested.rate, 'rate'), amount })
+                    : t('ui.billing.labour_changed', { amount: formatRupees(laborCharges || 0) });
+                const working = document.getElementById('laborWorking');
+                if (working) working.textContent = tn('ui.billing.labour_working', heavyPacketsCount, { kg: formatKg(heavyWeightThreshold), rate: formatRupees(suggested.rate, 'rate'), amount });
+            }
         } else {
             if (laborChargesInput) {
                 laborChargesInput.value = '0';
@@ -469,6 +488,7 @@ const PurchaseManager = {
             }
             if (laborCalculationSpan) {
                 laborCalculationSpan.textContent = '';
+                delete laborCalculationSpan.dataset.working;
             }
             laborCharges = 0;
         }
@@ -494,9 +514,26 @@ const PurchaseManager = {
         const totalPaymentElement = document.getElementById('totalPayment');
         if (totalPaymentElement) {
             totalPaymentElement.textContent = formatAmount(paidOnScreen(split), 'exact');
+            // Total paid repeats a single Cash or Online figure: shown only when both have money (U-18)
+            const row = totalPaymentElement.closest('.payment-total');
+            if (row) row.hidden = !(split.cash > 0 && split.online > 0);
         }
         Helpers.showSplitRemaining('purchaseSplitRemaining', validatePaymentSplit(this.computeTotals().grandTotal, split));
         BillChecksUI.schedule('purchase');
+    },
+
+    /**
+     * Opens or closes the Labour working and its box (N-07).
+     * @param {boolean} [open] - default: the other way round
+     */
+    toggleLabourDetail(open) {
+        const btn = document.getElementById('laborCalculation');
+        const detail = document.getElementById('laborDetail');
+        if (!detail) return;
+        const show = typeof open === 'boolean' ? open : detail.hidden;
+        detail.hidden = !show;
+        btn?.setAttribute('aria-expanded', String(show));
+        if (show && typeof open !== 'boolean') document.getElementById('manualLaborCharges')?.focus();
     },
 
     /**
@@ -541,7 +578,7 @@ const PurchaseManager = {
             return;
         }
         const dueInput = document.getElementById('dueAmount');
-        if (dueInput) dueInput.value = rest.due;
+        showAmount(dueInput, rest.due);
         const dueCheckbox = document.getElementById('dueCheckbox');
         if (dueCheckbox) dueCheckbox.checked = rest.dueTicked;
         this.updatePaymentTotal();
@@ -592,6 +629,12 @@ const PurchaseManager = {
             UIManager.showToast(t('msg.common.no_items_in_bill'));
             return;
         }
+        const ready = await PrinterService.beforeSavePrint();
+        if (ready === 'cancel') return;
+        if (ready === 'save') {
+            await this.saveBillToHistory();
+            return;
+        }
         
         let printPromise = null;
         const report = {};
@@ -610,7 +653,7 @@ const PurchaseManager = {
             });
         } catch (error) {
             console.error('Print error:', error);
-            UIManager.showToast(saveFailedText(error, t('msg.common.error_2', { value: error?.message || error })), 'error');
+            UIManager.showToast(saveFailedText(error, t('msg.common.error_2', { value: friendlyError(error) })), 'error');
         }
     },
 
@@ -673,7 +716,7 @@ const PurchaseManager = {
         const laborChargesInput = document.getElementById('manualLaborCharges');
         const laborCalculationSpan = document.getElementById('laborCalculation');
         const laborCalc = (autoLaborCheckbox?.checked && !laborChargesInput?.dataset.manuallySet) 
-            ? laborCalculationSpan?.textContent || null 
+            ? laborCalculationSpan?.dataset.working || null 
             : null;
         
         const wasRestored = !!pendingBill?.restored;
@@ -757,6 +800,7 @@ const PurchaseManager = {
             ]);
             
             // Clear bill
+            hideUndo();
             pendingBill = null;
             billItems = [];
             emit(BILL_CLEARED, 'purchase');
@@ -771,6 +815,7 @@ const PurchaseManager = {
             
             UIManager.hideLoading();
             UIManager.showToast(this.savedText(bill));
+            showLastSaved('purchase', bill);
             UIManager.hapticFeedback('success');
             
             return bill;
@@ -790,7 +835,7 @@ const PurchaseManager = {
                 await this.billingManager?.offerSavedBill?.(error.bill, 'purchase', { items: billItems });
                 return undefined;
             }
-            UIManager.showToast(saveFailedText(error, t('msg.purchase.failed_save_bill', { message: error.message })), 'error');
+            UIManager.showToast(saveFailedText(error, t('msg.purchase.failed_save_bill', { message: friendlyError(error) })), 'error');
             console.error('Save bill error:', error);
             throw error;
         }
@@ -874,6 +919,7 @@ const PurchaseManager = {
      * Clear the current bill
      */
     clearBill() {
+        hideUndo();
         pendingBill = null;
         billItems = [];
         emit(BILL_CLEARED, 'purchase');
@@ -905,7 +951,7 @@ const PurchaseManager = {
         });
         
         const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        openExternal(url);
     },
 
     // -------------------- STATE ACCESS --------------------
@@ -1015,6 +1061,7 @@ BillChecksUI.register('purchase', {
     tableSelector: '#billTable',
     saveButtons: '#saveBillBtn, #printBillBtn',
     getDraft: () => PurchaseManager.getCheckDraft(),
+    applyRate: (index, rate) => PurchaseManager.setLineRate(index, rate),
     fields: {
         party: { inputs: ['customerName'] },
         payment: { inputs: ['cashPayment', 'onlinePayment', 'dueAmount'], anchor: 'purchaseSplitRemaining' },

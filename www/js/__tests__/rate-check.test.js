@@ -7,8 +7,8 @@
  */
 import fc from 'fast-check';
 import {
-    BAG_WEIGHT_LIMIT_KG, bagChecks, bagWeightGuess, extremeRate, heavyBag, linesNeedingRateCheck, RATE_CHECK_FACTOR,
-    rateCheckFigures, rateCheckRecord, rateConfirmed, savedRateCheck, todaysRates, weightCheckRecord
+    BAG_WEIGHT_LIMIT_KG, bagChecks, bagWeightGuess, billRateIndex, doubtfulRateBills, extremeRate, heavyBag, linesNeedingRateCheck, medianRate, RATE_CHECK_FACTOR,
+    rateCheckFigures, rateCheckRecord, rateConfirmed, savedRateCheck, todaysRates, unitSlip, usualRateFor, weightCheckRecord, withLineRate
 } from '../utils/calc/billing.js';
 import { askBagCheck, askRateCheck, checkLineRate } from '../ui/rate-check.js';
 import { PurchaseManager } from '../modules/purchase.js';
@@ -144,6 +144,69 @@ describe('BF-RATECHECK at Save: linesNeedingRateCheck, savedRateCheck', () => {
         expect(savedRateCheck({ itemId: 'w', rate: 260 }, [{ itemId: 'w', rate: 260 }])).toEqual({ saved: true, rateCheck: null });
         expect(savedRateCheck({ itemId: 'w', rate: 261 }, [confirmed])).toEqual({ saved: false, rateCheck: null });
         expect(savedRateCheck({ itemId: 'w', rate: 260 }, undefined)).toEqual({ saved: false, rateCheck: null });
+    });
+});
+
+describe('BF-USUAL / BF-UNITSLIP (U-01): the usual rate and the per-quintal slip', () => {
+    test('usualRateFor: the Rates page first (a range: the rate itself inside, else the nearest end)', () => {
+        expect(usualRateFor(25, { todays: [24], billRates: [{ rate: 2400 }] })).toEqual({ rate: 24, source: 'rates' });
+        expect(usualRateFor(28, { todays: [24, 30] })).toEqual({ rate: 28, source: 'rates' });
+        expect(usualRateFor(80, { todays: [24, 30] })).toEqual({ rate: 30, source: 'rates' });
+        expect(usualRateFor(2, { todays: [24, 30] })).toEqual({ rate: 24, source: 'rates' });
+    });
+
+    test('usualRateFor: else the median of the newest 10 bills, needing 3; never one bill', () => {
+        const b = (...rates) => rates.map(rate => ({ rate }));
+        expect(usualRateFor(25, { billRates: b(2400) })).toBeNull();
+        expect(usualRateFor(25, { billRates: b(24, 2400) })).toBeNull();
+        expect(usualRateFor(25, { billRates: b(24, 2400, 25) })).toEqual({ rate: 25, source: 'bills' });
+        expect(usualRateFor(25, { billRates: b(24, 26, 2400, 22) })).toEqual({ rate: 25, source: 'bills' });
+        expect(usualRateFor(25, { billRates: [...b(...Array(10).fill(24)), ...b(...Array(20).fill(2400))] })).toEqual({ rate: 24, source: 'bills' });
+        expect(medianRate([24.5, 24, 25.25, 0, 'x'])).toBe(24.5);
+        expect(medianRate([])).toBeNull();
+    });
+
+    test('billRateIndex: newest first; voided, flagged, edited and confirmed-extreme lines are left out', () => {
+        const confirmed = { itemId: 'w', rate: 2400, qty: 1, rateCheck: { rate: 2400, todayRate: 24 } };
+        const idx = billRateIndex([
+            { id: 'a', timestamp: 1, items: [{ itemId: 'w', rate: 24, qty: 1 }, { itemId: 'w', rate: 99, qty: 1 }] },
+            { id: 'b', timestamp: 3, items: [{ itemId: 'w', rate: 26, qty: 1 }] },
+            { id: 'v', timestamp: 4, voided: true, items: [{ itemId: 'w', rate: 2400, qty: 1 }] },
+            { id: 'f', timestamp: 5, flags: [{ rule: 'rate-high' }], items: [{ itemId: 'w', rate: 2400, qty: 1 }] },
+            { id: 'c', timestamp: 6, items: [confirmed] },
+            { id: 'e', timestamp: 7, items: [{ itemId: 'w', rate: 50, qty: 1 }] }
+        ], 'e');
+        expect(idx.get('w')).toEqual([{ ts: 3, rate: 26 }, { ts: 1, rate: 24 }]);
+    });
+
+    test.each([
+        ['₹2,400 against ₹24 (per quintal)', 2400, 24, { suggest: 24, factor: 100 }],
+        ['₹2,500 against ₹24', 2500, 24, { suggest: 25, factor: 100 }],
+        ['exactly 50×', 1200, 24, { suggest: 12, factor: 100 }],
+        ['a paisa under 50×', 1199.99, 24, null],
+        ['exactly 200×', 4800, 24, { suggest: 48, factor: 100 }],
+        ['over 200×', 4800.01, 24, null],
+        ['10× is a typo, not a unit slip', 240, 24, null],
+        ['no usual rate', 2400, 0, null]
+    ])('unitSlip: %s', (_label, rate, usual, expected) => {
+        expect(unitSlip(rate, usual)).toEqual(expected);
+    });
+
+    test('withLineRate: kg kept (weights, else kg), amount BF-LINE again, the old confirm dropped', () => {
+        expect(withLineRate({ itemId: 'w', rate: 2400, qty: 101, weights: [50.5, 50.5], total: 242400, rateCheck: { rate: 2400 } }, 24))
+            .toEqual({ itemId: 'w', rate: 24, qty: 101, weights: [50.5, 50.5], total: 2424 });
+        expect(withLineRate({ itemId: 'w', rate: 2400, qty: 10.5, total: 25200 }, 24)).toEqual({ itemId: 'w', rate: 24, qty: 10.5, total: 252 });
+    });
+
+    test('doubtfulRateBills: active bills with a line 5× / ⅕ of today\'s rate, one entry per bill', () => {
+        const cat = [{ id: 'w', name: 'Wheat', rates: [24] }];
+        const bills = [
+            { id: 'ok', billNumber: 'P1', items: [{ itemId: 'w', name: 'Wheat', rate: 25, qty: 1 }] },
+            { id: 'bad', billNumber: 'P2', items: [{ itemId: 'w', name: 'Wheat', rate: 2400, qty: 1 }, { itemId: 'w', name: 'Wheat', rate: 2500, qty: 1 }] },
+            { id: 'gone', voided: true, items: [{ itemId: 'w', name: 'Wheat', rate: 2400, qty: 1 }] }
+        ];
+        expect(doubtfulRateBills(bills, cat, 'purchase')).toEqual([{ id: 'bad', billNumber: 'P2', kind: 'purchase', item: 'Wheat', rate: 2400, todayRate: 24 }]);
+        expect(doubtfulRateBills(bills, cat, 'retail')).toEqual([]);
     });
 });
 
@@ -285,6 +348,21 @@ describe('the confirm dialog', () => {
         const keptLines = [{ itemId: 'w', name: 'Wheat', rate: 260, qty: 15, rateCheck: kept }];
         expect(await checkLineRate({ kind: 'retail', item: ITEM, label: 'Wheat', rate: 260, qty: 10, rateInputId: 'rate', keptLines })).toEqual({ ok: true, rateCheck: kept });
         expect(dialog()).toBeNull();
+    });
+
+    test('U-01: about 100× today\'s rate offers the per-kg rate; "Use" puts it in the rate box and adds nothing', async () => {
+        const result = checkLineRate({ kind: 'retail', item: ITEM, label: 'Wheat', rate: 2600, qty: 15, rateInputId: 'rate' });
+        await settle();
+        expect(document.activeElement.dataset.choice).toBe('use');
+        expect(dialog().querySelector('[data-choice="use"]').textContent).toBe('Use ₹26/kg');
+        expect(await answer('use')).toMatch(/^₹2,600\/kg looks like a per-quintal rate\. Usual rate ₹26\/kg\. /);
+        expect(await result).toEqual({ ok: false, rateCheck: null });
+        expect(document.getElementById('rate').value).toBe('26');
+        const ten = checkLineRate({ kind: 'retail', item: ITEM, label: 'Wheat', rate: 260, qty: 15, rateInputId: 'rate' });
+        await settle();
+        expect(dialog().querySelector('[data-choice="use"]')).toBeNull();
+        await answer('fix');
+        await ten;
     });
 
     test('Hindi: one language, "kg" for the weight', async () => {

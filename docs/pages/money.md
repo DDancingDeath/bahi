@@ -8,6 +8,10 @@ year (CMP; "not known" when that period's figures are not available). Periods
 today, compared with the same days of last week); ‹ › step a day or a week.
 **Worth** is where things stand today: it has no period and always shows.
 
+A loaded bill with a doubtful rate (BF-USUAL: a line 5× or ⅕ of the item's Rates-page rate, such as
+₹2,400/kg against ₹24/kg) shows a notice on Profit (any bill type) and Worth (purchases), with
+**Open bill** to check it: such a bill moves cost, profit and stock value.
+
 **Compare any two periods (CMP-AB).** On a phone these sit behind the **Compare &
 share** button next to the title (closed at first). "Choose dates…" picks any days for the period
 (PERIOD-CUSTOM). "Also compare with" adds a period B (last month, last year, a
