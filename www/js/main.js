@@ -1611,7 +1611,7 @@ window.app = {
     // Admin (owner only; admin.js is imported on first use)
     admin: {
         ...Object.fromEntries(['init', 'showTab', 'approveUser', 'showActivity', 'rejectUser', 'restoreUser', 'showChangeRole',
-            'resetUserPassword', 'deleteUser', 'loadStorageStats', 'clearAllData', 'checkDueFields', 'backfillDueFields', 'checkBackupFile']
+            'resetUserPassword', 'deleteUser', 'handOverFirstOwner', 'loadStorageStats', 'clearAllData', 'checkDueFields', 'backfillDueFields', 'checkBackupFile']
             .map(name => [name, (...args) => loadAdmin().then(m => m[name](...args))])),
         saveCheckThresholds: () => SettingsManager.saveCheckThresholds(),
         // The backup picker: check the chosen file, then clear the input so the same file can be picked again
