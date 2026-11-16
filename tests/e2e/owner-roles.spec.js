@@ -2,7 +2,8 @@
  * Several owners, never none (docs/role-permissions.md, "Owners"): in Admin › Users the owner picks
  * Member / Manager / Owner; making someone owner asks first; the only owner cannot step down; an owner
  * demotes another owner. Each change saves the profile and settings/team.ownerUids together (the rules
- * refuse one without the other) and writes CHANGE_USER_ROLE.
+ * refuse one without the other) and writes CHANGE_USER_ROLE. The first owner is recorded and marked "Founder";
+ * a demoted owner gets a bell notification.
  */
 const { test, expect, login, showTab, expectToast } = require('./support/app');
 const { USERS, getDoc, listDocs } = require('./support/emulator');
@@ -45,6 +46,12 @@ test('the owner makes a manager owner after a confirmation, cannot step down alo
     await expectToast(page, /Role changed to Manager/, 30000);
     expect((await getDoc('dev_users', managerUid)).role).toBe('manager');
     expect((await getDoc('dev_settings', 'team')).ownerUids).toEqual([ownerUid]);
+
+    // The first owner is recorded and marked; the demoted owner gets a bell notification
+    expect((await getDoc('dev_settings', 'team')).firstOwnerUid).toBe(ownerUid);
+    await expect(row(page, USERS.owner.email).locator('.tag', { hasText: 'Founder' })).toBeVisible();
+    const notes = (await listDocs('dev_notifications')).filter(n => n.type === 'role_change');
+    expect(notes).toEqual([expect.objectContaining({ userId: managerUid, newRole: 'manager', changedByUserId: ownerUid })]);
 
     const changes = (await listDocs('dev_auditLogs'))
         .filter(a => a.action === 'CHANGE_USER_ROLE' && a.details?.targetUserId === managerUid)

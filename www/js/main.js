@@ -70,7 +70,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108gn-multi-owner';
+const BUILD_ID = '20261108go-first-owner';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1611,7 +1611,7 @@ window.app = {
     // Admin (owner only; admin.js is imported on first use)
     admin: {
         ...Object.fromEntries(['init', 'showTab', 'approveUser', 'showActivity', 'rejectUser', 'restoreUser', 'showChangeRole',
-            'resetUserPassword', 'deleteUser', 'loadStorageStats', 'clearAllData', 'checkDueFields', 'backfillDueFields', 'checkBackupFile']
+            'resetUserPassword', 'deleteUser', 'handOverFirstOwner', 'loadStorageStats', 'clearAllData', 'checkDueFields', 'backfillDueFields', 'checkBackupFile']
             .map(name => [name, (...args) => loadAdmin().then(m => m[name](...args))])),
         saveCheckThresholds: () => SettingsManager.saveCheckThresholds(),
         // The backup picker: check the chosen file, then clear the input so the same file can be picked again
