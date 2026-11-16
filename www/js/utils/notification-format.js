@@ -52,6 +52,14 @@ const DOC_TABS = {
 };
 
 /** @type {Object<string, {en: string, hi: string}>} */
+const ROLE_LABELS = {
+    owner: { en: 'Owner', hi: 'मालिक' },
+    manager: { en: 'Manager', hi: 'मैनेजर' }
+};
+/** Any other stored role is shown as Member. */
+const MEMBER_LABEL = { en: 'Member', hi: 'सदस्य' };
+
+/** @type {Object<string, {en: string, hi: string}>} */
 const FIELD_LABELS = {
     name: { en: 'name', hi: 'नाम' },
     hindiName: { en: 'Hindi name', hi: 'हिंदी नाम' },
@@ -138,6 +146,17 @@ export function describeNotification(n = {}) {
             hi: `आइटम बदला गया: ${names.hi}${hiFields}`,
             who,
             target: { tab: 'items', itemId: n.itemId || null, query: names.en }
+        };
+    }
+
+    if (type === 'role_change') {
+        const role = ROLE_LABELS[n.newRole] || MEMBER_LABEL;
+        return {
+            icon: '👤',
+            en: `${who || 'An owner'} changed your role to ${role.en}`,
+            hi: `${who || 'एक मालिक'} ने आपकी भूमिका बदलकर ${role.hi} कर दी`,
+            who: '',
+            target: null
         };
     }
 

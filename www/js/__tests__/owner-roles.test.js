@@ -2,7 +2,10 @@
  * @fileoverview Who may give or take the owner role (utils/owner-roles.js): the same checks
  * as firestore.rules (rules-tests "owners: …"), made before anything is written.
  */
-import { roleChangeCheck, removalCheck, activeOwnerIds, missingOwners, ownerList } from '../utils/owner-roles.js';
+import {
+    roleChangeCheck, removalCheck, activeOwnerIds, missingOwners, ownerList,
+    firstOwnerOf, pickFirstOwner, isFounderLocked, canHandOverFirstOwner
+} from '../utils/owner-roles.js';
 
 const me = { id: 'me', name: 'Me', role: 'owner', status: 'active' };
 const o2 = { id: 'o2', name: 'Second', role: 'owner', status: 'approved' };
@@ -56,5 +59,43 @@ describe('the owner list', () => {
         expect(ownerList({ ownerUids: ['me', 5] })).toEqual(['me']);
         expect(missingOwners(['me', 'o2', 'o2'], { ownerUids: ['me'] })).toEqual(['o2']);
         expect(missingOwners(['me'], null)).toEqual(['me']);
+    });
+});
+
+describe('the first owner (founder)', () => {
+    test('nobody else demotes or removes the founder; the founder still can, and steps down with another owner', () => {
+        const asO2 = { id: 'o2', role: 'owner' };
+        expect(roleChangeCheck({ actor: asO2, target: me, next: 'manager', users: [me, o2], firstOwnerUid: 'me' }))
+            .toEqual({ ok: false, reason: 'founder' });
+        expect(removalCheck({ actor: asO2, target: me, users: [me, o2], firstOwnerUid: 'me' })).toEqual({ ok: false, reason: 'founder' });
+        expect(roleChangeCheck({ actor, target: o2, next: 'manager', users: [me, o2], firstOwnerUid: 'me' })).toEqual({ ok: true, kind: 'demote' });
+        expect(roleChangeCheck({ actor, target: me, next: 'manager', users: [me, o2], firstOwnerUid: 'me' })).toEqual({ ok: true, kind: 'step_down' });
+        expect(roleChangeCheck({ actor, target: me, next: 'manager', users: [me], firstOwnerUid: 'me' })).toEqual({ ok: false, reason: 'last_owner' });
+        // a founder who stepped down is an ordinary person again
+        const exFounder = { ...me, role: 'manager' };
+        expect(roleChangeCheck({ actor: asO2, target: exFounder, next: 'staff', users: [exFounder, o2], firstOwnerUid: 'me' }))
+            .toEqual({ ok: true, kind: 'plain' });
+        expect(isFounderLocked(me, null, 'o2')).toBe(false);
+    });
+
+    test('recorded as the earliest-created active owner; no createdAt counts as earliest; ties by uid', () => {
+        const at = (ms) => ({ toMillis: () => ms });
+        expect(pickFirstOwner([
+            { ...o2, createdAt: at(200) }, { ...me, id: 'b', createdAt: at(100) }, { ...me, id: 'a', createdAt: at(100) },
+            { ...gone, createdAt: at(1) }, { ...mgr, createdAt: at(1) }
+        ])).toBe('a');
+        expect(pickFirstOwner([{ ...o2, createdAt: '2026-01-01' }, { ...me, id: 'legacy' }])).toBe('legacy');
+        expect(pickFirstOwner([mgr, gone])).toBeNull();
+        expect(firstOwnerOf({ firstOwnerUid: 'me' })).toBe('me');
+        expect(firstOwnerOf({ firstOwnerUid: '' })).toBeNull();
+        expect(firstOwnerOf(null)).toBeNull();
+    });
+
+    test('only the founder hands it on, to another active owner', () => {
+        expect(canHandOverFirstOwner({ actor, target: o2, firstOwnerUid: 'me' })).toBe(true);
+        expect(canHandOverFirstOwner({ actor, target: mgr, firstOwnerUid: 'me' })).toBe(false);
+        expect(canHandOverFirstOwner({ actor, target: me, firstOwnerUid: 'me' })).toBe(false);
+        expect(canHandOverFirstOwner({ actor: { id: 'o2', role: 'owner' }, target: me, firstOwnerUid: 'me' })).toBe(false);
+        expect(canHandOverFirstOwner({ actor, target: o2, firstOwnerUid: null })).toBe(false);
     });
 });

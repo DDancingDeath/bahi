@@ -20,7 +20,7 @@ import { buildBackup, isDeleteConfirmed, DELETE_CONFIRM_WORD, canClearCollection
 import { t } from '../i18n/index.js';
 import { UserAdmin, isRemovedProfile, logUserAction } from '../services/user-admin.js';
 import { icon } from '../ui/icons.js';
-import { ROLE_CHOICES, roleChangeCheck, activeOwnerIds } from '../utils/owner-roles.js';
+import { ROLE_CHOICES, roleChangeCheck, activeOwnerIds, isActiveOwner, isFounderLocked, canHandOverFirstOwner } from '../utils/owner-roles.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -35,7 +35,8 @@ const BACKUP_READ_CODES = ['too_big', 'encrypted', 'gzip'];
 const ROLE_REFUSALS = {
     last_owner: 'msg.owners.last_owner',
     pending: 'msg.owners.approve_first',
-    own_account: 'msg.users.cannot_change_own_account'
+    own_account: 'msg.users.cannot_change_own_account',
+    founder: 'msg.owners.founder_locked'
 };
 
 /**
@@ -187,6 +188,7 @@ const AdminManager = {
             });
 
             this.users = users;
+            this.firstOwnerUid = await this.readFirstOwner();
             this.renderCounts(users);
             this.renderPendingUsers(pendingUsers);
             this.renderActiveUsers(activeUsers);
@@ -239,11 +241,28 @@ const AdminManager = {
                 </div>`;
     },
 
-    /** The person's status (pending, removed / rejected) or role. */
+    /** settings/team.firstOwnerUid (owner), or null when it can't be read: the rules still protect them. */
+    async readFirstOwner() {
+        if (AppState.userRole !== 'owner') return null;
+        try {
+            return await FirebaseService.loadFirstOwner();
+        } catch (e) {
+            console.warn('First owner not read:', e?.code || e);
+            return null;
+        }
+    },
+
+    /** True when this row is the first owner (an active owner). */
+    isFounder(user) {
+        return !!this.firstOwnerUid && user?.id === this.firstOwnerUid && isActiveOwner(user);
+    },
+
+    /** The person's status (pending, removed / rejected) or role; the first owner also gets "Founder". */
     userTagHtml(user, kind) {
         if (kind === 'removed') return `<span class="tag neg">${tx(user.status === 'rejected' ? 'ui.admin.status_rejected' : 'ui.admin.status_removed')}</span>`;
         if (kind === 'pending') return `<span class="tag warn">${tx('ui.admin.pending')}</span>`;
-        return `<span class="tag${user.role === 'owner' ? ' info' : ''}">${Helpers.escapeHtml(Helpers.roleLabel(user.role))}</span>`;
+        const founder = this.isFounder(user) ? `<span class="tag">${tx('ui.owners.founder')}</span> ` : '';
+        return `${founder}<span class="tag${user.role === 'owner' ? ' info' : ''}">${Helpers.escapeHtml(Helpers.roleLabel(user.role))}</span>`;
     },
 
     /** Restore (removed), role + Approve / Reject (pending), Edit role / Reset password / Delete (active). */
@@ -271,21 +290,68 @@ const AdminManager = {
                     </button>
                 </div>`;
         }
+        const me = AppState.currentUser?.uid;
+        const reset = `<button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
+                        ${icon('lock', 'i-sm')} ${tx('ui.admin.reset_password')}
+                    </button>`;
+        if (isFounderLocked(user, this.firstOwnerUid, me)) {
+            return `<div class="admin-user-actions">
+                    ${reset}
+                </div>
+                <p class="admin-hint">${tx('msg.owners.founder_locked')}</p>`;
+        }
+        const handOver = canHandOverFirstOwner({ actor: { id: me, role: AppState.userRole }, target: user, firstOwnerUid: this.firstOwnerUid })
+            ? `<button type="button" class="btn btn-sm" data-onclick="admin.handOverFirstOwner('${id}', '${safeName}')">
+                        ${icon('user', 'i-sm')} ${tx('ui.owners.make_founder')}
+                    </button>`
+            : '';
         return `<div class="admin-user-actions">
                     <button type="button" class="btn btn-sm btn-tonal" data-onclick="admin.showChangeRole('${id}', '${safeName}', '${Helpers.escapeJsAttr(user.role)}')">
                         ${icon('sliders', 'i-sm')} ${tx('ui.admin.edit_role')}
                     </button>
-                    <button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
-                        ${icon('lock', 'i-sm')} ${tx('ui.admin.reset_password')}
-                    </button>
+                    ${handOver}
+                    ${reset}
                     <button type="button" class="btn btn-sm btn-danger" data-onclick="admin.deleteUser('${id}', '${safeName}')">
                         ${icon('trash', 'i-sm')} ${tx('ui.modals.delete')}
                     </button>
                 </div>`;
     },
 
+    /**
+     * The first owner hands "Founder" to another owner (confirmation first); afterwards only that owner
+     * can change or remove themself, and this owner is no longer protected.
+     * @returns {Promise<boolean>} true when handed over
+     */
+    async handOverFirstOwner(userId, userName) {
+        const actor = { id: AppState.currentUser?.uid, role: AppState.userRole };
+        const target = (this.users || []).find(u => u.id === userId);
+        if (!canHandOverFirstOwner({ actor, target, firstOwnerUid: this.firstOwnerUid })) {
+            UIManager.showToast(t('msg.common.access_denied'), 'error');
+            return false;
+        }
+        const ok = await UIManager.showModal(t('msg.owners.confirm_make_founder', { userName: userName || '' }),
+            t('ui.owners.make_founder'), true, { confirmLabel: t('ui.owners.make_founder'), danger: true });
+        if (!ok) return false;
+        try {
+            UIManager.showLoading();
+            await FirebaseService.handOverFirstOwner(userId);
+            logUserAction(AuditService.ACTIONS.CHANGE_USER_ROLE, { targetUserId: userId, targetName: userName || '', from: 'owner', to: 'founder' });
+            UIManager.showToast(t('msg.owners.founder_handed', { userName: userName || '' }));
+            await this.loadUsers();
+            return true;
+        } catch (error) {
+            console.error('Error handing over the first owner:', error);
+            UIManager.showToast(t('msg.common.failed_change_role'), 'error');
+            return false;
+        } finally {
+            UIManager.hideLoading();
+        }
+    },
+
     /** People loaded for the Users tab (names for the activity report). */
     users: [],
+    /** settings/team.firstOwnerUid as loaded with the people (owner). */
+    firstOwnerUid: null,
     activitySeq: 0,
 
     /** ADM-1: counts by role, pending and removed, from the list already loaded. */
@@ -447,7 +513,7 @@ const AdminManager = {
         const from = target.role || currentRole;
         const next = await this.pickRole(userName, from);
         if (!next || next === from) return false;
-        const check = roleChangeCheck({ actor, target, next, users: this.users });
+        const check = roleChangeCheck({ actor, target, next, users: this.users, firstOwnerUid: this.firstOwnerUid });
         if (!check.ok) {
             UIManager.showToast(t(ROLE_REFUSALS[check.reason] || 'msg.common.access_denied'), 'error');
             return false;
@@ -460,7 +526,8 @@ const AdminManager = {
                 const listed = await FirebaseService.ensureOwnersListed(activeOwnerIds(this.users));
                 if (!listed.some(id => id !== userId)) throw Object.assign(new Error('last owner'), { code: 'last-owner' });
             }
-            await FirebaseService.changeUserRole(userId, { role: next }, ownerChange);
+            await FirebaseService.changeUserRole(userId, { role: next }, ownerChange,
+                check.kind === 'demote' ? { notifyRole: next } : {});
             logUserAction(AuditService.ACTIONS.CHANGE_USER_ROLE, { targetUserId: userId, targetName: userName || '', from, to: next });
             if (check.kind === 'step_down') {
                 UIManager.showToast(t('msg.owners.stepped_down', { roleLabel: Helpers.roleLabel(next) }));
@@ -511,7 +578,9 @@ const AdminManager = {
                 { confirmLabel: t('msg.owners.remove_owner'), danger: true });
         }
         if (kind === 'step_down') {
-            return UIManager.showModal(t('msg.owners.confirm_step_down', { roleLabel }), t('msg.owners.step_down'), true,
+            const founderNote = this.firstOwnerUid && this.firstOwnerUid === AppState.currentUser?.uid
+                ? `\n\n${t('msg.owners.founder_step_down')}` : '';
+            return UIManager.showModal(t('msg.owners.confirm_step_down', { roleLabel }) + founderNote, t('msg.owners.step_down'), true,
                 { confirmLabel: t('msg.owners.step_down'), danger: true });
         }
         return UIManager.showModal(
@@ -537,7 +606,7 @@ const AdminManager = {
      * @param {string} userName - User's display name
      */
     async deleteUser(userId, userName) {
-        const removed = await UserAdmin.removeUser(userId, userName, this.users);
+        const removed = await UserAdmin.removeUser(userId, userName, this.users, this.firstOwnerUid);
         if (removed) await this.loadUsers();
         return removed;
     },
