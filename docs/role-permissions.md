@@ -756,10 +756,29 @@ notifications, the anomaly scan and Rentals already treat each owner the same), 
   right before a demotion or removal. Until an owner is listed, nobody can demote anyone on the strength of
   them (the list may under-count, never over-count). An older app that rewrites the whole directory drops
   the list; the next owner sign-in or Admin visit lists the owners again.
+- **The first owner ("Founder" / "पहला मालिक"), `settings/team.firstOwnerUid`:** the shop's founding owner.
+  While they are an active owner, **no other owner can demote, remove (Delete) or disable them**: in Settings ›
+  Team their row has the Founder tag and, for other owners, no Edit role or Remove from shop (a note says "Only the
+  founder can change their own role or remove themselves."); the rules refuse it too. They can **step down**
+  like any owner (only with another active owner; the confirmation warns that they then lose the
+  protection), and are then an ordinary person whom owners may change again. The tag is also in Settings ›
+  Team › People.
+  - **Set once:** the owner's phone records it during the owner-list backfill (when it reads the profiles:
+    Admin visit, the daily directory check) if it is missing: the earliest-created active owner (`createdAt`;
+    a profile without one counts as earliest; ties by uid). The rules accept it only once, only an active
+    owner who is in `ownerUids`; after that nobody changes or drops it (nor deletes `settings/team`), except:
+  - **Hand over (transfer):** only the first owner, after a confirmation ("*Ramesh becomes the
+    founder… Make founder?*"), on another active owner's row: **Make founder**. Audit `CHANGE_USER_ROLE`
+    `to: 'founder'`. Use it before stepping down to keep a protected founder.
+- **The demoted owner is told:** when an owner demotes another owner, the same save writes a notification
+  for that person (`notifications`, type `role_change`, `newRole`): their bell (and the phone's status bar,
+  docs/notifications.md) says "*Me changed your role to Manager*" / "*Me ने आपकी भूमिका बदलकर मैनेजर कर
+  दी*". The rules allow that notification only from an owner, only in the batch that takes the owner role
+  off that same person, with the role they now have. A step down or a removal sends none.
 - **Audit:** every change writes `CHANGE_USER_ROLE` with who (the entry's `userId` / `userName`), whom
   (`details.targetUserId`, `targetName`) and `from` → `to` (removing an owner: `to: 'removed'`, besides
-  `REMOVE_USER`).
-- Rules: `profileRoleChangeOk()`, `teamOwnersOk()` (docs/security.md, "user profile rules").
+  `REMOVE_USER`; handing over the first owner: `to: 'founder'`).
+- Rules: `profileRoleChangeOk()`, `teamOwnersOk()`, `roleNoteOk()` (docs/security.md, "user profile rules").
 
 ## Manual reminders on Today (#86)
 

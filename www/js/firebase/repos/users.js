@@ -53,6 +53,16 @@ export function addListedOwner(uid) {
     return teamRef().set({ ownerUids: firebase.firestore.FieldValue.arrayUnion(uid) }, { merge: true });
 }
 
+/**
+ * Sets `settings/team.firstOwnerUid` (rules: once, to a listed active owner; afterwards only the first
+ * owner hands it to another owner).
+ * @param {string} uid
+ * @returns {Promise<void>}
+ */
+export function setFirstOwner(uid) {
+    return teamRef().set({ firstOwnerUid: uid }, { merge: true });
+}
+
 const deviceLogRef = (uid) => firebase.firestore()
     .collection(window.getCollection ? window.getCollection('deviceLog') : 'deviceLog').doc(uid);
 

@@ -12,9 +12,10 @@ import { isOffline, needsInternetError } from '../../utils/write-conflict.js';
 import { localISODaysAgo } from '../../utils/dates.js';
 import { safeSetItem } from '../../utils/storage-full.js';
 import { backgroundReadsAllowed } from '../firestore-meter.js';
-import { readTeamDirectory, writeTeamDirectory, readTeamDirectoryFromServer, addListedOwner } from './users.js';
+import { readTeamDirectory, writeTeamDirectory, readTeamDirectoryFromServer, addListedOwner, setFirstOwner } from './users.js';
 import { buildTeamDirectory, isTeamMember, sameTeam, teamPeople } from '../../utils/team-directory.js';
-import { activeOwnerIds, missingOwners, ownerList } from '../../utils/owner-roles.js';
+import { activeOwnerIds, missingOwners, ownerList, firstOwnerOf, pickFirstOwner } from '../../utils/owner-roles.js';
+import { planNotificationDocs, newEventId } from '../../utils/notification-format.js';
 
 /** Users list cache for notification fan-out (avoids a query per edit). */
 const USERS_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -46,7 +47,10 @@ let knownTeam;
 /** Syncs run one after another, so two reads of the profiles never write twice. */
 let teamSync = Promise.resolve(false);
 
-/** Owner only: rewrites settings/team when the profiles say something else (#87), and lists any owner missing from ownerUids. */
+/**
+ * Owner only: rewrites settings/team when the profiles say something else (#87), lists any owner missing
+ * from ownerUids and, once, records the first owner.
+ */
 async function syncTeamDirectory(users) {
     const next = buildTeamDirectory(users);
     if (knownTeam === undefined) knownTeam = await readTeamDirectory();
@@ -61,7 +65,23 @@ async function syncTeamDirectory(users) {
         knownTeam = await listOwners(missing, knownTeam);
         wrote = true;
     }
-    return wrote;
+    return (await recordFirstOwner(users)) || wrote;
+}
+
+/** Sets settings/team.firstOwnerUid when missing: the earliest-created active owner (listed). */
+async function recordFirstOwner(users) {
+    if (firstOwnerOf(knownTeam)) return false;
+    const first = pickFirstOwner(users);
+    if (!first || !ownerList(knownTeam).includes(first)) return false;
+    try {
+        await setFirstOwner(first);
+    } catch (e) {
+        // Another phone recorded one meanwhile (the rules never change it): take the stored one
+        knownTeam = await readTeamDirectoryFromServer();
+        return false;
+    }
+    knownTeam = { ...(knownTeam || {}), firstOwnerUid: first };
+    return true;
 }
 
 /** Adds each missing owner to settings/team.ownerUids, one write each (the rules check one at a time). */
@@ -72,6 +92,19 @@ async function listOwners(uids, team) {
         if (!list.includes(uid)) list.push(uid);
     }
     return { ...(team || {}), ownerUids: list };
+}
+
+/** The demoted person's notification doc ({id, data}), from this owner. */
+function roleChangeNote(userId, newRole) {
+    const uid = AppState.currentUser?.uid || null;
+    return planNotificationDocs(newEventId('role'), [userId], uid, {
+        type: 'role_change',
+        newRole,
+        changedBy: AppState.userName || '',
+        changedByUserId: uid,
+        read: false,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    })[0] || null;
 }
 
 /** Queues a sync after any running one; never rejects. @returns {Promise<boolean>} true when it wrote */
@@ -194,23 +227,60 @@ export const userProfileMethods = {
     },
 
     /**
+     * The first owner (settings/team.firstOwnerUid) after any running directory sync, or null.
+     * @returns {Promise<?string>}
+     */
+    async loadFirstOwner() {
+        await teamSync;
+        if (knownTeam === undefined) knownTeam = await readTeamDirectory();
+        return firstOwnerOf(knownTeam);
+    },
+
+    /**
+     * The first owner hands it to another active owner (the rules allow only them). Needs the internet.
+     * @param {string} uid
+     */
+    async handOverFirstOwner(uid) {
+        if (isOffline()) throw needsInternetError();
+        await setFirstOwner(uid);
+        if (knownTeam !== undefined) knownTeam = { ...(knownTeam || {}), firstOwnerUid: uid };
+    },
+
+    /**
      * Changes a person's role / status; `ownerChange` adds them to or removes them from the owner
-     * list in the same batch (the rules refuse one without the other). Needs the internet.
+     * list in the same batch (the rules refuse one without the other). `notifyRole`: an owner
+     * demoted by another owner gets a bell notification in the same batch (the rules allow it only
+     * there); if that is refused the change is saved without it. Needs the internet.
      * @param {string} userId
      * @param {Object} fields
      * @param {'add'|'remove'|null} [ownerChange]
+     * @param {{notifyRole?: string}} [opts]
      */
-    async changeUserRole(userId, fields, ownerChange = null) {
+    async changeUserRole(userId, fields, ownerChange = null, { notifyRole } = {}) {
         if (isOffline()) throw needsInternetError();
         const db = getDb();
-        const batch = db.batch();
-        batch.update(db.collection(col('users')).doc(userId), fields);
-        if (ownerChange) {
-            const fv = firebase.firestore.FieldValue;
-            batch.set(db.collection(col('settings')).doc('team'),
-                { ownerUids: ownerChange === 'add' ? fv.arrayUnion(userId) : fv.arrayRemove(userId) }, { merge: true });
+        const commit = (note) => {
+            const batch = db.batch();
+            batch.update(db.collection(col('users')).doc(userId), fields);
+            if (ownerChange) {
+                const fv = firebase.firestore.FieldValue;
+                batch.set(db.collection(col('settings')).doc('team'),
+                    { ownerUids: ownerChange === 'add' ? fv.arrayUnion(userId) : fv.arrayRemove(userId) }, { merge: true });
+            }
+            if (note) batch.set(db.collection(col('notifications')).doc(note.id), note.data);
+            return batch.commit();
+        };
+        const note = notifyRole ? roleChangeNote(userId, notifyRole) : null;
+        if (!note) {
+            await commit(null);
+        } else {
+            try {
+                await commit(note);
+            } catch (e) {
+                console.warn('Role change notification refused, saving the change without it:', e?.code || e);
+                await commit(null);
+            }
         }
-        await batch.commit();
         if (knownTeam && ownerChange) {
             const list = ownerList(knownTeam).filter(id => id !== userId);
             knownTeam = { ...knownTeam, ownerUids: ownerChange === 'add' ? [...list, userId] : list };

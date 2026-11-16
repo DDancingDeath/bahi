@@ -205,12 +205,18 @@ describe('Android build target (config/targets)', () => {
     const workflow = (name) => fs.readFileSync(path.join(ROOT, '.github', 'workflows', name), 'utf8');
     const bahi = () => withTarget(loadConfig(ROOT), loadTarget('bahi-happa', ROOT));
 
-    test('the web deploy keeps happa-bfc07; only the APK build switches to bahi-happa', () => {
+    test('the web deploy keeps happa-bfc07; previews build for bahi-happa-dev; the APK build switches to bahi-happa', () => {
         expect(derive(loadConfig(ROOT))).toMatchObject({ projectId: 'happa-bfc07', hostingSite: 'myhappa' });
         expect(JSON.parse(fs.readFileSync(path.join(ROOT, '.firebaserc'), 'utf8')).projects.default).toBe('happa-bfc07');
-        for (const name of ['firebase-hosting-merge.yml', 'firebase-hosting-pull-request.yml', 'firestore-rules-deploy.yml']) {
+        for (const name of ['firebase-hosting-merge.yml', 'firestore-rules-deploy.yml']) {
             expect({ name, target: /happa-config\.js target|config\/targets/.test(workflow(name)) }).toEqual({ name, target: false });
         }
+        // PR previews (deploy and channel clean-up) run on the test project only, with its own key.
+        const preview = workflow('firebase-hosting-pull-request.yml');
+        expect(preview.match(/node scripts\/happa-config\.js target bahi-happa-dev/g)).toHaveLength(2);
+        expect(preview).not.toContain('FIREBASE_SERVICE_ACCOUNT_HAPPA }}');
+        expect(preview.indexOf('target bahi-happa-dev')).toBeGreaterThan(preview.indexOf('run: npm test'));
+        expect(preview.indexOf('target bahi-happa-dev')).toBeLessThan(preview.indexOf('guard --sa-env SA_JSON'));
         const android = workflow('android-release.yml');
         expect(android).toContain("TARGET: ${{ inputs.target || 'bahi-happa' }}");
         const at = (s) => android.indexOf(s);

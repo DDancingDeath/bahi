@@ -7,24 +7,25 @@ service cloud.firestore {
 
     // Roles: usersCol is 'users' (prod) or 'dev_users' (dev_ collections).
     function isApprovedIn(usersCol) {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid))
-        && !(get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('status', '') in ['pending', 'rejected'])
-        && get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '') in ['owner', 'manager', 'staff'];
+      let p = /databases/$(database)/documents/$(usersCol)/$(request.auth.uid);
+      return request.auth != null && exists(p)
+        && !(get(p).data.get('status', '') in ['pending', 'rejected']) && get(p).data.get('role', '') in ['owner', 'manager', 'staff'];
     }
 
     function isOwnerIn(usersCol) {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid))
-        && !(get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('status', '') in ['pending', 'rejected'])
-        && get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '') == 'owner';
+      let p = /databases/$(database)/documents/$(usersCol)/$(request.auth.uid);
+      return request.auth != null && exists(p)
+        && !(get(p).data.get('status', '') in ['pending', 'rejected']) && get(p).data.get('role', '') == 'owner';
     }
 
     function isManagerIn(usersCol) {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid))
-        && !(get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('status', '') in ['pending', 'rejected'])
-        && get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '') in ['owner', 'manager'];
+      let p = /databases/$(database)/documents/$(usersCol)/$(request.auth.uid);
+      return request.auth != null && exists(p)
+        && !(get(p).data.get('status', '') in ['pending', 'rejected']) && get(p).data.get('role', '') in ['owner', 'manager'];
+    }
+
+    function myRole(usersCol) {
+      return get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '');
     }
 
     // --- bills: edit window, void, edit records, payments ---
@@ -34,14 +35,18 @@ service cloud.firestore {
     }
 
     function billEditDays(usersCol) {
-      return billEditDaysFor(usersCol, get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', ''));
+      return billEditDaysFor(usersCol, myRole(usersCol));
+    }
+
+    function roleAccessOf(usersCol, role) {
+      let p = settingsAppPath(usersCol);
+      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
+      let r = access is map ? access.get(role, {}) : {};
+      return r is map ? r : {};
     }
 
     function billEditDaysFor(usersCol, role) {
-      let p = settingsAppPath(usersCol);
-      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
-      let roleAccess = access is map ? access.get(role, {}) : {};
-      let d = roleAccess is map ? roleAccess.get('editDays', 2) : 2;
+      let d = roleAccessOf(usersCol, role).get('editDays', 2);
       return (d is int && d >= 0 && d <= 30) ? d : 2;
     }
 
@@ -102,6 +107,10 @@ service cloud.firestore {
         && editFieldOk(f, before, after, 'payment') && editFieldOk(f, before, after, 'cashPayment')
         && editFieldOk(f, before, after, 'onlinePayment') && editFieldOk(f, before, after, 'dueAmount')
         && editFieldOk(f, before, after, 'date') && editFieldOk(f, before, after, 'timestamp');
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
     }
 
     function bookkeepingOnly(docId, changed) {
@@ -287,7 +296,7 @@ service cloud.firestore {
     }
 
     function legacyBackfillOnly() {
-      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let changed = changedKeys();
       return changed.hasOnly(['timestamp', 'clientVersion'])
         && changed.hasAny(['timestamp'])
         && !(resource.data.get('timestamp', null) is number)
@@ -343,7 +352,7 @@ service cloud.firestore {
 
     function canUpdateExpense(usersCol) {
       return legacyBackfillOnly()
-        || (createdByCaller() && request.resource.data.diff(resource.data).affectedKeys().size() == 0);
+        || (createdByCaller() && changedKeys().size() == 0);
     }
 
     function canDeleteExpense(usersCol) {
@@ -361,7 +370,7 @@ service cloud.firestore {
 
     function expenseVoidOk(usersCol, changed) {
       let d = request.resource.data;
-      let role = get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '');
+      let role = myRole(usersCol);
       let t = resource.data.get('timestamp', null);
       return changed.hasOnly(expenseVoidFields())
         && d.get('voided', false) == true
@@ -399,7 +408,7 @@ service cloud.firestore {
     }
 
     function cashAppendOk() {
-      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let changed = changedKeys();
       return changed.size() == 1
         && changed.hasOnly(['duePayments', 'cashDeposits'])
         && appendsOneEntry(changed.hasAny(['duePayments']) ? 'duePayments' : 'cashDeposits');
@@ -412,10 +421,10 @@ service cloud.firestore {
                   && resource.data.get('counted', null) != true
                   && d.get('closingBalance', null) is number))
         && d.get('signedOut', false) == true
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        && changedKeys().hasOnly([
              'closingBalance', 'expectedBalance', 'difference', 'signOutTime', 'signedOut', 'counted',
              'transactions', 'closingNotes', 'flags', 'autoSignedOut', 'autoClosed', 'autoSignOutReason', 'closedBy'])
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['closedBy']) || d.closedBy == request.auth.uid)
+        && (!changedKeys().hasAny(['closedBy']) || d.closedBy == request.auth.uid)
         && (d.get('closingBalance', null) == null || (d.closingBalance is number && d.closingBalance >= 0))
         && (d.get('counted', true) == false || d.get('closingBalance', null) is number)
         && (d.get('expectedBalance', null) == null || d.expectedBalance is number);
@@ -426,7 +435,7 @@ service cloud.firestore {
       let r = resource.data;
       return r.get('signedOut', false) == true
         && (r.get('counted', null) == false || (!('counted' in r) && r.get('autoSignedOut', false) == true))
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        && changedKeys().hasOnly([
              'closingBalance', 'difference', 'counted', 'countedLate', 'countedAt', 'countedBy', 'countedByName'])
         && d.get('closingBalance', null) is number && d.closingBalance >= 0
         && d.get('counted', false) == true
@@ -468,7 +477,7 @@ service cloud.firestore {
     function counterIncrementOk() {
       let d = request.resource.data;
       let r = resource.data;
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(counterFields())
+      return changedKeys().hasOnly(counterFields())
         && d.get('next', null) is number
         && (r.get('initialized', false) == true && r.get('next', null) is number
             ? d.next == r.next + 1
@@ -508,7 +517,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return isManagerIn(u)
         && d.keys().hasOnly(['type', 'action', 'fields', 'itemId', 'itemName', 'itemHindiName',
-                             'rateType', 'rateTypeLabel', 'oldRate', 'newRate',
+                             'rateType', 'rateTypeLabel', 'oldRate', 'newRate', 'newRole',
                              'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])
         && d.get('changedByUserId', null) == request.auth.uid
         && d.get('userId', null) is string && d.userId.size() > 0 && d.userId != request.auth.uid
@@ -524,6 +533,7 @@ service cloud.firestore {
               && d.get('rateTypeLabel', '') is string
               && rateValueOk(d, 'oldRate') && rateValueOk(d, 'newRate')
               && !d.keys().hasAny(['action', 'fields'])
+            : d.get('type', null) == 'role_change' ? roleNoteOk(u, d)
             : d.get('type', null) == 'item_edit'
               && d.get('action', null) in ['added', 'updated']
               && d.get('fields', []) is list
@@ -531,8 +541,16 @@ service cloud.firestore {
               && !d.keys().hasAny(['rateType', 'rateTypeLabel', 'oldRate', 'newRate']));
     }
 
+    // An owner tells another owner they were demoted, in the same batch as the demotion.
+    function roleNoteOk(u, d) {
+      let p = /databases/$(database)/documents/$(u)/$(d.userId);
+      return isOwnerIn(u) && d.get('newRole', '') in ['manager', 'staff'] && activeOwnerData(get(p).data)
+        && getAfter(p).data.get('role', '') == d.newRole && d.keys().hasOnly(['type', 'newRole', 'changedBy',
+             'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp']);
+    }
+
     function notificationReadOnly() {
-      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let changed = changedKeys();
       return resource.data.get('userId', null) == request.auth.uid
         && changed.hasOnly(['read', 'readAt'])
         && request.resource.data.get('read', false) is bool
@@ -540,17 +558,15 @@ service cloud.firestore {
     }
 
     function personalOn(usersCol) {
-      return personalOnAs(usersCol, get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', ''));
+      return personalOnAs(usersCol, myRole(usersCol));
     }
 
     function personalOnAs(usersCol, role) {
-      return role == 'owner' ? true : personalSwitch(settingsAppPath(usersCol), role);
+      return role == 'owner' ? true : personalSwitch(usersCol, role);
     }
 
-    function personalSwitch(p, role) {
-      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
-      let r = access is map ? access.get(role, {}) : {};
-      let m = r is map ? r : {};
+    function personalSwitch(usersCol, role) {
+      let m = roleAccessOf(usersCol, role);
       return m.get('personalExpensesChosen', false) == true && m.get('personalExpenses', false) == true;
     }
 
@@ -608,7 +624,7 @@ service cloud.firestore {
                 ? docId == request.auth.uid
                 : resource == null || resource.data.get('userId', null) == request.auth.uid
                   || (base == 'drafts' && isManagerIn(u)))
-        : isOwnerIn(u) ? true
+        : isOwnerIn(u) ? base != 'settings' || docId != 'team'
         : base == 'expenses' ? canDeleteExpense(u)
         : base == 'personalExpenses' ? personalOn(u) && canDeleteExpense(u)
         : base == 'personalExpenseDays' ? false
@@ -653,7 +669,7 @@ service cloud.firestore {
 
     function settingsStampsOk(docId) {
       let d = request.resource.data;
-      let keys = resource == null ? d.keys() : d.diff(resource.data).affectedKeys();
+      let keys = resource == null ? d.keys() : changedKeys();
       let u = d.get('upiId', '');
       return docId != 'app'
         || ((!('upiId' in keys) || (u is string && u.size() <= 60 && u.matches('^([A-Za-z0-9._-]{2,}@[A-Za-z]{2,})?$')))
@@ -671,7 +687,7 @@ service cloud.firestore {
         && isManagerIn(usersOf(collection))
         && access is map && access.get('manager', {}) is map
         && access.get('manager', {}).get('shopSettings', false) == true
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        && changedKeys().hasOnly([
              'laborRate', 'heavyWeightThreshold', 'labourPackageKg', 'labourUpdatedAt', 'labourUpdatedBy',
              'checkThresholds', 'checksUpdatedAt', 'checksUpdatedBy',
              'businessName', 'businessDetails', 'upiId', 'businessUpdatedAt', 'businessUpdatedBy',
@@ -709,12 +725,9 @@ service cloud.firestore {
     }
 
     function canReadRecord(base, u, docId, single) {
-      let role = get(/databases/$(database)/documents/$(u)/$(request.auth.uid)).data.get('role', '');
+      let role = myRole(u);
       let def = role == 'manager';
-      let p = settingsAppPath(u);
-      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
-      let r = access is map ? access.get(role, {}) : {};
-      let a = r is map ? r : {};
+      let a = roleAccessOf(u, role);
       return isOwnerIn(u)
         || (base in ['notifications', 'drafts']
             ? (single && resource == null) || resource.data.get('userId', null) == request.auth.uid
@@ -729,11 +742,8 @@ service cloud.firestore {
     }
 
     function moneyPageOn(usersCol) {
-      let role = get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '');
-      let p = settingsAppPath(usersCol);
-      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
-      let r = access is map ? access.get(role, {}) : {};
-      return (r is map ? r : {}).get('finance', role == 'manager') == true;
+      let role = myRole(usersCol);
+      return roleAccessOf(usersCol, role).get('finance', role == 'manager') == true;
     }
 
     function worthAccountOk(a) {
@@ -769,7 +779,7 @@ service cloud.firestore {
           || (isApprovedIn(usersCol) && d.get('stale', false) == true
               && (resource == null
                   ? d.keys().hasOnly(['stale', 'staleCount', 'staleAt', 'staleReason', 'staleBy'])
-                  : d.diff(resource.data).affectedKeys().hasOnly(['stale', 'staleCount', 'staleAt', 'staleReason', 'staleBy'])))
+                  : changedKeys().hasOnly(['stale', 'staleCount', 'staleAt', 'staleReason', 'staleBy'])))
         : docId == 'legacyScan' && isManagerIn(usersCol);
     }
 
@@ -825,11 +835,13 @@ service cloud.firestore {
       let was = activeOwnerData(resource.data);
       let now = activeOwnerData(d);
       let t = /databases/$(database)/documents/$(usersCol == 'users' ? 'settings' : 'dev_settings')/team;
-      let before = exists(t) ? get(t).data.get('ownerUids', []) : [];
+      let tb = exists(t) ? get(t).data : {};
+      let before = tb.get('ownerUids', []);
       let after = existsAfter(t) ? getAfter(t).data.get('ownerUids', []) : [];
       return d.get('role', '') in ['owner', 'manager', 'staff', 'none', ''] && (d.get('role', '') != 'owner' || now)
+        && (!was || userId != tb.get('firstOwnerUid', '') || request.auth.uid == userId)
         && (request.auth.uid != userId
-            || (was && !now && d.role in ['manager', 'staff'] && d.diff(resource.data).affectedKeys().hasOnly(['role'])))
+            || (was && !now && d.role in ['manager', 'staff'] && changedKeys().hasOnly(['role'])))
         && (was == now
             || (now
                 ? resource.data.get('role', '') in ['manager', 'staff', 'none']
@@ -839,17 +851,23 @@ service cloud.firestore {
                   && after is list && !(userId in after)));
     }
 
-    // Owner list (docs/security.md, "Owners").
+    // Owner list and first owner (docs/security.md, "Owners").
     function teamOwnersOk(collection, docId) {
       let d = request.resource.data;
-      let b = resource == null ? [] : resource.data.get('ownerUids', []);
+      let r = resource == null ? {} : resource.data;
+      let b = r.get('ownerUids', []);
       let a = d.get('ownerUids', []);
-      return docId != 'team' || !('ownerUids' in d) || a == b
-        || (a is list && b is list && a.size() <= 20 && a.toSet().size() == a.size()
-            && (a.size() == b.size() + 1
-                ? b.removeAll(a).size() == 0 && ownerAfter(usersOf(collection), a.removeAll(b)[0])
-                : a.size() == b.size() - 1 && a.size() >= 1 && a.removeAll(b).size() == 0
-                  && !ownerAfter(usersOf(collection), b.removeAll(a)[0])));
+      let f = d.get('firstOwnerUid', null);
+      return docId != 'team'
+        || ((f == r.get('firstOwnerUid', null)
+             || (f is string && r.get('firstOwnerUid', null) in [null, request.auth.uid]
+                 && a is list && f in a && ownerAfter(usersOf(collection), f)))
+          && (!('ownerUids' in d) || a == b
+            || (a is list && b is list && a.size() <= 20 && a.toSet().size() == a.size()
+                && (a.size() == b.size() + 1
+                    ? b.removeAll(a).size() == 0 && ownerAfter(usersOf(collection), a.removeAll(b)[0])
+                    : a.size() == b.size() - 1 && a.size() >= 1 && a.removeAll(b).size() == 0
+                      && !ownerAfter(usersOf(collection), b.removeAll(a)[0])))));
     }
 
     function canUpdateProfile(usersCol, userId) {
@@ -857,12 +875,12 @@ service cloud.firestore {
       let p = '(this-month|last-month|this-year|last-year|this-fy|last-fy|last-30|all|month:[0-9]{4}-[0-9]{2}|range:[0-9]{4}-[0-9]{2}-[0-9]{2}:[0-9]{4}-[0-9]{2}-[0-9]{2})';
       let e = p + '[|]' + p + '?';
       return (isOwnerIn(usersCol) && workerRoleOk(d)
-              && (!d.diff(resource.data).affectedKeys().hasAny(['role', 'status'])
+              && (!changedKeys().hasAny(['role', 'status'])
                   || profileRoleChangeOk(usersCol, userId)))
         || (request.auth != null
             && request.auth.uid == userId
             && !(resource.data.get('status', '') in ['disabled', 'rejected'])
-            && d.diff(resource.data).affectedKeys().hasOnly(['name', 'savedRanges', 'lang'])
+            && changedKeys().hasOnly(['name', 'savedRanges', 'lang'])
             && d.get('name', '') is string && d.get('name', '').size() <= 100
             && d.get('lang', 'en') in ['en', 'hi']
             && (!('savedRanges' in d)
@@ -918,7 +936,7 @@ service cloud.firestore {
 
     function telemetryHideOnly() {
       let d = request.resource.data;
-      return d.diff(resource.data).affectedKeys().hasOnly(['hidden', 'hiddenBy', 'hiddenAt'])
+      return changedKeys().hasOnly(['hidden', 'hiddenBy', 'hiddenAt'])
         && d.get('hidden', null) == true
         && d.get('hiddenBy', null) == request.auth.uid
         && d.get('hiddenAt', null) == request.time;
@@ -960,7 +978,7 @@ service cloud.firestore {
         : '';
     }
 
-    function canWriteRent(usersCol) {
+    function rentUser(usersCol) {
       return rentRoleIn(usersCol) != '';
     }
 
@@ -973,11 +991,11 @@ service cloud.firestore {
     }
 
     function rentLeasePath(usersCol, leaseId) {
-      return /databases/$(database)/documents/$((usersCol == 'dev_users' ? 'dev_' : '') + 'rent_leases')/$(leaseId);
+      return rentPath(usersCol, 'rent_leases', leaseId);
     }
 
     function rentChargePath(usersCol, leaseId, month) {
-      return /databases/$(database)/documents/$((usersCol == 'dev_users' ? 'dev_' : '') + 'rent_charges')/$(leaseId + '_' + month);
+      return rentPath(usersCol, 'rent_charges', leaseId + '_' + month);
     }
 
     function rentStr(d, key, min, max) {
@@ -1074,7 +1092,7 @@ service cloud.firestore {
         && (!('increasePct' in d) || (d.increasePct is number && d.increasePct >= 0 && d.increasePct <= 100))
         && (!('rentSince' in d) || rentMonth(d.rentSince))
         && (d.get('shareToken', null) == null || rentShareToken(d.shareToken))
-        && (!('startDate' in d) || (rentDate(d.startDate) && d.startDate[0:7] == d.startMonth))
+        && (!('startDate' in d) || (dayKeyOk(d.startDate) && d.startDate[0:7] == d.startMonth))
         && d.get('proRate', false) is bool
         && (d.get('firstRent', null) == null || (d.firstRent is number && d.firstRent >= 0 && (resource != null || d.firstRent <= d.rent)))
         && d.get('elecMode', 'meter') in ['included', 'meter', 'own']
@@ -1084,10 +1102,6 @@ service cloud.firestore {
 
     function rentMobile(v) {
       return v is string && v.matches('^[6-9][0-9]{9}$');
-    }
-
-    function rentDate(v) {
-      return v is string && v.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
     }
 
     function rentShareToken(t) {
@@ -1138,7 +1152,7 @@ service cloud.firestore {
         && (!exists(rentLeasePath(usersCol, d.movedTo))
             && getAfter(rentLeasePath(usersCol, d.movedTo)).data.get('fromLeaseId', null) == docId);
       return role != ''
-        && (d.diff(r).affectedKeys().hasOnly(['status', 'endMonth', 'chargedThrough', 'movedTo', 'shareToken', 'updatedAt', 'updatedBy'])
+        && (changedKeys().hasOnly(['status', 'endMonth', 'chargedThrough', 'movedTo', 'shareToken', 'updatedAt', 'updatedBy'])
           ? (rentWriterOk() && d.get('status', '') in ['active', 'ended']
               && (d.get('endMonth', null) == null || rentMonth(d.endMonth))
               && (d.get('chargedThrough', null) == null || rentMonth(d.chargedThrough))
@@ -1298,7 +1312,7 @@ service cloud.firestore {
       let unit = get(rentPath(usersCol, 'rent_units', r.unitId)).data;
       let leaseMode = get(rentLeasePath(usersCol, r.leaseId)).data.get('elecMode', 'meter');
       let unitAfter = getAfter(rentPath(usersCol, 'rent_units', r.unitId)).data;
-      return d.diff(r).affectedKeys().hasOnly(['electricity', 'amount', 'open', 'updatedAt', 'updatedBy'])
+      return changedKeys().hasOnly(['electricity', 'amount', 'open', 'updatedAt', 'updatedBy'])
         && rentWriterOk()
         && leaseMode == 'meter'
         && e is map && e.keys().hasOnly(['prev', 'curr', 'rate', 'units', 'amount'])
@@ -1341,7 +1355,7 @@ service cloud.firestore {
     function rentMoveRentOk(v, full, lease, month, date, capped) {
       let s = month == lease.startMonth && lease.get('firstRent', null) != null ? int(lease.startDate[8:10]) : 1;
       let x = float(full) * (int(date[8:10]) - s) / (rentMonthDays(month) - s + 1);
-      return rentDate(date) && date[0:7] == month && v >= x - 0.5 && (capped || (v is int && v <= x + 0.5));
+      return dayKeyOk(date) && date[0:7] == month && v >= x - 0.5 && (capped || (v is int && v <= x + 0.5));
     }
 
     function rentMonthDays(m) {
@@ -1371,7 +1385,7 @@ service cloud.firestore {
       let r = resource.data;
       let old = r.get('voided', []);
       let v = d.get('voided', []);
-      return d.diff(r).affectedKeys().hasOnly(['voided', 'updatedAt', 'updatedBy'])
+      return changedKeys().hasOnly(['voided', 'updatedAt', 'updatedBy'])
         && rentWriterOk()
         && v is list && v.size() == old.size() + 1 && v.size() <= 12 && v.hasAll(old)
         && v[v.size() - 1] is int && !(v[v.size() - 1] in old)
@@ -1436,7 +1450,7 @@ service cloud.firestore {
       let r = resource.data;
       let chPath = rentPath(usersCol, 'rent_charges', r.chargeId);
       return r.get('void', false) == false && d.get('void', null) == true
-        && d.diff(r).affectedKeys().hasOnly(['void', 'voidBy', 'voidByName', 'voidAt', 'voidReason'])
+        && changedKeys().hasOnly(['void', 'voidBy', 'voidByName', 'voidAt', 'voidReason'])
         && d.get('voidBy', null) == request.auth.uid && d.get('voidAt', null) is number
         && rentStr(d, 'voidByName', 0, 80) && rentStr(d, 'voidReason', 1, 200)
         && (!existsAfter(chPath) || r.pi in getAfter(chPath).data.get('voided', []));
@@ -1497,7 +1511,7 @@ service cloud.firestore {
       let mgr = role in ['owner', 'manager'];
       let d = request.resource.data;
       let r = resource.data;
-      let changed = d.diff(r).affectedKeys();
+      let changed = changedKeys();
       let n = r.get('payments', []).size();
       let next = rentChargePath(usersCol, r.leaseId, nextMonth(r.month));
       return role != ''
@@ -1551,9 +1565,9 @@ service cloud.firestore {
       let role = rentRoleIn(usersCol);
       let d = request.resource.data;
       let r = resource.data;
-      let meterKeys = d.diff(r).affectedKeys().intersection(['lastReading', 'meterRate', 'meterCharge'].toSet());
+      let meterKeys = changedKeys().intersection(['lastReading', 'meterRate', 'meterCharge'].toSet());
       return role != ''
-        && (d.diff(r).affectedKeys().hasOnly(['leaseId', 'updatedAt', 'updatedBy'])
+        && (changedKeys().hasOnly(['leaseId', 'updatedAt', 'updatedBy'])
           ? rentWriterOk() && rentUnitLeaseOk(usersCol, docId)
           : validRentUnit() && rentCreationKept()
             && rentUnitLeaseOk(usersCol, docId)
@@ -1570,7 +1584,7 @@ service cloud.firestore {
       return rentRoleIn(usersCol) != ''
         && rentShareToken(token)
         && d.keys().hasOnly(['lid', 'v', 'shop', 'tenant', 'place', 'ut', 'since', 'em', 'rent', 'dueDay', 'ended', 'endMonth', 'months', 'dep', 'updatedAt'])
-        && (!('since' in d) || rentDate(d.since))
+        && (!('since' in d) || dayKeyOk(d.since))
         && (!('dep' in d) || rentMoney(d, 'dep'))
         && (!('em' in d) || d.em in ['included', 'meter', 'own'])
         && (!('ut' in d) || d.ut in ['flat', 'commercial', 'office', 'godown', 'other'])
@@ -1624,7 +1638,7 @@ service cloud.firestore {
         && e.keys().hasOnly(['kind', 'amount', 'date', 'mode', 'chargeId', 'month', 'leaseId', 'note', 'at', 'by', 'byName'])
         && e.get('kind', '') in ['received', 'adjust', 'refund']
         && e.get('amount', null) is number && e.amount > 0
-        && rentDate(e.get('date', '')) && e.get('by', '') == request.auth.uid
+        && dayKeyOk(e.get('date', '')) && e.get('by', '') == request.auth.uid
         && rentStr(e, 'note', 0, 200) && rentStr(e, 'byName', 0, 80)
         && (!('leaseId' in e) || rentStr(e, 'leaseId', 1, 64))
         && (e.kind == 'adjust' ? rentStr(e, 'chargeId', 1, 80)
@@ -1675,7 +1689,7 @@ service cloud.firestore {
           || (rentStr(d, 'unitId', 1, 64) && get(rentPath(usersCol, 'rent_units', d.unitId)).data.propertyId == d.propertyId))
         && d.get('category', '') in ['repairs', 'tax', 'maintenance', 'insurance', 'broker', 'other']
         && d.get('amount', null) is number && d.amount > 0 && d.amount <= 100000000
-        && rentDate(d.get('date', '')) && d.get('month', '') == d.date[0:7]
+        && dayKeyOk(d.get('date', '')) && d.get('month', '') == d.date[0:7]
         && d.get('mode', '') in ['cash', 'upi', 'bank', 'cheque']
         && rentStr(d, 'note', 0, 200) && rentStr(d, 'byName', 0, 80)
         && d.get('createdAt', null) is number && rentStr(d, 'createdBy', 1, 128);
@@ -1684,7 +1698,7 @@ service cloud.firestore {
     // Worker pay (#373): owner only; one doc per worker, entries append-only or one removed.
     function wpEntryOk(e) {
       return e is map && e.keys().hasOnly(['id', 'month', 'date', 'amount', 'kind', 'mode', 'note'])
-        && rentStr(e, 'id', 1, 40) && rentMonth(e.get('month', '')) && rentDate(e.get('date', ''))
+        && rentStr(e, 'id', 1, 40) && rentMonth(e.get('month', '')) && dayKeyOk(e.get('date', ''))
         && e.get('amount', null) is int && e.amount > 0 && e.amount <= 10000000
         && e.get('kind', '') in ['pay', 'advance'] && e.get('mode', '') in ['cash', 'online'] && rentStr(e, 'note', 0, 120);
     }
@@ -1720,7 +1734,7 @@ service cloud.firestore {
     // the newest for a period counts) and payments, append-only or one removed.
     function rbEntryOk(e) {
       return e is map && e.keys().hasOnly(['id', 'kind', 'period', 'date', 'amount', 'mode', 'note'])
-        && rentStr(e, 'id', 1, 40) && rentMonth(e.get('period', '')) && rentDate(e.get('date', ''))
+        && rentStr(e, 'id', 1, 40) && rentMonth(e.get('period', '')) && dayKeyOk(e.get('date', ''))
         && e.get('amount', null) is int && e.amount <= 10000000 && rentStr(e, 'note', 0, 120)
         && (e.get('kind', '') == 'bill' ? e.amount >= 0 && !('mode' in e)
             : e.get('kind', '') == 'pay' && e.amount > 0 && e.get('mode', '') in ['cash', 'online']);
@@ -1782,8 +1796,8 @@ service cloud.firestore {
         && (collection in ['purchases', 'retailSales', 'wholesaleSales', 'dev_purchases', 'dev_retailSales', 'dev_wholesaleSales']
             ? writesCurrentClient(collection)
               && billUpdateAs(usersOf(collection), baseName(collection), docId,
-                   get(/databases/$(database)/documents/$(usersOf(collection))/$(request.auth.uid)).data.get('role', ''),
-                   request.resource.data.diff(resource.data).affectedKeys())
+                   myRole(usersOf(collection)),
+                   changedKeys())
           : collection in ['settings', 'dev_settings']
             ? (appSettingsGuard(collection, docId) || managerShopSettingsOk(collection, docId))
               && settingsReceiptOk() && settingsStampsOk(docId) && teamOwnersOk(collection, docId)
@@ -1796,12 +1810,12 @@ service cloud.firestore {
             ? expenseFieldsOk(request.resource.data) && resource.data.get('voided', false) != true
               && (collection in ['expenses', 'dev_expenses']
                   ? !(personalTagged(request.resource.data) && !personalTagged(resource.data))
-                    && (request.resource.data.diff(resource.data).affectedKeys().hasAny(expenseVoidFields())
-                        ? expenseVoidOk(usersOf(collection), request.resource.data.diff(resource.data).affectedKeys())
+                    && (changedKeys().hasAny(expenseVoidFields())
+                        ? expenseVoidOk(usersOf(collection), changedKeys())
                         : isOwnerIn(usersOf(collection)) || canUpdateExpense(usersOf(collection)))
-                  : request.resource.data.diff(resource.data).affectedKeys().hasAny(expenseVoidFields())
+                  : changedKeys().hasAny(expenseVoidFields())
                     ? personalOn(usersOf(collection)) && personalVoidLeavesDay(usersOf(collection), docId)
-                      && expenseVoidOk(usersOf(collection), request.resource.data.diff(resource.data).affectedKeys())
+                      && expenseVoidOk(usersOf(collection), changedKeys())
                     : isOwnerIn(usersOf(collection))
                       || (personalOn(usersOf(collection)) && canUpdateExpense(usersOf(collection))
                           && request.resource.data.get('category', null) == 'personal'
@@ -1813,10 +1827,10 @@ service cloud.firestore {
                 ? legacyBackfillOnly()
                   || (isManagerIn(usersOf(collection))
                       && (collection in ['stockAdjustments', 'dev_stockAdjustments'] || moneyPageOn(usersOf(collection)))
-                      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['amount']) || amountOk()))
+                      && (!changedKeys().hasAny(['amount']) || amountOk()))
               : collection in ['cashManagement', 'dev_cashManagement'] ? cashAppendOk() || cashCloseOk() || cashLateCountOk()
               : collection in ['items', 'dev_items']
-                ? isManagerIn(usersOf(collection)) && itemFieldsOk(request.resource.data.diff(resource.data).affectedKeys())
+                ? isManagerIn(usersOf(collection)) && itemFieldsOk(changedKeys())
               : collection in ['counters', 'dev_counters'] ? counterIncrementOk()
               : collection in ['itemFrequency', 'dev_itemFrequency'] ? itemFrequencyOk(docId)
               : collection in ['personalExpenseDays', 'dev_personalExpenseDays']
@@ -1921,7 +1935,7 @@ service cloud.firestore {
       let next = d.get('nextId', null);
       return isApprovedIn(usersCol)
         && resource.data.status == 'open'
-        && d.diff(resource.data).affectedKeys().hasOnly(['status', 'doneBy', 'doneByName', 'doneAt', 'nextId'])
+        && changedKeys().hasOnly(['status', 'doneBy', 'doneByName', 'doneAt', 'nextId'])
         && d.status == 'done'
         && d.doneBy == request.auth.uid
         && d.doneAt == request.time
@@ -1935,7 +1949,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return isManagerIn(usersCol)
         && resource.data.status == 'open'
-        && d.diff(resource.data).affectedKeys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'updatedBy', 'updatedByName', 'updatedAt'])
+        && changedKeys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'updatedBy', 'updatedByName', 'updatedAt'])
         && d.status == 'open'
         && reminderFieldsOk(d)
         && (d.dueDate == resource.data.dueDate || reminderDateInRange(d.dueDate))
@@ -1948,7 +1962,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return isManagerIn(usersCol)
         && resource.data.status == 'open'
-        && d.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledBy', 'cancelledByName', 'cancelledAt'])
+        && changedKeys().hasOnly(['status', 'cancelledBy', 'cancelledByName', 'cancelledAt'])
         && d.status == 'cancelled'
         && d.cancelledBy == request.auth.uid
         && d.cancelledAt == request.time
@@ -1992,7 +2006,7 @@ service cloud.firestore {
         && d.get('staleAt', null) is number
         && (resource == null
             ? d.keys().hasOnly(['month', 'stale', 'staleAt'])
-            : d.diff(resource.data).affectedKeys().hasOnly(['stale', 'staleAt']));
+            : changedKeys().hasOnly(['stale', 'staleAt']));
     }
 
     function validTipHealth(usersCol, docId) {
@@ -2165,22 +2179,22 @@ service cloud.firestore {
     }
 
     match /rent_properties/{docId} {
-      allow read: if rentRoleIn('users') != '';
-      allow create: if rentRoleIn('users') != '' && validRentProperty();
-      allow update: if rentRoleIn('users') != '' && validRentProperty() && rentCreationKept();
+      allow read: if rentUser('users');
+      allow create: if rentUser('users') && validRentProperty();
+      allow update: if rentUser('users') && validRentProperty() && rentCreationKept();
       allow delete: if isOwnerIn('users');
     }
 
     match /rent_tenants/{docId} {
-      allow read: if rentRoleIn('users') != '';
-      allow create: if rentRoleIn('users') != '' && validRentTenant();
-      allow update: if rentRoleIn('users') != '' && validRentTenant() && rentCreationKept();
+      allow read: if rentUser('users');
+      allow create: if rentUser('users') && validRentTenant();
+      allow update: if rentUser('users') && validRentTenant() && rentCreationKept();
       allow delete: if isOwnerIn('users');
     }
 
     match /rent_units/{docId} {
-      allow read: if rentRoleIn('users') != '';
-      allow create: if rentRoleIn('users') != '' && validRentUnit() && rentUnitCreateLeaseOk('users', docId)
+      allow read: if rentUser('users');
+      allow create: if rentUser('users') && validRentUnit() && rentUnitCreateLeaseOk('users', docId)
         && request.resource.data.get('type', '') in ['flat', 'commercial', 'office', 'godown', 'other']
         && request.resource.data.get('meterCharge', null) == null;
       allow update: if rentUnitUpdateOk('users', docId);
@@ -2188,48 +2202,48 @@ service cloud.firestore {
     }
 
     match /rent_leases/{docId} {
-      allow read: if rentRoleIn('users') != '';
+      allow read: if rentUser('users');
       allow create: if rentLeaseCreateOk('users', docId);
       allow update: if rentLeaseUpdateOk('users', docId);
       allow delete: if isOwnerIn('users');
     }
 
     match /rent_charges/{docId} {
-      allow read: if rentRoleIn('users') != '';
-      allow create: if rentRoleIn('users') != '' && validRentChargeCreate('users', docId);
+      allow read: if rentUser('users');
+      allow create: if rentUser('users') && validRentChargeCreate('users', docId);
       allow update: if rentChargeUpdateOk('users', docId);
       allow delete: if isOwnerIn('users') || (resource != null && rentChargeDeleteOk('users', rentRoleIn('users')));
     }
 
     match /rent_settings/{docId} {
-      allow read: if rentRoleIn('users') != '';
+      allow read: if rentUser('users');
       allow create, update: if validRentSettings('users', docId);
       allow delete: if rentRoleIn('users') == 'owner';
     }
 
     match /rent_receipts/{docId} {
-      allow read: if rentRoleIn('users') != '';
-      allow create: if canWriteRent('users') && validRentReceiptCreate('users', docId)
+      allow read: if rentUser('users');
+      allow create: if rentUser('users') && validRentReceiptCreate('users', docId)
         && (request.resource.data.get('by', '') == request.auth.uid || canManageRent('users'));
       allow update: if canManageRent('users') && rentReceiptVoidOk('users');
     }
 
     match /rent_deposits/{docId} {
-      allow read: if rentRoleIn('users') != '';
+      allow read: if rentUser('users');
       allow create, update: if validRentDeposit('users', docId);
       allow delete: if rentRoleIn('users') == 'owner';
     }
 
     match /rent_expenses/{docId} {
-      allow read: if rentRoleIn('users') != '';
-      allow create: if rentRoleIn('users') != '' && validRentExpense('users') && request.resource.data.createdBy == request.auth.uid;
+      allow read: if rentUser('users');
+      allow create: if rentUser('users') && validRentExpense('users') && request.resource.data.createdBy == request.auth.uid;
       allow update: if rentRoleIn('users') == 'owner' && validRentExpense('users') && rentCreationKept();
       allow delete: if rentRoleIn('users') == 'owner';
     }
 
     match /rent_counters/{docId} {
-      allow read: if rentRoleIn('users') != '';
-      allow create, update: if canWriteRent('users') && validRentCounter('users', docId);
+      allow read: if rentUser('users');
+      allow create, update: if rentUser('users') && validRentCounter('users', docId);
     }
 
     match /workers/{docId} {
@@ -2324,22 +2338,22 @@ service cloud.firestore {
     }
 
     match /dev_rent_properties/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
-      allow create: if rentRoleIn('dev_users') != '' && validRentProperty();
-      allow update: if rentRoleIn('dev_users') != '' && validRentProperty() && rentCreationKept();
+      allow read: if rentUser('dev_users');
+      allow create: if rentUser('dev_users') && validRentProperty();
+      allow update: if rentUser('dev_users') && validRentProperty() && rentCreationKept();
       allow delete: if isOwnerIn('dev_users');
     }
 
     match /dev_rent_tenants/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
-      allow create: if rentRoleIn('dev_users') != '' && validRentTenant();
-      allow update: if rentRoleIn('dev_users') != '' && validRentTenant() && rentCreationKept();
+      allow read: if rentUser('dev_users');
+      allow create: if rentUser('dev_users') && validRentTenant();
+      allow update: if rentUser('dev_users') && validRentTenant() && rentCreationKept();
       allow delete: if isOwnerIn('dev_users');
     }
 
     match /dev_rent_units/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
-      allow create: if rentRoleIn('dev_users') != '' && validRentUnit() && rentUnitCreateLeaseOk('dev_users', docId)
+      allow read: if rentUser('dev_users');
+      allow create: if rentUser('dev_users') && validRentUnit() && rentUnitCreateLeaseOk('dev_users', docId)
         && request.resource.data.get('type', '') in ['flat', 'commercial', 'office', 'godown', 'other']
         && request.resource.data.get('meterCharge', null) == null;
       allow update: if rentUnitUpdateOk('dev_users', docId);
@@ -2347,48 +2361,48 @@ service cloud.firestore {
     }
 
     match /dev_rent_leases/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
+      allow read: if rentUser('dev_users');
       allow create: if rentLeaseCreateOk('dev_users', docId);
       allow update: if rentLeaseUpdateOk('dev_users', docId);
       allow delete: if isOwnerIn('dev_users');
     }
 
     match /dev_rent_charges/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
-      allow create: if rentRoleIn('dev_users') != '' && validRentChargeCreate('dev_users', docId);
+      allow read: if rentUser('dev_users');
+      allow create: if rentUser('dev_users') && validRentChargeCreate('dev_users', docId);
       allow update: if rentChargeUpdateOk('dev_users', docId);
       allow delete: if isOwnerIn('dev_users') || (resource != null && rentChargeDeleteOk('dev_users', rentRoleIn('dev_users')));
     }
 
     match /dev_rent_settings/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
+      allow read: if rentUser('dev_users');
       allow create, update: if validRentSettings('dev_users', docId);
       allow delete: if rentRoleIn('dev_users') == 'owner';
     }
 
     match /dev_rent_receipts/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
-      allow create: if canWriteRent('dev_users') && validRentReceiptCreate('dev_users', docId)
+      allow read: if rentUser('dev_users');
+      allow create: if rentUser('dev_users') && validRentReceiptCreate('dev_users', docId)
         && (request.resource.data.get('by', '') == request.auth.uid || canManageRent('dev_users'));
       allow update: if canManageRent('dev_users') && rentReceiptVoidOk('dev_users');
     }
 
     match /dev_rent_deposits/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
+      allow read: if rentUser('dev_users');
       allow create, update: if validRentDeposit('dev_users', docId);
       allow delete: if rentRoleIn('dev_users') == 'owner';
     }
 
     match /dev_rent_expenses/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
-      allow create: if rentRoleIn('dev_users') != '' && validRentExpense('dev_users') && request.resource.data.createdBy == request.auth.uid;
+      allow read: if rentUser('dev_users');
+      allow create: if rentUser('dev_users') && validRentExpense('dev_users') && request.resource.data.createdBy == request.auth.uid;
       allow update: if rentRoleIn('dev_users') == 'owner' && validRentExpense('dev_users') && rentCreationKept();
       allow delete: if rentRoleIn('dev_users') == 'owner';
     }
 
     match /dev_rent_counters/{docId} {
-      allow read: if rentRoleIn('dev_users') != '';
-      allow create, update: if canWriteRent('dev_users') && validRentCounter('dev_users', docId);
+      allow read: if rentUser('dev_users');
+      allow create, update: if rentUser('dev_users') && validRentCounter('dev_users', docId);
     }
 
     match /dev_workers/{docId} {

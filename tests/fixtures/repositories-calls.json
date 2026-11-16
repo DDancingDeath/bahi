@@ -2615,6 +2615,23 @@
       {
         "merge": true
       }
+    ],
+    [
+      "collection",
+      "dev_settings"
+    ],
+    [
+      "doc",
+      "team"
+    ],
+    [
+      "set",
+      {
+        "firstOwnerUid": "u1"
+      },
+      {
+        "merge": true
+      }
     ]
   ],
   "service.notifications-manager": [
@@ -3171,6 +3188,23 @@
             "u1"
           ]
         }
+      },
+      {
+        "merge": true
+      }
+    ],
+    [
+      "collection",
+      "dev_settings"
+    ],
+    [
+      "doc",
+      "team"
+    ],
+    [
+      "set",
+      {
+        "firstOwnerUid": "u1"
       },
       {
         "merge": true

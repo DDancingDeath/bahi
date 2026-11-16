@@ -35,6 +35,7 @@ const TOAST_MS = 5000;
 /** Row icon by notification type (the toast keeps describeNotification's emoji). */
 const rowIcon = (type) => (type === 'rate_change' ? icon('tag')
     : type === 'item_edit' ? icon('box')
+        : type === 'role_change' ? icon('user')
         : type === 'edit' ? icon('receipt') : icon('bell'));
 
 /** Message for a listener / query failure. */
