@@ -289,6 +289,19 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
         expect(team().ownerUids).toEqual(['owner-1']);
     });
 
+    test('a username + PIN account stays a Member: Manager or Owner is refused before any write', async () => {
+        fake.seed('dev_users', [{ id: 'pin', name: 'Raju', role: 'staff', status: 'active', email: 'raju@happa-dev.bahi.invalid' }]);
+        await AdminManager.loadUsers();
+        for (const next of ['manager', 'owner']) {
+            picker.mockResolvedValueOnce(next);
+            expect(await AdminManager.showChangeRole('pin', 'Raju', 'staff')).toBe(false);
+        }
+        expect(modal).not.toHaveBeenCalled();
+        expect(toast).toHaveBeenCalledWith('A sign-in without email can only be a Member.', 'warning');
+        expect(userDoc('pin').role).toBe('staff');
+        expect(team().ownerUids).toEqual(['owner-1']);
+    });
+
     test('a manager never gets the choice', async () => {
         AppState.userRole = 'manager';
         expect(await AdminManager.showChangeRole('mgr', 'Ramesh', 'manager')).toBe(false);
