@@ -1,0 +1,56 @@
+# One-off, read-only export of happa-bfc07 for the cut-over (Refs #72).
+# Runs only on a push to the ops/cutover-export branch. The repo is public, so the
+# artifact holds ONLY an RSA-sealed file (ops/cutover/seal.js; the private key is
+# kept off GitHub). Logs and the summary show counts only. Retention: 1 day; the
+# artifact is deleted by hand right after download.
+name: Ops - cut-over export (happa-bfc07, sealed)
+
+on:
+  push:
+    branches: [ops/cutover-export]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-cutover-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install backup tool deps
+        run: npm ci --prefix tools/backup --no-audit --no-fund
+      - name: Export Firestore (backup format + full tree) and Auth, then seal
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          BACKUP_MODE: weekly
+          BACKUP_FORCE: 'true'
+          BACKUP_TRIGGER: workflow_dispatch
+        run: |
+          set -euo pipefail
+          umask 077
+          out="$RUNNER_TEMP/out"; mkdir -p "$out"
+          sa="$RUNNER_TEMP/sa.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$sa"
+          trap 'rm -f "$sa"; rm -rf "$out"' EXIT
+          project=$(jq -r .project_id "$sa")
+          if [ "$project" != "happa-bfc07" ]; then echo "::error::secret is for $project, not happa-bfc07"; exit 1; fi
+          node tools/backup/export-firestore.js --out "$out/backup.json"
+          mv "$out/manifest.json" "$out/backup-manifest.json"
+          node ops/cutover/export-tree.js --out "$out"
+          GOOGLE_APPLICATION_CREDENTIALS="$sa" npx --yes firebase-tools@latest auth:export "$out/auth-users.json" --format=json --project happa-bfc07 > /dev/null
+          echo "Auth users exported: $(jq '.users | length' "$out/auth-users.json")" | tee -a "$GITHUB_STEP_SUMMARY"
+          node ops/cutover/seal.js seal "$out" ops/cutover/recipient.pub.pem "$RUNNER_TEMP/happa-bfc07-export.sealed"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: happa-bfc07-export-sealed
+          path: ${{ runner.temp }}/happa-bfc07-export.sealed
+          retention-days: 1
+          if-no-files-found: error
