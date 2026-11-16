@@ -70,7 +70,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108gm-phone-notify';
+const BUILD_ID = '20261108gn-multi-owner';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -763,6 +763,9 @@ async function initializeUserData() {
         // Team directory (#87): managers read names and roles from it; once a day the owner's phone
         // rebuilds it from the profiles when they differ (late, so it never slows the first screens)
         if (AppState.userRole === 'owner') {
+            // This owner is counted in settings/team.ownerUids (docs/role-permissions.md, "Owners")
+            setTimeout(() => FirebaseService.ensureSelfListedOwner()
+                .catch(e => console.warn('Owner list not checked:', e?.code || e)), 15000);
             setTimeout(() => FirebaseService.ensureTeamDirectory()
                 .catch(e => console.warn('Team directory not checked:', e?.code || e)), 180000);
         }

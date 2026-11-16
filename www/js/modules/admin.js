@@ -20,6 +20,7 @@ import { buildBackup, isDeleteConfirmed, DELETE_CONFIRM_WORD, canClearCollection
 import { t } from '../i18n/index.js';
 import { UserAdmin, isRemovedProfile, logUserAction } from '../services/user-admin.js';
 import { icon } from '../ui/icons.js';
+import { ROLE_CHOICES, roleChangeCheck, activeOwnerIds } from '../utils/owner-roles.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -29,6 +30,13 @@ const ACTIVITY_LIMIT = 300;
 const BACKUP_MAX_BYTES = 80 * 1024 * 1024;
 /** Reasons readBackupFile gives; anything else thrown (a file moved away, a lapsed permission) is 'unreadable'. */
 const BACKUP_READ_CODES = ['too_big', 'encrypted', 'gzip'];
+
+/** Why a role change is refused (utils/owner-roles.js reasons). */
+const ROLE_REFUSALS = {
+    last_owner: 'msg.owners.last_owner',
+    pending: 'msg.owners.approve_first',
+    own_account: 'msg.users.cannot_change_own_account'
+};
 
 /**
  * Admin Manager - owner-only panel
@@ -208,6 +216,7 @@ const AdminManager = {
      */
     userHtml(user, kind) {
         const isMe = kind === 'active' && user.id === AppState.currentUser?.uid;
+        const myActions = isMe && user.role === 'owner' ? this.ownRoleActionHtml(user) : '';
         return `
             <div class="admin-user">
                 <div class="row">
@@ -217,8 +226,17 @@ const AdminManager = {
                     </div>
                     <div class="row-trail">${this.userTagHtml(user, kind)}</div>
                 </div>
-                ${isMe ? '' : this.userActionsHtml(user, kind)}
+                ${isMe ? myActions : this.userActionsHtml(user, kind)}
             </div>`;
+    },
+
+    /** An owner's own row: only Edit role (step down; another owner must exist). */
+    ownRoleActionHtml(user) {
+        return `<div class="admin-user-actions">
+                    <button type="button" class="btn btn-sm btn-tonal" data-onclick="admin.showChangeRole('${Helpers.escapeJsAttr(user.id)}', '${Helpers.escapeJsAttr(user.name || '')}', 'owner')">
+                        ${icon('sliders', 'i-sm')} ${tx('ui.admin.edit_role')}
+                    </button>
+                </div>`;
     },
 
     /** The person's status (pending, removed / rejected) or role. */
@@ -412,38 +430,96 @@ const AdminManager = {
     },
 
     /**
-     * Show change role dialog
+     * Owner: pick Member / Manager / Owner for a person (or step down yourself), confirm, then save
+     * the role and the owner list together (utils/owner-roles.js has the checks the rules make).
      * @param {string} userId - User ID
      * @param {string} userName - User name
      * @param {string} currentRole - Current role
+     * @returns {Promise<boolean>} true when the role changed
      */
     async showChangeRole(userId, userName, currentRole) {
-        const roles = ['staff', 'manager'];
-        const newRole = currentRole === 'staff' ? 'manager' : 'staff';
-        
-        const confirmed = await UIManager.showModal(
-            t('msg.admin.change_s_role_from', { userName, roleLabel: Helpers.roleLabel(currentRole), roleLabel2: Helpers.roleLabel(newRole) }),
+        const actor = { id: AppState.currentUser?.uid, role: AppState.userRole };
+        if (actor.role !== 'owner') {
+            UIManager.showToast(t('msg.common.access_denied'), 'error');
+            return false;
+        }
+        const target = (this.users || []).find(u => u.id === userId) || { id: userId, name: userName, role: currentRole, status: 'active' };
+        const from = target.role || currentRole;
+        const next = await this.pickRole(userName, from);
+        if (!next || next === from) return false;
+        const check = roleChangeCheck({ actor, target, next, users: this.users });
+        if (!check.ok) {
+            UIManager.showToast(t(ROLE_REFUSALS[check.reason] || 'msg.common.access_denied'), 'error');
+            return false;
+        }
+        if (!(await this.confirmRoleChange(check.kind, userName, from, next))) return false;
+        const ownerChange = check.kind === 'promote' ? 'add' : check.kind === 'plain' ? null : 'remove';
+        try {
+            UIManager.showLoading();
+            if (ownerChange === 'remove') {
+                const listed = await FirebaseService.ensureOwnersListed(activeOwnerIds(this.users));
+                if (!listed.some(id => id !== userId)) throw Object.assign(new Error('last owner'), { code: 'last-owner' });
+            }
+            await FirebaseService.changeUserRole(userId, { role: next }, ownerChange);
+            logUserAction(AuditService.ACTIONS.CHANGE_USER_ROLE, { targetUserId: userId, targetName: userName || '', from, to: next });
+            if (check.kind === 'step_down') {
+                UIManager.showToast(t('msg.owners.stepped_down', { roleLabel: Helpers.roleLabel(next) }));
+                this.restartAfterStepDown();
+                return true;
+            }
+            UIManager.showToast(t('msg.admin.role_changed', { roleLabel: Helpers.roleLabel(next) }));
+            await this.loadUsers();
+            return true;
+        } catch (error) {
+            console.error('Error changing role:', error);
+            UIManager.showToast(t(error?.code === 'last-owner' ? 'msg.owners.last_owner' : 'msg.common.failed_change_role'), 'error');
+            return false;
+        } finally {
+            UIManager.hideLoading();
+        }
+    },
+
+    /** After stepping down the app starts again, so every page follows the new role. */
+    restartAfterStepDown() {
+        setTimeout(() => window.location.reload(), 1500);
+    },
+
+    /**
+     * The role choice: Member / Manager / Owner, the current one marked.
+     * @returns {Promise<string|null>} the role picked, null on Cancel
+     */
+    pickRole(userName, current) {
+        const html = `<h3 class="dialog-title">${tx('ui.owners.pick_title', { userName: userName || '' })}</h3>
+            <p>${tx('ui.owners.pick_hint')}</p>`;
+        const buttons = ROLE_CHOICES.map(role => ({
+            text: role === current ? t('ui.owners.role_now', { roleLabel: Helpers.roleLabel(role) }) : Helpers.roleLabel(role),
+            value: role,
+            class: role === current ? 'btn btn-tonal' : 'btn'
+        }));
+        return UIManager.showCustomModal(html, [...buttons, { text: t('ui.modals.cancel'), value: null, class: 'btn btn-ghost' }]);
+    },
+
+    /** The confirmation for each kind of change; giving or taking the owner role says what it means. */
+    confirmRoleChange(kind, userName, from, next) {
+        const roleLabel = Helpers.roleLabel(next);
+        if (kind === 'promote') {
+            return UIManager.showModal(t('msg.owners.confirm_make_owner', { userName }), t('msg.owners.make_owner'), true,
+                { confirmLabel: t('msg.owners.make_owner'), danger: true });
+        }
+        if (kind === 'demote') {
+            return UIManager.showModal(t('msg.owners.confirm_demote_owner', { userName, roleLabel }), t('msg.owners.remove_owner'), true,
+                { confirmLabel: t('msg.owners.remove_owner'), danger: true });
+        }
+        if (kind === 'step_down') {
+            return UIManager.showModal(t('msg.owners.confirm_step_down', { roleLabel }), t('msg.owners.step_down'), true,
+                { confirmLabel: t('msg.owners.step_down'), danger: true });
+        }
+        return UIManager.showModal(
+            t('msg.admin.change_s_role_from', { userName, roleLabel: Helpers.roleLabel(from), roleLabel2: roleLabel }),
             t('msg.admin.change_role'),
             true,
             { confirmLabel: t('msg.admin.change_role') }
         );
-        if (!confirmed) return;
-
-        try {
-            UIManager.showLoading();
-            await FirebaseService.updateUser(userId, {
-                role: newRole
-            });
-
-            logUserAction(AuditService.ACTIONS.CHANGE_USER_ROLE, { targetUserId: userId, from: currentRole, to: newRole });
-            UIManager.showToast(t('msg.admin.role_changed', { roleLabel: Helpers.roleLabel(newRole) }));
-            await this.loadUsers();
-        } catch (error) {
-            console.error('Error changing role:', error);
-            UIManager.showToast(t('msg.common.failed_change_role'), 'error');
-        } finally {
-            UIManager.hideLoading();
-        }
     },
 
     /**
@@ -461,7 +537,7 @@ const AdminManager = {
      * @param {string} userName - User's display name
      */
     async deleteUser(userId, userName) {
-        const removed = await UserAdmin.removeUser(userId, userName);
+        const removed = await UserAdmin.removeUser(userId, userName, this.users);
         if (removed) await this.loadUsers();
         return removed;
     },
