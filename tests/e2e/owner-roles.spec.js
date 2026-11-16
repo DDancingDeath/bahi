@@ -47,10 +47,11 @@ test('the owner makes a manager owner after a confirmation, cannot step down alo
     expect((await getDoc('dev_users', managerUid)).role).toBe('manager');
     expect((await getDoc('dev_settings', 'team')).ownerUids).toEqual([ownerUid]);
 
-    const changes = (await listDocs('dev_auditLogs'))
+    // The audit entry is written after the toast, without waiting
+    await expect.poll(async () => (await listDocs('dev_auditLogs'))
         .filter(a => a.action === 'CHANGE_USER_ROLE' && a.details?.targetUserId === managerUid)
-        .map(a => [a.userId, a.details.from, a.details.to]);
-    expect(changes).toEqual(expect.arrayContaining([[ownerUid, 'manager', 'owner'], [ownerUid, 'owner', 'manager']]));
+        .map(a => [a.userId, a.details.from, a.details.to]), { timeout: 15000 })
+        .toEqual(expect.arrayContaining([[ownerUid, 'manager', 'owner'], [ownerUid, 'owner', 'manager']]));
     expect(problems.pageErrors).toEqual([]);
 });
 

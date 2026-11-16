@@ -724,7 +724,7 @@ app, once per project, by one of:
 
 Then sign in as that owner and approve everyone else in Settings › Team as usual. That first owner can make
 others owner from the app (see "Owners" below); the console is needed only once. On their first sign-in
-the app lists them in `settings/team.ownerUids` (about 15 s after start-up).
+the app lists them in `settings/team.ownerUids` (about 3 minutes after start-up, or sooner when they open Settings › Team or Admin).
 
 ## Owners: more than one, never none
 
@@ -751,7 +751,7 @@ notifications, the anomaly scan and Rentals already treat each owner the same), 
   listed owner is never taken off without losing the role, and that the list never empties. Two owners
   demoting each other at the same moment both write the list, so the second fails.
 - **Backfill (projects from before multi-owner):** each owner's phone lists that owner when they sign in
-  (`ensureSelfListedOwner`, about 15 s after start-up, one read, once per phone), the owner's phone lists
+  (`ensureSelfListedOwner`, about 3 minutes after start-up so it stays out of the first screens' reads, one read, once per phone), the owner's phone lists
   any owner it sees in the profiles when it rebuilds the team directory, and Admin lists every active owner
   right before a demotion or removal. Until an owner is listed, nobody can demote anyone on the strength of
   them (the list may under-count, never over-count). An older app that rewrites the whole directory drops
