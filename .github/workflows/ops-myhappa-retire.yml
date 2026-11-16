@@ -1,0 +1,102 @@
+# One-off retirement of happa-bfc07 / myhappa.web.app (#72 cut-over, phase 5).
+# Runs only on a push to ops/myhappa-retire. In order:
+#   1. sealed read-only export (as ops-cutover-export.yml; artifact 1 day, RSA-sealed);
+#   2. settings/app.minClientVersion = 6 on happa-bfc07: rc12/rc13 (CLIENT_VERSION 5) stop
+#      syncing and show the app's "version outdated, update the app" message;
+#   3. read-only Firestore rules (ops/myhappa/firestore.readonly.rules: main's rules with
+#      every write removed) + check the live ruleset equals the file;
+#   4. Hosting on myhappa, happaapp and happa-bfc07: every path 301s to the same path on
+#      https://bahi-happa.web.app (tenant links /r/<token> included) + checks.
+# Rollback: docs/release-checklist.md "Rollback of the cut-over".
+name: Ops - retire myhappa (read-only + 301 to bahi-happa)
+
+on:
+  push:
+    branches: [ops/myhappa-retire]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-myhappa-retire
+  cancel-in-progress: false
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PROJECT_ID: happa-bfc07
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install backup tool deps
+        run: npm ci --prefix tools/backup --no-audit --no-fund
+      - name: Write service account key (must be happa-bfc07)
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+        run: |
+          umask 077
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          [ "$(jq -r .project_id "$RUNNER_TEMP/sa.json")" = "$PROJECT_ID" ] || { echo "::error::secret is not for $PROJECT_ID"; exit 1; }
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: 1. Sealed export before any change
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          BACKUP_MODE: weekly
+          BACKUP_FORCE: 'true'
+          BACKUP_TRIGGER: workflow_dispatch
+        run: |
+          set -euo pipefail
+          umask 077
+          out="$RUNNER_TEMP/out"; mkdir -p "$out"
+          trap 'rm -rf "$out"' EXIT
+          node tools/backup/export-firestore.js --out "$out/backup.json"
+          mv "$out/manifest.json" "$out/backup-manifest.json"
+          node ops/cutover/export-tree.js --out "$out"
+          npx --yes firebase-tools@latest auth:export "$out/auth-users.json" --format=json --project "$PROJECT_ID" > /dev/null
+          echo "Auth users exported: $(jq '.users | length' "$out/auth-users.json")" | tee -a "$GITHUB_STEP_SUMMARY"
+          node ops/cutover/seal.js seal "$out" ops/cutover/recipient.pub.pem "$RUNNER_TEMP/happa-bfc07-before-retire.sealed"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: happa-bfc07-before-retire-sealed
+          path: ${{ runner.temp }}/happa-bfc07-before-retire.sealed
+          retention-days: 1
+          if-no-files-found: error
+      - name: 2. Old apps must update (minClientVersion 6)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+        run: node ops/myhappa/min-version.js 6
+      - name: 3. Read-only Firestore rules
+        working-directory: ops/myhappa
+        run: |
+          node ../../tools/ci/deploy-with-retry.js \
+            --log "$RUNNER_TEMP/deploy-rules.log" --project "$PROJECT_ID" \
+            --sa-email "$(jq -r .client_email "$GOOGLE_APPLICATION_CREDENTIALS")" --rules firestore.readonly.rules \
+            -- npx --yes firebase-tools@latest deploy --only firestore:rules --project "$PROJECT_ID" --non-interactive
+      - name: 3b. Live ruleset equals the read-only file
+        run: node tools/ci/live-rules.js verify --project "$PROJECT_ID" --rules ops/myhappa/firestore.readonly.rules
+      - name: 4. Hosting - 301 every path to bahi-happa.web.app
+        working-directory: ops/myhappa
+        run: npx --yes firebase-tools@latest deploy --only hosting --project "$PROJECT_ID" --non-interactive
+      - name: 4b. Check the redirects
+        run: |
+          fail=0
+          for s in myhappa happaapp happa-bfc07; do
+            for p in / /download /r/check-token /index.html /js/main.js /some/deep/path; do
+              res=""
+              for i in 1 2 3 4 5 6; do
+                res=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "https://$s.web.app$p")
+                [ "$res" = "301 https://bahi-happa.web.app$p" ] && break
+                sleep 10
+              done
+              echo "$s.web.app$p -> $res"
+              [ "$res" = "301 https://bahi-happa.web.app$p" ] || { echo "::error::$s.web.app$p does not 301 to bahi-happa"; fail=1; }
+            done
+          done
+          exit $fail
+      - name: Remove service account key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json" "$RUNNER_TEMP/deploy-rules.log"

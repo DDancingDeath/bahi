@@ -1,0 +1,2309 @@
+// happa-bfc07 READ-ONLY rules (#72 cut-over, 2026-11-16): generated from main's firestore.rules;
+// every write is refused. Bahi lives on bahi-happa now.
+rules_version = '2';
+// Why the rules are shaped this way, and the notes per rule: docs/security.md, "Firestore rules".
+// The Rules API compile has a time limit: keep helpers shallow and this file under its size budget
+// (npm run check:rules-size).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Roles: usersCol is 'users' (prod) or 'dev_users' (dev_ collections).
+    function isApprovedIn(usersCol) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid))
+        && !(get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('status', '') in ['pending', 'rejected'])
+        && get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '') in ['owner', 'manager', 'staff'];
+    }
+
+    function isOwnerIn(usersCol) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid))
+        && !(get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('status', '') in ['pending', 'rejected'])
+        && get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '') == 'owner';
+    }
+
+    function isManagerIn(usersCol) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid))
+        && !(get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('status', '') in ['pending', 'rejected'])
+        && get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '') in ['owner', 'manager'];
+    }
+
+    // --- bills: edit window, void, edit records, payments ---
+
+    function settingsAppPath(usersCol) {
+      return /databases/$(database)/documents/$(usersCol == 'users' ? 'settings' : 'dev_settings')/app;
+    }
+
+    function billEditDays(usersCol) {
+      return billEditDaysFor(usersCol, get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', ''));
+    }
+
+    function billEditDaysFor(usersCol, role) {
+      let p = settingsAppPath(usersCol);
+      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
+      let roleAccess = access is map ? access.get(role, {}) : {};
+      let d = roleAccess is map ? roleAccess.get('editDays', 2) : 2;
+      return (d is int && d >= 0 && d <= 30) ? d : 2;
+    }
+
+    function withinBillWindowFor(usersCol, role) {
+      let c = resource.data.get('createdAt', null);
+      return c is timestamp && request.time < c + duration.value(billEditDaysFor(usersCol, role), 'd');
+    }
+
+    function editLoggedFields() {
+      return ['items', 'customerName', 'grandTotal', 'amountPayable', 'total', 'billTotal', 'saleTotal',
+              'laborCharges', 'payment', 'cashPayment', 'onlinePayment', 'dueAmount', 'date', 'timestamp'];
+    }
+
+    function voidAwareBill() {
+      return request.resource.data.get('clientVersion', 0) is int && request.resource.data.get('clientVersion', 0) >= 4;
+    }
+
+    function voidAwareWriter() {
+      return voidAwareBill() && request.resource.data.get('writtenAt', null) == request.time;
+    }
+
+    function billPath(usersCol, base, docId) {
+      return /databases/$(database)/documents/$(usersCol == 'users' ? base : 'dev_' + base)/$(docId);
+    }
+
+    function reasonOk(r) {
+      return r is string && r.trim().size() >= 3 && r.size() <= 300;
+    }
+
+    function editFieldOk(f, before, after, k) {
+      return !(k in f)
+        || (f[k] is map && f[k].keys().hasOnly(['before', 'after'])
+            && f[k].get('before', null) == before.get(k, null)
+            && f[k].get('after', null) == after.get(k, null));
+    }
+
+    function validEditCreate(usersCol, base, billId, editId) {
+      let d = request.resource.data;
+      let after = getAfter(billPath(usersCol, base, billId)).data;
+      let before = get(billPath(usersCol, base, billId)).data;
+      let n = after.get('editCount', null);
+      let f = d.get('fields', null);
+      let moved = after.diff(before).affectedKeys().intersection(editLoggedFields().toSet());
+      return isApprovedIn(usersCol)
+        && d.keys().hasOnly(['n', 'at', 'by', 'byName', 'reason', 'fields'])
+        && n is int && editId == string(n) && d.get('n', null) == n
+        && n == before.get('editCount', 0) + 1
+        && d.get('by', null) == request.auth.uid
+        && d.get('at', null) == request.time
+        && reasonOk(d.get('reason', null))
+        && (!('byName' in d) || (d.byName is string && d.byName.size() <= 200))
+        && f is map && moved.size() > 0
+        && f.keys().hasOnly(editLoggedFields()) && f.keys().toSet().hasAll(moved)
+        && editFieldOk(f, before, after, 'items') && editFieldOk(f, before, after, 'customerName')
+        && editFieldOk(f, before, after, 'grandTotal') && editFieldOk(f, before, after, 'amountPayable')
+        && editFieldOk(f, before, after, 'total') && editFieldOk(f, before, after, 'billTotal')
+        && editFieldOk(f, before, after, 'saleTotal') && editFieldOk(f, before, after, 'laborCharges')
+        && editFieldOk(f, before, after, 'payment') && editFieldOk(f, before, after, 'cashPayment')
+        && editFieldOk(f, before, after, 'onlinePayment') && editFieldOk(f, before, after, 'dueAmount')
+        && editFieldOk(f, before, after, 'date') && editFieldOk(f, before, after, 'timestamp');
+    }
+
+    function bookkeepingOnly(docId, changed) {
+      return changed.hasOnly([
+          'payment', 'payments', 'dueAmount', 'openDue', 'clientVersion', 'paidAt',
+          'cleared', 'clearedAt', 'clearedBy', 'clearedByName',
+          'timestamp', 'id'
+        ])
+        && (!changed.hasAny(['timestamp'])
+            || (!(resource.data.get('timestamp', null) is number)
+                && request.resource.data.timestamp is number
+                && backfillTimeOk(request.resource.data.timestamp, resource.data.get('timestamp', null),
+                     resource.data.get('date', null))))
+        && (!changed.hasAny(['id']) || (!('id' in resource.data) && request.resource.data.id == docId));
+    }
+
+    function moneyOk(v) {
+      return v is number && v >= 0 && math.abs(v * 100 - math.round(v * 100)) < 0.001;
+    }
+
+    function moneyOrAbsent(m, key) {
+      return !(key in m)
+        || (m[key] is number && m[key] >= 0 && math.abs(m[key] * 100 - math.round(m[key] * 100)) < 0.001);
+    }
+
+    function totalOk(m, key) {
+      return !(key in m) || (m[key] is number && m[key] > -10000000000 && m[key] < 10000000000);
+    }
+
+    function changedMoneyOk(keys) {
+      return !keys.hasAny(['openingBalance', 'amountPaid', 'due'])
+        && (keys.hasAny(['total', 'grandTotal', 'amountPayable', 'billTotal', 'saleTotal',
+                         'payment', 'cashPayment', 'onlinePayment', 'dueAmount'])
+            ? billMoneyOk(request.resource.data, request.resource.data.get('payment', {}))
+            : true);
+    }
+
+    function billMoneyOk(d, p) {
+      return p is map
+        && moneyOrAbsent(p, 'cash') && moneyOrAbsent(p, 'online') && moneyOrAbsent(p, 'due')
+        && moneyOrAbsent(p, 'writtenOff') && moneyOrAbsent(p, 'total')
+        && moneyOrAbsent(d, 'cashPayment') && moneyOrAbsent(d, 'onlinePayment') && moneyOrAbsent(d, 'dueAmount')
+        && totalOk(d, 'total') && totalOk(d, 'grandTotal') && totalOk(d, 'amountPayable')
+        && totalOk(d, 'billTotal') && totalOk(d, 'saleTotal')
+        && p.get('cash', d.get('cashPayment', 0)) + p.get('online', d.get('onlinePayment', 0))
+           + p.get('writtenOff', 0) + p.get('due', d.get('dueAmount', 0))
+           <= (d.get('grandTotal', 0) != 0 ? d.grandTotal
+               : d.get('amountPayable', 0) != 0 ? d.amountPayable
+               : d.get('total', 0) != 0 ? d.total
+               : d.get('billTotal', 0) != 0 ? d.billTotal
+               : d.get('saleTotal', 0)) + 1.0101;
+    }
+
+    function appendsOneEntry(field) {
+      let oldList = resource.data.get(field, []);
+      let newList = request.resource.data.get(field, []);
+      return oldList is list && newList is list
+        && newList.size() == oldList.size() + 1
+        && (oldList.size() == 0 || newList[0:oldList.size()] == oldList)
+        && newList[oldList.size()] is map
+        && newList[oldList.size()].get('amount', null) is number
+        && newList[oldList.size()].amount >= 0;
+    }
+
+    function paymentMoneyOk(changed, p, rp, before) {
+      return moneyOk(p.get('cash', null)) && moneyOk(p.get('online', null)) && moneyOk(p.get('due', null))
+        && moneyOrAbsent(p, 'writtenOff') && moneyOrAbsent(p, 'total')
+        && rp is map && before != null
+        && entryMatches(
+             p.cash - rp.get('cash', resource.data.get('cashPayment', 0)),
+             p.online - rp.get('online', resource.data.get('onlinePayment', 0)),
+             p.get('writtenOff', 0) - rp.get('writtenOff', 0),
+             before - p.due,
+             changed.hasAny(['payments']) ? request.resource.data.payments[request.resource.data.payments.size() - 1] : {});
+    }
+
+    function entryMatches(cash, online, wo, settled, e) {
+      return !('amount' in e)
+        ? math.abs(cash) <= 0.005 && math.abs(online) <= 0.005 && math.abs(wo) <= 0.005
+          && (math.abs(settled) <= 0.000001 || (settled <= 0.0101 && request.resource.data.payment.due == 0))
+        : e.amount > 0 && math.abs(cash + online + wo - settled) <= 0.0101
+          && (e.get('kind', '') == 'writeOff'
+              ? math.abs(cash) <= 0.005 && math.abs(online) <= 0.005 && math.abs(wo - e.amount) <= 0.005
+              : math.abs(wo) <= 0.005 && partsMatch(cash, online, e.amount,
+                  ('cash' in e || 'online' in e) ? e.get('cash', 0) : e.amount, e.get('online', 0)));
+    }
+
+    function partsMatch(cash, online, amount, ec, eo) {
+      return ec >= 0 && eo >= 0
+        && math.abs(cash - ec) <= 0.005 && math.abs(online - eo) <= 0.005 && math.abs(amount - ec - eo) <= 0.005;
+    }
+
+    function clearOk(changed, d, due) {
+      return (!changed.hasAny(['cleared']) || (d.get('cleared', false) == true && due is number && due <= 0.0101))
+        && (!changed.hasAny(['clearedBy']) || d.clearedBy == request.auth.uid)
+        && (!changed.hasAny(['openDue']) || d.openDue == true || d.get('cleared', false) == true
+            || (due is number ? due <= 0.0101 : resource.data.get('openDue', null) != true));
+    }
+
+    function clearFieldsOk(changed, d) {
+      return !changed.hasAny(['cleared', 'clearedBy', 'openDue'])
+        || clearOk(changed, d, d.get('payment', {}).get('due', d.get('dueAmount', d.get('due', null))));
+    }
+
+    function paymentEditOk(changed) {
+      let d = request.resource.data;
+      let p = resource.data.get('payment', {});
+      let due = (p is map && 'due' in p) ? p.due : resource.data.get('dueAmount', resource.data.get('due', null));
+      let at = d.payments[d.payments.size() - 1].get('at', null);
+      return (!changed.hasAny(['dueAmount'])
+              || (moneyOk(d.dueAmount) && d.dueAmount == d.get('payment', {}).get('due', d.dueAmount)))
+        && (!changed.hasAny(['payments'])
+            || (appendsOneEntry('payments')
+                && at is number && at > request.time.toMillis() - 600000 && at < request.time.toMillis() + 600000))
+        && (!changed.hasAny(['paidAt'])
+            || (d.paidAt is number && changed.hasAny(['payments'])
+                && d.paidAt == d.payments[d.payments.size() - 1].get('at', null)))
+        && (changed.hasAny(['payment', 'payments', 'dueAmount'])
+            ? changed.hasAny(['payment'])
+              && paymentMoneyOk(changed, d.payment, resource.data.get('payment', {}), due is number ? due : null)
+            : true)
+        && clearFieldsOk(changed, d);
+    }
+
+    function billUpdateAs(usersCol, base, docId, role, changed) {
+      let d = request.resource.data;
+      let n = d.get('editCount', null);
+      return resource.data.get('voided', false) == true ? false
+        : changed.hasAny(['voided', 'voidedAt', 'voidedBy', 'voidedByName', 'voidReason'])
+          ? changed.hasOnly(['voided', 'voidedAt', 'voidedBy', 'voidedByName', 'voidReason', 'openDue', 'clientVersion'])
+            && voidAwareBill()
+            && d.get('voided', false) == true
+            && d.get('voidedAt', null) == request.time
+            && d.get('voidedBy', null) == request.auth.uid
+            && reasonOk(d.get('voidReason', null))
+            && (!('voidedByName' in d) || (d.voidedByName is string && d.voidedByName.size() <= 200))
+            && d.get('openDue', false) == false
+            && resource.data.get('payments', []).size() == 0
+            && (role == 'owner'
+                || (resource.data.get('userId', null) == request.auth.uid && withinBillWindowFor(usersCol, role)))
+        : changed.hasAny(['editCount'])
+          && !(n is int && n == resource.data.get('editCount', 0) + 1 && voidAwareBill()
+               && existsAfter(/databases/$(database)/documents/$(usersCol == 'users' ? base : 'dev_' + base)/$(docId)/edits/$(string(n))))
+          ? false
+        : changed.hasAny(['userId']) && role != 'owner' ? false
+        : changed.hasAny(['payments', 'paidAt']) ? bookkeepingOnly(docId, changed) && paymentEditOk(changed)
+        : (role == 'owner'
+           || ((role == 'manager'
+                || (resource.data.get('userId', null) != null && resource.data.get('userId', null) == request.auth.uid))
+               && withinBillWindowFor(usersCol, role)
+               && d.get('createdAt', null) == resource.data.get('createdAt', null)))
+          && (!changed.hasAny(editLoggedFields()) || changed.hasAny(['editCount']))
+          ? (role == 'owner' ? !changed.hasAny(['openingBalance', 'amountPaid', 'due']) : changedMoneyOk(changed))
+            && clearFieldsOk(changed, d)
+        : bookkeepingOnly(docId, changed) ? paymentEditOk(changed)
+        : false;
+    }
+
+    function validBillCreate(usersCol) {
+      let d = request.resource.data;
+      let now = request.time.toMillis();
+      return request.resource.data.get('userId', request.auth.uid) == request.auth.uid
+        && (!('enteredAt' in d)
+            || (d.enteredAt is number && d.get('timestamp', null) is number
+                && d.timestamp <= d.enteredAt + 600000
+                && d.timestamp >= d.enteredAt - (billEditDays(usersCol) + 1) * 86400000))
+        && (!('enteredAt' in d)
+            || (d.get('payment', {}).get('cash', 0) == 0 && d.get('cashPayment', 0) == 0)
+            || (d.enteredAt is number
+                && d.enteredAt >= now - 259200000
+                && d.get('timestamp', null) is number
+                && d.timestamp >= d.enteredAt - ((d.enteredAt + 19800000) % 86400000)))
+        && !request.resource.data.keys().hasAny(['payments', 'paidAt', 'cleared', 'editCount',
+             'voided', 'voidedAt', 'voidedBy', 'voidedByName', 'voidReason'])
+        && changedMoneyOk(request.resource.data.keys())
+        && request.resource.data.get('createdAt', null) == request.time;
+    }
+
+    // --- expenses, withdrawals, stock adjustments ---
+
+    function createdByCaller() {
+      return resource.data.get('userId', resource.data.get('createdBy', null)) == request.auth.uid;
+    }
+
+    function legacyBackfillOnly() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['timestamp', 'clientVersion'])
+        && changed.hasAny(['timestamp'])
+        && !(resource.data.get('timestamp', null) is number)
+        && request.resource.data.timestamp is number
+        && backfillTimeOk(request.resource.data.timestamp, resource.data.get('timestamp', null),
+             resource.data.get('date', null));
+    }
+
+    function backfillTimeOk(t, old, day) {
+      return t <= request.time.toMillis()
+        && (old is timestamp ? t == old.toMillis()
+          : day is timestamp ? t == day.toMillis()
+          : day is string ? (day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ].*)?$')
+                ? nearDay(t, int(day[0:4]), int(day[5:7]), int(day[8:10]))
+              : day.matches('^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}([, ].*)?$')
+                ? nearDay(t, int(day.split('/')[2][0:4]), int(day.split('/')[1]), int(day.split('/')[0]))
+              : true)
+          : true);
+    }
+
+    function nearDay(t, y, m, d) {
+      let start = timestamp.date(y, m, d).toMillis();
+      return t >= start - 86400000 && t < start + 172800000;
+    }
+
+    function amountOk() {
+      return request.resource.data.get('amount', null) is number && request.resource.data.amount >= 0;
+    }
+
+    function validLedgerCreate() {
+      return amountOk() && request.resource.data.get('userId', null) == request.auth.uid
+        && !request.resource.data.keys().hasAny(expenseVoidFields())
+        && request.resource.data.get('timestamp', null) is number
+        && request.resource.data.timestamp <= request.time.toMillis() + 600000;
+    }
+
+    function expenseDayStart(day) {
+      return timestamp.date(int(day[0:4]), int(day[5:7]), int(day[8:10])) - duration.value(330, 'm');
+    }
+
+    function expenseFieldsOk(d) {
+      return (!('paymentMode' in d) || d.paymentMode in ['cash', 'online'])
+        && (!('day' in d) || (dayKeyOk(d.day) && expenseDayStart(d.day) <= request.time + duration.value(1, 'h')));
+    }
+
+    function expenseDayInWindow(usersCol) {
+      let d = request.resource.data;
+      return !('day' in d)
+        || ((d.get('date', null) is string
+            && d.date.matches('^0?' + string(int(d.day[8:10])) + '/0?' + string(int(d.day[5:7])) + '/' + d.day[0:4] + '([^0-9].*)?$'))
+            && request.time < expenseDayStart(d.day) + duration.value(billEditDays(usersCol) + 4, 'd'));
+    }
+
+    function canUpdateExpense(usersCol) {
+      return legacyBackfillOnly()
+        || (createdByCaller() && request.resource.data.diff(resource.data).affectedKeys().size() == 0);
+    }
+
+    function canDeleteExpense(usersCol) {
+      return resource == null;
+    }
+
+    function personalVoidLeavesDay(u, docId) {
+      let p = /databases/$(database)/documents/$((u == 'dev_users' ? 'dev_' : '') + 'personalExpenseDays')/$(resource.data.get('day', '-'));
+      return !existsAfter(p) || !(docId in getAfter(p).data.get('amounts', {}));
+    }
+
+    function expenseVoidFields() {
+      return ['voided', 'voidedAt', 'voidedBy', 'voidedByName', 'voidReason'];
+    }
+
+    function expenseVoidOk(usersCol, changed) {
+      let d = request.resource.data;
+      let role = get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '');
+      let t = resource.data.get('timestamp', null);
+      return changed.hasOnly(expenseVoidFields())
+        && d.get('voided', false) == true
+        && d.get('voidedAt', null) == request.time
+        && d.get('voidedBy', null) == request.auth.uid
+        && reasonOk(d.get('voidReason', null))
+        && (!('voidedByName' in d) || (d.voidedByName is string && d.voidedByName.size() <= 200))
+        && (role == 'owner'
+            || ((role == 'manager' || createdByCaller()) && (t is number && request.time.toMillis() < t + billEditDaysFor(usersCol, role) * 86400000)));
+    }
+
+    function validAdjustmentCreate() {
+      let d = request.resource.data;
+      return d.get('userId', null) == request.auth.uid
+        && d.get('adjustType', null) in ['add', 'remove', 'set']
+        && d.get('quantity', null) is number && d.quantity >= 0
+        && d.get('itemId', null) != null;
+    }
+
+    // --- cash, items, counters, drafts, notifications, personal expenses ---
+
+    function validCashCreate(docId) {
+      let d = request.resource.data;
+      return dayKeyOk(d.get('date', null)) && docId == 'cash_' + d.date
+        && d.keys().hasOnly(['id', 'date', 'openingBalance', 'signInTime', 'userId', 'userName',
+                             'signedOut', 'duePayments', 'openingNotes'])
+        && d.get('id', docId) == docId
+        && d.get('openingBalance', null) is number && d.openingBalance >= 0
+        && d.get('signedOut', null) == false
+        && d.get('userId', null) == request.auth.uid
+        && d.get('duePayments', []) == []
+        && d.get('signInTime', '') is string
+        && d.get('userName', '') is string
+        && d.get('openingNotes', '') is string;
+    }
+
+    function cashAppendOk() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.size() == 1
+        && changed.hasOnly(['duePayments', 'cashDeposits'])
+        && appendsOneEntry(changed.hasAny(['duePayments']) ? 'duePayments' : 'cashDeposits');
+    }
+
+    function cashCloseOk() {
+      let d = request.resource.data;
+      return (resource.data.get('signedOut', false) != true
+              || (resource.data.get('autoSignedOut', false) == true
+                  && resource.data.get('counted', null) != true
+                  && d.get('closingBalance', null) is number))
+        && d.get('signedOut', false) == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'closingBalance', 'expectedBalance', 'difference', 'signOutTime', 'signedOut', 'counted',
+             'transactions', 'closingNotes', 'flags', 'autoSignedOut', 'autoClosed', 'autoSignOutReason', 'closedBy'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['closedBy']) || d.closedBy == request.auth.uid)
+        && (d.get('closingBalance', null) == null || (d.closingBalance is number && d.closingBalance >= 0))
+        && (d.get('counted', true) == false || d.get('closingBalance', null) is number)
+        && (d.get('expectedBalance', null) == null || d.expectedBalance is number);
+    }
+
+    function cashLateCountOk() {
+      let d = request.resource.data;
+      let r = resource.data;
+      return r.get('signedOut', false) == true
+        && (r.get('counted', null) == false || (!('counted' in r) && r.get('autoSignedOut', false) == true))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'closingBalance', 'difference', 'counted', 'countedLate', 'countedAt', 'countedBy', 'countedByName'])
+        && d.get('closingBalance', null) is number && d.closingBalance >= 0
+        && d.get('counted', false) == true
+        && d.get('countedBy', null) == request.auth.uid;
+    }
+
+    function itemFieldsOk(keys) {
+      let d = request.resource.data;
+      return (!keys.hasAny(['name']) || d.name is string)
+        && (!keys.hasAny(['rates']) || d.rates is list)
+        && (!keys.hasAny(['saleRates']) || d.saleRates is list)
+        && (!keys.hasAny(['wholesaleRates']) || d.wholesaleRates is list);
+    }
+
+    function itemFrequencyOk(docId) {
+      let d = request.resource.data;
+      let r = resource == null ? {} : resource.data;
+      return docId == 'global'
+        && d.diff(r).affectedKeys().hasOnly(['purchase', 'sale'])
+        && frequencyModeOk(d, r, 'purchase')
+        && frequencyModeOk(d, r, 'sale');
+    }
+
+    function frequencyModeOk(d, r, mode) {
+      return !(mode in d) ? !(mode in r)
+        : d[mode] == r.get(mode, null)
+          || (d[mode] is map && d[mode].diff(r.get(mode, {})).removedKeys().size() == 0);
+    }
+
+    function counterFields() {
+      return ['next', 'initialized', 'prefix', 'date', 'updatedAt'];
+    }
+
+    function validCounterCreate() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(counterFields()) && d.get('next', null) is number && d.next >= 1;
+    }
+
+    function counterIncrementOk() {
+      let d = request.resource.data;
+      let r = resource.data;
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(counterFields())
+        && d.get('next', null) is number
+        && (r.get('initialized', false) == true && r.get('next', null) is number
+            ? d.next == r.next + 1
+            : (d.next >= 1 && (!(r.get('next', null) is number) || d.next > r.next)));
+    }
+
+    function baseName(collection) {
+      return collection.matches('dev_.*') ? collection.replace('^dev_', '') : collection;
+    }
+
+    function usersOf(collection) {
+      return collection.matches('dev_.*') ? 'dev_users' : 'users';
+    }
+
+    function ownAutoSaveWrite(docId) {
+      return docId == request.auth.uid
+        && request.resource.data.get('userId', request.auth.uid) == request.auth.uid;
+    }
+
+    function validDraftCreate() {
+      return request.resource.data.get('userId', null) == request.auth.uid;
+    }
+
+    function draftUpdateOk() {
+      return resource.data.get('userId', null) == request.auth.uid
+        && request.resource.data.get('userId', null) == request.auth.uid;
+    }
+
+    function rateValueOk(d, key) {
+      return d.get(key, null) is number || d.get(key, null) is list;
+    }
+
+    function validNotificationCreate(u, docId) {
+      let d = request.resource.data;
+      return isManagerIn(u)
+        && d.keys().hasOnly(['type', 'action', 'fields', 'itemId', 'itemName', 'itemHindiName',
+                             'rateType', 'rateTypeLabel', 'oldRate', 'newRate',
+                             'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])
+        && d.get('changedByUserId', null) == request.auth.uid
+        && d.get('userId', null) is string && d.userId.size() > 0 && d.userId != request.auth.uid
+        && d.get('eventKey', null) is string && docId == d.eventKey + '_' + d.userId
+        && d.get('read', null) == false
+        && d.get('timestamp', null) == request.time
+        && d.get('changedBy', '') is string
+        && (d.get('itemId', null) == null || d.itemId is string)
+        && d.get('itemName', '') is string
+        && d.get('itemHindiName', '') is string
+        && (d.get('type', null) == 'rate_change'
+            ? d.get('rateType', null) in ['purchase', 'sale', 'wholesale']
+              && d.get('rateTypeLabel', '') is string
+              && rateValueOk(d, 'oldRate') && rateValueOk(d, 'newRate')
+              && !d.keys().hasAny(['action', 'fields'])
+            : d.get('type', null) == 'item_edit'
+              && d.get('action', null) in ['added', 'updated']
+              && d.get('fields', []) is list
+              && d.get('fields', []).hasOnly(['name', 'hindiName', 'contactPerson'])
+              && !d.keys().hasAny(['rateType', 'rateTypeLabel', 'oldRate', 'newRate']));
+    }
+
+    function notificationReadOnly() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return resource.data.get('userId', null) == request.auth.uid
+        && changed.hasOnly(['read', 'readAt'])
+        && request.resource.data.get('read', false) is bool
+        && (!changed.hasAny(['readAt']) || request.resource.data.readAt is number);
+    }
+
+    function personalOn(usersCol) {
+      return personalOnAs(usersCol, get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', ''));
+    }
+
+    function personalOnAs(usersCol, role) {
+      return role == 'owner' ? true : personalSwitch(settingsAppPath(usersCol), role);
+    }
+
+    function personalSwitch(p, role) {
+      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
+      let r = access is map ? access.get(role, {}) : {};
+      let m = r is map ? r : {};
+      return m.get('personalExpensesChosen', false) == true && m.get('personalExpenses', false) == true;
+    }
+
+    function dayKeyOk(v) {
+      return v is string && v.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+    }
+
+    function validPersonalCreate() {
+      return validLedgerCreate() && request.resource.data.get('category', null) == 'personal'
+        && dayKeyOk(request.resource.data.get('day', null));
+    }
+
+    function validPersonalDay(u, docId) {
+      let d = request.resource.data;
+      let before = resource == null ? {} : resource.data;
+      return dayKeyOk(docId)
+        && d.keys().hasOnly(['amounts', 'online', 'last'])
+        && d.get('amounts', null) is map
+        && d.get('online', {}) is map
+        && d.get('last', null) is string && d.last.matches('^[A-Za-z0-9_-]{1,100}$')
+        && d.amounts.diff(before.get('amounts', {})).affectedKeys().hasOnly([d.last])
+        && d.get('online', {}).diff(before.get('online', {})).affectedKeys().hasOnly([d.last])
+        && personalDayKeyOk(u, docId, d,
+             /databases/$(database)/documents/$((u == 'dev_users' ? 'dev_' : '') + 'personalExpenses')/$(d.last),
+             d.amounts.diff(before.get('amounts', {})).affectedKeys().size() == 0
+               && d.get('online', {}).diff(before.get('online', {})).affectedKeys().size() == 0);
+    }
+
+    function personalDayKeyOk(u, docId, d, p, same) {
+      return d.last in d.amounts
+        ? existsAfter(p) && getAfter(p).data.get('voided', false) != true
+          && getAfter(p).data.get('amount', null) == d.amounts[d.last]
+          && getAfter(p).data.get('day', '') == docId
+          && ((d.last in d.get('online', {}) && d.online[d.last] == true)
+              == (getAfter(p).data.get('paymentMode', 'cash') == 'online'))
+          && (isManagerIn(u) || same || !exists(p) || get(p).data != getAfter(p).data)
+        : !existsAfter(p) || getAfter(p).data.get('voided', false) == true;
+    }
+
+    function personalTagged(m) {
+      return m.get('category', '') is string && m.get('category', '').trim().lower() == 'personal';
+    }
+
+    function cashStaysClosed() {
+      return resource.data.get('signedOut', false) != true
+        || request.resource.data.get('signedOut', false) == true;
+    }
+
+    function canDeleteRecord(base, u, docId) {
+      return base in ['purchases', 'retailSales', 'wholesaleSales']
+          ? isApprovedIn(u) && (resource == null || (resource.data.get('voided', false) == true && isOwnerIn(u)))
+        : base in ['autoSaves', 'drafts', 'notifications']
+          ? isOwnerIn(u)
+            || (base == 'autoSaves'
+                ? docId == request.auth.uid
+                : resource == null || resource.data.get('userId', null) == request.auth.uid)
+        : isOwnerIn(u) ? true
+        : base == 'expenses' ? canDeleteExpense(u)
+        : base == 'personalExpenses' ? personalOn(u) && canDeleteExpense(u)
+        : base == 'personalExpenseDays' ? false
+        : base == 'withdrawals' ? isManagerIn(u) && moneyPageOn(u)
+        : base == 'stockAdjustments' ? isManagerIn(u)
+        : base in ['cashManagement', 'cashSessions', 'items', 'counters', 'settings', 'itemFrequency'] ? false
+        : true;
+    }
+
+    // --- settings, money pages, worth accounts, read access ---
+
+    function appSettingsGuard(collection, docId) {
+      return !(docId == 'app' && collection in ['settings', 'dev_settings'])
+        || isOwnerIn(collection == 'settings' ? 'users' : 'dev_users');
+    }
+
+    function settingsReceiptOk() {
+      let r = request.resource.data.get('receipt', null);
+      let l = r.logo;
+      return r == null
+        || (r is map
+            && r.keys().hasOnly(['footer', 'qr', 'lang', 'density', 'logo'])
+            && r.keys().hasAll(['footer', 'qr', 'lang', 'density', 'logo'])
+            && r.footer is string && r.footer.size() <= 80
+            && r.qr is bool
+            && r.lang in ['app', 'en', 'hi']
+            && r.density in ['light', 'normal', 'dark']
+            && (l == null
+                || (l is map && l.keys().hasOnly(['width', 'height', 'bits']) && l.keys().hasAll(['width', 'height', 'bits'])
+                    && l.width is int && l.width >= 1 && l.width <= 384
+                    && l.height is int && l.height >= 1 && l.height <= 120
+                    && l.bits is string && l.bits.size() <= 7680)));
+    }
+
+    function stampAtOk(d, keys, k) {
+      return !(k in keys) || !(k in d) || d[k] is int;
+    }
+
+    function stampByOk(d, keys, k) {
+      return !(k in keys) || !(k in d) || (d[k] is string && d[k].size() <= 128);
+    }
+
+    function settingsStampsOk(docId) {
+      let d = request.resource.data;
+      let keys = resource == null ? d.keys() : d.diff(resource.data).affectedKeys();
+      return docId != 'app'
+        || (stampAtOk(d, keys, 'labourUpdatedAt') && stampByOk(d, keys, 'labourUpdatedBy')
+            && stampAtOk(d, keys, 'checksUpdatedAt') && stampByOk(d, keys, 'checksUpdatedBy')
+            && stampAtOk(d, keys, 'businessUpdatedAt') && stampByOk(d, keys, 'businessUpdatedBy')
+            && stampAtOk(d, keys, 'receiptUpdatedAt') && stampByOk(d, keys, 'receiptUpdatedBy')
+            && stampAtOk(d, keys, 'tipUpdatedAt') && stampByOk(d, keys, 'tipUpdatedBy')
+            && stampAtOk(d, keys, 'roleAccessUpdatedAt') && stampByOk(d, keys, 'roleAccessUpdatedBy'));
+    }
+
+    function managerShopSettingsOk(collection, docId) {
+      let access = resource.data.get('roleAccess', {});
+      return docId == 'app' && collection in ['settings', 'dev_settings']
+        && isManagerIn(usersOf(collection))
+        && access is map && access.get('manager', {}) is map
+        && access.get('manager', {}).get('shopSettings', false) == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'laborRate', 'heavyWeightThreshold', 'labourPackageKg', 'labourUpdatedAt', 'labourUpdatedBy',
+             'checkThresholds', 'checksUpdatedAt', 'checksUpdatedBy',
+             'businessName', 'businessDetails', 'businessUpdatedAt', 'businessUpdatedBy',
+             'receipt', 'receiptUpdatedAt', 'receiptUpdatedBy']);
+    }
+
+    function writesCurrentClient(collection) {
+      let p = /databases/$(database)/documents/$(collection.matches('dev_.*') ? 'dev_settings' : 'settings')/app;
+      return !(exists(p) && get(p).data.get('enforceClientVersion', false) == true)
+        || request.resource.data.get('clientVersion', 0) >= 3;
+    }
+
+    // Shared business data (tools/backup/backup-lib.js reads this list).
+    function businessCollections() {
+      return [
+        'purchases', 'retailSales', 'wholesaleSales', 'items', 'expenses',
+        'stockAdjustments', 'withdrawals', 'cashManagement', 'cashSessions',
+        'settings', 'itemFrequency', 'notifications', 'autoSaves', 'drafts',
+        'counters', 'personalExpenses', 'personalExpenseDays'
+      ];
+    }
+
+    function devBusinessCollections() {
+      return [
+        'dev_purchases', 'dev_retailSales', 'dev_wholesaleSales', 'dev_items', 'dev_expenses',
+        'dev_stockAdjustments', 'dev_withdrawals', 'dev_cashManagement', 'dev_cashSessions',
+        'dev_settings', 'dev_itemFrequency', 'dev_notifications', 'dev_autoSaves', 'dev_drafts',
+        'dev_counters', 'dev_personalExpenses', 'dev_personalExpenseDays'
+      ];
+    }
+
+    function businessAccess(collection) {
+      return (collection in businessCollections() && isApprovedIn('users'))
+        || (collection in devBusinessCollections() && isApprovedIn('dev_users'));
+    }
+
+    function canReadRecord(base, u, docId, single) {
+      let role = get(/databases/$(database)/documents/$(u)/$(request.auth.uid)).data.get('role', '');
+      let def = role == 'manager';
+      let p = settingsAppPath(u);
+      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
+      let r = access is map ? access.get(role, {}) : {};
+      let a = r is map ? r : {};
+      return isOwnerIn(u)
+        || (base in ['notifications', 'drafts']
+            ? (single && resource == null) || resource.data.get('userId', null) == request.auth.uid
+          : base == 'autoSaves' ? docId == request.auth.uid
+          : base == 'settings' ? single && (docId == 'app' || (docId == 'team' && isManagerIn(u))
+              || (docId == 'accounts' && isManagerIn(u) && moneyPageOn(u)))
+          : base == 'withdrawals' ? (a.get('finance', def) == true || a.get('reports', def) == true || a.get('analytics', def) == true)
+          : base == 'personalExpenses' ? personalOn(u)
+          : base == 'cashSessions' ? isManagerIn(u)
+          : true);
+    }
+
+    function moneyPageOn(usersCol) {
+      let role = get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('role', '');
+      let p = settingsAppPath(usersCol);
+      let access = exists(p) ? get(p).data.get('roleAccess', {}) : {};
+      let r = access is map ? access.get(role, {}) : {};
+      return (r is map ? r : {}).get('finance', role == 'manager') == true;
+    }
+
+    function worthAccountOk(a) {
+      return a is map
+        && a.keys().hasOnly(['name', 'balance', 'type']) && a.keys().hasAll(['name', 'balance', 'type'])
+        && a.name is string && a.name.size() > 0 && a.name.size() <= 40
+        && a.balance is int && a.balance >= 0 && a.balance <= 10000000000
+        && a.type in ['asset', 'liability'];
+    }
+
+    function worthAccountsWriteOk(usersCol) {
+      let d = request.resource.data;
+      let after = d.get('accounts', {});
+      let before = resource == null ? {} : resource.data.get('accounts', {});
+      let id = d.get('changedId', '');
+      return isManagerIn(usersCol) && moneyPageOn(usersCol)
+        && d.keys().hasOnly(['accounts', 'updatedAt', 'updatedBy', 'changedId'])
+        && d.get('updatedBy', null) == request.auth.uid
+        && d.get('updatedAt', null) == request.time
+        && id is string && id.size() > 0
+        && after is map && before is map
+        && after.diff(before).affectedKeys().hasOnly([id])
+        && after.size() <= 30
+        && (!(id in after) || worthAccountOk(after[id]));
+    }
+
+    // --- stock checkpoint, rate history, profiles, device log, audit log, telemetry ---
+
+    function checkpointRules(usersCol, docId) {
+      let d = request.resource.data;
+      return docId == 'current'
+        ? (isManagerIn(usersCol) && voidAwareWriter())
+          || (isApprovedIn(usersCol) && d.get('stale', false) == true
+              && (resource == null
+                  ? d.keys().hasOnly(['stale', 'staleCount', 'staleAt', 'staleReason', 'staleBy'])
+                  : d.diff(resource.data).affectedKeys().hasOnly(['stale', 'staleCount', 'staleAt', 'staleReason', 'staleBy'])))
+        : docId == 'legacyScan' && isManagerIn(usersCol);
+    }
+
+    function validRateHistoryEntry(usersCol) {
+      let d = request.resource.data;
+      return isManagerIn(usersCol)
+        && d.keys().hasOnly(['itemId', 'itemName', 'field', 'old', 'new', 'by', 'byUserId', 'at', 'source', 'flags', 'index'])
+        && d.keys().hasAll(['itemId', 'field', 'byUserId', 'at'])
+        && d.itemId is string && d.itemId.size() > 0
+        && d.field in ['purchase', 'wholesale', 'retail', 'name', 'hindiName']
+        && d.byUserId == request.auth.uid
+        && d.at is number
+        && (!('source' in d) || d.source in ['modal', 'inline', 'import'])
+        && (!('index' in d) || (d.index is int && d.index >= 0 && d.index <= 20));
+    }
+
+    function canReadProfile(usersCol, userId) {
+      return (request.auth != null && request.auth.uid == userId) || isOwnerIn(usersCol);
+    }
+
+    function canCreateProfile(userId) {
+      let d = request.resource.data;
+      return request.auth != null
+        && request.auth.uid == userId
+        && d.keys().hasOnly(['name', 'email', 'role', 'status', 'createdAt'])
+        && d.get('status', '') == 'pending'
+        && d.get('role', '') == 'staff'
+        && d.get('name', '') is string && d.get('name', '').size() <= 100
+        && d.get('email', '') is string && d.get('email', '').size() <= 254
+        && request.auth.token.get('email', '') is string
+        && d.get('email', '').lower() == request.auth.token.get('email', '').lower()
+        && d.get('createdAt', null) == request.time;
+    }
+
+    function activeOwnerData(p) {
+      return p.get('role', '') == 'owner' && !(p.get('status', '') in ['pending', 'rejected', 'disabled']);
+    }
+
+    function ownerAfter(usersCol, uid) {
+      let p = /databases/$(database)/documents/$(usersCol)/$(uid);
+      return uid is string && existsAfter(p) && activeOwnerData(getAfter(p).data);
+    }
+
+    function profileRoleChangeOk(usersCol, userId) {
+      let d = request.resource.data;
+      let was = activeOwnerData(resource.data);
+      let now = activeOwnerData(d);
+      let t = /databases/$(database)/documents/$(usersCol == 'users' ? 'settings' : 'dev_settings')/team;
+      let before = exists(t) ? get(t).data.get('ownerUids', []) : [];
+      let after = existsAfter(t) ? getAfter(t).data.get('ownerUids', []) : [];
+      return d.get('role', '') in ['owner', 'manager', 'staff', 'none', ''] && (d.get('role', '') != 'owner' || now)
+        && (request.auth.uid != userId
+            || (was && !now && d.role in ['manager', 'staff'] && d.diff(resource.data).affectedKeys().hasOnly(['role'])))
+        && (was == now
+            || (now
+                ? resource.data.get('role', '') in ['manager', 'staff', 'none']
+                  && !(resource.data.get('status', '') in ['pending', 'rejected', 'disabled'])
+                  && after is list && userId in after && !(before is list && userId in before)
+                : before is list && before.size() >= 2 && userId in before
+                  && after is list && !(userId in after)));
+    }
+
+    // Owner list (docs/security.md, "Owners").
+    function teamOwnersOk(collection, docId) {
+      let d = request.resource.data;
+      let b = resource == null ? [] : resource.data.get('ownerUids', []);
+      let a = d.get('ownerUids', []);
+      return docId != 'team' || !('ownerUids' in d) || a == b
+        || (a is list && b is list && a.size() <= 20 && a.toSet().size() == a.size()
+            && (a.size() == b.size() + 1
+                ? b.removeAll(a).size() == 0 && ownerAfter(usersOf(collection), a.removeAll(b)[0])
+                : a.size() == b.size() - 1 && a.size() >= 1 && a.removeAll(b).size() == 0
+                  && !ownerAfter(usersOf(collection), b.removeAll(a)[0])));
+    }
+
+    function canUpdateProfile(usersCol, userId) {
+      let d = request.resource.data;
+      let p = '(this-month|last-month|this-year|last-year|this-fy|last-fy|last-30|all|month:[0-9]{4}-[0-9]{2}|range:[0-9]{4}-[0-9]{2}-[0-9]{2}:[0-9]{4}-[0-9]{2}-[0-9]{2})';
+      let e = p + '[|]' + p + '?';
+      return (isOwnerIn(usersCol)
+              && (!d.diff(resource.data).affectedKeys().hasAny(['role', 'status'])
+                  || profileRoleChangeOk(usersCol, userId)))
+        || (request.auth != null
+            && request.auth.uid == userId
+            && !(resource.data.get('status', '') in ['disabled', 'rejected'])
+            && d.diff(resource.data).affectedKeys().hasOnly(['name', 'savedRanges'])
+            && d.get('name', '') is string && d.get('name', '').size() <= 100
+            && (!('savedRanges' in d)
+                || (d.savedRanges is string && d.savedRanges.size() <= 600
+                    && d.savedRanges.matches('^(' + e + '(;' + e + '){0,9})?$'))));
+    }
+
+    function deviceEntryOk(e) {
+      return e is string && e.matches('^[a-z0-9]{1,20}:[0-9]{8}$')
+        && timestamp.date(int(e.split(':')[1][0:4]), int(e.split(':')[1][4:6]), int(e.split(':')[1][6:8]))
+             <= request.time + duration.value(1, 'd');
+    }
+
+    function deviceListOk(l) {
+      return l is list && l.size() <= 10
+        && (l.size() < 1 || deviceEntryOk(l[0])) && (l.size() < 2 || deviceEntryOk(l[1]))
+        && (l.size() < 3 || deviceEntryOk(l[2])) && (l.size() < 4 || deviceEntryOk(l[3]))
+        && (l.size() < 5 || deviceEntryOk(l[4])) && (l.size() < 6 || deviceEntryOk(l[5]))
+        && (l.size() < 7 || deviceEntryOk(l[6])) && (l.size() < 8 || deviceEntryOk(l[7]))
+        && (l.size() < 9 || deviceEntryOk(l[8])) && (l.size() < 10 || deviceEntryOk(l[9]));
+    }
+
+    function validDeviceLog(usersCol, uid) {
+      let d = request.resource.data;
+      return isApprovedIn(usersCol) && request.auth.uid == uid
+        && d.keys().hasOnly(['devices']) && deviceListOk(d.get('devices', null));
+    }
+
+    function validAuditEntry() {
+      let d = request.resource.data;
+      let now = request.time.toMillis();
+      return d.keys().hasOnly(['action', 'userId', 'userName', 'userRole', 'details', 'timestamp', 'date', 'serverTime'])
+        && d.get('userId', null) == request.auth.uid
+        && d.get('action', null) is string && d.action.matches('^[A-Z][A-Z0-9_]{0,63}$')
+        && d.get('timestamp', null) is number
+        && d.timestamp <= now + 600000
+        && (d.get('serverTime', null) == request.time
+            ? d.timestamp >= now - 259200000
+            : (!('serverTime' in d) && d.timestamp >= now - 600000))
+        && (!('userName' in d) || (d.userName is string && d.userName.size() <= 200))
+        && (!('userRole' in d) || (d.userRole is string && d.userRole.size() <= 32))
+        && (!('details' in d) || (d.details is map && d.details.size() <= 40));
+    }
+
+    function isExpiredAuditEntry() {
+      return resource.data.get('timestamp', null) is number
+        && resource.data.timestamp < request.time.toMillis() - 7776000000;
+    }
+
+    function shortStringOrAbsent(d, key, max) {
+      return !(key in d) || (d[key] is string && d[key].size() <= max);
+    }
+
+    function telemetryHideOnly() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly(['hidden', 'hiddenBy', 'hiddenAt'])
+        && d.get('hidden', null) == true
+        && d.get('hiddenBy', null) == request.auth.uid
+        && d.get('hiddenAt', null) == request.time;
+    }
+
+    function validTelemetryEntry() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['type', 'message', 'source', 'line', 'column', 'stack', 'context', 'timestamp',
+                               'date', 'url', 'userAgent', 'userId', 'userName', 'userRole', 'fingerprint',
+                               'count', 'occurrences', 'lastSeen', 'firstSeen'])
+        && d.get('userId', null) == request.auth.uid
+        && d.get('fingerprint', null) is string && d.fingerprint.size() <= 40
+        && d.get('count', null) is int && d.count >= 1 && d.count <= 100
+        && (!('occurrences' in d) || (d.occurrences is list && d.occurrences.size() <= 10))
+        && shortStringOrAbsent(d, 'type', 40)
+        && shortStringOrAbsent(d, 'message', 1000)
+        && shortStringOrAbsent(d, 'source', 500)
+        && shortStringOrAbsent(d, 'stack', 4000)
+        && shortStringOrAbsent(d, 'context', 2000)
+        && shortStringOrAbsent(d, 'date', 40)
+        && shortStringOrAbsent(d, 'url', 500)
+        && shortStringOrAbsent(d, 'userAgent', 500)
+        && shortStringOrAbsent(d, 'userName', 200)
+        && shortStringOrAbsent(d, 'userRole', 32);
+    }
+
+    // --- rentals (#170): shop owner, or rentRole manager/member ---
+
+    function rentRoleIn(usersCol) {
+      return request.auth != null && exists(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid))
+        ? rentRoleOf(get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data)
+        : '';
+    }
+
+    function rentRoleOf(p) {
+      return p.get('status', '') in ['pending', 'rejected'] ? ''
+        : p.get('role', '') == 'owner' ? 'owner'
+        : p.get('rentRole', '') in ['manager', 'member'] ? p.rentRole
+        : '';
+    }
+
+    function canWriteRent(usersCol) {
+      return rentRoleIn(usersCol) != '';
+    }
+
+    function canManageRent(usersCol) {
+      return rentRoleIn(usersCol) in ['owner', 'manager'];
+    }
+
+    function rentPath(usersCol, coll, id) {
+      return /databases/$(database)/documents/$((usersCol == 'dev_users' ? 'dev_' : '') + coll)/$(id);
+    }
+
+    function rentLeasePath(usersCol, leaseId) {
+      return /databases/$(database)/documents/$((usersCol == 'dev_users' ? 'dev_' : '') + 'rent_leases')/$(leaseId);
+    }
+
+    function rentChargePath(usersCol, leaseId, month) {
+      return /databases/$(database)/documents/$((usersCol == 'dev_users' ? 'dev_' : '') + 'rent_charges')/$(leaseId + '_' + month);
+    }
+
+    function rentStr(d, key, min, max) {
+      return d.get(key, '') is string && d.get(key, '').size() >= min && d.get(key, '').size() <= max;
+    }
+
+    function rentMonth(v) {
+      return v is string && v.matches('^[0-9]{4}-(0[1-9]|1[0-2])$');
+    }
+
+    function rentMoney(d, key) {
+      return d.get(key, null) is number && d.get(key, 0) >= 0;
+    }
+
+    function rentNumOrNull(d, key) {
+      return d.get(key, null) == null || (d.get(key, null) is number && d.get(key, 0) >= 0);
+    }
+
+    function pad2(n) {
+      return n < 10 ? '0' + string(n) : string(n);
+    }
+
+    function nextMonth(m) {
+      return int(m[5:7]) == 12 ? string(int(m[0:4]) + 1) + '-01' : m[0:5] + pad2(int(m[5:7]) + 1);
+    }
+
+    function rentThisMonth() {
+      let ist = request.time + duration.value(330, 'm');
+      return string(ist.year()) + '-' + pad2(ist.month());
+    }
+
+    function rentWriterOk() {
+      return request.resource.data.get('updatedBy', null) == request.auth.uid;
+    }
+
+    function rentCreationKept() {
+      return request.resource.data.get('createdAt', null) == resource.data.get('createdAt', null)
+        && request.resource.data.get('createdBy', null) == resource.data.get('createdBy', null);
+    }
+
+    function rentMeta() {
+      return ['archived', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+    }
+
+    function validRentProperty() {
+      let d = request.resource.data;
+      return d.get('archived', false) is bool
+        && rentWriterOk()
+        && d.keys().hasOnly(['name', 'address', 'kind', 'notes'].concat(rentMeta()))
+        && rentStr(d, 'name', 1, 80) && rentStr(d, 'address', 0, 200) && rentStr(d, 'notes', 0, 500)
+        && d.get('kind', 'other') in ['house', 'shop', 'flat', 'plot', 'godown', 'other'];
+    }
+
+    function validRentUnit() {
+      let d = request.resource.data;
+      return d.get('archived', false) is bool
+        && rentWriterOk()
+        && d.keys().hasOnly(['propertyId', 'label', 'rent', 'leaseId', 'lastReading', 'meterRate', 'meterCharge',
+                          'type', 'area', 'floor'].concat(rentMeta()))
+        && (!('type' in d) || d.type in ['flat', 'commercial', 'office', 'godown', 'other'])
+        && (d.get('area', null) == null || (d.area is number && d.area > 0 && d.area <= 1000000))
+        && (d.get('floor', null) == null || rentStr(d, 'floor', 1, 20))
+        && rentStr(d, 'propertyId', 1, 64) && rentStr(d, 'label', 1, 60) && rentMoney(d, 'rent')
+        && (d.get('leaseId', null) == null || rentStr(d, 'leaseId', 1, 64))
+        && rentNumOrNull(d, 'lastReading') && rentNumOrNull(d, 'meterRate')
+        && (d.get('meterCharge', null) == null || rentStr(d, 'meterCharge', 1, 80));
+    }
+
+    function validRentTenant() {
+      let d = request.resource.data;
+      return d.get('archived', false) is bool
+        && rentWriterOk()
+        && d.keys().hasOnly(['name', 'phone', 'phone2', 'notes'].concat(rentMeta()))
+        && rentStr(d, 'name', 1, 80) && rentStr(d, 'phone', 0, 20) && rentStr(d, 'notes', 0, 500)
+        && (resource == null || d.get('phone', '') != resource.data.get('phone', '') ? rentMobile(d.get('phone', null)) : true)
+        && (d.get('phone2', null) == null || rentMobile(d.phone2));
+    }
+
+    function validRentLease() {
+      let d = request.resource.data;
+      return d.get('archived', false) is bool
+        && rentWriterOk()
+        && d.keys().hasOnly(['unitId', 'propertyId', 'tenantId', 'rent', 'dueDay', 'startMonth', 'endMonth',
+                          'deposit', 'status', 'chargedThrough', 'increasePct', 'rentSince', 'shareToken',
+                          'startDate', 'proRate', 'firstRent', 'elecMode', 'meterNo', 'fromLeaseId', 'movedTo',
+                          'agreementEnd', 'noticeMonths'].concat(rentMeta()))
+        && rentStr(d, 'unitId', 1, 64) && rentStr(d, 'propertyId', 1, 64) && rentStr(d, 'tenantId', 1, 64)
+        && rentMoney(d, 'rent') && rentMoney(d, 'deposit')
+        && d.get('dueDay', 0) is int && d.dueDay >= 1 && d.dueDay <= 28
+        && rentMonth(d.get('startMonth', null))
+        && (d.get('endMonth', null) == null || rentMonth(d.endMonth))
+        && d.get('status', '') in ['active', 'ended']
+        && (d.get('chargedThrough', null) == null || rentMonth(d.chargedThrough))
+        && (!('increasePct' in d) || (d.increasePct is number && d.increasePct >= 0 && d.increasePct <= 100))
+        && (!('rentSince' in d) || rentMonth(d.rentSince))
+        && (d.get('shareToken', null) == null || rentShareToken(d.shareToken))
+        && (!('startDate' in d) || (rentDate(d.startDate) && d.startDate[0:7] == d.startMonth))
+        && d.get('proRate', false) is bool
+        && (d.get('firstRent', null) == null || (d.firstRent is number && d.firstRent >= 0 && (resource != null || d.firstRent <= d.rent)))
+        && d.get('elecMode', 'meter') in ['included', 'meter', 'own']
+        && (d.get('meterNo', null) == null || rentStr(d, 'meterNo', 1, 40))
+        && (d.get('movedTo', null) == null || rentStr(d, 'movedTo', 1, 64));
+    }
+
+    function rentMobile(v) {
+      return v is string && v.matches('^[6-9][0-9]{9}$');
+    }
+
+    function rentDate(v) {
+      return v is string && v.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+    }
+
+    function rentShareToken(t) {
+      return t is string && t.matches('^[A-Za-z0-9_-]{22,64}$');
+    }
+
+    function rentLeaseCreateOk(usersCol, docId) {
+      let role = rentRoleIn(usersCol);
+      let d = request.resource.data;
+      let unit = getAfter(rentPath(usersCol, 'rent_units', d.unitId)).data;
+      let before = get(rentLeasePath(usersCol, d.fromLeaseId)).data;
+      let old = getAfter(rentLeasePath(usersCol, d.fromLeaseId)).data;
+      let ist = request.time + duration.value(330, 'm') - duration.value(2, 'd');
+      let days = rentMonthDays(d.startMonth);
+      let x = float(d.rent) * (days - int(d.startDate[8:10]) + 1) / days;
+      return role != '' && validRentLease()
+        && d.get('status', '') == 'active' && d.get('endMonth', null) == null
+        && d.get('movedTo', null) == null && d.get('agreementEnd', null) == null && d.get('noticeMonths', 0) == 0
+        && (d.get('chargedThrough', null) == null
+            || (d.chargedThrough == d.startMonth && d.startMonth <= rentThisMonth()
+                && existsAfter(rentChargePath(usersCol, docId, d.startMonth))))
+        && unit.get('leaseId', null) == docId
+        && unit.get('propertyId', '') == d.propertyId
+        && existsAfter(rentPath(usersCol, 'rent_tenants', d.tenantId))
+        && (role == 'owner' || d.get('startDate', '') >= string(ist.year()) + '-' + pad2(ist.month()) + '-' + pad2(ist.day()))
+        && (role in ['owner', 'manager'] || d.get('firstRent', null) == null || (d.firstRent >= x - 0.5 && d.firstRent <= x + 0.5))
+        && (d.get('fromLeaseId', null) == null
+          ? d.get('shareToken', null) == null
+          : d.get('chargedThrough', null) == null
+            && rentStr(d, 'fromLeaseId', 1, 64)
+            && before.status == 'active'
+            && old.status == 'ended' && old.tenantId == d.tenantId && old.unitId != d.unitId
+            && old.get('movedTo', null) == docId
+            && (old.endMonth == d.startMonth
+                || (d.get('startDate', '').matches('^.{8}01$') && nextMonth(old.endMonth) == d.startMonth))
+            && (d.get('shareToken', null) == null
+                || (before.get('shareToken', null) == d.shareToken && old.get('shareToken', null) == null)));
+    }
+
+    function rentLeaseUpdateOk(usersCol, docId) {
+      let role = rentRoleIn(usersCol);
+      let mgr = role in ['owner', 'manager'];
+      let d = request.resource.data;
+      let r = resource.data;
+      let before = r.get('chargedThrough', null);
+      let next = d.get('chargedThrough', null);
+      let moved = r.status == 'active' && d.get('status', '') == 'ended' && d.get('movedTo', null) != null
+        && (!exists(rentLeasePath(usersCol, d.movedTo))
+            && getAfter(rentLeasePath(usersCol, d.movedTo)).data.get('fromLeaseId', null) == docId);
+      return role != ''
+        && (d.diff(r).affectedKeys().hasOnly(['status', 'endMonth', 'chargedThrough', 'movedTo', 'shareToken', 'updatedAt', 'updatedBy'])
+          ? (rentWriterOk() && d.get('status', '') in ['active', 'ended']
+              && (d.get('endMonth', null) == null || rentMonth(d.endMonth))
+              && (d.get('chargedThrough', null) == null || rentMonth(d.chargedThrough))
+              && (d.get('movedTo', null) == null || rentStr(d, 'movedTo', 1, 64))
+              && (d.get('shareToken', null) == null || rentShareToken(d.shareToken)))
+          : validRentLease() && rentCreationKept()
+            && d.startMonth == r.startMonth && d.unitId == r.unitId && d.tenantId == r.tenantId
+            && d.get('startDate', null) == r.get('startDate', null) && d.get('firstRent', null) == r.get('firstRent', null)
+            && d.get('proRate', false) == r.get('proRate', false)
+            && d.get('fromLeaseId', null) == r.get('fromLeaseId', null)
+            && ((d.get('agreementEnd', null) == r.get('agreementEnd', null) && d.get('noticeMonths', 0) == r.get('noticeMonths', 0))
+                || (mgr
+                  && (d.get('agreementEnd', null) == null || (rentMonth(d.agreementEnd) && d.agreementEnd >= d.startMonth))
+                  && d.get('noticeMonths', 0) is int && d.get('noticeMonths', 0) >= 0 && d.get('noticeMonths', 0) <= 12)))
+        && (d.get('movedTo', null) == r.get('movedTo', null) || moved)
+        && (d.get('shareToken', null) == r.get('shareToken', null) || mgr
+            || (moved && d.get('shareToken', null) == null
+                && getAfter(rentLeasePath(usersCol, d.movedTo)).data.get('shareToken', null) == r.get('shareToken', null)))
+        && (r.status == 'ended'
+          ? d.status == 'ended' && d.get('endMonth', null) == r.get('endMonth', null) && next == before
+          : d.status == 'active'
+            ? d.get('endMonth', null) == null
+              && (next == before
+                  || (next == (before == null ? d.startMonth : nextMonth(before))
+                      && next <= rentThisMonth()
+                      && existsAfter(rentChargePath(usersCol, docId, next))))
+            : rentMonth(d.get('endMonth', null))
+              && d.endMonth >= d.startMonth && d.endMonth <= rentThisMonth()
+              && next == d.endMonth && before != null
+              && existsAfter(rentChargePath(usersCol, docId, next))
+              && getAfter(rentPath(usersCol, 'rent_units', d.unitId)).data.get('leaseId', '') == null
+              && (next == before
+                  || (next < before && (mgr || (moved && nextMonth(next) == before))
+                      && !existsAfter(rentChargePath(usersCol, docId, before)))));
+    }
+
+    function rentUnitLeaseOk(usersCol, docId) {
+      let before = resource.data.get('leaseId', null);
+      let next = request.resource.data.get('leaseId', null);
+      return next == before
+        || (before == null && next != null
+            && !exists(rentLeasePath(usersCol, next))
+            && getAfter(rentLeasePath(usersCol, next)).data.unitId == docId
+            && getAfter(rentLeasePath(usersCol, next)).data.status == 'active')
+        || (before != null && next == null
+            && getAfter(rentLeasePath(usersCol, before)).data.status == 'ended');
+    }
+
+    function rentChargeFields() {
+      return ['leaseId', 'unitId', 'propertyId', 'tenantId', 'tenantName', 'unitLabel', 'month', 'dueDay',
+              'rent', 'electricity', 'amount', 'paid', 'open', 'payments', 'voided', 'adv', 'createdAt', 'updatedAt', 'updatedBy'];
+    }
+
+    function validRentChargeCreate(usersCol, docId) {
+      let d = request.resource.data;
+      let lease = getAfter(rentLeasePath(usersCol, d.get('leaseId', '-'))).data;
+      let l = rentLeasePath(usersCol, d.leaseId);
+      let prev = exists(l) ? get(l).data.get('chargedThrough', null) : null;
+      return d.keys().hasOnly(rentChargeFields())
+        && rentWriterOk()
+        && rentStr(d, 'leaseId', 1, 64) && rentMonth(d.get('month', null))
+        && docId == d.leaseId + '_' + d.month
+        && lease.status == 'active'
+        && lease.get('chargedThrough', null) == d.month
+        && (!exists(rentLeasePath(usersCol, d.leaseId))
+            || get(rentLeasePath(usersCol, d.leaseId)).data.get('chargedThrough', null) != d.month)
+        && d.get('unitId', '') == lease.unitId && d.get('tenantId', '') == lease.tenantId
+        && d.get('propertyId', '') == lease.propertyId && d.get('dueDay', 0) == lease.dueDay
+        && d.get('amount', null) == rentMonthRent(lease, d.month) && d.get('rent', null) == rentMonthRent(lease, d.month)
+        && d.get('electricity', null) == null && !('voided' in d)
+        && rentChargeOpeningOk(usersCol, d, lease,
+             prev != null ? rentChargePath(usersCol, d.leaseId, prev)
+             : exists(l) && lease.get('fromLeaseId', null) != null
+               ? rentChargePath(usersCol, lease.fromLeaseId, get(rentLeasePath(usersCol, lease.fromLeaseId)).data.endMonth)
+             : null)
+        && rentStr(d, 'tenantName', 0, 80) && rentStr(d, 'unitLabel', 0, 60);
+    }
+
+    function rentChargeOpeningOk(usersCol, d, lease, src) {
+      let a = src == null ? 0 : get(src).data.get('adv', 0);
+      let applied = a < d.get('amount', 0) ? a : d.get('amount', 0);
+      return a == 0
+        ? d.get('paid', null) == 0 && d.get('payments', null) == [] && !('adv' in d) && d.get('open', null) == (lease.rent > 0)
+        : d.get('paid', null) == applied && rentPaidMatches(d.get('adv', 0), a - applied)
+          && d.get('open', null) == (d.paid < d.amount - 0.001)
+          && getAfter(src).data.get('adv', 0) == 0
+          && (applied <= 0 ? d.get('payments', null) == []
+            : d.get('payments', null) is list && d.payments.size() == 1
+              && d.payments[0].keys().hasOnly(['amount', 'mode', 'ref', 'date', 'at', 'by', 'byName'])
+              && d.payments[0].get('mode', '') == 'advance' && d.payments[0].get('amount', -1) == applied
+              && d.payments[0].get('by', '') == request.auth.uid);
+    }
+
+    function rentMonthRent(lease, month) {
+      return month == lease.startMonth && lease.get('firstRent', null) != null ? lease.firstRent : lease.rent;
+    }
+
+    function rentPayAt(list, i) {
+      return list.size() > i ? list[i].amount : 0;
+    }
+
+    function rentNewEntryOk(usersCol, docId) {
+      let list = request.resource.data.payments;
+      let n = resource.data.get('payments', []).size();
+      let path = rentPath(usersCol, 'rent_deposits', resource.data.get('tenantId', '-'));
+      let es = getAfter(path).data.get('entries', []);
+      return appendsOneEntry('payments') && n < 12
+        && list[n].keys().hasOnly(['amount', 'adv', 'mode', 'ref', 'date', 'at', 'by', 'byName', 'rno'])
+        && list[n].amount > 0
+        && list[n].get('by', null) == request.auth.uid
+        && (!('adv' in list[n]) || (request.resource.data.get('adv', 0) != resource.data.get('adv', 0)
+            && list[n].get('mode', '') in ['cash', 'upi', 'bank', 'cheque']))
+        && (list[n].get('mode', '') in ['cash', 'upi', 'bank', 'cheque']
+            || (list[n].get('mode', '') == 'deposit' && !('rno' in list[n])
+                && es.size() == get(path).data.get('entries', []).size() + 1
+                && es[es.size() - 1].get('kind', '') == 'adjust'
+                && es[es.size() - 1].get('chargeId', '') == docId
+                && es[es.size() - 1].get('amount', 0) == list[n].amount))
+        && (!('rno' in list[n])
+            || getAfter(rentPath(usersCol, 'rent_receipts', docId + '_' + string(n))).data.get('no', '') == list[n].rno);
+    }
+
+    function rentPayAdvOk(usersCol, d, r, e) {
+      return !('adv' in e)
+        ? d.get('adv', 0) == r.get('adv', 0)
+        : e.adv is number && e.adv > 0 && d.paid >= r.amount - 0.01
+          && rentPaidMatches(d.get('adv', 0), r.get('adv', 0) + e.adv)
+          && rentLatestActive(get(rentLeasePath(usersCol, r.leaseId)).data, r.month);
+    }
+
+    function rentLatestActive(l, month) {
+      return l.status == 'active' && l.get('chargedThrough', '') == month;
+    }
+
+    function rentAdvEndedOk(usersCol, r, docId, old) {
+      return old.status == 'ended'
+        && (old.get('movedTo', null) == null
+          ? rentAdvToDepOk(getAfter(rentPath(usersCol, 'rent_deposits', r.tenantId)).data.get('entries', []), docId, r.adv)
+          : old.endMonth == r.month
+            && rentAdvCarriedOk(r, rentChargePath(usersCol, old.movedTo, getAfter(rentLeasePath(usersCol, old.movedTo)).data.startMonth)));
+    }
+
+    function rentAdvCarriedOk(r, nc) {
+      return !exists(nc) && existsAfter(nc) && rentPaidMatches(getAfter(nc).data.paid + getAfter(nc).data.get('adv', 0), r.adv);
+    }
+
+    function rentAdvToDepOk(es, docId, adv) {
+      return es.size() > 0 && es[es.size() - 1].get('mode', '') == 'advance'
+        && es[es.size() - 1].get('chargeId', '') == docId && es[es.size() - 1].get('amount', 0) == adv;
+    }
+
+    function rentMeterOk(usersCol, docId, mgr) {
+      let d = request.resource.data;
+      let r = resource.data;
+      let e = d.get('electricity', null);
+      let old = r.get('electricity', null);
+      let unit = get(rentPath(usersCol, 'rent_units', r.unitId)).data;
+      let leaseMode = get(rentLeasePath(usersCol, r.leaseId)).data.get('elecMode', 'meter');
+      let unitAfter = getAfter(rentPath(usersCol, 'rent_units', r.unitId)).data;
+      return d.diff(r).affectedKeys().hasOnly(['electricity', 'amount', 'open', 'updatedAt', 'updatedBy'])
+        && rentWriterOk()
+        && leaseMode == 'meter'
+        && e is map && e.keys().hasOnly(['prev', 'curr', 'rate', 'units', 'amount'])
+        && e.get('prev', null) is number && e.get('curr', null) is number && e.get('rate', null) is number
+        && e.get('units', null) is number && e.get('amount', null) is number
+        && e.prev >= 0 && e.curr >= e.prev && e.rate >= 0
+        && (old == null || mgr)
+        && (old != null ? e.prev == old.prev : (unit.get('lastReading', null) == null || e.prev == unit.lastReading))
+        && (mgr || unit.get('meterRate', null) == null || e.rate == unit.meterRate)
+        && unitAfter.get('meterCharge', null) == docId
+        && unitAfter.get('lastReading', null) == e.curr && unitAfter.get('meterRate', null) == e.rate
+        && e.units >= e.curr - e.prev - 0.01 && e.units <= e.curr - e.prev + 0.01
+        && e.amount >= e.units * e.rate - 0.51 && e.amount <= e.units * e.rate + 0.51
+        && d.get('amount', null) is number
+        && d.amount >= r.rent + e.amount - 0.01 && d.amount <= r.rent + e.amount + 0.01
+        && d.amount >= r.paid - 0.01
+        && d.get('open', null) == (r.paid < d.amount - 0.001);
+    }
+
+    function rentPaidMatches(paid, sum) {
+      return paid >= sum - 0.01 && paid <= sum + 0.01;
+    }
+
+    function rentChargeMovedOk(usersCol, mgr, d, r, lease) {
+      let e = r.get('electricity', null) == null ? 0 : r.electricity.amount;
+      return d.diff(r).affectedKeys().hasOnly(['rent', 'amount', 'open', 'updatedAt', 'updatedBy'])
+        && rentWriterOk()
+        && lease.status == 'ended' && lease.get('movedTo', null) != null && lease.endMonth == r.month
+        && get(rentLeasePath(usersCol, r.leaseId)).data.status == 'active'
+        && d.get('rent', null) is number && d.rent >= 0 && d.rent <= r.rent
+        && (mgr || rentMoveRentOk(d.rent, r.rent, lease, r.month,
+              getAfter(rentLeasePath(usersCol, lease.movedTo)).data.get('startDate', ''),
+              d.get('amount', 0) >= r.paid - 0.01 && d.get('amount', 0) <= r.paid + 0.01 && d.get('open', true) == false))
+        && d.get('amount', null) is number
+        && d.amount >= d.rent + e - 0.01 && d.amount <= d.rent + e + 0.01
+        && d.amount >= r.paid - 0.01
+        && d.get('open', null) == (r.paid < d.amount - 0.001);
+    }
+
+    function rentMoveRentOk(v, full, lease, month, date, capped) {
+      let s = month == lease.startMonth && lease.get('firstRent', null) != null ? int(lease.startDate[8:10]) : 1;
+      let x = float(full) * (int(date[8:10]) - s) / (rentMonthDays(month) - s + 1);
+      return rentDate(date) && date[0:7] == month && v >= x - 0.5 && (capped || (v is int && v <= x + 0.5));
+    }
+
+    function rentMonthDays(m) {
+      let y = int(m[0:4]);
+      let mo = int(m[5:7]);
+      return mo == 2 ? (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) ? 29 : 28) : (mo in [4, 6, 9, 11] ? 30 : 31);
+    }
+
+    function rentIstYear() {
+      return (request.time + duration.value(330, 'm')).year();
+    }
+
+    function rentRnoIdx(usersCol, docId, a, b, rid) {
+      return b is list && b.size() == a.size()
+        && rid.size() > docId.size() + 1 && rid[0:docId.size() + 1] == docId + '_'
+        && rentRnoAt(usersCol, a, b, rid, int(rid[docId.size() + 1:rid.size()]));
+    }
+
+    function rentRnoAt(usersCol, a, b, rid, i) {
+      return i >= 0 && i < a.size() && !('rno' in a[i]) && b[i].diff(a[i]).affectedKeys().hasOnly(['rno'])
+        && b.removeAll([b[i]]) == a.removeAll([a[i]])
+        && getAfter(rentPath(usersCol, 'rent_receipts', rid)).data.get('no', '') == b[i].rno;
+    }
+
+    function rentChargeVoidOk(usersCol, docId) {
+      let d = request.resource.data;
+      let r = resource.data;
+      let old = r.get('voided', []);
+      let v = d.get('voided', []);
+      return d.diff(r).affectedKeys().hasOnly(['voided', 'updatedAt', 'updatedBy'])
+        && rentWriterOk()
+        && v is list && v.size() == old.size() + 1 && v.size() <= 12 && v.hasAll(old)
+        && v[v.size() - 1] is int && !(v[v.size() - 1] in old)
+        && v[v.size() - 1] >= 0 && v[v.size() - 1] < r.get('payments', []).size()
+        && getAfter(rentPath(usersCol, 'rent_receipts', docId + '_' + string(v[v.size() - 1]))).data.get('void', false) == true;
+    }
+
+    function rentCounterPath(usersCol, year) {
+      return rentPath(usersCol, 'rent_counters', 'receipts_' + string(year));
+    }
+
+    function validRentReceiptCreate(usersCol, rid) {
+      let chPath = rentPath(usersCol, 'rent_charges', request.resource.data.get('chargeId', '-'));
+      return rentReceiptCreateOk(usersCol, rid, request.resource.data, getAfter(chPath).data,
+        get(chPath).data.get('payments', []));
+    }
+
+    function rentReceiptCreateOk(usersCol, rid, d, ch, before) {
+      let path = rentCounterPath(usersCol, d.year);
+      let nm = get(/databases/$(database)/documents/$(usersCol)/$(request.auth.uid)).data.get('name', '');
+      return d.keys().hasOnly(['no', 'year', 'seq', 'chargeId', 'pi', 'leaseId', 'tenantId', 'unitId', 'propertyId', 'tenantName',
+                               'place', 'ut', 'months', 'rent', 'elec', 'total', 'paid', 'adv', 'mode', 'ref', 'date', 'balance', 'by',
+                               'byName', 'issuedBy', 'createdAt', 'void', 'voidBy', 'voidByName', 'voidAt', 'voidReason'])
+        && !d.keys().hasAny(['voidBy', 'voidByName', 'voidAt', 'voidReason']) && d.get('void', null) == false
+        && rentStr(d, 'chargeId', 1, 80) && d.get('pi', -1) is int && d.pi >= 0 && d.pi < 12
+        && rid == d.chargeId + '_' + string(d.pi)
+        && d.get('year', 0) is int && d.year == rentIstYear()
+        && d.get('seq', 0) is int && d.seq >= 1
+        && d.get('no', '') is string && d.no.matches('R-' + string(d.year) + '-0*' + string(d.seq))
+        && (getAfter(path).data.get('last', 0) == d.seq && getAfter(path).data.get('rid', '') == rid
+            && (exists(path) ? get(path).data.get('last', 0) == d.seq - 1 : d.seq == 1))
+        && d.pi < ch.payments.size()
+        && ((before.size() == d.pi && ch.payments.size() == d.pi + 1
+             && d.get('by', '') == request.auth.uid
+             && d.get('byName', '') == (nm == '' ? 'User' : nm.size() > 80 ? nm[0:80] : nm)
+             && !('issuedBy' in d))
+            || (before.size() == ch.payments.size() && !('rno' in before[d.pi])
+                && d.get('issuedBy', '') == request.auth.uid))
+        && d.get('balance', null) is number
+        && d.balance >= ch.amount - ch.paid - 0.01 && d.balance <= ch.amount - ch.paid + 0.01
+        && rentReceiptMatches(d, ch, ch.payments[d.pi]);
+    }
+
+    function rentReceiptMatches(d, ch, e) {
+      return e.get('rno', '') == d.no && e.get('by', '') == d.get('by', '') && e.get('byName', '') == d.get('byName', '')
+        && e.amount == d.get('paid', -1) && e.get('adv', 0) == d.get('adv', 0) && e.mode == d.get('mode', '')
+        && !(e.mode in ['deposit', 'advance']) && e.date == d.get('date', '')
+        && e.get('ref', '') == d.get('ref', '')
+        && d.get('leaseId', '') == ch.leaseId && d.get('tenantId', '') == ch.tenantId
+        && d.get('unitId', '') == ch.unitId && d.get('propertyId', '') == ch.propertyId
+        && d.get('months', null) == [ch.month]
+        && d.get('rent', null) == ch.rent && d.get('elec', null) == ch.get('electricity', null)
+        && d.get('total', null) == ch.amount
+        && d.get('tenantName', null) == ch.get('tenantName', '')
+        && rentStr(d, 'place', 0, 150) && rentStr(d, 'byName', 0, 80)
+        && (!('ut' in d) || d.ut in ['flat', 'commercial', 'office', 'godown', 'other'])
+        && d.get('createdAt', null) == request.time;
+    }
+
+    function rentReceiptVoidOk(usersCol) {
+      let d = request.resource.data;
+      let r = resource.data;
+      let chPath = rentPath(usersCol, 'rent_charges', r.chargeId);
+      return r.get('void', false) == false && d.get('void', null) == true
+        && d.diff(r).affectedKeys().hasOnly(['void', 'voidBy', 'voidByName', 'voidAt', 'voidReason'])
+        && d.get('voidBy', null) == request.auth.uid && d.get('voidAt', null) is number
+        && rentStr(d, 'voidByName', 0, 80) && rentStr(d, 'voidReason', 1, 200)
+        && (!existsAfter(chPath) || r.pi in getAfter(chPath).data.get('voided', []));
+    }
+
+    function validRentCounter(usersCol, id) {
+      let d = request.resource.data;
+      let rcpt = getAfter(rentPath(usersCol, 'rent_receipts', d.get('rid', '-'))).data;
+      return id.matches('^receipts_[0-9]{4}$')
+        && d.keys().hasOnly(['last', 'rid', 'updatedAt', 'updatedBy']) && rentWriterOk()
+        && d.get('last', 0) is int && d.last == (resource == null ? 1 : resource.data.last + 1)
+        && rentStr(d, 'rid', 1, 90)
+        && !exists(rentPath(usersCol, 'rent_receipts', d.rid))
+        && rcpt.seq == d.last && id == 'receipts_' + string(rcpt.year);
+    }
+
+    function rentChargeDeleteOk(usersCol, role) {
+      let leaseBefore = get(rentLeasePath(usersCol, resource.data.leaseId)).data;
+      let leaseAfter = getAfter(rentLeasePath(usersCol, resource.data.leaseId)).data;
+      let r = resource.data;
+      let p = r.get('payments', []);
+      let endCh = rentChargePath(usersCol, r.leaseId, leaseAfter.endMonth);
+      return (role in ['owner', 'manager']
+          || (role == 'member' && leaseAfter.get('movedTo', null) != null && resource.data.month == nextMonth(leaseAfter.endMonth)))
+        && ((resource.data.get('paid', 0) == 0 && resource.data.get('payments', []).size() == 0 && resource.data.get('adv', 0) == 0)
+          || (((p.size() == 1 && p[0].get('mode', '') == 'advance') || (p.size() == 0 && r.get('adv', 0) > 0))
+              && r.month == nextMonth(leaseAfter.endMonth)
+              && rentPaidMatches(getAfter(endCh).data.get('adv', 0), get(endCh).data.get('adv', 0) + r.paid + r.get('adv', 0))))
+        && leaseBefore.status == 'active' && leaseAfter.status == 'ended'
+        && resource.data.month > leaseAfter.endMonth;
+    }
+
+    function rentAdvBackInOk(usersCol) {
+      let d = request.resource.data;
+      let r = resource.data;
+      let n = rentChargePath(usersCol, r.leaseId, nextMonth(r.month));
+      return d.get('adv', 0) > r.get('adv', 0) && rentWriterOk()
+        && getAfter(rentLeasePath(usersCol, r.leaseId)).data.status == 'ended'
+        && getAfter(rentLeasePath(usersCol, r.leaseId)).data.endMonth == r.month
+        && get(rentLeasePath(usersCol, r.leaseId)).data.status == 'active'
+        && exists(n) && !existsAfter(n)
+        && rentPaidMatches(d.get('adv', 0), r.get('adv', 0) + get(n).data.paid + get(n).data.get('adv', 0));
+    }
+
+    function rentUnitCreateLeaseOk(usersCol, docId) {
+      let l = request.resource.data.get('leaseId', null);
+      return l == null
+        || (rentStr(request.resource.data, 'leaseId', 1, 64)
+            && !exists(rentLeasePath(usersCol, l))
+            && getAfter(rentLeasePath(usersCol, l)).data.unitId == docId
+            && getAfter(rentLeasePath(usersCol, l)).data.status == 'active');
+    }
+
+    // A payment, a receipt number on a payment, a meter reading, a change of unit or an advance
+    // moving out/back; the owner or a manager may also edit the payments or void one.
+    function rentChargeUpdateOk(usersCol, docId) {
+      let role = rentRoleIn(usersCol);
+      let mgr = role in ['owner', 'manager'];
+      let d = request.resource.data;
+      let r = resource.data;
+      let changed = d.diff(r).affectedKeys();
+      let n = r.get('payments', []).size();
+      let next = rentChargePath(usersCol, r.leaseId, nextMonth(r.month));
+      return role != ''
+        && ((rentCreationKept()
+             && ((changed.hasOnly(['payments', 'paid', 'open', 'adv', 'updatedAt', 'updatedBy'])
+                  && rentWriterOk()
+                  && rentNewEntryOk(usersCol, docId)
+                  && rentPayAdvOk(usersCol, d, r, d.payments[n])
+                  && d.get('paid', null) is number
+                  && d.paid >= r.paid + d.payments[n].amount - 0.01
+                  && d.paid <= r.paid + d.payments[n].amount + 0.01
+                  && d.paid <= r.amount + 0.01
+                  && d.get('open', null) == (d.paid < r.amount - 0.001))
+                 || (changed.hasOnly(['payments', 'updatedAt', 'updatedBy'])
+                     && rentWriterOk()
+                     && rentRnoIdx(usersCol, docId, r.get('payments', []), d.get('payments', []),
+                          getAfter(rentCounterPath(usersCol, rentIstYear())).data.get('rid', '')))
+                 || rentMeterOk(usersCol, docId, mgr)
+                 || (d.get('rent', null) != r.get('rent', null)
+                     && rentChargeMovedOk(usersCol, mgr, d, r, getAfter(rentLeasePath(usersCol, r.leaseId)).data))
+                 || (changed.hasOnly(['adv', 'updatedAt', 'updatedBy'])
+                     && ((rentWriterOk() && r.get('adv', 0) > 0 && d.get('adv', 0) == 0
+                          && ((!exists(next) && existsAfter(next)
+                               && rentPaidMatches(getAfter(next).data.paid + getAfter(next).data.get('adv', 0), r.adv))
+                              || rentAdvEndedOk(usersCol, r, docId, get(rentLeasePath(usersCol, r.leaseId)).data)))
+                         || rentAdvBackInOk(usersCol)))))
+            || (mgr
+                && ((d.keys().hasOnly(rentChargeFields())
+                     && rentWriterOk() && rentCreationKept()
+                     && d.get('leaseId', null) == r.leaseId && d.get('month', null) == r.month
+                     && d.get('unitId', null) == r.unitId && d.get('tenantId', null) == r.tenantId
+                     && d.get('electricity', null) == r.get('electricity', null) && d.get('rent', null) == r.get('rent', null)
+                     && d.get('voided', []) == r.get('voided', []) && d.get('adv', 0) == r.get('adv', 0)
+                     && rentMoney(d, 'amount') && rentMoney(d, 'paid')
+                     && d.get('payments', null) is list
+                     && (d.payments == r.get('payments', []) || rentNewEntryOk(usersCol, docId))
+                     && d.payments.size() <= 12
+                     && rentPaidMatches(d.paid, rentPaidSum(d.payments))
+                     && d.paid <= d.amount + 0.01
+                     && d.get('open', null) == (d.paid < d.amount - 0.001))
+                    || rentChargeVoidOk(usersCol, docId))));
+    }
+
+    function rentPaidSum(l) {
+      return rentPayAt(l, 0) + rentPayAt(l, 1) + rentPayAt(l, 2) + rentPayAt(l, 3)
+        + rentPayAt(l, 4) + rentPayAt(l, 5) + rentPayAt(l, 6) + rentPayAt(l, 7)
+        + rentPayAt(l, 8) + rentPayAt(l, 9) + rentPayAt(l, 10) + rentPayAt(l, 11);
+    }
+
+    function rentUnitUpdateOk(usersCol, docId) {
+      let role = rentRoleIn(usersCol);
+      let d = request.resource.data;
+      let r = resource.data;
+      let meterKeys = d.diff(r).affectedKeys().intersection(['lastReading', 'meterRate', 'meterCharge'].toSet());
+      return role != ''
+        && (d.diff(r).affectedKeys().hasOnly(['leaseId', 'updatedAt', 'updatedBy'])
+          ? rentWriterOk() && rentUnitLeaseOk(usersCol, docId)
+          : validRentUnit() && rentCreationKept()
+            && rentUnitLeaseOk(usersCol, docId)
+            && (meterKeys.size() == 0
+                || (role in ['owner', 'manager'] && meterKeys.hasOnly(['meterRate']))
+                || (rentStr(d, 'meterCharge', 1, 80)
+                    && getAfter(rentPath(usersCol, 'rent_charges', d.meterCharge)).data.unitId == docId
+                    && getAfter(rentPath(usersCol, 'rent_charges', d.meterCharge)).data.electricity.curr == d.lastReading
+                    && getAfter(rentPath(usersCol, 'rent_charges', d.meterCharge)).data.electricity.rate == d.meterRate)));
+    }
+
+    function validRentPublic(usersCol, token) {
+      let d = request.resource.data;
+      return rentRoleIn(usersCol) != ''
+        && rentShareToken(token)
+        && d.keys().hasOnly(['lid', 'v', 'shop', 'tenant', 'place', 'ut', 'since', 'em', 'rent', 'dueDay', 'ended', 'endMonth', 'months', 'dep', 'updatedAt'])
+        && (!('since' in d) || rentDate(d.since))
+        && (!('dep' in d) || rentMoney(d, 'dep'))
+        && (!('em' in d) || d.em in ['included', 'meter', 'own'])
+        && (!('ut' in d) || d.ut in ['flat', 'commercial', 'office', 'godown', 'other'])
+        && rentStr(d, 'lid', 1, 64)
+        && getAfter(rentLeasePath(usersCol, d.lid)).data.get('shareToken', null) == token
+        && d.get('v', 0) == 1
+        && rentStr(d, 'shop', 0, 80) && rentStr(d, 'tenant', 0, 80) && rentStr(d, 'place', 0, 150)
+        && rentMoney(d, 'rent') && d.get('dueDay', 0) is int
+        && d.get('ended', null) is bool && (d.get('endMonth', null) == null || rentMonth(d.endMonth))
+        && d.get('months', null) is list && d.months.size() <= 36
+        && d.get('updatedAt', null) is number
+        && (resource == null || resource.data.lid == d.lid
+            || getAfter(rentLeasePath(usersCol, d.lid)).data.get('fromLeaseId', null) == resource.data.lid);
+    }
+
+    function rentPublicDeleteOk(usersCol, token) {
+      return isOwnerIn(usersCol)
+        || (rentRoleIn(usersCol) in ['owner', 'manager']
+            && get(rentLeasePath(usersCol, resource.data.lid)).data.get('shareToken', null) == token
+            && getAfter(rentLeasePath(usersCol, resource.data.lid)).data.get('shareToken', null) != token);
+    }
+
+    function rentAuditOk(usersCol) {
+      return request.resource.data.get('action', '') is string
+        && request.resource.data.action.matches('RENT_[A-Z_]{1,40}')
+        && rentRoleIn(usersCol) != '';
+    }
+
+    function validRentSettings(usersCol, docId) {
+      let d = request.resource.data;
+      return docId == 'default'
+        && canManageRent(usersCol)
+        && rentWriterOk()
+        && d.keys().hasOnly(['dueDay', 'increasePct', 'meterRate', 'tenantLink', 'receiptHeader', 'receiptAddress', 'updatedAt', 'updatedBy'])
+        && d.get('dueDay', 10) is int && d.get('dueDay', 10) >= 1 && d.get('dueDay', 10) <= 28
+        && d.get('increasePct', 5) is number && d.get('increasePct', 5) >= 0 && d.get('increasePct', 5) <= 100
+        && rentNumOrNull(d, 'meterRate')
+        && d.get('tenantLink', false) is bool
+        && rentStr(d, 'receiptHeader', 0, 80) && rentStr(d, 'receiptAddress', 0, 200);
+    }
+
+    function rentDepAt(l, i) {
+      return l.size() > i ? (l[i].kind == 'received' ? l[i].amount : 0 - l[i].amount) : 0;
+    }
+
+    function rentDepNewOk(usersCol, docId, d, held, n) {
+      let e = d.entries[n];
+      let ch = rentPath(usersCol, 'rent_charges', e.get('chargeId', '-'));
+      return d.entries.size() == n + 1
+        && e is map
+        && e.keys().hasOnly(['kind', 'amount', 'date', 'mode', 'chargeId', 'month', 'leaseId', 'note', 'at', 'by', 'byName'])
+        && e.get('kind', '') in ['received', 'adjust', 'refund']
+        && e.get('amount', null) is number && e.amount > 0
+        && rentDate(e.get('date', '')) && e.get('by', '') == request.auth.uid
+        && rentStr(e, 'note', 0, 200) && rentStr(e, 'byName', 0, 80)
+        && (!('leaseId' in e) || rentStr(e, 'leaseId', 1, 64))
+        && (e.kind == 'adjust' ? rentStr(e, 'chargeId', 1, 80)
+          : e.get('mode', '') in ['cash', 'upi', 'bank', 'cheque']
+            || (e.kind == 'received' && e.mode == 'advance' && rentStr(e, 'chargeId', 1, 80)))
+        && rentPaidMatches(d.held, held + (e.kind == 'received' ? e.amount : 0 - e.amount))
+        && (e.get('mode', '') != 'advance'
+          || (get(ch).data.tenantId == docId && get(ch).data.get('adv', 0) == e.amount && getAfter(ch).data.get('adv', 0) == 0
+            && get(rentLeasePath(usersCol, get(ch).data.leaseId)).data.status == 'ended'
+            && get(rentLeasePath(usersCol, get(ch).data.leaseId)).data.get('movedTo', null) == null))
+        && (e.kind != 'adjust'
+          || (getAfter(ch).data.tenantId == docId
+            && getAfter(ch).data.payments.size() == get(ch).data.get('payments', []).size() + 1
+            && getAfter(ch).data.payments[getAfter(ch).data.payments.size() - 1].get('mode', '') == 'deposit'
+            && getAfter(ch).data.payments[getAfter(ch).data.payments.size() - 1].amount == e.amount));
+    }
+
+    function validRentDeposit(usersCol, docId) {
+      let d = request.resource.data;
+      let role = rentRoleIn(usersCol);
+      return role != '' && rentWriterOk()
+        && d.keys().hasOnly(['tenantId', 'tenantName', 'held', 'entries', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+        && d.get('tenantId', '') == docId && rentStr(d, 'tenantName', 0, 80)
+        && d.get('held', null) is number && d.held >= 0
+        && d.get('entries', null) is list && d.entries.size() <= 24
+        && (resource == null
+          ? d.get('createdBy', '') == request.auth.uid && exists(rentPath(usersCol, 'rent_tenants', docId))
+            && rentDepNewOk(usersCol, docId, d, 0, 0)
+          : rentCreationKept()
+            && ((appendsOneEntry('entries') && rentDepNewOk(usersCol, docId, d, resource.data.held, resource.data.entries.size()))
+              || (role == 'owner' && rentPaidMatches(d.held, rentDepSum(d.entries)))));
+    }
+
+    function rentDepSum(l) {
+      return rentDepAt(l, 0) + rentDepAt(l, 1) + rentDepAt(l, 2) + rentDepAt(l, 3) + rentDepAt(l, 4) + rentDepAt(l, 5)
+        + rentDepAt(l, 6) + rentDepAt(l, 7) + rentDepAt(l, 8) + rentDepAt(l, 9) + rentDepAt(l, 10) + rentDepAt(l, 11)
+        + rentDepAt(l, 12) + rentDepAt(l, 13) + rentDepAt(l, 14) + rentDepAt(l, 15) + rentDepAt(l, 16) + rentDepAt(l, 17)
+        + rentDepAt(l, 18) + rentDepAt(l, 19) + rentDepAt(l, 20) + rentDepAt(l, 21) + rentDepAt(l, 22) + rentDepAt(l, 23);
+    }
+
+    function validRentExpense(usersCol) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['propertyId', 'unitId', 'category', 'amount', 'date', 'month', 'mode', 'note', 'byName',
+                               'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+        && rentWriterOk()
+        && rentStr(d, 'propertyId', 1, 64) && exists(rentPath(usersCol, 'rent_properties', d.propertyId))
+        && (d.get('unitId', null) == null
+          || (rentStr(d, 'unitId', 1, 64) && get(rentPath(usersCol, 'rent_units', d.unitId)).data.propertyId == d.propertyId))
+        && d.get('category', '') in ['repairs', 'tax', 'maintenance', 'insurance', 'broker', 'other']
+        && d.get('amount', null) is number && d.amount > 0 && d.amount <= 100000000
+        && rentDate(d.get('date', '')) && d.get('month', '') == d.date[0:7]
+        && d.get('mode', '') in ['cash', 'upi', 'bank', 'cheque']
+        && rentStr(d, 'note', 0, 200) && rentStr(d, 'byName', 0, 80)
+        && d.get('createdAt', null) is number && rentStr(d, 'createdBy', 1, 128);
+    }
+
+    // Worker pay (#373): owner only; one doc per worker, entries append-only or one removed.
+    function wpEntryOk(e) {
+      return e is map && e.keys().hasOnly(['id', 'month', 'date', 'amount', 'kind', 'mode', 'note'])
+        && rentStr(e, 'id', 1, 40) && rentMonth(e.get('month', '')) && rentDate(e.get('date', ''))
+        && e.get('amount', null) is int && e.amount > 0 && e.amount <= 10000000
+        && e.get('kind', '') in ['pay', 'advance'] && e.get('mode', '') in ['cash', 'online'] && rentStr(e, 'note', 0, 120);
+    }
+
+    function wpStepOk(s) {
+      return s is map && s.keys().hasOnly(['from', 'amount']) && rentMonth(s.get('from', ''))
+        && s.get('amount', null) is int && s.amount >= 0 && s.amount <= 10000000;
+    }
+
+    // Worker pay and recurring bills: created with no entries; an update keeps them, appends one with
+    // the earlier ones unchanged (arrayUnion), or removes exactly one (arrayRemove). At most 3,000.
+    function keptEntriesOk(isNew, e, n) {
+      let o = isNew ? 0 : resource.data.entries.size();
+      return n >= 0 && n <= 3000
+        && (isNew ? n == 0 : (n == o - 1 && resource.data.entries.hasAll(e) && e.toSet().size() == n)
+            || (n == o && e == resource.data.entries)
+            || (n == o + 1 && (o == 0 || e[0:o] == resource.data.entries)))
+        && request.resource.data.get('updatedAt', null) == request.time;
+    }
+
+    function wpOk(isNew) {
+      let d = request.resource.data;
+      let p = d.get('pays', null);
+      let e = d.get('entries', null);
+      let n = e is list ? e.size() : -1;
+      return d.keys().hasOnly(['name', 'startMonth', 'active', 'pays', 'entries', 'updatedAt'])
+        && rentStr(d, 'name', 1, 60) && rentMonth(d.get('startMonth', '')) && d.get('active', null) is bool
+        && p is list && p.size() >= 1 && p.size() <= 24 && wpStepOk(p[0]) && p[0].from == d.startMonth && wpStepOk(p[p.size() - 1])
+        && keptEntriesOk(isNew, e, n) && (n == 0 || wpEntryOk(e[n - 1]));
+    }
+
+    // Recurring bills (#437): owner only; one doc per bill item; entries are bill amounts (kind 'bill',
+    // the newest for a period counts) and payments, append-only or one removed.
+    function rbEntryOk(e) {
+      return e is map && e.keys().hasOnly(['id', 'kind', 'period', 'date', 'amount', 'mode', 'note'])
+        && rentStr(e, 'id', 1, 40) && rentMonth(e.get('period', '')) && rentDate(e.get('date', ''))
+        && e.get('amount', null) is int && e.amount <= 10000000 && rentStr(e, 'note', 0, 120)
+        && (e.get('kind', '') == 'bill' ? e.amount >= 0 && !('mode' in e)
+            : e.get('kind', '') == 'pay' && e.amount > 0 && e.get('mode', '') in ['cash', 'online']);
+    }
+
+    function rbOk(isNew) {
+      let d = request.resource.data;
+      let e = d.get('entries', null);
+      let n = e is list ? e.size() : -1;
+      return d.keys().hasOnly(['name', 'cadence', 'dueDay', 'startMonth', 'expected', 'active', 'endMonth', 'note', 'entries', 'updatedAt'])
+        && rentStr(d, 'name', 1, 60) && d.get('cadence', 0) is int && d.cadence in [1, 2, 3, 6, 12]
+        && d.get('dueDay', 0) is int && d.dueDay >= 1 && d.dueDay <= 28 && rentMonth(d.get('startMonth', ''))
+        && d.get('expected', null) is int && d.expected >= 0 && d.expected <= 10000000 && d.get('active', null) is bool
+        && (d.get('endMonth', '') == '' || rentMonth(d.endMonth)) && rentStr(d, 'note', 0, 120)
+        && keptEntriesOk(isNew, e, n) && (n == 0 || (rbEntryOk(e[0]) && rbEntryOk(e[n - 1])))
+        && (isNew || resource.data.entries.size() == 0 || (d.cadence == resource.data.cadence && d.startMonth == resource.data.startMonth));
+    }
+
+    // Shared business collections (prod and dev_). Create and update dispatch on the collection
+    // here rather than in a helper: every helper layer is re-walked by the rules compiler.
+    match /{collection}/{docId} {
+      allow get: if businessAccess(collection)
+        && canReadRecord(baseName(collection), usersOf(collection), docId, true);
+      allow list: if businessAccess(collection)
+        && canReadRecord(baseName(collection), usersOf(collection), docId, false);
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    // --- anomalies, reminders, rate/month stats, TIP health ---
+
+    function validAnomaly(usersCol) {
+      let d = request.resource.data;
+      return isManagerIn(usersCol)
+        && d.keys().hasOnly(['type', 'rule', 'severity', 'en', 'hi', 'refKind', 'refId', 'billType', 'billNumber',
+                             'party', 'item', 'userId', 'user', 'amount', 'at', 'dayKey', 'hour', 'detectedBy',
+                             'detectedAt', 'status', 'note', 'reviewedBy', 'reviewedByName', 'reviewedAt'])
+        && d.keys().hasAll(['type', 'severity', 'dayKey', 'status'])
+        && d.type is string && d.dayKey is string
+        && d.severity in ['high', 'medium', 'low']
+        && d.status in ['open', 'ok', 'fixed'];
+    }
+
+    function remIstDay(n) {
+      let ist = request.time + duration.value(330, 'm') + duration.value(n, 'd');
+      return string(ist.year()) + '-' + pad2(ist.month()) + '-' + pad2(ist.day());
+    }
+
+    function reminderDateInRange(v) {
+      return v is string
+        && v.matches('^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+        && v >= remIstDay(-1)
+        && v <= remIstDay(800);
+    }
+
+    function reminderFieldsOk(d) {
+      let r = d.get('repeat', null);
+      let day = d.get('repeatDay', null);
+      let tm = d.get('dueTime', null);
+      return d.title is string && d.title.size() >= 1 && d.title.size() <= 120
+        && (tm == null || (tm is string && tm.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
+        && shortStringOrAbsent(d, 'party', 80)
+        && (r == null || r in ['daily', 'weekly', 'monthly'])
+        && (day == null || (r == 'monthly' && day is int && day >= 1 && day <= 31));
+    }
+
+    function reminderCreatedOk(d) {
+      return d.keys().hasAll(['title', 'dueDate', 'status', 'createdBy', 'createdAt'])
+        && reminderFieldsOk(d)
+        && reminderDateInRange(d.dueDate)
+        && shortStringOrAbsent(d, 'createdByName', 60)
+        && d.status == 'open'
+        && d.createdBy == request.auth.uid
+        && d.createdAt == request.time;
+    }
+
+    function validReminderCreate(usersCol) {
+      let d = request.resource.data;
+      return isManagerIn(usersCol)
+        && d.keys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'status', 'createdBy', 'createdByName', 'createdAt'])
+        && reminderCreatedOk(d);
+    }
+
+    function remDate(s) {
+      return timestamp.date(int(s[0:4]), int(s[5:7]), int(s[8:10]));
+    }
+
+    function reminderNextDateOk(next, prev) {
+      let due = remDate(prev.dueDate);
+      let today = remDate(remIstDay(0));
+      let from = due > today ? due : today;
+      let days = prev.repeat == 'daily' ? 1 : (prev.repeat == 'weekly' ? 7 : 31);
+      return remDate(next) <= from + duration.value(days + 1, 'd');
+    }
+
+    function validReminderNext(usersCol, coll, id) {
+      let d = request.resource.data;
+      let prevPath = /databases/$(database)/documents/$(coll)/$(d.get('repeatOf', '-'));
+      let prev = get(prevPath).data;
+      let after = getAfter(prevPath).data;
+      return isApprovedIn(usersCol)
+        && d.keys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'repeatOf', 'status', 'createdBy', 'createdByName', 'createdAt'])
+        && d.repeatOf is string
+        && reminderCreatedOk(d)
+        && prev.status == 'open'
+        && prev.get('repeat', null) != null
+        && after.status == 'done'
+        && after.get('nextId', null) == id
+        && d.title == prev.title
+        && d.get('party', null) == prev.get('party', null)
+        && d.get('repeat', null) == prev.get('repeat', null)
+        && d.get('repeatDay', null) == prev.get('repeatDay', null)
+        && d.get('dueTime', null) == prev.get('dueTime', null)
+        && d.dueDate > prev.dueDate
+        && reminderNextDateOk(d.dueDate, prev);
+    }
+
+    function reminderAckOk(usersCol, coll, id) {
+      let d = request.resource.data;
+      let next = d.get('nextId', null);
+      return isApprovedIn(usersCol)
+        && resource.data.status == 'open'
+        && d.diff(resource.data).affectedKeys().hasOnly(['status', 'doneBy', 'doneByName', 'doneAt', 'nextId'])
+        && d.status == 'done'
+        && d.doneBy == request.auth.uid
+        && d.doneAt == request.time
+        && shortStringOrAbsent(d, 'doneByName', 60)
+        && (resource.data.get('repeat', null) == null
+            ? next == null
+            : (next is string && getAfter(/databases/$(database)/documents/$(coll)/$(next)).data.get('repeatOf', null) == id));
+    }
+
+    function reminderEditOk(usersCol) {
+      let d = request.resource.data;
+      return isManagerIn(usersCol)
+        && resource.data.status == 'open'
+        && d.diff(resource.data).affectedKeys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'updatedBy', 'updatedByName', 'updatedAt'])
+        && d.status == 'open'
+        && reminderFieldsOk(d)
+        && (d.dueDate == resource.data.dueDate || reminderDateInRange(d.dueDate))
+        && d.updatedBy == request.auth.uid
+        && d.updatedAt == request.time
+        && shortStringOrAbsent(d, 'updatedByName', 60);
+    }
+
+    function reminderCancelOk(usersCol) {
+      let d = request.resource.data;
+      return isManagerIn(usersCol)
+        && resource.data.status == 'open'
+        && d.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledBy', 'cancelledByName', 'cancelledAt'])
+        && d.status == 'cancelled'
+        && d.cancelledBy == request.auth.uid
+        && d.cancelledAt == request.time
+        && shortStringOrAbsent(d, 'cancelledByName', 60);
+    }
+
+    function validRateStats(usersCol, docId) {
+      let d = request.resource.data;
+      return isManagerIn(usersCol)
+        && voidAwareWriter()
+        && (docId == '_meta'
+          ? d.keys().hasOnly(['backfillDone', 'backfillAt', 'bills', 'reads', 'months', 'by', 'byUserId', 'startedAt', 'clientVersion', 'writtenAt'])
+          : d.keys().hasOnly(['itemId', 'year', 'weeks', 'months', 'updatedAt', 'clientVersion', 'writtenAt'])
+            && d.keys().hasAll(['itemId', 'year', 'weeks', 'months'])
+            && d.itemId is string && d.itemId.size() > 0
+            && d.year is string && d.year.matches('^[0-9]{4}$')
+            && docId == d.itemId + '_' + d.year
+            && d.weeks is map && d.weeks.size() <= 54
+            && d.months is map && d.months.size() <= 12);
+    }
+
+    function validMonthStats(usersCol, docId) {
+      let d = request.resource.data;
+      return isManagerIn(usersCol)
+        && voidAwareWriter()
+        && d.get('clientVersion', 0) >= 5
+        && docId.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+        && d.keys().hasOnly(['month', 'v', 'm', 'items', 'customers', 'suppliers', 'categories', 'days', 'builtAt', 'stale', 'staleAt', 'clientVersion', 'writtenAt'])
+        && d.keys().hasAll(['month', 'v', 'm'])
+        && d.month == docId
+        && d.v is int
+        && d.m is map;
+    }
+
+    function monthStaleMarkOnly(usersCol, docId) {
+      let d = request.resource.data;
+      return isApprovedIn(usersCol)
+        && docId.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+        && d.get('stale', false) == true
+        && d.get('month', null) == docId
+        && d.get('staleAt', null) is number
+        && (resource == null
+            ? d.keys().hasOnly(['month', 'stale', 'staleAt'])
+            : d.diff(resource.data).affectedKeys().hasOnly(['stale', 'staleAt']));
+    }
+
+    function validTipHealth(usersCol, docId) {
+      let d = request.resource.data;
+      return isApprovedIn(usersCol)
+        && d.keys().hasOnly(['uid', 'deviceId', 'day', 'platform', 'appVersion', 'buildId', 'updatedAt', 'v'])
+        && d.keys().hasAll(['uid', 'deviceId', 'day', 'v'])
+        && d.uid == request.auth.uid
+        && d.deviceId is string && d.deviceId.matches('^[a-z0-9]{6,20}$')
+        && d.day is string && d.day.matches('^[0-9]{8}$')
+        && docId == d.deviceId + '_' + d.day
+        && d.v is map && d.v.size() <= 4
+        && shortStringOrAbsent(d, 'platform', 16)
+        && shortStringOrAbsent(d, 'appVersion', 20)
+        && shortStringOrAbsent(d, 'buildId', 64)
+        && (!('updatedAt' in d) || d.updatedAt == request.time)
+        && (resource == null
+            || (resource.data.uid == request.auth.uid
+                && resource.data.deviceId == d.deviceId
+                && resource.data.day == d.day));
+    }
+
+    function validTipFailure(usersCol, docId) {
+      let d = request.resource.data;
+      return isApprovedIn(usersCol)
+        && d.keys().hasOnly(['uid', 'deviceId', 'day', 'test', 'result', 'reason', 'reasonName', 'flags', 'props',
+                             'errors', 'durationMs', 'appVersion', 'buildId', 'platform', 'at', 'createdAt'])
+        && d.keys().hasAll(['uid', 'deviceId', 'day', 'test', 'result', 'reason', 'at'])
+        && d.uid == request.auth.uid
+        && d.deviceId is string && d.deviceId.matches('^[a-z0-9]{6,20}$')
+        && d.day is string && d.day.matches('^[0-9]{8}$')
+        && docId.matches('^' + d.deviceId + '_' + d.day + '_([1-9]|1[0-9]|20)$')
+        && d.test is string && d.test.size() <= 32
+        && d.result in ['fail', 'abandoned', 'expired', 'rolled_back']
+        && d.reason is int && d.reason >= 0 && d.reason <= 32767
+        && d.at is number
+        && (!('flags' in d) || (d.flags is map && d.flags.size() <= 12))
+        && (!('props' in d) || (d.props is map && d.props.size() <= 12))
+        && shortStringOrAbsent(d, 'reasonName', 40)
+        && shortStringOrAbsent(d, 'appVersion', 20)
+        && shortStringOrAbsent(d, 'buildId', 64)
+        && shortStringOrAbsent(d, 'platform', 16)
+        && (!('createdAt' in d) || d.createdAt == request.time);
+    }
+
+    // Explicit prod and dev_ blocks below: a wildcard block is evaluated for every write and
+    // counts towards the 1000-expression limit per document.
+    match /purchases/{billId}/edits/{editId} {
+      allow read: if isApprovedIn('users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /retailSales/{billId}/edits/{editId} {
+      allow read: if isApprovedIn('users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /wholesaleSales/{billId}/edits/{editId} {
+      allow read: if isApprovedIn('users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /users/{userId}/preferences/{prefId} {
+      allow read: if isApprovedIn('users') && request.auth.uid == userId;
+    }
+
+    match /dev_purchases/{billId}/edits/{editId} {
+      allow read: if isApprovedIn('dev_users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_retailSales/{billId}/edits/{editId} {
+      allow read: if isApprovedIn('dev_users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_wholesaleSales/{billId}/edits/{editId} {
+      allow read: if isApprovedIn('dev_users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_users/{userId}/preferences/{prefId} {
+      allow read: if isApprovedIn('dev_users') && request.auth.uid == userId;
+    }
+
+    match /stockCheckpoints/{docId} {
+      allow read: if isApprovedIn('users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rateHistory/{docId} {
+      allow read: if isManagerIn('users');
+// (read-only: "allow create" removed)
+    }
+
+    match /anomalies/{docId} {
+      allow read: if isManagerIn('users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /reminders/{docId} {
+      allow read: if isApprovedIn('users');
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rateStats/{docId} {
+      allow read: if isManagerIn('users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /monthStats/{docId} {
+      allow read: if isManagerIn('users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /tipHealth/{docId} {
+      allow read: if isManagerIn('users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /tipFailures/{docId} {
+      allow read: if isManagerIn('users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /users/{docId} {
+      allow read: if canReadProfile('users', docId);
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /deviceLog/{docId} {
+      allow get: if (request.auth != null && request.auth.uid == docId && isApprovedIn('users')) || isOwnerIn('users');
+      allow list: if isOwnerIn('users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /auditLogs/{docId} {
+// (read-only: "allow create" removed)
+      allow read: if isOwnerIn('users');
+// (read-only: "allow delete" removed)
+    }
+
+    match /telemetry/{docId} {
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+      allow read: if isOwnerIn('users');
+    }
+
+    match /rent_public/{docId} {
+      allow get: if true;
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_properties/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_tenants/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_units/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_leases/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_charges/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_settings/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_receipts/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+    }
+
+    match /rent_deposits/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_expenses/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /rent_counters/{docId} {
+      allow read: if rentRoleIn('users') != '';
+// (read-only: "allow create, update" removed)
+    }
+
+    match /workers/{docId} {
+      allow read: if isOwnerIn('users');
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+    }
+    match /recurringBills/{docId} {
+      allow read: if isOwnerIn('users');
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+    }
+
+    match /dev_stockCheckpoints/{docId} {
+      allow read: if isApprovedIn('dev_users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rateHistory/{docId} {
+      allow read: if isManagerIn('dev_users');
+// (read-only: "allow create" removed)
+    }
+
+    match /dev_anomalies/{docId} {
+      allow read: if isManagerIn('dev_users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_reminders/{docId} {
+      allow read: if isApprovedIn('dev_users');
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rateStats/{docId} {
+      allow read: if isManagerIn('dev_users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_monthStats/{docId} {
+      allow read: if isManagerIn('dev_users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_tipHealth/{docId} {
+      allow read: if isManagerIn('dev_users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_tipFailures/{docId} {
+      allow read: if isManagerIn('dev_users');
+// (read-only: "allow create" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_users/{docId} {
+      allow read: if canReadProfile('dev_users', docId);
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_deviceLog/{docId} {
+      allow get: if (request.auth != null && request.auth.uid == docId && isApprovedIn('dev_users')) || isOwnerIn('dev_users');
+      allow list: if isOwnerIn('dev_users');
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_auditLogs/{docId} {
+// (read-only: "allow create" removed)
+      allow read: if isOwnerIn('dev_users');
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_telemetry/{docId} {
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+      allow read: if isOwnerIn('dev_users');
+    }
+
+    match /dev_rent_public/{docId} {
+      allow get: if true;
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_properties/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_tenants/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_units/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_leases/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_charges/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_settings/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_receipts/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+    }
+
+    match /dev_rent_deposits/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create, update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_expenses/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+// (read-only: "allow delete" removed)
+    }
+
+    match /dev_rent_counters/{docId} {
+      allow read: if rentRoleIn('dev_users') != '';
+// (read-only: "allow create, update" removed)
+    }
+
+    match /dev_workers/{docId} {
+      allow read: if isOwnerIn('dev_users');
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+    }
+    match /dev_recurringBills/{docId} {
+      allow read: if isOwnerIn('dev_users');
+// (read-only: "allow create" removed)
+// (read-only: "allow update" removed)
+    }
+  }
+}
