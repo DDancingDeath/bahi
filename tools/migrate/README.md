@@ -1,5 +1,8 @@
 # Move to the shop's own Firebase project (#15)
 
+> **Target since 16 Nov 2026:** `bahi-happa` (rehearsals on `bahi-happa-dev`), not `happa-bfc07`, which is
+> retired (#72). Examples below that name `happa-bfc07` are from the 26 Oct runbook; use the new ids.
+
 This tool copies what the shop needs into a **new Firebase project** for the new app, **Happa**. The old app, the old site (`aadhat-management.web.app`) and the old project (`aadhat-management`) **stay as they are**: nothing here changes them.
 
 It never reads the old project. Its only input is a **decrypted backup** made by `tools/backup` (see `tools/backup/README.md`). The old project's free read quota is not used.

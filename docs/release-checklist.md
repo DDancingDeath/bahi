@@ -25,8 +25,10 @@ package `com.happa.dev`) that installs next to Bahi and is never offered to phon
 
 - [ ] `main` is green: *CI* (lint, Jest, rules tests) and *Playwright E2E (emulators)*.
 - [ ] The last *Deploy to Firebase on merge* run succeeded, and
-      https://myhappa.web.app shows the new `BUILD_ID` (the
+      https://bahi-happa.web.app shows the new `BUILD_ID` (the
       browser console line `[Aadhat] BUILD …`, or `window.__AADHAT_BUILD__`).
+- [ ] The last *Deploy to bahi-happa-dev on merge* run succeeded (the test project
+      https://bahi-happa-dev.web.app has the same `BUILD_ID`).
 - [ ] The old site https://aadhat-management.web.app still shows `20261023e-release-1-6-1`.
 - [ ] `npm run check:release` passes and `www/changelog.json` has the new
       version with short `en` and `hi` notes.
@@ -94,6 +96,17 @@ new APK.
 - [ ] If a phone that needs to work gets blocked by mistake, set
       `minClientVersion` back to the previous value at once.
 
+## 6a. Old phones after the cut-over (rc12 / rc13)
+
+rc12 and rc13 were built for `happa-bfc07` (myhappa). Since the cut-over (16 Nov 2026) that
+project's `settings/app.minClientVersion` is 6, so those APKs show "This app version is outdated.
+Please update the app to continue." and stop syncing, and its Firestore rules refuse every write.
+
+- [ ] Every shop phone runs rc14 or later (Settings › Help & about › About). A phone still on rc12/rc13:
+      open it online once (anything not yet synced to happa-bfc07 can't sync any more: re-enter it in
+      Bahi), uninstall it, install the latest APK from https://bahi-happa.web.app/download and sign in
+      with the same email and password (logins were copied with the same uid and password).
+
 ## 7. Timings (record them every release)
 
 Measure on the shop's reference phone, on mobile data. Close the app fully
@@ -118,3 +131,33 @@ the last row needs an issue before it goes out.
 - [ ] If something is badly wrong, fix forward with a new release (Android won't
       install an older version code over a newer one). A bad web deploy can be
       rolled back in the Firebase console → Hosting → release history.
+
+## 9. Where things live (since the #72 cut-over, 16 Nov 2026)
+
+| What | Project / site | Deployed by |
+|---|---|---|
+| The shop's app (web, PWA) | `bahi-happa` / https://bahi-happa.web.app | `firebase-hosting-merge.yml` on every push to `main` (rules first, then Hosting; secret `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA`) |
+| Test project (manual tests, PR previews, Bahi Dev APK) | `bahi-happa-dev` / https://bahi-happa-dev.web.app | `bahi-dev-deploy.yml` on the same push; PR channels by `firebase-hosting-pull-request.yml` (secret `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV`) |
+| APK (rc14 and later) | `bahi-happa` (target `config/targets/bahi-happa.json`) | `android-release.yml` on a `v*` tag |
+| Backups, TIP | `bahi-happa` | `firestore-backup.yml`, `tip-autobugs.yml` |
+| Retired: `happa-bfc07` (myhappa, happaapp, happa-bfc07 sites) | 301 of every path to the same path on bahi-happa.web.app; Firestore read-only; `minClientVersion` 6 | once, from the `ops/myhappa-retire` branch (never from `main`) |
+| Old app | `aadhat-management` | never |
+
+The hand-kept local config branches (`local/bahi-prod-config`, `local/bahi-dev-config`) are no longer used.
+
+**Owner steps still open:** delete project `happa-bfc07` no earlier than 2 weeks of shop use on
+bahi-happa (RENAME_PLAN suggests keeping the 301s for months: the tenant link and printed QR codes),
+after a final backup; then delete the secret `FIREBASE_SERVICE_ACCOUNT_HAPPA`. Optional: give the
+bahi secrets' service accounts **Cloud Datastore Index Admin** + **Service Usage Consumer** so CI can
+create new indexes.
+
+### Rollback of the cut-over
+
+- **Web app:** Firebase console → `bahi-happa` → Hosting → release history → roll back; or revert the
+  bad PR on `main`.
+- **Back to myhappa (emergency only):** in `happa-bfc07`: set `settings/app.minClientVersion` back
+  to 5 (or delete it), deploy `main`'s `firestore.rules` and a build of `main` with
+  `happa.config.json` pointed at happa-bfc07 (the pre-cut-over values are in git history before
+  #429). Data entered in bahi-happa since the cut-over is NOT in happa-bfc07: copy it back first.
+- **Backups:** `Q:\aadhat\backups\*-precutover-2026-11-16\` (README there) and the daily
+  `firestore-backup.yml` artifacts; restore with `tools/backup/restore-firestore.js`.

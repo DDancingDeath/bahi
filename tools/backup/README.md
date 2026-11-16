@@ -1,7 +1,8 @@
 # Firestore backups
 
-`.github/workflows/firestore-backup.yml` backs up Happa's production Firestore data (project `happa-bfc07`, from
-`happa.config.json`; the guard refuses the old `aadhat-management` project).
+`.github/workflows/firestore-backup.yml` backs up Bahi's production Firestore data (project `bahi-happa` since the #72 cut-over
+on 16 Nov 2026, from `happa.config.json`; before that `happa-bfc07`, whose last backups are in
+`Q:\aadhat\backups\happa-bfc07-precutover-2026-11-16\`; the guard refuses the old `aadhat-management` project).
 
 ## What runs when
 
@@ -74,9 +75,9 @@ that happens, re-enable them under Actions.
 1. **Passphrase:** repository secret `BACKUP_PASSPHRASE` (set). Keep a copy in your password manager; without it
    no backup can be decrypted.
 2. **Service account:** the job uses `FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA` when it exists, otherwise
-   `FIREBASE_SERVICE_ACCOUNT_HAPPA` (today: `firebase-adminsdk-fbsvc@happa-bfc07.iam.gserviceaccount.com`, which has
-   Cloud Datastore User). It needs to *read* Firestore: **Cloud Datastore Viewer** (`roles/datastore.viewer`) or
-   Cloud Datastore User. Recommended later: a dedicated `firestore-backup@happa-bfc07.iam.gserviceaccount.com` with
+   `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA` (today: `firebase-adminsdk-fbsvc@bahi-happa.iam.gserviceaccount.com`, the
+   Firebase Admin SDK account, which can read Firestore). It needs to *read* Firestore: **Cloud Datastore Viewer** (`roles/datastore.viewer`) or
+   Cloud Datastore User. Recommended later: a dedicated `firestore-backup@bahi-happa.iam.gserviceaccount.com` with
    only `roles/datastore.viewer`, its JSON key saved as `FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA`.
 3. Optional repository *variables*: `BACKUP_WEEKLY_ABOVE` (15000), `BACKUP_HARD_MAX` (40000), `BACKUP_EXCLUDE`
    (comma-separated; only `notifications`, `autoSaves`, `drafts` or the log collections can be skipped, business
@@ -132,7 +133,7 @@ To look around in the app, start the emulator instead (`npx firebase-tools emula
 --project demo-happa-drill`), restore with `--target dev` (writes `dev_*`), serve `www/` and open
 `http://localhost:<port>/?emulator=1` (the app uses `dev_` collections on localhost).
 
-### 3. Restore into happa-bfc07 (production)
+### 3. Restore into bahi-happa (production)
 
 Only after a drill, ideally with every phone closed. Needs a key with Firestore **write** access (Cloud Datastore
 User), e.g. `export GOOGLE_APPLICATION_CREDENTIALS=$PWD/key.json` (keep the key outside the repo).
@@ -141,7 +142,7 @@ User), e.g. `export GOOGLE_APPLICATION_CREDENTIALS=$PWD/key.json` (keep the key 
 node tools/backup/restore-firestore.js --in backup.json                       # dry run: counts per collection
 node tools/backup/restore-firestore.js --in backup.json --apply                # into dev_* copies first, check them
 node tools/backup/restore-firestore.js --in backup.json --collections items,purchases \
-  --target prod --confirm-project happa-bfc07 --apply                         # then the real collections
+  --target prod --confirm-project bahi-happa --apply                         # then the real collections
 ```
 
 The restore never deletes. It writes each document by its original id: same-id documents are overwritten, everything
@@ -156,7 +157,7 @@ or done on the Blaze plan.
 3. Create a service-account key with Cloud Datastore User in the new project and restore with
    `--target prod --confirm-project <new id> --apply` (as in step 3).
 4. Auth accounts are **not** in the backup. User profiles in `users` are keyed by Auth uid, so either import the
-   old accounts (`firebase auth:export users.json --project happa-bfc07`, then
+   old accounts (`firebase auth:export users.json --project bahi-happa`, then
    `firebase auth:import users.json --project <new id>` with the hash parameters from the old project's
    Authentication settings) or have everyone sign up again and fix their `users` documents.
 5. Point the app at it: update `happa.config.json` and run `npm run apply:happa-config` (see `docs/happa-go-live.md`).

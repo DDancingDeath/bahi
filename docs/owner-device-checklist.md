@@ -59,7 +59,7 @@ it either works (the phone's offline speech pack) or says "Voice needs the inter
 Full steps: [desktop-printing.md](desktop-printing.md) › "Owner checklist".
 
 1. Windows Settings › Bluetooth & devices: pair the shop's thermal printer.
-2. In **Chrome or Edge**, open https://myhappa.web.app/spike/serial.html. Step 1 should say the browser
+2. In **Chrome or Edge**, open https://bahi-happa.web.app/spike/serial.html. Step 1 should say the browser
    can talk to the printer directly.
 3. **Choose printer** (listed by name or as "Standard Serial over Bluetooth link (COMx)"), then
    **Print test slip**; click it again once.
