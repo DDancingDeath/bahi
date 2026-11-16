@@ -83,7 +83,7 @@ function todayScreen(ms, session) {
     out.T1_purchaseCount = shown('todayPurchaseCount');
     out.T2_saleCount = shown('todaySaleCount');
     const net = shown('todayNetCashFlow');
-    out.T12_net = /outflow/i.test(document.getElementById('todayCashFlowLabel').textContent) ? -net : net;
+    out.T12_net = /^More went out/.test(document.getElementById('todayCashFlowLabel').textContent) ? -net : net;
     return out;
 }
 

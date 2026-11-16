@@ -291,6 +291,8 @@ Dev" test APK). `bahi-happa` (16 Nov 2026): its own key `6LeLOiMuAAAAAFwG1zM7ElY
 its web app, AI Logic ENFORCED, Firestore and Auth unenforced; set in the local prod config branch and
 in `config/targets/bahi-happa.json` (the APK from rc15). `happa-bfc07` has no key yet.
 
+**403 "App attestation failed" on bahi-happa-dev (16 Nov 2026).** The token exchange (`content-firebaseappcheck.googleapis.com/.../exchangeRecaptchaEnterpriseToken`) returns 403 for scripted browsers. The set-up is right (key, domains, both APIs on, the key registered for the web app); an assessment of such a token shows it valid for `bahi-happa-dev.web.app` with score 0.1, under the app's `minValidScore` 0.5. reCAPTCHA scores headless / automated browsers and data-centre IPs low, so review probes and E2E always see it. After a 403 the SDK waits a day before trying again in that browser. Check real phones in App Check › APIs and the key's score metrics before lowering the threshold.
+
 **Firestore stays NOT enforced.** Enforcing App Check on Firestore would break the
 tenant link page `/r/`: it reads Firestore over REST with no SDK (its "tiny, no SDK"
 design), so it has no App Check token. It would also refuse every old APK at once.
@@ -551,7 +553,7 @@ as they were before the rework; see the table above).
 #### per-user records: auto-save, drafts, notifications (#18 follow-up)
 
 - `ownAutoSaveWrite()`: Nobody writes another user's records, the owner included; the owner may only delete them (Admin › Clear Data deletes auto-saves and drafts). autoSaves/{uid} (billing.js autoSaveToCloud / deleteAutoSave): that user only.
-- `validDraftCreate()`: drafts (billing.js saveDraft / loadDraft / deleteDraft): own drafts only; userId never changes.
+- `validDraftCreate()`: drafts (billing.js saveDraft / loadDraft / deleteDraft): own drafts only; userId never changes. A draft saved with `shared: true` (U-37) is read by any approved user, who continues it by setting only `takenBy` (own uid) and `takenAt`; it is deleted by its maker, the owner or a manager.
 - `notificationFields()`: notifications: the sender's device writes one doc per recipient (firestore-service.js sendNotification / planNotificationDocs, id <eventKey>_<userId>). The only senders are item adds and rate/name edits (notifyRateChanges, notifyItemEdit), and only owners/managers edit items, so only they may create them: stamped with their own uid and server time, types rate_change and item_edit, these fields only.
 - `notificationReadOnly()`: The recipient marks it read (markNotificationsRead / markAllNotificationsRead).
 - `canDeleteOwnRecord()`: Delete: the doc's own user (resource == null: already gone, a no-op), or the owner. autoSaves are keyed by uid.
@@ -597,6 +599,7 @@ as they were before the rework; see the table above).
 - `teamOwnersOk()`, `ownerAfter()` (settings/team): `ownerUids` changes by one uid per write: an added uid must be an active owner after the write (their profile in the same batch counts), a removed one must not be, the list never becomes empty and has no repeats (at most 20). Dropping the whole field is allowed (an old app's full rewrite of the directory): with no list nobody can be demoted until owners are listed again. The app lists every active owner when an owner signs in (`ensureSelfListedOwner`), when the owner's phone rebuilds the directory and right before a demotion. The first owner of a new project is still made by hand (docs/role-permissions.md, "Owners"). `firstOwnerUid` is set once (when missing or null) to an active owner in `ownerUids`; afterwards only that person changes it, to another listed active owner (hand over); it is never dropped, and `settings/team` is never deleted from the app (`canDeleteRecord`). So an old app's full rewrite of the directory is refused once it is set.
 - `roleNoteOk()` (notifications, type `role_change`): an owner may write it for another user only in the batch that demotes that user from active owner (`get` = active owner, `getAfter` role = `newRole`, manager or staff); the fields are fixed.
 - `savedRangesOk()`: Saved period ranges (#140): "a|b;a|b", at most 10 pairs of the app's period presets.
+- `users/{uid}.lang` (U-86): the person may set their own app language, `en` or `hi` only (`canUpdateProfile`), so it follows them to any phone.
 - `canUpdateProfile()`: Users change only their own name (Settings › account) and their saved period ranges (#140; the list of their phones is deviceLog, #124); never while removed or rejected.
 
 #### phones per person (#124): deviceLog/{uid}.devices, "deviceId:YYYYMMDD"
@@ -679,10 +682,10 @@ as they were before the rework; see the table above).
 
 - `validRentExpense()`: Paid for a property (or one of its units): repairs, tax, maintenance, insurance, broker, other. Any rentals role adds one signed with its uid; only the owner edits or deletes. Never Aadhat cash.
 - `rentDepPaysOk()`: The 'deposit' payment of charge `chargeId`: the tenant's ledger gains its adjustment in this write.
-- `match /{collection}/{docId}`: PRODUCTION COLLECTIONS Business collections (production and dev_ mirrors) live under one wildcard match. Reads: see canReadRecord (own notifications/drafts/auto-save, settings/app only, withdrawals by role access).
+- `match /{collection}/{docId}`: PRODUCTION COLLECTIONS Business collections (production and dev_ mirrors) live under one wildcard match. Reads: see canReadRecord (own notifications/drafts/auto-save, shared drafts, settings/app only, withdrawals by role access).
 Stock records need an up-to-date app (clientVersion >= 3) on create/update.
-Bills: full edits by owner/manager/creator; anyone else approved may only record payment/due bookkeeping. Only an owner may change userId. Cash, expenses, stock adjustments, items, counters: see canUpdateRecord. Auto-saves and drafts: their own user only; notifications: the recipient marks them read.
-Bills: only an owner deletes them, and only once voided (#75, OD-14: everyone else voids). Cash sessions, items, counters, item frequency and settings: owner only. Expenses: owner/manager, or the creator within 24 hours. Withdrawals/stock adjustments: owner/manager. Auto-saves, drafts, notifications: their own user, or the owner (Clear Data).
+Bills: full edits by owner/manager/creator; anyone else approved may only record payment/due bookkeeping. Only an owner may change userId. Cash, expenses, stock adjustments, items, counters: see canUpdateRecord. Auto-saves and drafts: their own user only (a shared draft may be marked taken); notifications: the recipient marks them read.
+Bills: only an owner deletes them, and only once voided (#75, OD-14: everyone else voids). Cash sessions, items, counters, item frequency and settings: owner only. Expenses: owner/manager, or the creator within 24 hours. Withdrawals/stock adjustments: owner/manager. Auto-saves, drafts, notifications: their own user, or the owner (Clear Data); drafts also a manager.
 - `match /purchases/{billId}/edits/{editId}`: Bill edit records (#121, validEditCreate): approved users read them (opened from the bill details); created only with the bill update that raises its editCount; never changed; the owner deletes them only once their bill is gone (delete for good, Clear Data).
 - `match /stockCheckpoints/{docId}`: State/lease writes: owner or manager only; anyone approved may mark it stale. legacyScan (backfill completion state): owner/manager only, so staff can't switch the backfill off; staff devices still backfill and ignore the denied state write. No other doc ids.
 - `validAnomaly()`: --- anomalies (#187 / #40): found by the daily scan on owner/manager devices; only owner/manager may read them or mark them OK/fixed (#84 is still open, so other users see nothing). Only an owner may delete.

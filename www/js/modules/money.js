@@ -35,7 +35,7 @@ import {
     buildSnapshot, figuresFromSnapshot, rangeFigures, monthsToRoll, monthBounds,
     monthKeysBetween, lastMonthKeys, monthKeyOf, snapshotsFrom, staleToRebuild, outdatedOlderMonths
 } from '../utils/month-snapshots.js';
-import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways } from '../utils/takeaways.js';
+import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways, caveatKey } from '../utils/takeaways.js';
 import { can, canEditWorthAccounts, canReadWorthAccounts } from '../utils/role-access.js';
 import { dataSignature } from '../utils/render-memo.js';
 import { openExternal } from '../utils/open-external.js';
@@ -43,6 +43,8 @@ import { APP_IDENTITY } from '../config/app-identity.js';
 import { PrinterService } from '../services/printer.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
+import { linkedOutflows, linkedSource, setLinkedSource, afterLinked } from '../utils/linked-outflows.js';
+import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import {
     compareBarHtml, writeBar, compareTableHtml, compareTarget, choosePreset, chooseCompare, applyDates, applySaved,
     saveCurrentRange, removeCurrentRange, periodText, presetSelectValue, summaryLines, summaryText, summaryCanvas, toggleCompareBar
@@ -68,7 +70,7 @@ export function routeAvailable(link) {
     return !!(document.getElementById(link) || document.getElementById(String(link).split('-')[0]));
 }
 
-const TAKEAWAY_RUPEES = ['amount', 'taken', 'kept'];
+const TAKEAWAY_RUPEES = ['amount', 'taken', 'kept', 'loss'];
 
 /** Takeaway params with the ₹ amounts grouped like the cards ("4,927"). */
 export function takeawayParams(params) {
@@ -113,7 +115,7 @@ function vsB(now, then, labels) {
 }
 
 /** Simple inline-SVG bars; `faint` is an optional second series (last year). */
-export function barsSvg(values, { faint = null, labels = [], height = 120, onTap = 'data-day' } = {}) {
+export function barsSvg(values, { faint = null, labels = [], height = 120, onTap = 'data-day', label = '' } = {}) {
     const n = values.length;
     if (!n) return '';
     const all = [...values, ...(faint || [])].filter(v => Number.isFinite(v));
@@ -137,7 +139,7 @@ export function barsSvg(values, { faint = null, labels = [], height = 120, onTap
     }
     const ticks = labels.map((l, i) => (l && l.tick ? `<text x="${((i + 0.5) * w).toFixed(2)}%" y="${height - 2}" class="ins-tick">${esc(l.tick)}</text>` : '')).join('');
     // Only the last-year line is stretched; bars and labels use % / px so the text keeps its shape.
-    return `<svg class="ins-svg" width="100%" height="${height}" role="img" style="--h:${height}px">`
+    return `<svg class="ins-svg" width="100%" height="${height}" role="img" aria-label="${esc(label)}" style="--h:${height}px">`
         + `<line class="ins-axis" x1="0" x2="100%" y1="${zero}" y2="${zero}"/>${bars}${line}${ticks}</svg>`;
 }
 
@@ -150,6 +152,7 @@ export const MoneyManager = {
     sharedAccounts: { state: 'idle', list: null, map: null },
     accountEdits: 0,
     building: false,
+    linkedLoading: null,
     lastSummary: null,
     summaryCache: { sig: null, map: new Map(), computed: 0 },
 
@@ -464,7 +467,63 @@ export const MoneyManager = {
         this.renderProfit(ctx);
         if (this.section === 'cash') this.renderCash(ctx);
         if (this.section === 'spending') this.renderSpending(ctx);
+        this.renderLinked(ctx);
         this.renderChecks(ctx);
+    },
+
+    /**
+     * M22–M26 (U-22): worker pay and recurring-bill payments next to profit, spending and cash.
+     * Owner only (the rules let only the owner read workers and recurring bills). Opening Money reads
+     * nothing more: the lists come from the Workers / Recurring bills pages on this phone, or one tap here.
+     */
+    renderLinked({ m, r }) {
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
+        const owner = AppState.userRole === 'owner';
+        const src = linkedSource();
+        const loaded = !!src.workers && !!src.billItems;
+        const has = loaded && (src.workers.length > 0 || src.billItems.length > 0);
+        show('moneyLinkedCard', owner && (!loaded || has));
+        show('moneyLinkedLoad', owner && !loaded);
+        show('moneyLinkedRows', owner && has);
+        if (!owner || !has) {
+            show('moneyLinkedProfit', false);
+            show('moneyLinkedCash', false);
+            return;
+        }
+        const out = linkedOutflows(src.workers, src.billItems, r.from, r.to);
+        const split = (o) => t('ui.money.cash_online', { cash: formatRupees(o.cash), online: formatRupees(o.online) });
+        const any = out.total.count > 0;
+        show('moneyLinkedProfit', any && m.M6.total !== null);
+        show('moneyLinkedCash', any);
+        this.html('moneyLinkedProfitTerm', moneyHtml(-out.total.total, TM));
+        if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(afterLinked(m.M6.total, out), TM));
+        this.html('moneyLinkedCashOut', moneyHtml(out.total.total, TM));
+        this.text('moneyLinkedCashSplit', split(out.total));
+        this.html('moneyNetAfterLinked', moneyHtml(afterLinked(m.M14, out), TM));
+        this.html('moneyLinkedWorkers', moneyHtml(out.workerPay.total, TM));
+        this.text('moneyLinkedWorkersSplit', split(out.workerPay));
+        this.html('moneyLinkedBills', moneyHtml(out.bills.total, TM));
+        this.text('moneyLinkedBillsSplit', split(out.bills));
+        this.html('moneyLinkedTotal', moneyHtml(out.total.total, TM));
+    },
+
+    /** "Include worker pay and regular bills": reads workers and recurring bills (one read per document), then redraws. */
+    loadLinked() {
+        if (this.linkedLoading || AppState.userRole !== 'owner') return;
+        this.linkedLoading = (async () => {
+            try {
+                const [w, b] = await Promise.all([import('../firebase/repos/workers.js'), import('../firebase/repos/recurring-bills.js')]);
+                const [workers, items] = await Promise.all([w.loadWorkers(), b.loadBillItems()]);
+                setLinkedSource('workers', workers);
+                setLinkedSource('billItems', items);
+                if (document.getElementById('money')?.classList.contains('active')) this.render();
+            } catch (e) {
+                console.warn('Money: worker pay / recurring bills not loaded:', e?.code || e);
+                UIManager.showToast(t('msg.money.linked_failed'));
+            } finally {
+                this.linkedLoading = null;
+            }
+        })();
     },
 
     /**
@@ -565,7 +624,7 @@ export const MoneyManager = {
         const list = (m.caveats || []).filter(c => c.ids.some(id => ids.includes(id)));
         return list.map(c => {
             const params = { qty: c.qty, amount: formatAmount(c.estimate ?? c.amount ?? c.gap ?? 0) };
-            return `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${c.key}`, params)))}</span></div>`;
+            return `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${caveatKey(c)}`, params)))}</span></div>`;
         }).join('');
     },
 
@@ -589,7 +648,7 @@ export const MoneyManager = {
             salesVsLastYear: change(m.M1.total, ly?.M1 ?? null),
             noSales
         })));
-        this.html('moneyProfitCaveats', this.caveatsHtml(m, ['M2', 'M6']));
+        this.html('moneyProfitCaveats', this.caveatsHtml(m, ['M2', 'M6']) + doubtfulRatesNoticeHtml(['purchase', 'retail', 'wholesale']));
         this.html('moneySales', moneyHtml(m.M1.total, TM));
         const splitLink = routeAvailable('insights-items')
             ? ` <button type="button" class="btn btn-ghost btn-sm" data-go="insights-items" data-metric-ref="I2">${esc(t('ui.money.split_link'))} ›</button>` : '';
@@ -643,7 +702,7 @@ export const MoneyManager = {
         const lyKey = (k) => { const [y, mo] = k.split('-').map(Number); return `${y - 1}-${String(mo).padStart(2, '0')}`; };
         const lyVals = keys.map(k => figuresFromSnapshot(this.snapshots[lyKey(k)])?.M6 ?? null);
         const labels = keys.map((k, i) => ({ key: k, tick: i % 3 === 0 || i === keys.length - 1 ? formatMonth(monthBounds(k).from, { lang, year: false }) : '', title: `${formatMonth(monthBounds(k).from, { lang })}: ${moneyText(vals[i], 'signed')}` }));
-        this.html('moneyProfitChart', barsSvg(vals.map(v => (v === null ? NaN : v)), { faint: lyVals.map(v => (v === null ? NaN : v)), labels, onTap: 'data-month' }));
+        this.html('moneyProfitChart', barsSvg(vals.map(v => (v === null ? NaN : v)), { faint: lyVals.map(v => (v === null ? NaN : v)), labels, onTap: 'data-month', label: t('ui.money.profit_by_month') }));
         this.html('moneyProfitLegend', `<span class="ins-key ins-key-bar"></span> ${esc(t('ui.money.this_year'))} <span class="ins-key ins-key-line"></span> ${esc(t('ui.money.last_year'))}`);
         const missing = keys.some((k, i) => vals[i] === null) || lyVals.every(v => v === null);
         const cmpR = comparisonRanges(r);
@@ -670,7 +729,7 @@ export const MoneyManager = {
         const net = netMoneyByDay(m.detail, keys);
         const lang = getLang();
         const labelsD = keys.map((k, i) => ({ key: k, tick: i % 7 === 0 ? String(Number(k.slice(8))) : '', title: `${formatDay(k, { lang, year: false })}: ${moneyText(net[i], 'signed')}` }));
-        this.html('moneyCashChart', barsSvg(net, { labels: labelsD, onTap: 'data-day' }));
+        this.html('moneyCashChart', barsSvg(net, { labels: labelsD, onTap: 'data-day', label: t('ui.money.by_day') }));
     },
 
     renderSpending({ m, prev, ly, b, labels, r }) {
@@ -921,8 +980,9 @@ export const MoneyManager = {
         this.html('moneyWorthCompare', seeStock && Number.isFinite(stock) && (cmp.c || cmp.unknown) ? compareHtml([cmp]) : '');
         this.html('moneyWorthTakeaway', seeStock ? takeawayHtml(worthTakeaways({ worth, change: null, receivable: dues.receivable.total, sinceLabel, accountsKnown: accounts !== null || !cfg.netWorthTerms.includes('accounts') })) : '');
         const drawerWhy = drawerKnown ? '' : t(`ui.money.drawer_${drawer.state}`, { days: DRAWER_MAX_AGE_DAYS });
-        this.html('moneyWorthCaveats', seeStock && worth !== null && cfg.netWorthTerms.includes('drawer') && !drawerKnown
-            ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(t('ui.money.worth_no_drawer', { why: drawerWhy }))}</span></div>` : '');
+        this.html('moneyWorthCaveats', (seeStock && worth !== null && cfg.netWorthTerms.includes('drawer') && !drawerKnown
+            ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(t('ui.money.worth_no_drawer', { why: drawerWhy }))}</span></div>` : '')
+            + (seeStock ? doubtfulRatesNoticeHtml(['purchase']) : ''));
         const go = (link) => `<button type="button" class="btn btn-ghost btn-sm" data-go="${esc(link)}">${esc(t(`ui.money.home_${link.replace(/-/g, '_')}`))} ›</button>`;
         const term = (label, value, link, ref) => `<div class="row ins-line"><span class="row-main">${esc(t(label))}</span><span class="row-trail"><span class="row-amt"${ref ? ` data-metric-ref="${ref}"` : ''}>${moneyHtml(value, TM)}</span> ${go(link)}</span></div>`;
         // C9 not known (loading, not loaded, no count in 30 days): "—" and why, never ₹0 (#92)
@@ -1133,7 +1193,7 @@ export const MoneyManager = {
                     this.staleSeen[k] = Date.now();
                 }
             });
-            UIManager.showToast(t('msg.money.history_built', { count: written }), 'success');
+            UIManager.showToast(tn('msg.money.history_built', written), 'success');
         } catch (e) {
             console.error('Money: building month history failed:', e);
             UIManager.showToast(t('msg.money.could_not_load'));

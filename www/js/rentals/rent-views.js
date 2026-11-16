@@ -12,6 +12,8 @@ import { chargeDue, chargeStatus, rentTotals, leaseDues, elecMode } from './rent
 export const UNIT_TYPES = ['flat', 'commercial', 'office', 'godown', 'other'];
 export const MAX_UNIT_AREA = 1000000;
 export const VIEW_KEY = 'happa.rentView';
+/** Simple / Advanced, per user on this phone (owner decision: everyone starts in Simple). */
+export const rentModeKey = (uid) => `happa.rentMode.${uid || ''}`;
 export const UNIT_STATUSES = ['occupied', 'vacant', 'late', 'due'];
 
 /** A unit's type; units saved before types existed count as flats until set. */
@@ -60,6 +62,12 @@ export function unitRows({ properties = [], units = [], leases = [], tenants = [
             due
         };
     });
+}
+
+/** This month's rent paid as a whole % (0–100) of the expected rent (U-31). */
+export function collectedPct(collected, expected) {
+    if (!(Number(expected) > 0)) return 0;
+    return Math.max(0, Math.min(100, Math.round((Number(collected) || 0) / Number(expected) * 100)));
 }
 
 /**

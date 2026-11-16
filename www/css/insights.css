@@ -13,17 +13,25 @@
     background: inherit;
 }
 
-/* Phone: tabs, then the period, then "Compare & share" (#92) */
+/* Phone (U-71): only the tabs stay on screen when scrolling (about 56 px); the period and "Compare & share"
+   scroll away with the page. The head lets its children sit in the page, so the tabs stick for the whole page. */
 @media (max-width: 1023px) {
     .ins-head {
-        display: flex;
-        flex-direction: column;
+        display: contents;
     }
 
-    .ins-head > .tabs { order: 1; }
-    .ins-head > .ins-period { order: 2; }
-    .ins-head > .ins-more { order: 3; }
-    .ins-head > .ins-abbar { order: 4; }
+    .ins-head > .tabs {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-sticky);
+        padding-top: var(--sp-1);
+        background: var(--bg);
+    }
+
+    .ins-head > .ins-more {
+        display: flex;
+        margin-left: auto;
+    }
 }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
@@ -43,7 +51,7 @@
     text-align: center;
 }
 
-.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: 44px; padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
+.ins-period .ins-preset:not([multiple]):not([size]) { width: auto; max-width: 42%; min-height: var(--tap-min); padding: 0 var(--sp-6) 0 var(--sp-3); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; font-size: var(--fs-sm); }
 
 .ins-more { align-self: flex-end; margin-top: var(--sp-1); }
 .ins-more[aria-expanded="true"] .ins-cmp-chev { transform: rotate(180deg); }
@@ -59,6 +67,20 @@
 
 .ins-tap { cursor: pointer; }
 .ins-tap:focus-visible { outline: none; box-shadow: var(--focus); }
+/* The hero figure is its own button; its notes and links sit under it in the card, not inside it (N-02) */
+.hero-tap {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-md);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+.hero-tap > .metric-label { display: block; }
+.hero-tap > .hero-num { display: block; margin-top: var(--sp-1); color: var(--ink); }
 
 /* A group: section title above a panel (as on Today) */
 div.ins-wide,
@@ -199,3 +221,40 @@ div.ins-wide,
 .ins-ab-saved { max-width: 100%; }
 .ins-cmp-table .ins-cmp-up { color: var(--positive); }
 .ins-cmp-table .ins-cmp-down { color: var(--negative); }
+
+/* Party ledger on phones (U-21): one stacked row per entry, the balance always in view on the right */
+@media screen and (max-width: 599.98px) {
+  .st-ledger-wrap { overflow-x: visible; }
+  .st-ledger { width: 100%; }
+  .st-ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .st-ledger tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "when what bal" "sold paid bal"; column-gap: var(--sp-2); align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px var(--rule-style) var(--line); }
+  .st-ledger td { display: block; height: auto; padding: 0; border: none; }
+  .st-ledger .st-when { grid-area: when; color: var(--ink-3); white-space: nowrap; }
+  .st-ledger .st-what { grid-area: what; overflow-wrap: anywhere; }
+  .st-ledger .st-sold { grid-area: sold; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-paid { grid-area: paid; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-ledger .st-sold:not(:empty)::before,
+  .st-ledger .st-paid:not(:empty)::before { content: attr(data-label) " "; color: var(--ink-3); }
+  .st-ledger .st-bal { grid-area: bal; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
+
+  /* Day book (N-20): time and kind, then bill · party · note and any due; the amount always on the right */
+  .st-daybook-wrap { overflow-x: visible; }
+  .st-daybook { width: 100%; }
+  .st-daybook thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .st-daybook tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "when what amt" "detail detail amt" "due due amt"; column-gap: var(--sp-2); align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px var(--rule-style) var(--line); }
+  .st-daybook td { display: block; height: auto; padding: 0; border: none; }
+  .st-daybook td:empty { display: none; }
+  .st-daybook .st-when { grid-area: when; color: var(--ink-3); white-space: nowrap; }
+  .st-daybook .st-what { grid-area: what; overflow-wrap: anywhere; }
+  .st-daybook .st-detail { grid-area: detail; color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .st-daybook .st-due { grid-area: due; text-align: left; color: var(--ink-2); font-size: var(--fs-sm); }
+  .st-daybook .st-due::before { content: attr(data-label) " "; color: var(--ink-3); }
+  .st-daybook .st-amt { grid-area: amt; align-self: center; font-weight: var(--w-strong); white-space: nowrap; }
+}
+
+/* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */
+.st-day-step { flex-wrap: wrap; }
+.st-day-pick { flex: 1 1 100%; }
+
+/* Month statement: the month chip sits between ‹ and › (U-61) */
+.st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }

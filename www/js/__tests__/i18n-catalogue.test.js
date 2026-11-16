@@ -97,6 +97,17 @@ describe('i18n catalogues', () => {
         const copies = Object.keys(en).filter(k => !SAME_IN_BOTH.has(k) && en[k] === hi[k] && /[A-Za-z]{2,}/.test(words(en[k])));
         expect(copies).toEqual([]);
     });
+
+    it('Hindi values have no English words (U-49/U-50), apart from names, units and file types', () => {
+        // Brand and product names, units and file types readers know in Latin letters
+        const ALLOWED = new Set(['Bahi', 'happa', 'UPI', 'PDF', 'CSV', 'JSON', 'Excel', 'WhatsApp', 'Google', 'GPay',
+            'Chrome', 'Edge', 'Safari', 'iPhone', 'iPad', 'kg', 'MB', 'GB', 'ms', 'v', 'DELETE']);
+        // Owner-only rule names typed into the App health rules box exactly as shown
+        const CODE_WORDS = { 'ui.health.policy_effect': ['billChecksBlocking', 'telemetryOnly', 'false'] };
+        const latin = Object.entries(hi).flatMap(([k, v]) => (String(v).replace(/\{\w+\}/g, ' ').match(/[A-Za-z][A-Za-z0-9]*/g) || [])
+            .filter(w => !ALLOWED.has(w) && !(CODE_WORDS[k] || []).includes(w)).map(w => `${k}: ${w}`));
+        expect(latin).toEqual([]);
+    });
 });
 
 describe('t()', () => {

@@ -3,7 +3,7 @@
  * several parties, Hindi ↔ Latin spellings, members' stock limit, archived
  * items). The figures themselves are checked against the oracle in tests/oracle/ask.test.js.
  */
-import { answerQuestion, parseQuestion } from '../utils/ask.js';
+import { answerQuestion, parseQuestion, exampleNames } from '../utils/ask.js';
 import { AskManager } from '../modules/ask.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { AppState } from '../utils/state.js';
@@ -399,4 +399,22 @@ describe('Ask page: item reports (ASK-5)', () => {
         await AskManager.download(AskManager.answers[0].id, 'xlsx');
         expect(saved.mock.calls[1][1]).toMatch(/\.csv$/);
     });
+});
+
+test('U-96: example chips name the customer who owes most and the item with most stock (not archived)', () => {
+    const ts = Date.now();
+    const src = {
+        retailSales: [
+            { id: 'a', customerName: 'Mohan', timestamp: ts, total: 300, payment: { cash: 0, online: 0, due: 300 } },
+            { id: 'b', customerName: 'Sita', timestamp: ts, total: 500, payment: { cash: 0, online: 0, due: 500 } },
+            { id: 'c', customerName: 'Sita', timestamp: ts, total: 50, payment: { cash: 50, online: 0, due: 0 } }
+        ],
+        items: [{ id: 'w', name: 'Wheat', hindiName: 'गेहूं' }, { id: 'r', name: 'Rice' }, { id: 'x', name: 'Old', archived: true }],
+        stock: { w: { quantity: 80, rate: 20 }, r: { quantity: 30, rate: 40 }, x: { quantity: 900, rate: 1 } }
+    };
+    expect(exampleNames(src)).toEqual({ party: 'Sita', item: 'Wheat' });
+    expect(exampleNames(src, { hindi: true }).item).toBe('गेहूं');
+    expect(exampleNames({})).toEqual({ party: null, item: null });
+    expect(parseQuestion('Sita due')).toEqual({ intent: 'party_due', subject: 'sita' });
+    expect(parseQuestion('Wheat stock')).toMatchObject({ intent: parseQuestion('Rice stock').intent, subject: 'wheat' });
 });

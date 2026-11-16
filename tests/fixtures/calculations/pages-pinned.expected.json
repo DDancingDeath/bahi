@@ -1,12 +1,12 @@
 {
   "stock.owner": {
     "list": [
-      "Dal Rate ₹0/kg Alert below 10 kg 0.04 kg ≈ ₹0",
-      "Rice Rate ₹31.54/kg Alert below 10 kg 132.9 kg ≈ ₹4,191",
-      "Salt Rate ₹7.78/kg Alert below 10 kg 3.333 kg ≈ ₹26",
-      "Wheat Rate ₹26/kg Alert below 10 kg 40 kg ≈ ₹1,040",
-      "ghost item Unmatched — no catalogue item with this id/name -3.5 kg Rate ₹0/kg",
-      "old name Unmatched — no catalogue item with this id/name 7.25 kg Rate ₹12.75/kg"
+      "Dal Avg cost ₹0/kg Alert below 10 kg 0.04 kg ≈ ₹0",
+      "Rice Avg cost ₹31.54/kg Alert below 10 kg 132.9 kg ≈ ₹4,191",
+      "Salt Avg cost ₹7.78/kg Alert below 10 kg 3.333 kg ≈ ₹26",
+      "Wheat Avg cost ₹26/kg Alert below 10 kg 40 kg ≈ ₹1,040",
+      "ghost item Unmatched — no catalogue item with this id/name -3.5 kg Avg cost ₹0/kg",
+      "old name Unmatched — no catalogue item with this id/name 7.25 kg Avg cost ₹12.75/kg"
     ],
     "adjustments": [
       "Rice Added 10 kg 31 Jan, 10:00 am • By Owner Rate ₹30/kg • Value: ₹300 110.5 kg → 120.5 kg found Reverse",
@@ -53,20 +53,20 @@
     }
   },
   "stock.staff": [
-    "Dal Rate ₹0/kg 0.04 kg ≈ ₹0",
-    "Rice Rate ₹31.54/kg Available",
-    "Salt Rate ₹7.78/kg 3.333 kg ≈ ₹26",
-    "Wheat Rate ₹26/kg 40 kg ≈ ₹1,040",
-    "ghost item Unmatched — no catalogue item with this id/name -3.5 kg Rate ₹0/kg",
-    "old name Unmatched — no catalogue item with this id/name 7.25 kg Rate ₹12.75/kg"
+    "Dal Avg cost ₹0/kg 0.04 kg ≈ ₹0",
+    "Rice Avg cost ₹31.54/kg 132.9 kg ≈ ₹4,191",
+    "Salt Avg cost ₹7.78/kg 3.333 kg ≈ ₹26",
+    "Wheat Avg cost ₹26/kg 40 kg ≈ ₹1,040",
+    "ghost item Unmatched — no catalogue item with this id/name -3.5 kg Avg cost ₹0/kg",
+    "old name Unmatched — no catalogue item with this id/name 7.25 kg Avg cost ₹12.75/kg"
   ],
   "stock.first": {
     "list": [
-      "Gram Rate ₹47.59/kg Alert below 10 kg 3,748.5 kg ≈ ₹1,78,374",
-      "Maize Rate ₹19.72/kg Alert below 10 kg 2,394.5 kg ≈ ₹47,221",
-      "Mustard Rate ₹53.41/kg Alert below 10 kg 3,573 kg ≈ ₹1,90,825",
-      "Rice Rate ₹32.75/kg Alert below 10 kg 4,999.5 kg ≈ ₹1,63,715",
-      "Wheat Rate ₹24.79/kg Alert below 10 kg 6,123 kg ≈ ₹1,51,814"
+      "Gram Avg cost ₹47.59/kg Alert below 10 kg 3,748.5 kg ≈ ₹1,78,374",
+      "Maize Avg cost ₹19.72/kg Alert below 10 kg 2,394.5 kg ≈ ₹47,221",
+      "Mustard Avg cost ₹53.41/kg Alert below 10 kg 3,573 kg ≈ ₹1,90,825",
+      "Rice Avg cost ₹32.75/kg Alert below 10 kg 4,999.5 kg ≈ ₹1,63,715",
+      "Wheat Avg cost ₹24.79/kg Alert below 10 kg 6,123 kg ≈ ₹1,51,814"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -85,11 +85,11 @@
   },
   "stock.jan31": {
     "list": [
-      "Gram Rate ₹47.50/kg Alert below 10 kg 3,835.5 kg ≈ ₹1,82,182",
-      "Maize Rate ₹19.02/kg Alert below 10 kg 1,875.5 kg ≈ ₹35,679",
-      "Mustard Rate ₹54.89/kg Alert below 10 kg 6,023.5 kg ≈ ₹3,30,634",
-      "Rice Rate ₹32.25/kg Alert below 10 kg 6,284 kg ≈ ₹2,02,641",
-      "Wheat Rate ₹24.07/kg Alert below 10 kg 4,134.5 kg ≈ ₹99,525"
+      "Gram Avg cost ₹47.50/kg Alert below 10 kg 3,835.5 kg ≈ ₹1,82,182",
+      "Maize Avg cost ₹19.02/kg Alert below 10 kg 1,875.5 kg ≈ ₹35,679",
+      "Mustard Avg cost ₹54.89/kg Alert below 10 kg 6,023.5 kg ≈ ₹3,30,634",
+      "Rice Avg cost ₹32.25/kg Alert below 10 kg 6,284 kg ≈ ₹2,02,641",
+      "Wheat Avg cost ₹24.07/kg Alert below 10 kg 4,134.5 kg ≈ ₹99,525"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -108,11 +108,11 @@
   },
   "stock.leapDay": {
     "list": [
-      "Gram Rate ₹48.37/kg Alert below 10 kg 6,738 kg ≈ ₹3,25,923",
-      "Maize Rate ₹18.88/kg Alert below 10 kg 5,889 kg ≈ ₹1,11,213",
-      "Mustard Rate ₹55.12/kg Alert below 10 kg 6,707.5 kg ≈ ₹3,69,687",
-      "Rice Rate ₹31.66/kg Alert below 10 kg 5,720.5 kg ≈ ₹1,81,121",
-      "Wheat Rate ₹24.06/kg Alert below 10 kg 7,447 kg ≈ ₹1,79,188"
+      "Gram Avg cost ₹48.37/kg Alert below 10 kg 6,738 kg ≈ ₹3,25,923",
+      "Maize Avg cost ₹18.88/kg Alert below 10 kg 5,889 kg ≈ ₹1,11,213",
+      "Mustard Avg cost ₹55.12/kg Alert below 10 kg 6,707.5 kg ≈ ₹3,69,687",
+      "Rice Avg cost ₹31.66/kg Alert below 10 kg 5,720.5 kg ≈ ₹1,81,121",
+      "Wheat Avg cost ₹24.06/kg Alert below 10 kg 7,447 kg ≈ ₹1,79,188"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -131,11 +131,11 @@
   },
   "stock.mar31": {
     "list": [
-      "Gram Rate ₹47.21/kg Alert below 10 kg 2,831.5 kg ≈ ₹1,33,669",
-      "Maize Rate ₹19.66/kg Alert below 10 kg 2,106 kg ≈ ₹41,395",
-      "Mustard Rate ₹54.85/kg Alert below 10 kg 5,133 kg ≈ ₹2,81,561",
-      "Rice Rate ₹32.16/kg Alert below 10 kg 7,005 kg ≈ ₹2,25,251",
-      "Wheat Rate ₹23.99/kg Alert below 10 kg 4,645 kg ≈ ₹1,11,437"
+      "Gram Avg cost ₹47.21/kg Alert below 10 kg 2,831.5 kg ≈ ₹1,33,669",
+      "Maize Avg cost ₹19.66/kg Alert below 10 kg 2,106 kg ≈ ₹41,395",
+      "Mustard Avg cost ₹54.85/kg Alert below 10 kg 5,133 kg ≈ ₹2,81,561",
+      "Rice Avg cost ₹32.16/kg Alert below 10 kg 7,005 kg ≈ ₹2,25,251",
+      "Wheat Avg cost ₹23.99/kg Alert below 10 kg 4,645 kg ≈ ₹1,11,437"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -154,11 +154,11 @@
   },
   "stock.jan1": {
     "list": [
-      "Gram Rate ₹46.81/kg Alert below 10 kg 2,785 kg ≈ ₹1,30,362",
-      "Maize Rate ₹18.44/kg Alert below 10 kg 1,053.5 kg ≈ ₹19,429",
-      "Mustard Rate ₹54.64/kg Alert below 10 kg 5,996.5 kg ≈ ₹3,27,627",
-      "Rice Rate ₹32/kg Alert below 10 kg 7,329 kg ≈ ₹2,34,507",
-      "Wheat Rate ₹23.83/kg Alert below 10 kg 5,148 kg ≈ ₹1,22,657"
+      "Gram Avg cost ₹46.81/kg Alert below 10 kg 2,785 kg ≈ ₹1,30,362",
+      "Maize Avg cost ₹18.44/kg Alert below 10 kg 1,053.5 kg ≈ ₹19,429",
+      "Mustard Avg cost ₹54.64/kg Alert below 10 kg 5,996.5 kg ≈ ₹3,27,627",
+      "Rice Avg cost ₹32/kg Alert below 10 kg 7,329 kg ≈ ₹2,34,507",
+      "Wheat Avg cost ₹23.83/kg Alert below 10 kg 5,148 kg ≈ ₹1,22,657"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -761,6 +761,8 @@
       "moneyBadDebts": "₹0",
       "moneyProfitEqLabel": "= Profit",
       "moneyProfitTerm": "₹0",
+      "moneyLinkedProfitTerm": "—",
+      "moneyProfitAfterLinked": "—",
       "moneyProfitChart": "Nov 2025: −₹6,613Dec 2025: −₹11,430Jan 2026: −₹6,927Feb 2026: −₹12,010Mar 2026: −₹9,463Apr 2026: −₹12,230May 2026: −₹13,440Jun 2026: −₹9,013Jul 2026: −₹12,439Aug 2026: −₹7,760Sep 2026: −₹8,369Oct 2026: −₹11,506Nov 2026: ₹0NovFebMayAugNov",
       "moneyProfitLegend": "This year Last year",
       "moneyBuildHistory": "Older months are not saved yet, so comparisons with last year are missing.Build month history",
@@ -773,11 +775,17 @@
       "moneyInSplit": "cash ₹0 · online ₹0",
       "moneyOut": "₹0",
       "moneyOutSplit": "cash ₹0 · online ₹0",
+      "moneyLinkedCashOut": "—",
+      "moneyNetAfterLinked": "—",
       "moneyCashChart": "1 Nov: ₹01",
       "moneyBusiness": "₹0",
       "moneySpendCompare": "▼ 100% vs 1 Oct · ▼ 100% vs 1 Nov 2025",
       "moneySpendTakeaway": "No business expenses in this period.₹0 went to personal use; ₹0 of the profit stays in the business.",
       "moneyCategories": "No business expenses in this period.",
+      "moneyLinkedLoad": "Include worker pay and regular bills",
+      "moneyLinkedWorkers": "—",
+      "moneyLinkedBills": "—",
+      "moneyLinkedTotal": "—",
       "moneyLabourBills": "(0 bills)",
       "moneyLabour": "₹0",
       "moneyLabourPaidCount": "(0 expenses)",
@@ -799,7 +807,7 @@
       "moneyAccType": "I have this I owe this",
       "moneyChecks": "✓ Numbers match Outstanding, the cash drawer and Stock"
     },
-    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"106\" y2=\"106\"></line><rect class=\"ins-bar \" x=\"15.00%\" y=\"105.0\" width=\"70.00%\" height=\"1.0\" data-day=\"2026-11-01\"><title>1 Nov: ₹0</title></rect><text x=\"50.00%\" y=\"118\" class=\"ins-tick\">1</text></svg>",
+    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" aria-label=\"Day by day\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"106\" y2=\"106\"></line><rect class=\"ins-bar \" x=\"15.00%\" y=\"105.0\" width=\"70.00%\" height=\"1.0\" data-day=\"2026-11-01\"><title>1 Nov: ₹0</title></rect><text x=\"50.00%\" y=\"118\" class=\"ins-tick\">1</text></svg>",
     "profitChart": "Nov 2025: −₹6,613Dec 2025: −₹11,430Jan 2026: −₹6,927Feb 2026: −₹12,010Mar 2026: −₹9,463Apr 2026: −₹12,230May 2026: −₹13,440Jun 2026: −₹9,013Jul 2026: −₹12,439Aug 2026: −₹7,760Sep 2026: −₹8,369Oct 2026: −₹11,506Nov 2026: ₹0NovFebMayAugNov",
     "accountsTotal": 7345,
     "sessionsAsked": [
@@ -826,6 +834,8 @@
       "moneyBadDebts": "₹444",
       "moneyProfitEqLabel": "= Profit",
       "moneyProfitTerm": "−₹13,185",
+      "moneyLinkedProfitTerm": "—",
+      "moneyProfitAfterLinked": "—",
       "moneyProfitChart": "Jan 2026: −₹10,487Feb 2026: −₹11,638Mar 2026: −₹10,276Apr 2026: −₹9,716May 2026: −₹10,621Jun 2026: −₹7,527Jul 2026: −₹6,231Aug 2026: −₹9,431Sep 2026: −₹10,059Oct 2026: −₹9,253Nov 2026: −₹11,334Dec 2026: −₹11,018Jan 2027: −₹13,185JanAprJulOctJan",
       "moneyProfitLegend": "This year Last year",
       "moneyBuildHistory": "Older months are not saved yet, so comparisons with last year are missing.Build month history",
@@ -838,12 +848,18 @@
       "moneyInSplit": "cash ₹17,098 · online ₹767",
       "moneyOut": "₹25,544",
       "moneyOutSplit": "cash ₹22,336 · online ₹3,208",
+      "moneyLinkedCashOut": "—",
+      "moneyNetAfterLinked": "—",
       "moneyCashChart": "1 Jan: −₹3712 Jan: ₹1,3103 Jan: ₹04 Jan: −₹1,2005 Jan: −₹3,2086 Jan: ₹07 Jan: −₹9758 Jan: ₹1809 Jan: ₹91910 Jan: ₹011 Jan: −₹1,82512 Jan: −₹1,02613 Jan: −₹1,75014 Jan: ₹31115 Jan: ₹87216 Jan: −₹40017 Jan: ₹018 Jan: ₹6,00419 Jan: −₹75020 Jan: −₹1,67921 Jan: −₹2,46722 Jan: ₹7523 Jan: −₹69824 Jan: −₹71225 Jan: −₹72526 Jan: ₹75627 Jan: ₹1,10628 Jan: −₹1,00029 Jan: −₹1,50030 Jan: ₹1,07431 Jan: ₹018152229",
       "moneyBusiness": "₹16,100",
       "moneySpendCompare": "▲ 23% vs Dec · ▲ 17% vs Jan 2026",
-      "moneySpendTakeaway": "Business expenses were ₹69.6 for every ₹100 of sales, more than ₹10.Business expenses 17% more than last year, mostly Other.₹2,000 went to personal use, ₹15,185 more than the profit.",
+      "moneySpendTakeaway": "Business expenses were ₹69.6 for every ₹100 of sales, more than ₹10.Business expenses 17% more than last year, mostly Other.The business made a loss of ₹13,185, and ₹2,000 went to personal use.",
       "moneySpendCaveats": "⚠ ₹1,050 of expenses have no type; they count as business.",
       "moneyCategories": "Other₹15,050No type₹1,050",
+      "moneyLinkedLoad": "Include worker pay and regular bills",
+      "moneyLinkedWorkers": "—",
+      "moneyLinkedBills": "—",
+      "moneyLinkedTotal": "—",
       "moneyLabourBills": "(2 bills)",
       "moneyLabour": "₹18",
       "moneyLabourPaidCount": "(0 expenses)",
@@ -865,7 +881,7 @@
       "moneyAccType": "I have this I owe this",
       "moneyChecks": "✓ Numbers match Outstanding, the cash drawer and Stock"
     },
-    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"60\" y2=\"60\"></line><rect class=\"ins-bar neg\" x=\"0.48%\" y=\"60.0\" width=\"2.26%\" height=\"3.5\" data-day=\"2027-01-01\"><title>1 Jan: −₹371</title></rect><rect class=\"ins-bar \" x=\"3.71%\" y=\"47.8\" width=\"2.26%\" height=\"12.2\" data-day=\"2027-01-02\"><title>2 Jan: ₹1,310</title></rect><rect class=\"ins-bar \" x=\"6.94%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-03\"><title>3 Jan: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"10.16%\" y=\"60.0\" width=\"2.26%\" height=\"11.2\" data-day=\"2027-01-04\"><title>4 Jan: −₹1,200</title></rect><rect class=\"ins-bar neg\" x=\"13.39%\" y=\"60.0\" width=\"2.26%\" height=\"29.9\" data-day=\"2027-01-05\"><title>5 Jan: −₹3,208</title></rect><rect class=\"ins-bar \" x=\"16.61%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-06\"><title>6 Jan: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"19.84%\" y=\"60.0\" width=\"2.26%\" height=\"9.1\" data-day=\"2027-01-07\"><title>7 Jan: −₹975</title></rect><rect class=\"ins-bar \" x=\"23.06%\" y=\"58.3\" width=\"2.26%\" height=\"1.7\" data-day=\"2027-01-08\"><title>8 Jan: ₹180</title></rect><rect class=\"ins-bar \" x=\"26.29%\" y=\"51.4\" width=\"2.26%\" height=\"8.6\" data-day=\"2027-01-09\"><title>9 Jan: ₹919</title></rect><rect class=\"ins-bar \" x=\"29.52%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-10\"><title>10 Jan: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"32.74%\" y=\"60.0\" width=\"2.26%\" height=\"17.0\" data-day=\"2027-01-11\"><title>11 Jan: −₹1,825</title></rect><rect class=\"ins-bar neg\" x=\"35.97%\" y=\"60.0\" width=\"2.26%\" height=\"9.6\" data-day=\"2027-01-12\"><title>12 Jan: −₹1,026</title></rect><rect class=\"ins-bar neg\" x=\"39.19%\" y=\"60.0\" width=\"2.26%\" height=\"16.3\" data-day=\"2027-01-13\"><title>13 Jan: −₹1,750</title></rect><rect class=\"ins-bar \" x=\"42.42%\" y=\"57.1\" width=\"2.26%\" height=\"2.9\" data-day=\"2027-01-14\"><title>14 Jan: ₹311</title></rect><rect class=\"ins-bar \" x=\"45.65%\" y=\"51.9\" width=\"2.26%\" height=\"8.1\" data-day=\"2027-01-15\"><title>15 Jan: ₹872</title></rect><rect class=\"ins-bar neg\" x=\"48.87%\" y=\"60.0\" width=\"2.26%\" height=\"3.7\" data-day=\"2027-01-16\"><title>16 Jan: −₹400</title></rect><rect class=\"ins-bar \" x=\"52.10%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-17\"><title>17 Jan: ₹0</title></rect><rect class=\"ins-bar \" x=\"55.32%\" y=\"4.0\" width=\"2.26%\" height=\"56.0\" data-day=\"2027-01-18\"><title>18 Jan: ₹6,004</title></rect><rect class=\"ins-bar neg\" x=\"58.55%\" y=\"60.0\" width=\"2.26%\" height=\"7.0\" data-day=\"2027-01-19\"><title>19 Jan: −₹750</title></rect><rect class=\"ins-bar neg\" x=\"61.77%\" y=\"60.0\" width=\"2.26%\" height=\"15.7\" data-day=\"2027-01-20\"><title>20 Jan: −₹1,679</title></rect><rect class=\"ins-bar neg\" x=\"65.00%\" y=\"60.0\" width=\"2.26%\" height=\"23.0\" data-day=\"2027-01-21\"><title>21 Jan: −₹2,467</title></rect><rect class=\"ins-bar \" x=\"68.23%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-22\"><title>22 Jan: ₹75</title></rect><rect class=\"ins-bar neg\" x=\"71.45%\" y=\"60.0\" width=\"2.26%\" height=\"6.5\" data-day=\"2027-01-23\"><title>23 Jan: −₹698</title></rect><rect class=\"ins-bar neg\" x=\"74.68%\" y=\"60.0\" width=\"2.26%\" height=\"6.6\" data-day=\"2027-01-24\"><title>24 Jan: −₹712</title></rect><rect class=\"ins-bar neg\" x=\"77.90%\" y=\"60.0\" width=\"2.26%\" height=\"6.8\" data-day=\"2027-01-25\"><title>25 Jan: −₹725</title></rect><rect class=\"ins-bar \" x=\"81.13%\" y=\"52.9\" width=\"2.26%\" height=\"7.1\" data-day=\"2027-01-26\"><title>26 Jan: ₹756</title></rect><rect class=\"ins-bar \" x=\"84.35%\" y=\"49.7\" width=\"2.26%\" height=\"10.3\" data-day=\"2027-01-27\"><title>27 Jan: ₹1,106</title></rect><rect class=\"ins-bar neg\" x=\"87.58%\" y=\"60.0\" width=\"2.26%\" height=\"9.3\" data-day=\"2027-01-28\"><title>28 Jan: −₹1,000</title></rect><rect class=\"ins-bar neg\" x=\"90.81%\" y=\"60.0\" width=\"2.26%\" height=\"14.0\" data-day=\"2027-01-29\"><title>29 Jan: −₹1,500</title></rect><rect class=\"ins-bar \" x=\"94.03%\" y=\"50.0\" width=\"2.26%\" height=\"10.0\" data-day=\"2027-01-30\"><title>30 Jan: ₹1,074</title></rect><rect class=\"ins-bar \" x=\"97.26%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-31\"><title>31 Jan: ₹0</title></rect><text x=\"1.61%\" y=\"118\" class=\"ins-tick\">1</text><text x=\"24.19%\" y=\"118\" class=\"ins-tick\">8</text><text x=\"46.77%\" y=\"118\" class=\"ins-tick\">15</text><text x=\"69.35%\" y=\"118\" class=\"ins-tick\">22</text><text x=\"91.94%\" y=\"118\" class=\"ins-tick\">29</text></svg>",
+    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" aria-label=\"Day by day\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"60\" y2=\"60\"></line><rect class=\"ins-bar neg\" x=\"0.48%\" y=\"60.0\" width=\"2.26%\" height=\"3.5\" data-day=\"2027-01-01\"><title>1 Jan: −₹371</title></rect><rect class=\"ins-bar \" x=\"3.71%\" y=\"47.8\" width=\"2.26%\" height=\"12.2\" data-day=\"2027-01-02\"><title>2 Jan: ₹1,310</title></rect><rect class=\"ins-bar \" x=\"6.94%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-03\"><title>3 Jan: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"10.16%\" y=\"60.0\" width=\"2.26%\" height=\"11.2\" data-day=\"2027-01-04\"><title>4 Jan: −₹1,200</title></rect><rect class=\"ins-bar neg\" x=\"13.39%\" y=\"60.0\" width=\"2.26%\" height=\"29.9\" data-day=\"2027-01-05\"><title>5 Jan: −₹3,208</title></rect><rect class=\"ins-bar \" x=\"16.61%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-06\"><title>6 Jan: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"19.84%\" y=\"60.0\" width=\"2.26%\" height=\"9.1\" data-day=\"2027-01-07\"><title>7 Jan: −₹975</title></rect><rect class=\"ins-bar \" x=\"23.06%\" y=\"58.3\" width=\"2.26%\" height=\"1.7\" data-day=\"2027-01-08\"><title>8 Jan: ₹180</title></rect><rect class=\"ins-bar \" x=\"26.29%\" y=\"51.4\" width=\"2.26%\" height=\"8.6\" data-day=\"2027-01-09\"><title>9 Jan: ₹919</title></rect><rect class=\"ins-bar \" x=\"29.52%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-10\"><title>10 Jan: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"32.74%\" y=\"60.0\" width=\"2.26%\" height=\"17.0\" data-day=\"2027-01-11\"><title>11 Jan: −₹1,825</title></rect><rect class=\"ins-bar neg\" x=\"35.97%\" y=\"60.0\" width=\"2.26%\" height=\"9.6\" data-day=\"2027-01-12\"><title>12 Jan: −₹1,026</title></rect><rect class=\"ins-bar neg\" x=\"39.19%\" y=\"60.0\" width=\"2.26%\" height=\"16.3\" data-day=\"2027-01-13\"><title>13 Jan: −₹1,750</title></rect><rect class=\"ins-bar \" x=\"42.42%\" y=\"57.1\" width=\"2.26%\" height=\"2.9\" data-day=\"2027-01-14\"><title>14 Jan: ₹311</title></rect><rect class=\"ins-bar \" x=\"45.65%\" y=\"51.9\" width=\"2.26%\" height=\"8.1\" data-day=\"2027-01-15\"><title>15 Jan: ₹872</title></rect><rect class=\"ins-bar neg\" x=\"48.87%\" y=\"60.0\" width=\"2.26%\" height=\"3.7\" data-day=\"2027-01-16\"><title>16 Jan: −₹400</title></rect><rect class=\"ins-bar \" x=\"52.10%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-17\"><title>17 Jan: ₹0</title></rect><rect class=\"ins-bar \" x=\"55.32%\" y=\"4.0\" width=\"2.26%\" height=\"56.0\" data-day=\"2027-01-18\"><title>18 Jan: ₹6,004</title></rect><rect class=\"ins-bar neg\" x=\"58.55%\" y=\"60.0\" width=\"2.26%\" height=\"7.0\" data-day=\"2027-01-19\"><title>19 Jan: −₹750</title></rect><rect class=\"ins-bar neg\" x=\"61.77%\" y=\"60.0\" width=\"2.26%\" height=\"15.7\" data-day=\"2027-01-20\"><title>20 Jan: −₹1,679</title></rect><rect class=\"ins-bar neg\" x=\"65.00%\" y=\"60.0\" width=\"2.26%\" height=\"23.0\" data-day=\"2027-01-21\"><title>21 Jan: −₹2,467</title></rect><rect class=\"ins-bar \" x=\"68.23%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-22\"><title>22 Jan: ₹75</title></rect><rect class=\"ins-bar neg\" x=\"71.45%\" y=\"60.0\" width=\"2.26%\" height=\"6.5\" data-day=\"2027-01-23\"><title>23 Jan: −₹698</title></rect><rect class=\"ins-bar neg\" x=\"74.68%\" y=\"60.0\" width=\"2.26%\" height=\"6.6\" data-day=\"2027-01-24\"><title>24 Jan: −₹712</title></rect><rect class=\"ins-bar neg\" x=\"77.90%\" y=\"60.0\" width=\"2.26%\" height=\"6.8\" data-day=\"2027-01-25\"><title>25 Jan: −₹725</title></rect><rect class=\"ins-bar \" x=\"81.13%\" y=\"52.9\" width=\"2.26%\" height=\"7.1\" data-day=\"2027-01-26\"><title>26 Jan: ₹756</title></rect><rect class=\"ins-bar \" x=\"84.35%\" y=\"49.7\" width=\"2.26%\" height=\"10.3\" data-day=\"2027-01-27\"><title>27 Jan: ₹1,106</title></rect><rect class=\"ins-bar neg\" x=\"87.58%\" y=\"60.0\" width=\"2.26%\" height=\"9.3\" data-day=\"2027-01-28\"><title>28 Jan: −₹1,000</title></rect><rect class=\"ins-bar neg\" x=\"90.81%\" y=\"60.0\" width=\"2.26%\" height=\"14.0\" data-day=\"2027-01-29\"><title>29 Jan: −₹1,500</title></rect><rect class=\"ins-bar \" x=\"94.03%\" y=\"50.0\" width=\"2.26%\" height=\"10.0\" data-day=\"2027-01-30\"><title>30 Jan: ₹1,074</title></rect><rect class=\"ins-bar \" x=\"97.26%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-01-31\"><title>31 Jan: ₹0</title></rect><text x=\"1.61%\" y=\"118\" class=\"ins-tick\">1</text><text x=\"24.19%\" y=\"118\" class=\"ins-tick\">8</text><text x=\"46.77%\" y=\"118\" class=\"ins-tick\">15</text><text x=\"69.35%\" y=\"118\" class=\"ins-tick\">22</text><text x=\"91.94%\" y=\"118\" class=\"ins-tick\">29</text></svg>",
     "profitChart": "Jan 2026: −₹10,487Feb 2026: −₹11,638Mar 2026: −₹10,276Apr 2026: −₹9,716May 2026: −₹10,621Jun 2026: −₹7,527Jul 2026: −₹6,231Aug 2026: −₹9,431Sep 2026: −₹10,059Oct 2026: −₹9,253Nov 2026: −₹11,334Dec 2026: −₹11,018Jan 2027: −₹13,185JanAprJulOctJan",
     "accountsTotal": 7345,
     "sessionsAsked": [
@@ -892,6 +908,8 @@
       "moneyBadDebts": "₹218",
       "moneyProfitEqLabel": "= Profit",
       "moneyProfitTerm": "−₹7,264",
+      "moneyLinkedProfitTerm": "—",
+      "moneyProfitAfterLinked": "—",
       "moneyProfitChart": "Feb 2027: −₹3,812Mar 2027: −₹11,697Apr 2027: −₹11,357May 2027: −₹5,925Jun 2027: −₹7,124Jul 2027: −₹7,404Aug 2027: −₹8,307Sep 2027: −₹8,911Oct 2027: −₹9,471Nov 2027: −₹10,306Dec 2027: −₹11,293Jan 2028: −₹9,204Feb 2028: −₹7,264FebMayAugNovFeb",
       "moneyProfitLegend": "This year Last year",
       "moneyBuildHistory": "Older months are not saved yet, so comparisons with last year are missing.Build month history",
@@ -904,12 +922,18 @@
       "moneyInSplit": "cash ₹29,274 · online ₹7,782",
       "moneyOut": "₹52,910",
       "moneyOutSplit": "cash ₹50,674 · online ₹2,236",
+      "moneyLinkedCashOut": "—",
+      "moneyNetAfterLinked": "—",
       "moneyCashChart": "1 Feb: −₹7482 Feb: −₹1,7173 Feb: ₹3834 Feb: −₹22,7135 Feb: ₹6296 Feb: ₹07 Feb: −₹7508 Feb: −₹7259 Feb: ₹1,39610 Feb: −₹20011 Feb: −₹70212 Feb: −₹1,57513 Feb: ₹13814 Feb: −₹12815 Feb: −₹7516 Feb: ₹21917 Feb: −₹15018 Feb: −₹99719 Feb: ₹3,86020 Feb: −₹50021 Feb: ₹022 Feb: ₹1,35123 Feb: ₹45624 Feb: ₹96325 Feb: −₹65826 Feb: −₹10727 Feb: ₹028 Feb: ₹6,66529 Feb: −₹16918152229",
       "moneyBusiness": "₹10,750",
       "moneySpendCompare": "▼ 17% vs Jan · ▲ 72% vs Feb 2027",
-      "moneySpendTakeaway": "Business expenses were ₹28.4 for every ₹100 of sales, more than ₹10.Business expenses 72% more than last year, mostly Other.₹18,400 went to personal use, ₹25,664 more than the profit.",
+      "moneySpendTakeaway": "Business expenses were ₹28.4 for every ₹100 of sales, more than ₹10.Business expenses 72% more than last year, mostly Other.The business made a loss of ₹7,264, and ₹18,400 went to personal use.",
       "moneySpendCaveats": "⚠ ₹250 of expenses have no type; they count as business.",
       "moneyCategories": "Other₹10,500No type₹250",
+      "moneyLinkedLoad": "Include worker pay and regular bills",
+      "moneyLinkedWorkers": "—",
+      "moneyLinkedBills": "—",
+      "moneyLinkedTotal": "—",
       "moneyLabourBills": "(4 bills)",
       "moneyLabour": "₹102",
       "moneyLabourPaidCount": "(0 expenses)",
@@ -931,7 +955,7 @@
       "moneyAccType": "I have this I owe this",
       "moneyChecks": "✓ Numbers match Outstanding, the cash drawer and Stock"
     },
-    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"60\" y2=\"60\"></line><rect class=\"ins-bar neg\" x=\"0.52%\" y=\"60.0\" width=\"2.41%\" height=\"1.8\" data-day=\"2028-02-01\"><title>1 Feb: −₹748</title></rect><rect class=\"ins-bar neg\" x=\"3.97%\" y=\"60.0\" width=\"2.41%\" height=\"4.2\" data-day=\"2028-02-02\"><title>2 Feb: −₹1,717</title></rect><rect class=\"ins-bar \" x=\"7.41%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-03\"><title>3 Feb: ₹383</title></rect><rect class=\"ins-bar neg\" x=\"10.86%\" y=\"60.0\" width=\"2.41%\" height=\"56.0\" data-day=\"2028-02-04\"><title>4 Feb: −₹22,713</title></rect><rect class=\"ins-bar \" x=\"14.31%\" y=\"58.4\" width=\"2.41%\" height=\"1.6\" data-day=\"2028-02-05\"><title>5 Feb: ₹629</title></rect><rect class=\"ins-bar \" x=\"17.76%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-06\"><title>6 Feb: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"21.21%\" y=\"60.0\" width=\"2.41%\" height=\"1.8\" data-day=\"2028-02-07\"><title>7 Feb: −₹750</title></rect><rect class=\"ins-bar neg\" x=\"24.66%\" y=\"60.0\" width=\"2.41%\" height=\"1.8\" data-day=\"2028-02-08\"><title>8 Feb: −₹725</title></rect><rect class=\"ins-bar \" x=\"28.10%\" y=\"56.6\" width=\"2.41%\" height=\"3.4\" data-day=\"2028-02-09\"><title>9 Feb: ₹1,396</title></rect><rect class=\"ins-bar neg\" x=\"31.55%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-10\"><title>10 Feb: −₹200</title></rect><rect class=\"ins-bar neg\" x=\"35.00%\" y=\"60.0\" width=\"2.41%\" height=\"1.7\" data-day=\"2028-02-11\"><title>11 Feb: −₹702</title></rect><rect class=\"ins-bar neg\" x=\"38.45%\" y=\"60.0\" width=\"2.41%\" height=\"3.9\" data-day=\"2028-02-12\"><title>12 Feb: −₹1,575</title></rect><rect class=\"ins-bar \" x=\"41.90%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-13\"><title>13 Feb: ₹138</title></rect><rect class=\"ins-bar neg\" x=\"45.34%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-14\"><title>14 Feb: −₹128</title></rect><rect class=\"ins-bar neg\" x=\"48.79%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-15\"><title>15 Feb: −₹75</title></rect><rect class=\"ins-bar \" x=\"52.24%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-16\"><title>16 Feb: ₹219</title></rect><rect class=\"ins-bar neg\" x=\"55.69%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-17\"><title>17 Feb: −₹150</title></rect><rect class=\"ins-bar neg\" x=\"59.14%\" y=\"60.0\" width=\"2.41%\" height=\"2.5\" data-day=\"2028-02-18\"><title>18 Feb: −₹997</title></rect><rect class=\"ins-bar \" x=\"62.59%\" y=\"50.5\" width=\"2.41%\" height=\"9.5\" data-day=\"2028-02-19\"><title>19 Feb: ₹3,860</title></rect><rect class=\"ins-bar neg\" x=\"66.03%\" y=\"60.0\" width=\"2.41%\" height=\"1.2\" data-day=\"2028-02-20\"><title>20 Feb: −₹500</title></rect><rect class=\"ins-bar \" x=\"69.48%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-21\"><title>21 Feb: ₹0</title></rect><rect class=\"ins-bar \" x=\"72.93%\" y=\"56.7\" width=\"2.41%\" height=\"3.3\" data-day=\"2028-02-22\"><title>22 Feb: ₹1,351</title></rect><rect class=\"ins-bar \" x=\"76.38%\" y=\"58.9\" width=\"2.41%\" height=\"1.1\" data-day=\"2028-02-23\"><title>23 Feb: ₹456</title></rect><rect class=\"ins-bar \" x=\"79.83%\" y=\"57.6\" width=\"2.41%\" height=\"2.4\" data-day=\"2028-02-24\"><title>24 Feb: ₹963</title></rect><rect class=\"ins-bar neg\" x=\"83.28%\" y=\"60.0\" width=\"2.41%\" height=\"1.6\" data-day=\"2028-02-25\"><title>25 Feb: −₹658</title></rect><rect class=\"ins-bar neg\" x=\"86.72%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-26\"><title>26 Feb: −₹107</title></rect><rect class=\"ins-bar \" x=\"90.17%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-27\"><title>27 Feb: ₹0</title></rect><rect class=\"ins-bar \" x=\"93.62%\" y=\"43.6\" width=\"2.41%\" height=\"16.4\" data-day=\"2028-02-28\"><title>28 Feb: ₹6,665</title></rect><rect class=\"ins-bar neg\" x=\"97.07%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-29\"><title>29 Feb: −₹169</title></rect><text x=\"1.72%\" y=\"118\" class=\"ins-tick\">1</text><text x=\"25.86%\" y=\"118\" class=\"ins-tick\">8</text><text x=\"50.00%\" y=\"118\" class=\"ins-tick\">15</text><text x=\"74.14%\" y=\"118\" class=\"ins-tick\">22</text><text x=\"98.28%\" y=\"118\" class=\"ins-tick\">29</text></svg>",
+    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" aria-label=\"Day by day\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"60\" y2=\"60\"></line><rect class=\"ins-bar neg\" x=\"0.52%\" y=\"60.0\" width=\"2.41%\" height=\"1.8\" data-day=\"2028-02-01\"><title>1 Feb: −₹748</title></rect><rect class=\"ins-bar neg\" x=\"3.97%\" y=\"60.0\" width=\"2.41%\" height=\"4.2\" data-day=\"2028-02-02\"><title>2 Feb: −₹1,717</title></rect><rect class=\"ins-bar \" x=\"7.41%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-03\"><title>3 Feb: ₹383</title></rect><rect class=\"ins-bar neg\" x=\"10.86%\" y=\"60.0\" width=\"2.41%\" height=\"56.0\" data-day=\"2028-02-04\"><title>4 Feb: −₹22,713</title></rect><rect class=\"ins-bar \" x=\"14.31%\" y=\"58.4\" width=\"2.41%\" height=\"1.6\" data-day=\"2028-02-05\"><title>5 Feb: ₹629</title></rect><rect class=\"ins-bar \" x=\"17.76%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-06\"><title>6 Feb: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"21.21%\" y=\"60.0\" width=\"2.41%\" height=\"1.8\" data-day=\"2028-02-07\"><title>7 Feb: −₹750</title></rect><rect class=\"ins-bar neg\" x=\"24.66%\" y=\"60.0\" width=\"2.41%\" height=\"1.8\" data-day=\"2028-02-08\"><title>8 Feb: −₹725</title></rect><rect class=\"ins-bar \" x=\"28.10%\" y=\"56.6\" width=\"2.41%\" height=\"3.4\" data-day=\"2028-02-09\"><title>9 Feb: ₹1,396</title></rect><rect class=\"ins-bar neg\" x=\"31.55%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-10\"><title>10 Feb: −₹200</title></rect><rect class=\"ins-bar neg\" x=\"35.00%\" y=\"60.0\" width=\"2.41%\" height=\"1.7\" data-day=\"2028-02-11\"><title>11 Feb: −₹702</title></rect><rect class=\"ins-bar neg\" x=\"38.45%\" y=\"60.0\" width=\"2.41%\" height=\"3.9\" data-day=\"2028-02-12\"><title>12 Feb: −₹1,575</title></rect><rect class=\"ins-bar \" x=\"41.90%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-13\"><title>13 Feb: ₹138</title></rect><rect class=\"ins-bar neg\" x=\"45.34%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-14\"><title>14 Feb: −₹128</title></rect><rect class=\"ins-bar neg\" x=\"48.79%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-15\"><title>15 Feb: −₹75</title></rect><rect class=\"ins-bar \" x=\"52.24%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-16\"><title>16 Feb: ₹219</title></rect><rect class=\"ins-bar neg\" x=\"55.69%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-17\"><title>17 Feb: −₹150</title></rect><rect class=\"ins-bar neg\" x=\"59.14%\" y=\"60.0\" width=\"2.41%\" height=\"2.5\" data-day=\"2028-02-18\"><title>18 Feb: −₹997</title></rect><rect class=\"ins-bar \" x=\"62.59%\" y=\"50.5\" width=\"2.41%\" height=\"9.5\" data-day=\"2028-02-19\"><title>19 Feb: ₹3,860</title></rect><rect class=\"ins-bar neg\" x=\"66.03%\" y=\"60.0\" width=\"2.41%\" height=\"1.2\" data-day=\"2028-02-20\"><title>20 Feb: −₹500</title></rect><rect class=\"ins-bar \" x=\"69.48%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-21\"><title>21 Feb: ₹0</title></rect><rect class=\"ins-bar \" x=\"72.93%\" y=\"56.7\" width=\"2.41%\" height=\"3.3\" data-day=\"2028-02-22\"><title>22 Feb: ₹1,351</title></rect><rect class=\"ins-bar \" x=\"76.38%\" y=\"58.9\" width=\"2.41%\" height=\"1.1\" data-day=\"2028-02-23\"><title>23 Feb: ₹456</title></rect><rect class=\"ins-bar \" x=\"79.83%\" y=\"57.6\" width=\"2.41%\" height=\"2.4\" data-day=\"2028-02-24\"><title>24 Feb: ₹963</title></rect><rect class=\"ins-bar neg\" x=\"83.28%\" y=\"60.0\" width=\"2.41%\" height=\"1.6\" data-day=\"2028-02-25\"><title>25 Feb: −₹658</title></rect><rect class=\"ins-bar neg\" x=\"86.72%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-26\"><title>26 Feb: −₹107</title></rect><rect class=\"ins-bar \" x=\"90.17%\" y=\"59.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-27\"><title>27 Feb: ₹0</title></rect><rect class=\"ins-bar \" x=\"93.62%\" y=\"43.6\" width=\"2.41%\" height=\"16.4\" data-day=\"2028-02-28\"><title>28 Feb: ₹6,665</title></rect><rect class=\"ins-bar neg\" x=\"97.07%\" y=\"60.0\" width=\"2.41%\" height=\"1.0\" data-day=\"2028-02-29\"><title>29 Feb: −₹169</title></rect><text x=\"1.72%\" y=\"118\" class=\"ins-tick\">1</text><text x=\"25.86%\" y=\"118\" class=\"ins-tick\">8</text><text x=\"50.00%\" y=\"118\" class=\"ins-tick\">15</text><text x=\"74.14%\" y=\"118\" class=\"ins-tick\">22</text><text x=\"98.28%\" y=\"118\" class=\"ins-tick\">29</text></svg>",
     "profitChart": "Feb 2027: −₹3,812Mar 2027: −₹11,697Apr 2027: −₹11,357May 2027: −₹5,925Jun 2027: −₹7,124Jul 2027: −₹7,404Aug 2027: −₹8,307Sep 2027: −₹8,911Oct 2027: −₹9,471Nov 2027: −₹10,306Dec 2027: −₹11,293Jan 2028: −₹9,204Feb 2028: −₹7,264FebMayAugNovFeb",
     "accountsTotal": 7345,
     "sessionsAsked": [
@@ -958,6 +982,8 @@
       "moneyBadDebts": "₹672",
       "moneyProfitEqLabel": "= Profit",
       "moneyProfitTerm": "−₹14,256",
+      "moneyLinkedProfitTerm": "—",
+      "moneyProfitAfterLinked": "—",
       "moneyProfitChart": "Mar 2026: −₹6,207Apr 2026: −₹5,147May 2026: −₹11,104Jun 2026: −₹4,224Jul 2026: −₹8,850Aug 2026: −₹10,678Sep 2026: −₹7,209Oct 2026: −₹14,105Nov 2026: −₹4,106Dec 2026: −₹9,083Jan 2027: −₹10,097Feb 2027: −₹6,455Mar 2027: −₹14,256MarJunSepDecMar",
       "moneyProfitLegend": "This year Last year",
       "moneyBuildHistory": "Older months are not saved yet, so comparisons with last year are missing.Build month history",
@@ -970,12 +996,18 @@
       "moneyInSplit": "cash ₹13,520 · online ₹8,500",
       "moneyOut": "₹1,40,242",
       "moneyOutSplit": "cash ₹1,13,602 · online ₹26,640",
+      "moneyLinkedCashOut": "—",
+      "moneyNetAfterLinked": "—",
       "moneyCashChart": "1 Mar: −₹7302 Mar: ₹7053 Mar: −₹19,8624 Mar: −₹3005 Mar: −₹18,6596 Mar: −₹3057 Mar: ₹08 Mar: −₹8009 Mar: −₹24,19710 Mar: −₹8,91511 Mar: −₹55012 Mar: −₹87513 Mar: −₹2,60214 Mar: −₹62515 Mar: ₹2,00016 Mar: −₹90117 Mar: −₹4,39218 Mar: −₹27219 Mar: −₹26,05020 Mar: ₹31821 Mar: ₹85822 Mar: ₹2523 Mar: −₹1,10924 Mar: −₹1,77525 Mar: −₹1,27526 Mar: ₹5,01827 Mar: −₹10,18028 Mar: ₹029 Mar: ₹46730 Mar: −₹3,81731 Mar: ₹57818152229",
       "moneyBusiness": "₹16,775",
       "moneySpendCompare": "▲ 80% vs Feb · ▲ 92% vs Mar 2026",
-      "moneySpendTakeaway": "Business expenses were ₹67.2 for every ₹100 of sales, more than ₹10.Business expenses 92% more than last year, mostly Other.₹20,400 went to personal use, ₹34,656 more than the profit.",
+      "moneySpendTakeaway": "Business expenses were ₹67.2 for every ₹100 of sales, more than ₹10.Business expenses 92% more than last year, mostly Other.The business made a loss of ₹14,256, and ₹20,400 went to personal use.",
       "moneySpendCaveats": "⚠ ₹1,000 of expenses have no type; they count as business.",
       "moneyCategories": "Other₹15,775No type₹1,000",
+      "moneyLinkedLoad": "Include worker pay and regular bills",
+      "moneyLinkedWorkers": "—",
+      "moneyLinkedBills": "—",
+      "moneyLinkedTotal": "—",
       "moneyLabourBills": "(5 bills)",
       "moneyLabour": "₹240",
       "moneyLabourPaidCount": "(0 expenses)",
@@ -997,7 +1029,7 @@
       "moneyAccType": "I have this I owe this",
       "moneyChecks": "✓ Numbers match Outstanding, the cash drawer and Stock"
     },
-    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"60\" y2=\"60\"></line><rect class=\"ins-bar neg\" x=\"0.48%\" y=\"60.0\" width=\"2.26%\" height=\"1.6\" data-day=\"2027-03-01\"><title>1 Mar: −₹730</title></rect><rect class=\"ins-bar \" x=\"3.71%\" y=\"58.5\" width=\"2.26%\" height=\"1.5\" data-day=\"2027-03-02\"><title>2 Mar: ₹705</title></rect><rect class=\"ins-bar neg\" x=\"6.94%\" y=\"60.0\" width=\"2.26%\" height=\"42.7\" data-day=\"2027-03-03\"><title>3 Mar: −₹19,862</title></rect><rect class=\"ins-bar neg\" x=\"10.16%\" y=\"60.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-04\"><title>4 Mar: −₹300</title></rect><rect class=\"ins-bar neg\" x=\"13.39%\" y=\"60.0\" width=\"2.26%\" height=\"40.1\" data-day=\"2027-03-05\"><title>5 Mar: −₹18,659</title></rect><rect class=\"ins-bar neg\" x=\"16.61%\" y=\"60.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-06\"><title>6 Mar: −₹305</title></rect><rect class=\"ins-bar \" x=\"19.84%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-07\"><title>7 Mar: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"23.06%\" y=\"60.0\" width=\"2.26%\" height=\"1.7\" data-day=\"2027-03-08\"><title>8 Mar: −₹800</title></rect><rect class=\"ins-bar neg\" x=\"26.29%\" y=\"60.0\" width=\"2.26%\" height=\"52.0\" data-day=\"2027-03-09\"><title>9 Mar: −₹24,197</title></rect><rect class=\"ins-bar neg\" x=\"29.52%\" y=\"60.0\" width=\"2.26%\" height=\"19.2\" data-day=\"2027-03-10\"><title>10 Mar: −₹8,915</title></rect><rect class=\"ins-bar neg\" x=\"32.74%\" y=\"60.0\" width=\"2.26%\" height=\"1.2\" data-day=\"2027-03-11\"><title>11 Mar: −₹550</title></rect><rect class=\"ins-bar neg\" x=\"35.97%\" y=\"60.0\" width=\"2.26%\" height=\"1.9\" data-day=\"2027-03-12\"><title>12 Mar: −₹875</title></rect><rect class=\"ins-bar neg\" x=\"39.19%\" y=\"60.0\" width=\"2.26%\" height=\"5.6\" data-day=\"2027-03-13\"><title>13 Mar: −₹2,602</title></rect><rect class=\"ins-bar neg\" x=\"42.42%\" y=\"60.0\" width=\"2.26%\" height=\"1.3\" data-day=\"2027-03-14\"><title>14 Mar: −₹625</title></rect><rect class=\"ins-bar \" x=\"45.65%\" y=\"55.7\" width=\"2.26%\" height=\"4.3\" data-day=\"2027-03-15\"><title>15 Mar: ₹2,000</title></rect><rect class=\"ins-bar neg\" x=\"48.87%\" y=\"60.0\" width=\"2.26%\" height=\"1.9\" data-day=\"2027-03-16\"><title>16 Mar: −₹901</title></rect><rect class=\"ins-bar neg\" x=\"52.10%\" y=\"60.0\" width=\"2.26%\" height=\"9.4\" data-day=\"2027-03-17\"><title>17 Mar: −₹4,392</title></rect><rect class=\"ins-bar neg\" x=\"55.32%\" y=\"60.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-18\"><title>18 Mar: −₹272</title></rect><rect class=\"ins-bar neg\" x=\"58.55%\" y=\"60.0\" width=\"2.26%\" height=\"56.0\" data-day=\"2027-03-19\"><title>19 Mar: −₹26,050</title></rect><rect class=\"ins-bar \" x=\"61.77%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-20\"><title>20 Mar: ₹318</title></rect><rect class=\"ins-bar \" x=\"65.00%\" y=\"58.2\" width=\"2.26%\" height=\"1.8\" data-day=\"2027-03-21\"><title>21 Mar: ₹858</title></rect><rect class=\"ins-bar \" x=\"68.23%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-22\"><title>22 Mar: ₹25</title></rect><rect class=\"ins-bar neg\" x=\"71.45%\" y=\"60.0\" width=\"2.26%\" height=\"2.4\" data-day=\"2027-03-23\"><title>23 Mar: −₹1,109</title></rect><rect class=\"ins-bar neg\" x=\"74.68%\" y=\"60.0\" width=\"2.26%\" height=\"3.8\" data-day=\"2027-03-24\"><title>24 Mar: −₹1,775</title></rect><rect class=\"ins-bar neg\" x=\"77.90%\" y=\"60.0\" width=\"2.26%\" height=\"2.7\" data-day=\"2027-03-25\"><title>25 Mar: −₹1,275</title></rect><rect class=\"ins-bar \" x=\"81.13%\" y=\"49.2\" width=\"2.26%\" height=\"10.8\" data-day=\"2027-03-26\"><title>26 Mar: ₹5,018</title></rect><rect class=\"ins-bar neg\" x=\"84.35%\" y=\"60.0\" width=\"2.26%\" height=\"21.9\" data-day=\"2027-03-27\"><title>27 Mar: −₹10,180</title></rect><rect class=\"ins-bar \" x=\"87.58%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-28\"><title>28 Mar: ₹0</title></rect><rect class=\"ins-bar \" x=\"90.81%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-29\"><title>29 Mar: ₹467</title></rect><rect class=\"ins-bar neg\" x=\"94.03%\" y=\"60.0\" width=\"2.26%\" height=\"8.2\" data-day=\"2027-03-30\"><title>30 Mar: −₹3,817</title></rect><rect class=\"ins-bar \" x=\"97.26%\" y=\"58.8\" width=\"2.26%\" height=\"1.2\" data-day=\"2027-03-31\"><title>31 Mar: ₹578</title></rect><text x=\"1.61%\" y=\"118\" class=\"ins-tick\">1</text><text x=\"24.19%\" y=\"118\" class=\"ins-tick\">8</text><text x=\"46.77%\" y=\"118\" class=\"ins-tick\">15</text><text x=\"69.35%\" y=\"118\" class=\"ins-tick\">22</text><text x=\"91.94%\" y=\"118\" class=\"ins-tick\">29</text></svg>",
+    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" aria-label=\"Day by day\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"60\" y2=\"60\"></line><rect class=\"ins-bar neg\" x=\"0.48%\" y=\"60.0\" width=\"2.26%\" height=\"1.6\" data-day=\"2027-03-01\"><title>1 Mar: −₹730</title></rect><rect class=\"ins-bar \" x=\"3.71%\" y=\"58.5\" width=\"2.26%\" height=\"1.5\" data-day=\"2027-03-02\"><title>2 Mar: ₹705</title></rect><rect class=\"ins-bar neg\" x=\"6.94%\" y=\"60.0\" width=\"2.26%\" height=\"42.7\" data-day=\"2027-03-03\"><title>3 Mar: −₹19,862</title></rect><rect class=\"ins-bar neg\" x=\"10.16%\" y=\"60.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-04\"><title>4 Mar: −₹300</title></rect><rect class=\"ins-bar neg\" x=\"13.39%\" y=\"60.0\" width=\"2.26%\" height=\"40.1\" data-day=\"2027-03-05\"><title>5 Mar: −₹18,659</title></rect><rect class=\"ins-bar neg\" x=\"16.61%\" y=\"60.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-06\"><title>6 Mar: −₹305</title></rect><rect class=\"ins-bar \" x=\"19.84%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-07\"><title>7 Mar: ₹0</title></rect><rect class=\"ins-bar neg\" x=\"23.06%\" y=\"60.0\" width=\"2.26%\" height=\"1.7\" data-day=\"2027-03-08\"><title>8 Mar: −₹800</title></rect><rect class=\"ins-bar neg\" x=\"26.29%\" y=\"60.0\" width=\"2.26%\" height=\"52.0\" data-day=\"2027-03-09\"><title>9 Mar: −₹24,197</title></rect><rect class=\"ins-bar neg\" x=\"29.52%\" y=\"60.0\" width=\"2.26%\" height=\"19.2\" data-day=\"2027-03-10\"><title>10 Mar: −₹8,915</title></rect><rect class=\"ins-bar neg\" x=\"32.74%\" y=\"60.0\" width=\"2.26%\" height=\"1.2\" data-day=\"2027-03-11\"><title>11 Mar: −₹550</title></rect><rect class=\"ins-bar neg\" x=\"35.97%\" y=\"60.0\" width=\"2.26%\" height=\"1.9\" data-day=\"2027-03-12\"><title>12 Mar: −₹875</title></rect><rect class=\"ins-bar neg\" x=\"39.19%\" y=\"60.0\" width=\"2.26%\" height=\"5.6\" data-day=\"2027-03-13\"><title>13 Mar: −₹2,602</title></rect><rect class=\"ins-bar neg\" x=\"42.42%\" y=\"60.0\" width=\"2.26%\" height=\"1.3\" data-day=\"2027-03-14\"><title>14 Mar: −₹625</title></rect><rect class=\"ins-bar \" x=\"45.65%\" y=\"55.7\" width=\"2.26%\" height=\"4.3\" data-day=\"2027-03-15\"><title>15 Mar: ₹2,000</title></rect><rect class=\"ins-bar neg\" x=\"48.87%\" y=\"60.0\" width=\"2.26%\" height=\"1.9\" data-day=\"2027-03-16\"><title>16 Mar: −₹901</title></rect><rect class=\"ins-bar neg\" x=\"52.10%\" y=\"60.0\" width=\"2.26%\" height=\"9.4\" data-day=\"2027-03-17\"><title>17 Mar: −₹4,392</title></rect><rect class=\"ins-bar neg\" x=\"55.32%\" y=\"60.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-18\"><title>18 Mar: −₹272</title></rect><rect class=\"ins-bar neg\" x=\"58.55%\" y=\"60.0\" width=\"2.26%\" height=\"56.0\" data-day=\"2027-03-19\"><title>19 Mar: −₹26,050</title></rect><rect class=\"ins-bar \" x=\"61.77%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-20\"><title>20 Mar: ₹318</title></rect><rect class=\"ins-bar \" x=\"65.00%\" y=\"58.2\" width=\"2.26%\" height=\"1.8\" data-day=\"2027-03-21\"><title>21 Mar: ₹858</title></rect><rect class=\"ins-bar \" x=\"68.23%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-22\"><title>22 Mar: ₹25</title></rect><rect class=\"ins-bar neg\" x=\"71.45%\" y=\"60.0\" width=\"2.26%\" height=\"2.4\" data-day=\"2027-03-23\"><title>23 Mar: −₹1,109</title></rect><rect class=\"ins-bar neg\" x=\"74.68%\" y=\"60.0\" width=\"2.26%\" height=\"3.8\" data-day=\"2027-03-24\"><title>24 Mar: −₹1,775</title></rect><rect class=\"ins-bar neg\" x=\"77.90%\" y=\"60.0\" width=\"2.26%\" height=\"2.7\" data-day=\"2027-03-25\"><title>25 Mar: −₹1,275</title></rect><rect class=\"ins-bar \" x=\"81.13%\" y=\"49.2\" width=\"2.26%\" height=\"10.8\" data-day=\"2027-03-26\"><title>26 Mar: ₹5,018</title></rect><rect class=\"ins-bar neg\" x=\"84.35%\" y=\"60.0\" width=\"2.26%\" height=\"21.9\" data-day=\"2027-03-27\"><title>27 Mar: −₹10,180</title></rect><rect class=\"ins-bar \" x=\"87.58%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-28\"><title>28 Mar: ₹0</title></rect><rect class=\"ins-bar \" x=\"90.81%\" y=\"59.0\" width=\"2.26%\" height=\"1.0\" data-day=\"2027-03-29\"><title>29 Mar: ₹467</title></rect><rect class=\"ins-bar neg\" x=\"94.03%\" y=\"60.0\" width=\"2.26%\" height=\"8.2\" data-day=\"2027-03-30\"><title>30 Mar: −₹3,817</title></rect><rect class=\"ins-bar \" x=\"97.26%\" y=\"58.8\" width=\"2.26%\" height=\"1.2\" data-day=\"2027-03-31\"><title>31 Mar: ₹578</title></rect><text x=\"1.61%\" y=\"118\" class=\"ins-tick\">1</text><text x=\"24.19%\" y=\"118\" class=\"ins-tick\">8</text><text x=\"46.77%\" y=\"118\" class=\"ins-tick\">15</text><text x=\"69.35%\" y=\"118\" class=\"ins-tick\">22</text><text x=\"91.94%\" y=\"118\" class=\"ins-tick\">29</text></svg>",
     "profitChart": "Mar 2026: −₹6,207Apr 2026: −₹5,147May 2026: −₹11,104Jun 2026: −₹4,224Jul 2026: −₹8,850Aug 2026: −₹10,678Sep 2026: −₹7,209Oct 2026: −₹14,105Nov 2026: −₹4,106Dec 2026: −₹9,083Jan 2027: −₹10,097Feb 2027: −₹6,455Mar 2027: −₹14,256MarJunSepDecMar",
     "accountsTotal": 7345,
     "sessionsAsked": [
@@ -1024,6 +1056,8 @@
       "moneyBadDebts": "₹166",
       "moneyProfitEqLabel": "= Profit",
       "moneyProfitTerm": "−₹643",
+      "moneyLinkedProfitTerm": "—",
+      "moneyProfitAfterLinked": "—",
       "moneyProfitChart": "Jan 2026: −₹14,266Feb 2026: −₹10,472Mar 2026: −₹5,611Apr 2026: −₹11,299May 2026: −₹5,753Jun 2026: −₹12,326Jul 2026: −₹9,102Aug 2026: −₹7,756Sep 2026: −₹9,847Oct 2026: −₹9,043Nov 2026: −₹10,210Dec 2026: −₹8,539Jan 2027: −₹643JanAprJulOctJan",
       "moneyProfitLegend": "This year Last year",
       "moneyBuildHistory": "Older months are not saved yet, so comparisons with last year are missing.Build month history",
@@ -1036,11 +1070,17 @@
       "moneyInSplit": "cash ₹1,827 · online ₹0",
       "moneyOut": "₹750",
       "moneyOutSplit": "cash ₹750 · online ₹0",
+      "moneyLinkedCashOut": "—",
+      "moneyNetAfterLinked": "—",
       "moneyCashChart": "1 Jan: ₹1,0771",
       "moneyBusiness": "₹750",
       "moneySpendCompare": "▼ 50% vs 1 Jan 2026",
-      "moneySpendTakeaway": "Business expenses were ₹41.1 for every ₹100 of sales, more than ₹10.Business expenses 50% less than last year, mostly Other.₹11,500 went to personal use, ₹12,143 more than the profit.",
+      "moneySpendTakeaway": "Business expenses were ₹41.1 for every ₹100 of sales, more than ₹10.Business expenses 50% less than last year, mostly Other.The business made a loss of ₹643, and ₹11,500 went to personal use.",
       "moneyCategories": "Other₹750",
+      "moneyLinkedLoad": "Include worker pay and regular bills",
+      "moneyLinkedWorkers": "—",
+      "moneyLinkedBills": "—",
+      "moneyLinkedTotal": "—",
       "moneyLabourBills": "(0 bills)",
       "moneyLabour": "₹0",
       "moneyLabourPaidCount": "(0 expenses)",
@@ -1062,7 +1102,7 @@
       "moneyAccType": "I have this I owe this",
       "moneyChecks": "✓ Numbers match Outstanding, the cash drawer and Stock"
     },
-    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"106\" y2=\"106\"></line><rect class=\"ins-bar \" x=\"15.00%\" y=\"4.0\" width=\"70.00%\" height=\"102.0\" data-day=\"2027-01-01\"><title>1 Jan: ₹1,077</title></rect><text x=\"50.00%\" y=\"118\" class=\"ins-tick\">1</text></svg>",
+    "cashChart": "<svg class=\"ins-svg\" width=\"100%\" height=\"120\" role=\"img\" aria-label=\"Day by day\" style=\"--h:120px\"><line class=\"ins-axis\" x1=\"0\" x2=\"100%\" y1=\"106\" y2=\"106\"></line><rect class=\"ins-bar \" x=\"15.00%\" y=\"4.0\" width=\"70.00%\" height=\"102.0\" data-day=\"2027-01-01\"><title>1 Jan: ₹1,077</title></rect><text x=\"50.00%\" y=\"118\" class=\"ins-tick\">1</text></svg>",
     "profitChart": "Jan 2026: −₹14,266Feb 2026: −₹10,472Mar 2026: −₹5,611Apr 2026: −₹11,299May 2026: −₹5,753Jun 2026: −₹12,326Jul 2026: −₹9,102Aug 2026: −₹7,756Sep 2026: −₹9,847Oct 2026: −₹9,043Nov 2026: −₹10,210Dec 2026: −₹8,539Jan 2027: −₹643JanAprJulOctJan",
     "accountsTotal": 7345,
     "sessionsAsked": [
@@ -1271,7 +1311,7 @@
   },
   "outstanding.first": {
     "purchase": {
-      "aging": "Payables by age ₹1,52,097 Overdue (> 30 days) ₹1,52,097 0–30 days ₹0 0 bills 31–60 days ₹3,147 1 bill 61–90 days ₹0 0 bills 90+ days ₹1,48,950 32 bills By party (7) Sort Amount Oldest Shyam Lal Over 90 days 6 bills · oldest 681 days · ₹40,878 overdue ₹40,878 Pay Statement Sharma Stores Over 90 days 7 bills · oldest 622 days · ₹39,589 overdue ₹39,589 Pay Statement Kamla Devi Over 90 days 5 bills · oldest 608 days · ₹22,926 overdue ₹22,926 Pay Statement Ravi Over 90 days 5 bills · oldest 554 days · ₹20,579 overdue ₹20,579 Pay Statement Mohan Over 90 days 6 bills · oldest 570 days · ₹16,813 overdue ₹16,813 Pay Statement राम लाल Over 90 days 1 bill · oldest 528 days · ₹6,899 overdue ₹6,899 Pay Statement Sita Over 90 days 3 bills · oldest 651 days · ₹4,413 overdue ₹4,413 Pay Statement Bills",
+      "aging": "To pay, by age ₹1,52,097 Overdue (> 30 days) ₹1,52,097 0–30 days ₹0 0 bills 31–60 days ₹3,147 1 bill 61–90 days ₹0 0 bills 90+ days ₹1,48,950 32 bills By party (7) Sort Amount Oldest Shyam Lal Over 90 days 6 bills · oldest 681 days · ₹40,878 overdue ₹40,878 Pay Statement Sharma Stores Over 90 days 7 bills · oldest 622 days · ₹39,589 overdue ₹39,589 Pay Statement Kamla Devi Over 90 days 5 bills · oldest 608 days · ₹22,926 overdue ₹22,926 Pay Statement Ravi Over 90 days 5 bills · oldest 554 days · ₹20,579 overdue ₹20,579 Pay Statement Mohan Over 90 days 6 bills · oldest 570 days · ₹16,813 overdue ₹16,813 Pay Statement राम लाल Over 90 days 1 bill · oldest 528 days · ₹6,899 overdue ₹6,899 Pay Statement Sita Over 90 days 3 bills · oldest 651 days · ₹4,413 overdue ₹4,413 Pay Statement Bills (33)",
       "ages": [
         "#p142 Sita Due ₹3,147 | 32 days",
         "#pyo Shyam Lal Due ₹1,465 | 134 days",
@@ -1309,7 +1349,7 @@
       ]
     },
     "sale": {
-      "aging": "Receivables by age ₹42,698 Overdue (> 30 days) ₹41,439 0–30 days ₹1,259 4 bills 31–60 days ₹4,694 7 bills 61–90 days ₹6,889 9 bills 90+ days ₹29,856 70 bills Who to chase first Sharma Stores — ₹9,113 · ₹8,793 overdue oldest 703 days Mohan — ₹7,755 · ₹7,468 overdue oldest 593 days Shyam Lal — ₹7,212 · ₹6,826 overdue oldest 627 days Kamla Devi — ₹6,391 · ₹6,391 overdue oldest 694 days Gupta Traders — ₹3,714 · ₹3,714 overdue oldest 629 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 12 bills · oldest 703 days · ₹8,793 overdue ₹9,113 Receive payment on Retail or Wholesale Remind Statement Mohan Over 90 days 11 bills · oldest 593 days · ₹7,468 overdue ₹7,755 Receive payment on Retail or Wholesale Remind Statement Shyam Lal Over 90 days 12 bills · oldest 627 days · ₹6,826 overdue ₹7,212 Receive payment on Retail or Wholesale Remind Statement Kamla Devi Over 90 days 15 bills · oldest 694 days · ₹6,391 overdue ₹6,391 Receive payment Remind Statement Gupta Traders Over 90 days 12 bills · oldest 629 days · ₹3,714 overdue ₹3,714 Receive payment Remind Statement Sita Over 90 days 11 bills · oldest 588 days · ₹3,176 overdue ₹3,176 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 9 bills · oldest 717 days · ₹2,595 overdue ₹2,861 Receive payment Remind Statement राम लाल Over 90 days 8 bills · oldest 538 days · ₹2,476 overdue ₹2,476 Receive payment on Retail or Wholesale Remind Statement Bills",
+      "aging": "To receive, by age ₹42,698 Overdue (> 30 days) ₹41,439 0–30 days ₹1,259 4 bills 31–60 days ₹4,694 7 bills 61–90 days ₹6,889 9 bills 90+ days ₹29,856 70 bills Who to chase first Sharma Stores — ₹9,113 · ₹8,793 overdue oldest 703 days Mohan — ₹7,755 · ₹7,468 overdue oldest 593 days Shyam Lal — ₹7,212 · ₹6,826 overdue oldest 627 days Kamla Devi — ₹6,391 · ₹6,391 overdue oldest 694 days Gupta Traders — ₹3,714 · ₹3,714 overdue oldest 629 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 12 bills · oldest 703 days · ₹8,793 overdue ₹9,113 Receive payment on Retail or Wholesale Remind Statement Mohan Over 90 days 11 bills · oldest 593 days · ₹7,468 overdue ₹7,755 Receive payment on Retail or Wholesale Remind Statement Shyam Lal Over 90 days 12 bills · oldest 627 days · ₹6,826 overdue ₹7,212 Receive payment on Retail or Wholesale Remind Statement Kamla Devi Over 90 days 15 bills · oldest 694 days · ₹6,391 overdue ₹6,391 Receive payment Remind Statement Gupta Traders Over 90 days 12 bills · oldest 629 days · ₹3,714 overdue ₹3,714 Receive payment Remind Statement Sita Over 90 days 11 bills · oldest 588 days · ₹3,176 overdue ₹3,176 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 9 bills · oldest 717 days · ₹2,595 overdue ₹2,861 Receive payment Remind Statement राम लाल Over 90 days 8 bills · oldest 538 days · ₹2,476 overdue ₹2,476 Receive payment on Retail or Wholesale Remind Statement Bills (90)",
       "ages": [
         "#r154 Retail Ravi Due ₹266 | 12 days",
         "#r152 Retail Shyam Lal Due ₹386 | 13 days",
@@ -1404,7 +1444,7 @@
       ]
     },
     "retail": {
-      "aging": "Retail receivables by age ₹33,460 Overdue (> 30 days) ₹32,201 0–30 days ₹1,259 4 bills 31–60 days ₹2,456 5 bills 61–90 days ₹3,154 5 bills 90+ days ₹26,591 68 bills Who to chase first Kamla Devi — ₹6,391 · ₹6,391 overdue oldest 694 days Sharma Stores — ₹6,300 · ₹5,980 overdue oldest 703 days Shyam Lal — ₹5,407 · ₹5,021 overdue oldest 627 days Mohan — ₹4,438 · ₹4,151 overdue oldest 593 days Gupta Traders — ₹3,714 · ₹3,714 overdue oldest 629 days By party (8) Sort Amount Oldest Kamla Devi Over 90 days 15 bills · oldest 694 days · ₹6,391 overdue ₹6,391 Receive payment Remind Statement Sharma Stores Over 90 days 10 bills · oldest 703 days · ₹5,980 overdue ₹6,300 Receive payment Remind Statement Shyam Lal Over 90 days 11 bills · oldest 627 days · ₹5,021 overdue ₹5,407 Receive payment Remind Statement Mohan Over 90 days 9 bills · oldest 593 days · ₹4,151 overdue ₹4,438 Receive payment Remind Statement Gupta Traders Over 90 days 12 bills · oldest 629 days · ₹3,714 overdue ₹3,714 Receive payment Remind Statement Ravi Over 90 days 9 bills · oldest 717 days · ₹2,595 overdue ₹2,861 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 588 days · ₹2,306 overdue ₹2,306 Receive payment Remind Statement राम लाल Over 90 days 7 bills · oldest 538 days · ₹2,043 overdue ₹2,043 Receive payment Remind Statement Bills",
+      "aging": "Retail: to receive, by age ₹33,460 Overdue (> 30 days) ₹32,201 0–30 days ₹1,259 4 bills 31–60 days ₹2,456 5 bills 61–90 days ₹3,154 5 bills 90+ days ₹26,591 68 bills Who to chase first Kamla Devi — ₹6,391 · ₹6,391 overdue oldest 694 days Sharma Stores — ₹6,300 · ₹5,980 overdue oldest 703 days Shyam Lal — ₹5,407 · ₹5,021 overdue oldest 627 days Mohan — ₹4,438 · ₹4,151 overdue oldest 593 days Gupta Traders — ₹3,714 · ₹3,714 overdue oldest 629 days By party (8) Sort Amount Oldest Kamla Devi Over 90 days 15 bills · oldest 694 days · ₹6,391 overdue ₹6,391 Receive payment Remind Statement Sharma Stores Over 90 days 10 bills · oldest 703 days · ₹5,980 overdue ₹6,300 Receive payment Remind Statement Shyam Lal Over 90 days 11 bills · oldest 627 days · ₹5,021 overdue ₹5,407 Receive payment Remind Statement Mohan Over 90 days 9 bills · oldest 593 days · ₹4,151 overdue ₹4,438 Receive payment Remind Statement Gupta Traders Over 90 days 12 bills · oldest 629 days · ₹3,714 overdue ₹3,714 Receive payment Remind Statement Ravi Over 90 days 9 bills · oldest 717 days · ₹2,595 overdue ₹2,861 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 588 days · ₹2,306 overdue ₹2,306 Receive payment Remind Statement राम लाल Over 90 days 7 bills · oldest 538 days · ₹2,043 overdue ₹2,043 Receive payment Remind Statement Bills (82)",
       "ages": [
         "#r154 Ravi Due ₹266 | 12 days",
         "#r152 Shyam Lal Due ₹386 | 13 days",
@@ -1491,7 +1531,7 @@
       ]
     },
     "wholesale": {
-      "aging": "Wholesale receivables by age ₹9,238 Overdue (> 30 days) ₹9,238 0–30 days ₹0 0 bills 31–60 days ₹2,238 2 bills 61–90 days ₹3,735 4 bills 90+ days ₹3,265 2 bills Who to chase first Mohan — ₹3,317 · ₹3,317 overdue oldest 328 days Sharma Stores — ₹2,813 · ₹2,813 overdue oldest 396 days Sita — ₹870 · ₹870 overdue oldest 71 days Shyam Lal — ₹1,805 · ₹1,805 overdue oldest 33 days राम लाल — ₹433 · ₹433 overdue oldest 48 days By party (5) Sort Amount Oldest Mohan Over 90 days 2 bills · oldest 328 days · ₹3,317 overdue ₹3,317 Receive payment Remind Statement Sharma Stores Over 90 days 2 bills · oldest 396 days · ₹2,813 overdue ₹2,813 Receive payment Remind Statement Shyam Lal 1 bill · oldest 33 days · ₹1,805 overdue ₹1,805 Receive payment Remind Statement Sita 2 bills · oldest 71 days · ₹870 overdue ₹870 Receive payment Remind Statement राम लाल 1 bill · oldest 48 days · ₹433 overdue ₹433 Receive payment Remind Statement Bills",
+      "aging": "Wholesale: to receive, by age ₹9,238 Overdue (> 30 days) ₹9,238 0–30 days ₹0 0 bills 31–60 days ₹2,238 2 bills 61–90 days ₹3,735 4 bills 90+ days ₹3,265 2 bills Who to chase first Mohan — ₹3,317 · ₹3,317 overdue oldest 328 days Sharma Stores — ₹2,813 · ₹2,813 overdue oldest 396 days Sita — ₹870 · ₹870 overdue oldest 71 days Shyam Lal — ₹1,805 · ₹1,805 overdue oldest 33 days राम लाल — ₹433 · ₹433 overdue oldest 48 days By party (5) Sort Amount Oldest Mohan Over 90 days 2 bills · oldest 328 days · ₹3,317 overdue ₹3,317 Receive payment Remind Statement Sharma Stores Over 90 days 2 bills · oldest 396 days · ₹2,813 overdue ₹2,813 Receive payment Remind Statement Shyam Lal 1 bill · oldest 33 days · ₹1,805 overdue ₹1,805 Receive payment Remind Statement Sita 2 bills · oldest 71 days · ₹870 overdue ₹870 Receive payment Remind Statement राम लाल 1 bill · oldest 48 days · ₹433 overdue ₹433 Receive payment Remind Statement Bills (8)",
       "ages": [
         "#w13z Shyam Lal Due ₹1,805 | 33 days",
         "#w13f राम लाल Due ₹433 | 48 days",
@@ -1506,7 +1546,7 @@
   },
   "outstanding.jan31": {
     "purchase": {
-      "aging": "Payables by age ₹1,29,448 Overdue (> 30 days) ₹1,29,448 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹1,29,448 29 bills By party (8) Sort Amount Oldest Mohan Over 90 days 4 bills · oldest 619 days · ₹31,377 overdue ₹31,377 Pay Statement Shyam Lal Over 90 days 3 bills · oldest 562 days · ₹24,465 overdue ₹24,465 Pay Statement राम लाल Over 90 days 3 bills · oldest 706 days · ₹20,082 overdue ₹20,082 Pay Statement Ravi Over 90 days 7 bills · oldest 580 days · ₹18,175 overdue ₹18,175 Pay Statement Sita Over 90 days 4 bills · oldest 622 days · ₹16,093 overdue ₹16,093 Pay Statement Sharma Stores Over 90 days 5 bills · oldest 465 days · ₹15,247 overdue ₹15,247 Pay Statement Kamla Devi Over 90 days 2 bills · oldest 282 days · ₹3,685 overdue ₹3,685 Pay Statement Gupta Traders Over 90 days 1 bill · oldest 392 days · ₹324 overdue ₹324 Pay Statement Bills",
+      "aging": "To pay, by age ₹1,29,448 Overdue (> 30 days) ₹1,29,448 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹1,29,448 29 bills By party (8) Sort Amount Oldest Mohan Over 90 days 4 bills · oldest 619 days · ₹31,377 overdue ₹31,377 Pay Statement Shyam Lal Over 90 days 3 bills · oldest 562 days · ₹24,465 overdue ₹24,465 Pay Statement राम लाल Over 90 days 3 bills · oldest 706 days · ₹20,082 overdue ₹20,082 Pay Statement Ravi Over 90 days 7 bills · oldest 580 days · ₹18,175 overdue ₹18,175 Pay Statement Sita Over 90 days 4 bills · oldest 622 days · ₹16,093 overdue ₹16,093 Pay Statement Sharma Stores Over 90 days 5 bills · oldest 465 days · ₹15,247 overdue ₹15,247 Pay Statement Kamla Devi Over 90 days 2 bills · oldest 282 days · ₹3,685 overdue ₹3,685 Pay Statement Gupta Traders Over 90 days 1 bill · oldest 392 days · ₹324 overdue ₹324 Pay Statement Bills (29)",
       "ages": [
         "#p10o Ravi Due ₹1,879 | 101 days",
         "#pzx Sita Due ₹5,866 | 113 days",
@@ -1540,7 +1580,7 @@
       ]
     },
     "sale": {
-      "aging": "Receivables by age ₹53,444 Overdue (> 30 days) ₹48,112 0–30 days ₹5,332 6 bills 31–60 days ₹857 2 bills 61–90 days ₹4,996 6 bills 90+ days ₹42,259 74 bills Who to chase first Sita — ₹13,617 · ₹11,034 overdue oldest 668 days Kamla Devi — ₹8,082 · ₹8,082 overdue oldest 667 days Ravi — ₹7,867 · ₹7,867 overdue oldest 719 days Sharma Stores — ₹7,000 · ₹7,000 overdue oldest 708 days Mohan — ₹5,276 · ₹4,497 overdue oldest 695 days By party (8) Sort Amount Oldest Sita Over 90 days 14 bills · oldest 668 days · ₹11,034 overdue ₹13,617 Receive payment on Retail or Wholesale Remind Statement Kamla Devi Over 90 days 8 bills · oldest 667 days · ₹8,082 overdue ₹8,082 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 13 bills · oldest 719 days · ₹7,867 overdue ₹7,867 Receive payment on Retail or Wholesale Remind Statement Sharma Stores Over 90 days 13 bills · oldest 708 days · ₹7,000 overdue ₹7,000 Receive payment Remind Statement Mohan Over 90 days 9 bills · oldest 695 days · ₹4,497 overdue ₹5,276 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 662 days · ₹2,687 overdue ₹4,657 Receive payment Remind Statement Shyam Lal Over 90 days 13 bills · oldest 572 days · ₹3,895 overdue ₹3,895 Receive payment on Retail or Wholesale Remind Statement राम लाल Over 90 days 7 bills · oldest 558 days · ₹3,050 overdue ₹3,050 Receive payment Remind Statement Bills",
+      "aging": "To receive, by age ₹53,444 Overdue (> 30 days) ₹48,112 0–30 days ₹5,332 6 bills 31–60 days ₹857 2 bills 61–90 days ₹4,996 6 bills 90+ days ₹42,259 74 bills Who to chase first Sita — ₹13,617 · ₹11,034 overdue oldest 668 days Kamla Devi — ₹8,082 · ₹8,082 overdue oldest 667 days Ravi — ₹7,867 · ₹7,867 overdue oldest 719 days Sharma Stores — ₹7,000 · ₹7,000 overdue oldest 708 days Mohan — ₹5,276 · ₹4,497 overdue oldest 695 days By party (8) Sort Amount Oldest Sita Over 90 days 14 bills · oldest 668 days · ₹11,034 overdue ₹13,617 Receive payment on Retail or Wholesale Remind Statement Kamla Devi Over 90 days 8 bills · oldest 667 days · ₹8,082 overdue ₹8,082 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 13 bills · oldest 719 days · ₹7,867 overdue ₹7,867 Receive payment on Retail or Wholesale Remind Statement Sharma Stores Over 90 days 13 bills · oldest 708 days · ₹7,000 overdue ₹7,000 Receive payment Remind Statement Mohan Over 90 days 9 bills · oldest 695 days · ₹4,497 overdue ₹5,276 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 662 days · ₹2,687 overdue ₹4,657 Receive payment Remind Statement Shyam Lal Over 90 days 13 bills · oldest 572 days · ₹3,895 overdue ₹3,895 Receive payment on Retail or Wholesale Remind Statement राम लाल Over 90 days 7 bills · oldest 558 days · ₹3,050 overdue ₹3,050 Receive payment Remind Statement Bills (88)",
       "ages": [
         "#r15p Retail Sita Due ₹304 | 7 days",
         "#w15b Wholesale Sita Due ₹1,999 | 13 days",
@@ -1633,7 +1673,7 @@
       ]
     },
     "retail": {
-      "aging": "Retail receivables by age ₹42,448 Overdue (> 30 days) ₹39,115 0–30 days ₹3,333 5 bills 31–60 days ₹857 2 bills 61–90 days ₹4,996 6 bills 90+ days ₹33,262 70 bills Who to chase first Sita — ₹7,224 · ₹6,640 overdue oldest 668 days Ravi — ₹7,069 · ₹7,069 overdue oldest 719 days Sharma Stores — ₹7,000 · ₹7,000 overdue oldest 708 days Mohan — ₹5,276 · ₹4,497 overdue oldest 695 days Gupta Traders — ₹4,657 · ₹2,687 overdue oldest 662 days By party (8) Sort Amount Oldest Sita Over 90 days 12 bills · oldest 668 days · ₹6,640 overdue ₹7,224 Receive payment Remind Statement Ravi Over 90 days 12 bills · oldest 719 days · ₹7,069 overdue ₹7,069 Receive payment Remind Statement Sharma Stores Over 90 days 13 bills · oldest 708 days · ₹7,000 overdue ₹7,000 Receive payment Remind Statement Mohan Over 90 days 9 bills · oldest 695 days · ₹4,497 overdue ₹5,276 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 662 days · ₹2,687 overdue ₹4,657 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 667 days · ₹4,280 overdue ₹4,280 Receive payment Remind Statement Shyam Lal Over 90 days 12 bills · oldest 572 days · ₹3,892 overdue ₹3,892 Receive payment Remind Statement राम लाल Over 90 days 7 bills · oldest 558 days · ₹3,050 overdue ₹3,050 Receive payment Remind Statement Bills",
+      "aging": "Retail: to receive, by age ₹42,448 Overdue (> 30 days) ₹39,115 0–30 days ₹3,333 5 bills 31–60 days ₹857 2 bills 61–90 days ₹4,996 6 bills 90+ days ₹33,262 70 bills Who to chase first Sita — ₹7,224 · ₹6,640 overdue oldest 668 days Ravi — ₹7,069 · ₹7,069 overdue oldest 719 days Sharma Stores — ₹7,000 · ₹7,000 overdue oldest 708 days Mohan — ₹5,276 · ₹4,497 overdue oldest 695 days Gupta Traders — ₹4,657 · ₹2,687 overdue oldest 662 days By party (8) Sort Amount Oldest Sita Over 90 days 12 bills · oldest 668 days · ₹6,640 overdue ₹7,224 Receive payment Remind Statement Ravi Over 90 days 12 bills · oldest 719 days · ₹7,069 overdue ₹7,069 Receive payment Remind Statement Sharma Stores Over 90 days 13 bills · oldest 708 days · ₹7,000 overdue ₹7,000 Receive payment Remind Statement Mohan Over 90 days 9 bills · oldest 695 days · ₹4,497 overdue ₹5,276 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 662 days · ₹2,687 overdue ₹4,657 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 667 days · ₹4,280 overdue ₹4,280 Receive payment Remind Statement Shyam Lal Over 90 days 12 bills · oldest 572 days · ₹3,892 overdue ₹3,892 Receive payment Remind Statement राम लाल Over 90 days 7 bills · oldest 558 days · ₹3,050 overdue ₹3,050 Receive payment Remind Statement Bills (83)",
       "ages": [
         "#r15p Sita Due ₹304 | 7 days",
         "#r14y Gupta Traders Due ₹1,546 | 19 days",
@@ -1721,7 +1761,7 @@
       ]
     },
     "wholesale": {
-      "aging": "Wholesale receivables by age ₹10,996 Overdue (> 30 days) ₹8,997 0–30 days ₹1,999 1 bill 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹8,997 4 bills Who to chase first Sita — ₹6,393 · ₹4,394 overdue oldest 204 days Kamla Devi — ₹3,802 · ₹3,802 overdue oldest 556 days Ravi — ₹798 · ₹798 overdue oldest 631 days Shyam Lal — ₹3 · ₹3 overdue oldest 535 days By party (4) Sort Amount Oldest Sita Over 90 days 2 bills · oldest 204 days · ₹4,394 overdue ₹6,393 Receive payment Remind Statement Kamla Devi Over 90 days 1 bill · oldest 556 days · ₹3,802 overdue ₹3,802 Receive payment Remind Statement Ravi Over 90 days 1 bill · oldest 631 days · ₹798 overdue ₹798 Receive payment Remind Statement Shyam Lal Over 90 days 1 bill · oldest 535 days · ₹3 overdue ₹3 Receive payment Remind Statement Bills",
+      "aging": "Wholesale: to receive, by age ₹10,996 Overdue (> 30 days) ₹8,997 0–30 days ₹1,999 1 bill 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹8,997 4 bills Who to chase first Sita — ₹6,393 · ₹4,394 overdue oldest 204 days Kamla Devi — ₹3,802 · ₹3,802 overdue oldest 556 days Ravi — ₹798 · ₹798 overdue oldest 631 days Shyam Lal — ₹3 · ₹3 overdue oldest 535 days By party (4) Sort Amount Oldest Sita Over 90 days 2 bills · oldest 204 days · ₹4,394 overdue ₹6,393 Receive payment Remind Statement Kamla Devi Over 90 days 1 bill · oldest 556 days · ₹3,802 overdue ₹3,802 Receive payment Remind Statement Ravi Over 90 days 1 bill · oldest 631 days · ₹798 overdue ₹798 Receive payment Remind Statement Shyam Lal Over 90 days 1 bill · oldest 535 days · ₹3 overdue ₹3 Receive payment Remind Statement Bills (5)",
       "ages": [
         "#w15b Sita Due ₹1,999 | 13 days",
         "#wu5 Sita Due ₹4,394 | 204 days",
@@ -1733,7 +1773,7 @@
   },
   "outstanding.leapDay": {
     "purchase": {
-      "aging": "Payables by age ₹1,75,361 Overdue (> 30 days) ₹1,75,361 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹1,945 1 bill 90+ days ₹1,73,416 33 bills By party (8) Sort Amount Oldest Shyam Lal Over 90 days 6 bills · oldest 698 days · ₹64,613 overdue ₹64,613 Pay Statement Gupta Traders Over 90 days 6 bills · oldest 707 days · ₹25,169 overdue ₹25,169 Pay Statement Sharma Stores Over 90 days 4 bills · oldest 603 days · ₹21,427 overdue ₹21,427 Pay Statement Kamla Devi Over 90 days 6 bills · oldest 671 days · ₹20,778 overdue ₹20,778 Pay Statement राम लाल Over 90 days 3 bills · oldest 347 days · ₹14,963 overdue ₹14,963 Pay Statement Ravi Over 90 days 4 bills · oldest 463 days · ₹14,584 overdue ₹14,584 Pay Statement Sita Over 90 days 2 bills · oldest 678 days · ₹11,606 overdue ₹11,606 Pay Statement Mohan Over 90 days 3 bills · oldest 640 days · ₹2,221 overdue ₹2,221 Pay Statement Bills",
+      "aging": "To pay, by age ₹1,75,361 Overdue (> 30 days) ₹1,75,361 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹1,945 1 bill 90+ days ₹1,73,416 33 bills By party (8) Sort Amount Oldest Shyam Lal Over 90 days 6 bills · oldest 698 days · ₹64,613 overdue ₹64,613 Pay Statement Gupta Traders Over 90 days 6 bills · oldest 707 days · ₹25,169 overdue ₹25,169 Pay Statement Sharma Stores Over 90 days 4 bills · oldest 603 days · ₹21,427 overdue ₹21,427 Pay Statement Kamla Devi Over 90 days 6 bills · oldest 671 days · ₹20,778 overdue ₹20,778 Pay Statement राम लाल Over 90 days 3 bills · oldest 347 days · ₹14,963 overdue ₹14,963 Pay Statement Ravi Over 90 days 4 bills · oldest 463 days · ₹14,584 overdue ₹14,584 Pay Statement Sita Over 90 days 2 bills · oldest 678 days · ₹11,606 overdue ₹11,606 Pay Statement Mohan Over 90 days 3 bills · oldest 640 days · ₹2,221 overdue ₹2,221 Pay Statement Bills (34)",
       "ages": [
         "#p12e Kamla Devi Due ₹1,945 | 84 days",
         "#p110 Ravi Due ₹684 | 111 days",
@@ -1772,7 +1812,7 @@
       ]
     },
     "sale": {
-      "aging": "Receivables by age ₹37,673 Overdue (> 30 days) ₹35,876 0–30 days ₹1,797 5 bills 31–60 days ₹1,668 4 bills 61–90 days ₹3,268 4 bills 90+ days ₹30,940 66 bills Who to chase first Sharma Stores — ₹12,241 · ₹11,105 overdue oldest 710 days Mohan — ₹6,383 · ₹5,952 overdue oldest 699 days Kamla Devi — ₹5,805 · ₹5,805 overdue oldest 512 days Sita — ₹4,278 · ₹4,278 overdue oldest 706 days राम लाल — ₹2,742 · ₹2,742 overdue oldest 536 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 18 bills · oldest 710 days · ₹11,105 overdue ₹12,241 Receive payment on Retail or Wholesale Remind Statement Mohan Over 90 days 14 bills · oldest 699 days · ₹5,952 overdue ₹6,383 Receive payment Remind Statement Kamla Devi Over 90 days 8 bills · oldest 512 days · ₹5,805 overdue ₹5,805 Receive payment on Retail or Wholesale Remind Statement Sita Over 90 days 10 bills · oldest 706 days · ₹4,278 overdue ₹4,278 Receive payment on Retail or Wholesale Remind Statement राम लाल Over 90 days 6 bills · oldest 536 days · ₹2,742 overdue ₹2,742 Receive payment Remind Statement Gupta Traders Over 90 days 10 bills · oldest 568 days · ₹2,457 overdue ₹2,457 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 7 bills · oldest 619 days · ₹1,916 overdue ₹2,146 Receive payment on Retail or Wholesale Remind Statement Shyam Lal Over 90 days 6 bills · oldest 621 days · ₹1,621 overdue ₹1,621 Receive payment on Retail or Wholesale Remind Statement Bills",
+      "aging": "To receive, by age ₹37,673 Overdue (> 30 days) ₹35,876 0–30 days ₹1,797 5 bills 31–60 days ₹1,668 4 bills 61–90 days ₹3,268 4 bills 90+ days ₹30,940 66 bills Who to chase first Sharma Stores — ₹12,241 · ₹11,105 overdue oldest 710 days Mohan — ₹6,383 · ₹5,952 overdue oldest 699 days Kamla Devi — ₹5,805 · ₹5,805 overdue oldest 512 days Sita — ₹4,278 · ₹4,278 overdue oldest 706 days राम लाल — ₹2,742 · ₹2,742 overdue oldest 536 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 18 bills · oldest 710 days · ₹11,105 overdue ₹12,241 Receive payment on Retail or Wholesale Remind Statement Mohan Over 90 days 14 bills · oldest 699 days · ₹5,952 overdue ₹6,383 Receive payment Remind Statement Kamla Devi Over 90 days 8 bills · oldest 512 days · ₹5,805 overdue ₹5,805 Receive payment on Retail or Wholesale Remind Statement Sita Over 90 days 10 bills · oldest 706 days · ₹4,278 overdue ₹4,278 Receive payment on Retail or Wholesale Remind Statement राम लाल Over 90 days 6 bills · oldest 536 days · ₹2,742 overdue ₹2,742 Receive payment Remind Statement Gupta Traders Over 90 days 10 bills · oldest 568 days · ₹2,457 overdue ₹2,457 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 7 bills · oldest 619 days · ₹1,916 overdue ₹2,146 Receive payment on Retail or Wholesale Remind Statement Shyam Lal Over 90 days 6 bills · oldest 621 days · ₹1,621 overdue ₹1,621 Receive payment on Retail or Wholesale Remind Statement Bills (79)",
       "ages": [
         "#r16p Retail Mohan Due ₹362 | 3 days",
         "#r16n Retail Mohan Due ₹69 | 4 days",
@@ -1856,7 +1896,7 @@
       ]
     },
     "retail": {
-      "aging": "Retail receivables by age ₹33,120 Overdue (> 30 days) ₹31,323 0–30 days ₹1,797 5 bills 31–60 days ₹1,668 4 bills 61–90 days ₹3,268 4 bills 90+ days ₹26,387 60 bills Who to chase first Sharma Stores — ₹10,898 · ₹9,762 overdue oldest 710 days Mohan — ₹6,383 · ₹5,952 overdue oldest 699 days Sita — ₹4,254 · ₹4,254 overdue oldest 706 days Kamla Devi — ₹3,656 · ₹3,656 overdue oldest 512 days राम लाल — ₹2,742 · ₹2,742 overdue oldest 536 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 17 bills · oldest 710 days · ₹9,762 overdue ₹10,898 Receive payment Remind Statement Mohan Over 90 days 14 bills · oldest 699 days · ₹5,952 overdue ₹6,383 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 706 days · ₹4,254 overdue ₹4,254 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 512 days · ₹3,656 overdue ₹3,656 Receive payment Remind Statement राम लाल Over 90 days 6 bills · oldest 536 days · ₹2,742 overdue ₹2,742 Receive payment Remind Statement Gupta Traders Over 90 days 9 bills · oldest 568 days · ₹2,098 overdue ₹2,098 Receive payment Remind Statement Ravi Over 90 days 6 bills · oldest 619 days · ₹1,604 overdue ₹1,834 Receive payment Remind Statement Shyam Lal Over 90 days 5 bills · oldest 621 days · ₹1,255 overdue ₹1,255 Receive payment Remind Statement Bills",
+      "aging": "Retail: to receive, by age ₹33,120 Overdue (> 30 days) ₹31,323 0–30 days ₹1,797 5 bills 31–60 days ₹1,668 4 bills 61–90 days ₹3,268 4 bills 90+ days ₹26,387 60 bills Who to chase first Sharma Stores — ₹10,898 · ₹9,762 overdue oldest 710 days Mohan — ₹6,383 · ₹5,952 overdue oldest 699 days Sita — ₹4,254 · ₹4,254 overdue oldest 706 days Kamla Devi — ₹3,656 · ₹3,656 overdue oldest 512 days राम लाल — ₹2,742 · ₹2,742 overdue oldest 536 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 17 bills · oldest 710 days · ₹9,762 overdue ₹10,898 Receive payment Remind Statement Mohan Over 90 days 14 bills · oldest 699 days · ₹5,952 overdue ₹6,383 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 706 days · ₹4,254 overdue ₹4,254 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 512 days · ₹3,656 overdue ₹3,656 Receive payment Remind Statement राम लाल Over 90 days 6 bills · oldest 536 days · ₹2,742 overdue ₹2,742 Receive payment Remind Statement Gupta Traders Over 90 days 9 bills · oldest 568 days · ₹2,098 overdue ₹2,098 Receive payment Remind Statement Ravi Over 90 days 6 bills · oldest 619 days · ₹1,604 overdue ₹1,834 Receive payment Remind Statement Shyam Lal Over 90 days 5 bills · oldest 621 days · ₹1,255 overdue ₹1,255 Receive payment Remind Statement Bills (73)",
       "ages": [
         "#r16p Mohan Due ₹362 | 3 days",
         "#r16n Mohan Due ₹69 | 4 days",
@@ -1934,7 +1974,7 @@
       ]
     },
     "wholesale": {
-      "aging": "Wholesale receivables by age ₹4,553 Overdue (> 30 days) ₹4,553 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹4,553 6 bills Who to chase first Kamla Devi — ₹2,149 · ₹2,149 overdue oldest 305 days Sharma Stores — ₹1,343 · ₹1,343 overdue oldest 179 days Shyam Lal — ₹366 · ₹366 overdue oldest 237 days Gupta Traders — ₹359 · ₹359 overdue oldest 304 days Ravi — ₹312 · ₹312 overdue oldest 309 days By party (6) Sort Amount Oldest Kamla Devi Over 90 days 1 bill · oldest 305 days · ₹2,149 overdue ₹2,149 Receive payment Remind Statement Sharma Stores Over 90 days 1 bill · oldest 179 days · ₹1,343 overdue ₹1,343 Receive payment Remind Statement Shyam Lal Over 90 days 1 bill · oldest 237 days · ₹366 overdue ₹366 Receive payment Remind Statement Gupta Traders Over 90 days 1 bill · oldest 304 days · ₹359 overdue ₹359 Receive payment Remind Statement Ravi Over 90 days 1 bill · oldest 309 days · ₹312 overdue ₹312 Receive payment Remind Statement Sita Over 90 days 1 bill · oldest 575 days · ₹24 overdue ₹24 Receive payment Remind Statement Bills",
+      "aging": "Wholesale: to receive, by age ₹4,553 Overdue (> 30 days) ₹4,553 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹4,553 6 bills Who to chase first Kamla Devi — ₹2,149 · ₹2,149 overdue oldest 305 days Sharma Stores — ₹1,343 · ₹1,343 overdue oldest 179 days Shyam Lal — ₹366 · ₹366 overdue oldest 237 days Gupta Traders — ₹359 · ₹359 overdue oldest 304 days Ravi — ₹312 · ₹312 overdue oldest 309 days By party (6) Sort Amount Oldest Kamla Devi Over 90 days 1 bill · oldest 305 days · ₹2,149 overdue ₹2,149 Receive payment Remind Statement Sharma Stores Over 90 days 1 bill · oldest 179 days · ₹1,343 overdue ₹1,343 Receive payment Remind Statement Shyam Lal Over 90 days 1 bill · oldest 237 days · ₹366 overdue ₹366 Receive payment Remind Statement Gupta Traders Over 90 days 1 bill · oldest 304 days · ₹359 overdue ₹359 Receive payment Remind Statement Ravi Over 90 days 1 bill · oldest 309 days · ₹312 overdue ₹312 Receive payment Remind Statement Sita Over 90 days 1 bill · oldest 575 days · ₹24 overdue ₹24 Receive payment Remind Statement Bills (6)",
       "ages": [
         "#wwq Sharma Stores Due ₹1,343 | 179 days",
         "#wt0 Shyam Lal Due ₹366 | 237 days",
@@ -1947,7 +1987,7 @@
   },
   "outstanding.mar31": {
     "purchase": {
-      "aging": "Payables by age ₹1,79,714 Overdue (> 30 days) ₹1,43,474 0–30 days ₹36,240 3 bills 31–60 days ₹6,466 2 bills 61–90 days ₹0 0 bills 90+ days ₹1,37,008 23 bills By party (8) Sort Amount Oldest Shyam Lal Over 90 days 7 bills · oldest 466 days · ₹37,587 overdue ₹48,641 Pay Statement Sharma Stores Over 90 days 4 bills · oldest 567 days · ₹18,973 overdue ₹37,924 Pay Statement Mohan Over 90 days 3 bills · oldest 531 days · ₹28,344 overdue ₹28,344 Pay Statement Sita Over 90 days 4 bills · oldest 574 days · ₹27,456 overdue ₹27,456 Pay Statement Ravi Over 90 days 4 bills · oldest 532 days · ₹24,191 overdue ₹24,191 Pay Statement Kamla Devi Over 90 days 3 bills · oldest 110 days · ₹6,519 overdue ₹6,519 Pay Statement Gupta Traders Over 90 days 2 bills · oldest 309 days · ₹104 overdue ₹6,339 Pay Statement राम लाल Over 90 days 1 bill · oldest 154 days · ₹300 overdue ₹300 Pay Statement Bills",
+      "aging": "To pay, by age ₹1,79,714 Overdue (> 30 days) ₹1,43,474 0–30 days ₹36,240 3 bills 31–60 days ₹6,466 2 bills 61–90 days ₹0 0 bills 90+ days ₹1,37,008 23 bills By party (8) Sort Amount Oldest Shyam Lal Over 90 days 7 bills · oldest 466 days · ₹37,587 overdue ₹48,641 Pay Statement Sharma Stores Over 90 days 4 bills · oldest 567 days · ₹18,973 overdue ₹37,924 Pay Statement Mohan Over 90 days 3 bills · oldest 531 days · ₹28,344 overdue ₹28,344 Pay Statement Sita Over 90 days 4 bills · oldest 574 days · ₹27,456 overdue ₹27,456 Pay Statement Ravi Over 90 days 4 bills · oldest 532 days · ₹24,191 overdue ₹24,191 Pay Statement Kamla Devi Over 90 days 3 bills · oldest 110 days · ₹6,519 overdue ₹6,519 Pay Statement Gupta Traders Over 90 days 2 bills · oldest 309 days · ₹104 overdue ₹6,339 Pay Statement राम लाल Over 90 days 1 bill · oldest 154 days · ₹300 overdue ₹300 Pay Statement Bills (28)",
       "ages": [
         "#p14v Shyam Lal Due ₹11,054 | 1 day",
         "#p13j Sharma Stores Due ₹18,951 | 21 days",
@@ -1980,7 +2020,7 @@
       ]
     },
     "sale": {
-      "aging": "Receivables by age ₹49,350 Overdue (> 30 days) ₹44,473 0–30 days ₹4,877 9 bills 31–60 days ₹2,144 5 bills 61–90 days ₹2,199 3 bills 90+ days ₹40,130 71 bills Who to chase first Sita — ₹13,369 · ₹13,325 overdue oldest 707 days Sharma Stores — ₹7,446 · ₹7,142 overdue oldest 715 days Shyam Lal — ₹6,948 · ₹6,948 overdue oldest 687 days राम लाल — ₹6,193 · ₹4,436 overdue oldest 674 days Ravi — ₹5,109 · ₹5,109 overdue oldest 723 days By party (8) Sort Amount Oldest Sita Over 90 days 9 bills · oldest 707 days · ₹13,325 overdue ₹13,369 Receive payment on Retail or Wholesale Remind Statement Sharma Stores Over 90 days 17 bills · oldest 715 days · ₹7,142 overdue ₹7,446 Receive payment Remind Statement Shyam Lal Over 90 days 8 bills · oldest 687 days · ₹6,948 overdue ₹6,948 Receive payment on Retail or Wholesale Remind Statement राम लाल Over 90 days 13 bills · oldest 674 days · ₹4,436 overdue ₹6,193 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 10 bills · oldest 723 days · ₹5,109 overdue ₹5,109 Receive payment on Retail or Wholesale Remind Statement Kamla Devi Over 90 days 12 bills · oldest 692 days · ₹1,640 overdue ₹4,412 Receive payment Remind Statement Mohan Over 90 days 8 bills · oldest 659 days · ₹3,072 overdue ₹3,072 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 585 days · ₹2,801 overdue ₹2,801 Receive payment Remind Statement Bills",
+      "aging": "To receive, by age ₹49,350 Overdue (> 30 days) ₹44,473 0–30 days ₹4,877 9 bills 31–60 days ₹2,144 5 bills 61–90 days ₹2,199 3 bills 90+ days ₹40,130 71 bills Who to chase first Sita — ₹13,369 · ₹13,325 overdue oldest 707 days Sharma Stores — ₹7,446 · ₹7,142 overdue oldest 715 days Shyam Lal — ₹6,948 · ₹6,948 overdue oldest 687 days राम लाल — ₹6,193 · ₹4,436 overdue oldest 674 days Ravi — ₹5,109 · ₹5,109 overdue oldest 723 days By party (8) Sort Amount Oldest Sita Over 90 days 9 bills · oldest 707 days · ₹13,325 overdue ₹13,369 Receive payment on Retail or Wholesale Remind Statement Sharma Stores Over 90 days 17 bills · oldest 715 days · ₹7,142 overdue ₹7,446 Receive payment Remind Statement Shyam Lal Over 90 days 8 bills · oldest 687 days · ₹6,948 overdue ₹6,948 Receive payment on Retail or Wholesale Remind Statement राम लाल Over 90 days 13 bills · oldest 674 days · ₹4,436 overdue ₹6,193 Receive payment on Retail or Wholesale Remind Statement Ravi Over 90 days 10 bills · oldest 723 days · ₹5,109 overdue ₹5,109 Receive payment on Retail or Wholesale Remind Statement Kamla Devi Over 90 days 12 bills · oldest 692 days · ₹1,640 overdue ₹4,412 Receive payment Remind Statement Mohan Over 90 days 8 bills · oldest 659 days · ₹3,072 overdue ₹3,072 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 585 days · ₹2,801 overdue ₹2,801 Receive payment Remind Statement Bills (88)",
       "ages": [
         "#r14y Retail Sharma Stores Due ₹304 | today",
         "#r14w Retail Kamla Devi Due ₹294 | 1 day",
@@ -2073,7 +2113,7 @@
       ]
     },
     "retail": {
-      "aging": "Retail receivables by age ₹31,569 Overdue (> 30 days) ₹27,796 0–30 days ₹3,773 8 bills 31–60 days ₹2,144 5 bills 61–90 days ₹2,199 3 bills 90+ days ₹23,453 67 bills Who to chase first Sharma Stores — ₹7,446 · ₹7,142 overdue oldest 715 days Ravi — ₹4,418 · ₹4,418 overdue oldest 723 days Kamla Devi — ₹4,412 · ₹1,640 overdue oldest 692 days राम लाल — ₹4,269 · ₹3,616 overdue oldest 674 days Shyam Lal — ₹4,196 · ₹4,196 overdue oldest 687 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 17 bills · oldest 715 days · ₹7,142 overdue ₹7,446 Receive payment Remind Statement Ravi Over 90 days 9 bills · oldest 723 days · ₹4,418 overdue ₹4,418 Receive payment Remind Statement Kamla Devi Over 90 days 12 bills · oldest 692 days · ₹1,640 overdue ₹4,412 Receive payment Remind Statement राम लाल Over 90 days 11 bills · oldest 674 days · ₹3,616 overdue ₹4,269 Receive payment Remind Statement Shyam Lal Over 90 days 7 bills · oldest 687 days · ₹4,196 overdue ₹4,196 Receive payment Remind Statement Mohan Over 90 days 8 bills · oldest 659 days · ₹3,072 overdue ₹3,072 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 585 days · ₹2,801 overdue ₹2,801 Receive payment Remind Statement Sita Over 90 days 8 bills · oldest 680 days · ₹911 overdue ₹955 Receive payment Remind Statement Bills",
+      "aging": "Retail: to receive, by age ₹31,569 Overdue (> 30 days) ₹27,796 0–30 days ₹3,773 8 bills 31–60 days ₹2,144 5 bills 61–90 days ₹2,199 3 bills 90+ days ₹23,453 67 bills Who to chase first Sharma Stores — ₹7,446 · ₹7,142 overdue oldest 715 days Ravi — ₹4,418 · ₹4,418 overdue oldest 723 days Kamla Devi — ₹4,412 · ₹1,640 overdue oldest 692 days राम लाल — ₹4,269 · ₹3,616 overdue oldest 674 days Shyam Lal — ₹4,196 · ₹4,196 overdue oldest 687 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 17 bills · oldest 715 days · ₹7,142 overdue ₹7,446 Receive payment Remind Statement Ravi Over 90 days 9 bills · oldest 723 days · ₹4,418 overdue ₹4,418 Receive payment Remind Statement Kamla Devi Over 90 days 12 bills · oldest 692 days · ₹1,640 overdue ₹4,412 Receive payment Remind Statement राम लाल Over 90 days 11 bills · oldest 674 days · ₹3,616 overdue ₹4,269 Receive payment Remind Statement Shyam Lal Over 90 days 7 bills · oldest 687 days · ₹4,196 overdue ₹4,196 Receive payment Remind Statement Mohan Over 90 days 8 bills · oldest 659 days · ₹3,072 overdue ₹3,072 Receive payment Remind Statement Gupta Traders Over 90 days 11 bills · oldest 585 days · ₹2,801 overdue ₹2,801 Receive payment Remind Statement Sita Over 90 days 8 bills · oldest 680 days · ₹911 overdue ₹955 Receive payment Remind Statement Bills (83)",
       "ages": [
         "#r14y Sharma Stores Due ₹304 | today",
         "#r14w Kamla Devi Due ₹294 | 1 day",
@@ -2161,7 +2201,7 @@
       ]
     },
     "wholesale": {
-      "aging": "Wholesale receivables by age ₹17,781 Overdue (> 30 days) ₹16,677 0–30 days ₹1,104 1 bill 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹16,677 4 bills Who to chase first Sita — ₹12,414 · ₹12,414 overdue oldest 707 days Shyam Lal — ₹2,752 · ₹2,752 overdue oldest 661 days राम लाल — ₹1,924 · ₹820 overdue oldest 299 days Ravi — ₹691 · ₹691 overdue oldest 340 days By party (4) Sort Amount Oldest Sita Over 90 days 1 bill · oldest 707 days · ₹12,414 overdue ₹12,414 Receive payment Remind Statement Shyam Lal Over 90 days 1 bill · oldest 661 days · ₹2,752 overdue ₹2,752 Receive payment Remind Statement राम लाल Over 90 days 2 bills · oldest 299 days · ₹820 overdue ₹1,924 Receive payment Remind Statement Ravi Over 90 days 1 bill · oldest 340 days · ₹691 overdue ₹691 Receive payment Remind Statement Bills",
+      "aging": "Wholesale: to receive, by age ₹17,781 Overdue (> 30 days) ₹16,677 0–30 days ₹1,104 1 bill 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹16,677 4 bills Who to chase first Sita — ₹12,414 · ₹12,414 overdue oldest 707 days Shyam Lal — ₹2,752 · ₹2,752 overdue oldest 661 days राम लाल — ₹1,924 · ₹820 overdue oldest 299 days Ravi — ₹691 · ₹691 overdue oldest 340 days By party (4) Sort Amount Oldest Sita Over 90 days 1 bill · oldest 707 days · ₹12,414 overdue ₹12,414 Receive payment Remind Statement Shyam Lal Over 90 days 1 bill · oldest 661 days · ₹2,752 overdue ₹2,752 Receive payment Remind Statement राम लाल Over 90 days 2 bills · oldest 299 days · ₹820 overdue ₹1,924 Receive payment Remind Statement Ravi Over 90 days 1 bill · oldest 340 days · ₹691 overdue ₹691 Receive payment Remind Statement Bills (5)",
       "ages": [
         "#w12z राम लाल Due ₹1,104 | 29 days",
         "#wng राम लाल Due ₹820 | 299 days",
@@ -2173,7 +2213,7 @@
   },
   "outstanding.jan1": {
     "purchase": {
-      "aging": "Payables by age ₹1,40,694 Overdue (> 30 days) ₹1,34,230 0–30 days ₹6,464 1 bill 31–60 days ₹333 1 bill 61–90 days ₹0 0 bills 90+ days ₹1,33,897 29 bills By party (8) Sort Amount Oldest Ravi Over 90 days 8 bills · oldest 603 days · ₹37,697 overdue ₹37,697 Pay Statement Shyam Lal Over 90 days 6 bills · oldest 671 days · ₹36,641 overdue ₹36,641 Pay Statement Sharma Stores Over 90 days 6 bills · oldest 451 days · ₹22,635 overdue ₹22,635 Pay Statement Mohan Over 90 days 3 bills · oldest 302 days · ₹14,926 overdue ₹21,390 Pay Statement Sita Over 90 days 2 bills · oldest 585 days · ₹11,209 overdue ₹11,209 Pay Statement राम लाल Over 90 days 3 bills · oldest 668 days · ₹7,750 overdue ₹7,750 Pay Statement Gupta Traders Over 90 days 1 bill · oldest 380 days · ₹1,861 overdue ₹1,861 Pay Statement Kamla Devi Over 90 days 2 bills · oldest 556 days · ₹1,511 overdue ₹1,511 Pay Statement Bills",
+      "aging": "To pay, by age ₹1,40,694 Overdue (> 30 days) ₹1,34,230 0–30 days ₹6,464 1 bill 31–60 days ₹333 1 bill 61–90 days ₹0 0 bills 90+ days ₹1,33,897 29 bills By party (8) Sort Amount Oldest Ravi Over 90 days 8 bills · oldest 603 days · ₹37,697 overdue ₹37,697 Pay Statement Shyam Lal Over 90 days 6 bills · oldest 671 days · ₹36,641 overdue ₹36,641 Pay Statement Sharma Stores Over 90 days 6 bills · oldest 451 days · ₹22,635 overdue ₹22,635 Pay Statement Mohan Over 90 days 3 bills · oldest 302 days · ₹14,926 overdue ₹21,390 Pay Statement Sita Over 90 days 2 bills · oldest 585 days · ₹11,209 overdue ₹11,209 Pay Statement राम लाल Over 90 days 3 bills · oldest 668 days · ₹7,750 overdue ₹7,750 Pay Statement Gupta Traders Over 90 days 1 bill · oldest 380 days · ₹1,861 overdue ₹1,861 Pay Statement Kamla Devi Over 90 days 2 bills · oldest 556 days · ₹1,511 overdue ₹1,511 Pay Statement Bills (31)",
       "ages": [
         "#p13h Mohan Due ₹6,464 | 22 days",
         "#p11b Shyam Lal Due ₹333 | 60 days",
@@ -2209,7 +2249,7 @@
       ]
     },
     "sale": {
-      "aging": "Receivables by age ₹36,925 Overdue (> 30 days) ₹34,678 0–30 days ₹2,247 4 bills 31–60 days ₹2,184 3 bills 61–90 days ₹400 4 bills 90+ days ₹32,094 68 bills Who to chase first Ravi — ₹7,995 · ₹7,995 overdue oldest 640 days Sharma Stores — ₹6,009 · ₹5,689 overdue oldest 720 days Mohan — ₹5,491 · ₹4,854 overdue oldest 624 days Shyam Lal — ₹5,360 · ₹5,360 overdue oldest 569 days Sita — ₹4,855 · ₹4,855 overdue oldest 658 days By party (8) Sort Amount Oldest Ravi Over 90 days 8 bills · oldest 640 days · ₹7,995 overdue ₹7,995 Receive payment on Retail or Wholesale Remind Statement Sharma Stores Over 90 days 12 bills · oldest 720 days · ₹5,689 overdue ₹6,009 Receive payment Remind Statement Mohan Over 90 days 12 bills · oldest 624 days · ₹4,854 overdue ₹5,491 Receive payment Remind Statement Shyam Lal Over 90 days 16 bills · oldest 569 days · ₹5,360 overdue ₹5,360 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 658 days · ₹4,855 overdue ₹4,855 Receive payment Remind Statement राम लाल Over 90 days 10 bills · oldest 718 days · ₹2,599 overdue ₹3,889 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 629 days · ₹2,087 overdue ₹2,087 Receive payment Remind Statement Gupta Traders Over 90 days 5 bills · oldest 588 days · ₹1,239 overdue ₹1,239 Receive payment Remind Statement Bills",
+      "aging": "To receive, by age ₹36,925 Overdue (> 30 days) ₹34,678 0–30 days ₹2,247 4 bills 31–60 days ₹2,184 3 bills 61–90 days ₹400 4 bills 90+ days ₹32,094 68 bills Who to chase first Ravi — ₹7,995 · ₹7,995 overdue oldest 640 days Sharma Stores — ₹6,009 · ₹5,689 overdue oldest 720 days Mohan — ₹5,491 · ₹4,854 overdue oldest 624 days Shyam Lal — ₹5,360 · ₹5,360 overdue oldest 569 days Sita — ₹4,855 · ₹4,855 overdue oldest 658 days By party (8) Sort Amount Oldest Ravi Over 90 days 8 bills · oldest 640 days · ₹7,995 overdue ₹7,995 Receive payment on Retail or Wholesale Remind Statement Sharma Stores Over 90 days 12 bills · oldest 720 days · ₹5,689 overdue ₹6,009 Receive payment Remind Statement Mohan Over 90 days 12 bills · oldest 624 days · ₹4,854 overdue ₹5,491 Receive payment Remind Statement Shyam Lal Over 90 days 16 bills · oldest 569 days · ₹5,360 overdue ₹5,360 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 658 days · ₹4,855 overdue ₹4,855 Receive payment Remind Statement राम लाल Over 90 days 10 bills · oldest 718 days · ₹2,599 overdue ₹3,889 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 629 days · ₹2,087 overdue ₹2,087 Receive payment Remind Statement Gupta Traders Over 90 days 5 bills · oldest 588 days · ₹1,239 overdue ₹1,239 Receive payment Remind Statement Bills (79)",
       "ages": [
         "#r144 Retail Sharma Stores Due ₹320 | 10 days",
         "#r140 Retail Mohan Due ₹637 | 12 days",
@@ -2293,7 +2333,7 @@
       ]
     },
     "retail": {
-      "aging": "Retail receivables by age ₹33,943 Overdue (> 30 days) ₹31,696 0–30 days ₹2,247 4 bills 31–60 days ₹2,184 3 bills 61–90 days ₹400 4 bills 90+ days ₹29,112 67 bills Who to chase first Sharma Stores — ₹6,009 · ₹5,689 overdue oldest 720 days Mohan — ₹5,491 · ₹4,854 overdue oldest 624 days Shyam Lal — ₹5,360 · ₹5,360 overdue oldest 569 days Ravi — ₹5,013 · ₹5,013 overdue oldest 640 days Sita — ₹4,855 · ₹4,855 overdue oldest 658 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 12 bills · oldest 720 days · ₹5,689 overdue ₹6,009 Receive payment Remind Statement Mohan Over 90 days 12 bills · oldest 624 days · ₹4,854 overdue ₹5,491 Receive payment Remind Statement Shyam Lal Over 90 days 16 bills · oldest 569 days · ₹5,360 overdue ₹5,360 Receive payment Remind Statement Ravi Over 90 days 7 bills · oldest 640 days · ₹5,013 overdue ₹5,013 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 658 days · ₹4,855 overdue ₹4,855 Receive payment Remind Statement राम लाल Over 90 days 10 bills · oldest 718 days · ₹2,599 overdue ₹3,889 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 629 days · ₹2,087 overdue ₹2,087 Receive payment Remind Statement Gupta Traders Over 90 days 5 bills · oldest 588 days · ₹1,239 overdue ₹1,239 Receive payment Remind Statement Bills",
+      "aging": "Retail: to receive, by age ₹33,943 Overdue (> 30 days) ₹31,696 0–30 days ₹2,247 4 bills 31–60 days ₹2,184 3 bills 61–90 days ₹400 4 bills 90+ days ₹29,112 67 bills Who to chase first Sharma Stores — ₹6,009 · ₹5,689 overdue oldest 720 days Mohan — ₹5,491 · ₹4,854 overdue oldest 624 days Shyam Lal — ₹5,360 · ₹5,360 overdue oldest 569 days Ravi — ₹5,013 · ₹5,013 overdue oldest 640 days Sita — ₹4,855 · ₹4,855 overdue oldest 658 days By party (8) Sort Amount Oldest Sharma Stores Over 90 days 12 bills · oldest 720 days · ₹5,689 overdue ₹6,009 Receive payment Remind Statement Mohan Over 90 days 12 bills · oldest 624 days · ₹4,854 overdue ₹5,491 Receive payment Remind Statement Shyam Lal Over 90 days 16 bills · oldest 569 days · ₹5,360 overdue ₹5,360 Receive payment Remind Statement Ravi Over 90 days 7 bills · oldest 640 days · ₹5,013 overdue ₹5,013 Receive payment Remind Statement Sita Over 90 days 9 bills · oldest 658 days · ₹4,855 overdue ₹4,855 Receive payment Remind Statement राम लाल Over 90 days 10 bills · oldest 718 days · ₹2,599 overdue ₹3,889 Receive payment Remind Statement Kamla Devi Over 90 days 7 bills · oldest 629 days · ₹2,087 overdue ₹2,087 Receive payment Remind Statement Gupta Traders Over 90 days 5 bills · oldest 588 days · ₹1,239 overdue ₹1,239 Receive payment Remind Statement Bills (78)",
       "ages": [
         "#r144 Sharma Stores Due ₹320 | 10 days",
         "#r140 Mohan Due ₹637 | 12 days",
@@ -2376,7 +2416,7 @@
       ]
     },
     "wholesale": {
-      "aging": "Wholesale receivables by age ₹2,982 Overdue (> 30 days) ₹2,982 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹2,982 1 bill Who to chase first Ravi — ₹2,982 · ₹2,982 overdue oldest 585 days By party (1) Sort Amount Oldest Ravi Over 90 days 1 bill · oldest 585 days · ₹2,982 overdue ₹2,982 Receive payment Remind Statement Bills",
+      "aging": "Wholesale: to receive, by age ₹2,982 Overdue (> 30 days) ₹2,982 0–30 days ₹0 0 bills 31–60 days ₹0 0 bills 61–90 days ₹0 0 bills 90+ days ₹2,982 1 bill Who to chase first Ravi — ₹2,982 · ₹2,982 overdue oldest 585 days By party (1) Sort Amount Oldest Ravi Over 90 days 1 bill · oldest 585 days · ₹2,982 overdue ₹2,982 Receive payment Remind Statement Bills (1)",
       "ages": [
         "#w7j Ravi Due ₹2,982 | 585 days"
       ]
@@ -2384,17 +2424,41 @@
   },
   "statements.first": {
     "day": {
-      "title": "Day book · 1 Nov 2026",
-      "share": "Day book · 1 Nov 2026",
-      "text": "For today, see Today ›Day book · 1 Nov 2026TimeWhatDetailsAmountDueNothing in this period.",
-      "rows": 0,
-      "first": [],
-      "last": []
+      "title": "Day book · 31 Oct 2026",
+      "share": "Day book · 31 Oct 2026\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹288\nOld dues paid: ₹0",
+      "text": "Day book · 31 Oct 2026TimeWhatDetailsAmountDue1:42 pmDue receivedSita₹288Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹288Old dues paid₹0",
+      "rows": 1,
+      "first": [
+        [
+          "2026-10-31 13:42",
+          "Due received",
+          "",
+          "Sita",
+          "",
+          288,
+          288,
+          0,
+          0
+        ]
+      ],
+      "last": [
+        [
+          "2026-10-31 13:42",
+          "Due received",
+          "",
+          "Sita",
+          "",
+          288,
+          288,
+          0,
+          0
+        ]
+      ]
     },
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay beforeSales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
       "rows": 0,
       "first": [],
       "last": []
@@ -2482,17 +2546,41 @@
   },
   "statements.jan31": {
     "day": {
-      "title": "Day book · 31 Jan 2027",
-      "share": "Day book · 31 Jan 2027",
-      "text": "For today, see Today ›Day book · 31 Jan 2027TimeWhatDetailsAmountDueNothing in this period.",
-      "rows": 0,
-      "first": [],
-      "last": []
+      "title": "Day book · 30 Jan 2027",
+      "share": "Day book · 30 Jan 2027\nSales: ₹1,518\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
+      "text": "Day book · 30 Jan 2027TimeWhatDetailsAmountDue12:00 amRetail saleKamla Devi₹1,518₹444Sales (1)₹1,518Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "rows": 1,
+      "first": [
+        [
+          "2027-01-30 00:00",
+          "Retail sale",
+          "",
+          "Kamla Devi",
+          "",
+          1518,
+          1074,
+          0,
+          444
+        ]
+      ],
+      "last": [
+        [
+          "2027-01-30 00:00",
+          "Retail sale",
+          "",
+          "Kamla Devi",
+          "",
+          1518,
+          1074,
+          0,
+          444
+        ]
+      ]
     },
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay beforeSales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
       "rows": 0,
       "first": [],
       "last": []
@@ -2734,7 +2822,7 @@
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay beforeSales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
       "rows": 0,
       "first": [],
       "last": []
@@ -3052,7 +3140,7 @@
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay beforeSales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
       "rows": 0,
       "first": [],
       "last": []
@@ -3414,7 +3502,7 @@
     "dayFeb28": {
       "title": "Day book · 28 Feb 2027",
       "share": "Day book · 28 Feb 2027\nSales: ₹0\nPurchases: ₹0\nExpenses: ₹0\nWithdrawals: ₹0\nOld dues received: ₹0\nOld dues paid: ₹0",
-      "text": "Day book · 28 Feb 2027TimeWhatDetailsAmountDueNothing in this period.Sales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
+      "text": "Day book · 28 Feb 2027Nothing was entered on this dayDay beforeSales (0)₹0Purchases (0)₹0Expenses₹0Withdrawals₹0Old dues received₹0Old dues paid₹0",
       "rows": 0,
       "first": [],
       "last": []
@@ -3481,8 +3569,8 @@
     ],
     "csv": {
       "title": "Export CSV · 1 Jan 2027 – 1 Jan 2027",
-      "share": "Export CSV · 1 Jan 2027 – 1 Jan 2027\n2 lines from 1 bills are ready. Tap CSV to download.",
-      "text": "Export CSV · 1 Jan 2027 – 1 Jan 20272 lines from 1 bills are ready. Tap CSV to download.",
+      "share": "Export CSV · 1 Jan 2027 – 1 Jan 2027\n2 lines from 1 bill are ready. Tap CSV to download.",
+      "text": "Export CSV · 1 Jan 2027 – 1 Jan 20272 lines from 1 bill are ready. Tap CSV to download.",
       "rows": 2,
       "first": [
         [

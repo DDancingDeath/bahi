@@ -7,7 +7,7 @@ Owner decision on #87: *non-owner users may edit or delete a bill for 2 days.* S
 The owner sets, per role, which pages and numbers managers and members see, how far back
 History goes and for how many days bills can be changed. Screen: **Settings › Team › Roles & access**
 (owner only, English and Hindi; route `settings-team`, old `settings-roles`). The same card lists **People**: each
-approved user's Aadhat role (approved and changed in Admin › Users) and Rentals role (`users/{uid}.rentRole`,
+approved user's Aadhat role (approved and changed in Settings › Team) and Rentals role (`users/{uid}.rentRole`,
 changed right there; this replaced the old Rentals › Access page, whose route now opens this card).
 
 The app has two businesses: **Aadhat** (आढ़त; stored and coded as `shop`, e.g. the switcher key, the
@@ -38,10 +38,10 @@ setting is missing or invalid.
 | `analytics` | Insights page (stored id of the old Analytics page; its Seasons section hosts Rate trends and Product traffic, so it also keeps their owner/manager rule, and `reports` opens Seasons too; to-do cards with ₹ lost or ₹ per ₹100 need `profit`) | कारोबार पेज | on | off | client; **rules** for withdrawals |
 | `wholesale` | Wholesale page, and the wholesale dues on Outstanding › Sales (All / Wholesale, #125) | थोक पेज | on | off | client |
 | `personalExpenses` | Personal expenses | निजी खर्च | **off** | **off** | client + **rules** (#98, see "Personal expenses"; on only when the owner turned it on) |
-| `profit` | Profit and average cost | मुनाफा और औसत लागत | on | on | client |
-| `stockValue` | Stock ₹ value | स्टॉक की ₹ कीमत | on | on | client |
-| `oldCashSessions` | Past cash days | पिछले दिनों का कैश | on | on | client (rules: phase 2) |
-| `purchaseRates` | See purchase rates | खरीद रेट देखें | on | on | client (Rates page only) |
+| `profit` | Profit and average cost | मुनाफा और औसत लागत | on | **off** (U-09) | client |
+| `stockValue` | Stock ₹ value (Stock shows every role the real kg; the ₹ value only with this on, U-09) | स्टॉक की ₹ कीमत | on | **off** (U-09) | client |
+| `oldCashSessions` | Past cash days | पिछले दिनों का कैश | on | **off** (U-09) | client (rules: phase 2) |
+| `purchaseRates` | See purchase rates | खरीद रेट देखें | on | **off** (U-09) | client (Rates page only) |
 | `contacts` | Pick names from phone contacts (Q52 of #111) | फ़ोन के संपर्कों से नाम चुनें | on | on | client (the three 👤 pick-contact buttons on Billing and Wholesale; the phone's contacts never reach the database; the Android app asks for the Contacts permission on the first tap, #495) |
 | `shopSettings` | Change Aadhat settings (labour, bill checks, business name, printed bill) | आढ़त की सेटिंग बदलें | off | – (managers only) | **client + rules** |
 | `historyDays` | History: days back (0 = all) | इतिहास: कितने दिन पीछे तक (0 = सभी) | 0 | 0 | client only (see "Server-side read rules") |
@@ -112,8 +112,8 @@ roleAccess: {
              oldCashSessions: true, purchaseRates: true, contacts: true, shopSettings: false,
              historyDays: 0, editDays: 2 },
   staff:   { finance: false, reports: false, analytics: false, wholesale: false,
-             personalExpenses: false, personalExpensesChosen: true, profit: true, stockValue: true,
-             oldCashSessions: true, purchaseRates: true, contacts: true, shopSettings: false,
+             personalExpenses: false, personalExpensesChosen: true, profit: false, stockValue: false,
+             oldCashSessions: false, purchaseRates: false, contacts: true, shopSettings: false,
              historyDays: 0, editDays: 2 }
 },
 roleAccessUpdatedAt: <ms>, roleAccessUpdatedBy: <uid>
@@ -430,7 +430,7 @@ rejected / no profile / unknown role.
 | `cashSessions` (legacy) | none (backup only) | no |
 | `settings/app` | one get per app start (version gate, Roles & access, labour, bill checks, business name, TIP policy) | yes; no other `settings` doc is read |
 | `notifications` | own only (`where('userId', '==', uid)`) | own |
-| `drafts` | own only (`where('userId', '==', uid)`, get by id) | own |
+| `drafts` | own (`where('userId', '==', uid)`) and shop-shared ones (`where('shared', '==', true)`, U-37), get by id | own and shared |
 | `autoSaves/{uid}` | own doc | own |
 | `users` | own profile at start-up / login / registration; full list: Admin and Roles & access › People (owner only) | **own only**. Names shown on bills, payments and audit rows are stored on those records |
 | `settings/team` (#87) | names and roles of the approved people, plus `ownerUids` (the active owners, see "Owners"), written by the owner's phone whenever it reads the profiles (Admin, App health, notification fan-out; and once a day 3 minutes after start-up, one read per profile + the doc; it writes only when a name or role differs) and by `tools/migrate`; one get for managers' App health device names and their notification fan-out on item and rate edits | no (managers only) |
@@ -460,6 +460,7 @@ except `rent_public` get.
 | `settings/app` (G) | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✗ → ✗ | ✗ → ✗ |
 | other `settings` docs, `settings` (L) | ✓ → ✓ | ✓ → ✗ | ✓ → ✗ | ✗ → ✗ | ✗ → ✗ |
 | `notifications`, `drafts`: own | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✗ → ✗ | ✗ → ✗ |
+| `drafts`: shared (`shared: true`, U-37) | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✗ → ✗ | ✗ → ✗ |
 | `notifications`, `drafts`: other users' (G, unfiltered L) | ✓ → ✓ | ✓ → ✗ | ✓ → ✗ | ✗ → ✗ | ✗ → ✗ |
 | `autoSaves`: own / other users' | ✓ / ✓ | ✓ / ✓ → ✗ | ✓ / ✓ → ✗ | ✗ | ✗ |
 | `users`: own profile | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ | ✓ → ✓ |
@@ -480,7 +481,8 @@ Rentals were already scoped and are unchanged; the matrix tests now check them f
 
 ### How the app's queries satisfy the rules
 
-- `notifications` and `drafts` queries already filter `where('userId', '==', uid)`; a get of a
+- `notifications` and `drafts` queries already filter `where('userId', '==', uid)` (shared drafts:
+  `where('shared', '==', true)`); a get of a
   missing draft is allowed (nothing to leak). Auto-save reads only `autoSaves/<own uid>`.
 - Withdrawals: `FirebaseService` reads them (listener, older history, refresh, oldest probe,
   legacy scan) only when `canReadWithdrawals(role, roleAccess)` (`utils/role-access.js`) says the
@@ -541,12 +543,13 @@ client-only (below).
    cost one more read per app start for everyone.
 6. Write side of per-user records (#18 follow-up), **now enforced**: `autoSaves/{uid}` is
    written and deleted only by that user (`docId == uid`, `userId` = own uid); drafts are
-   created and changed only by their own user with `userId` = own uid, never changed; a
+   created and changed only by their own user with `userId` = own uid, never changed (a shared draft
+   may be marked taken by any approved user: only `takenBy` = own uid and `takenAt`, U-37); a
    notification is created only by an owner or manager (the only roles that edit items) for
    another user, with `changedByUserId` = own uid, server `timestamp`, `read: false`, id
    `<eventKey>_<userId>`, type `rate_change` or `item_edit` and only the fields the app
    writes; members send none. Only the recipient updates a notification, and only `read` /
-   `readAt`. Drafts and notifications are deleted by their own user, auto-saves by theirs; the
+   `readAt`. Drafts and notifications are deleted by their own user (drafts also by a manager), auto-saves by theirs; the
    owner may delete any of them (Admin › Clear Data) but not write them. Still not checked:
    who a notification goes to (wholesale rate changes go only to owners/managers, item edits
    only to owners) — that would cost one profile read per recipient. No extra rule reads
@@ -674,6 +677,7 @@ The owner may write any of these (repairs, backup restore). Everyone else:
 | other `settings` docs (none in use) | **owner** (#64) | **owner** (#64) | **owner** (#64) |
 | `users/{uid}/preferences` (never used by the app) | nobody (#64) | nobody | nobody |
 | `users/{uid}.savedRanges` (#140, saved period ranges) | the person themself (`savedRangesOk`: "a\|b;a\|b", at most 10 pairs of the app's period presets, ≤ 600 characters); the owner as for any profile | same | owner (with the profile) |
+| `users/{uid}.lang` (U-86, app language) | the person themself (`en` or `hi`); the owner as for any profile | same | owner (with the profile) |
 | bills (`purchases`, `retailSales`, `wholesaleSales`) | approved user, own `userId`, and `createdAt` = the server time (#115: every happa version sends it; the edit window counts from it) | see "Bill edit window" | owner |
 
 Legacy timestamp backfill (`expenses`, `withdrawals`, `stockAdjustments`, `personalExpenses`, and bills
@@ -685,12 +689,12 @@ not checked one by one (rules can't loop over map keys), so a member can still c
 
 ## People: remove, reject, restore (#84)
 
-- **Remove** (Admin › Users › Delete) clears the role and keeps the profile as `status: 'disabled'`;
+- **Remove** (Settings › Team › Remove from shop) clears the role and keeps the profile as `status: 'disabled'`;
   **Reject** (a pending registration) keeps it as `status: 'rejected'`. Neither deletes the profile, and
   registration may only *create* a missing profile, so the person can't come back as a pending request.
   The rules refuse them everything but reading their own profile; the app signs them out with "removed" /
   "rejected, contact the owner". They can't change their profile either.
-- **Restore** (Admin › Users › Removed and rejected) puts the person back as a pending registration; the
+- **Restore** (Settings › Team › Removed and rejected) puts the person back as a pending registration; the
   owner approves them with a role like any new registration. Every approve, reject, role change, remove
   and restore writes an audit entry (`APPROVE_USER`, `REJECT_USER`, `CHANGE_USER_ROLE`, `REMOVE_USER`,
   `RESTORE_USER`).
@@ -700,7 +704,7 @@ not checked one by one (rules can't loop over map keys), so a member can still c
 - **Google sign-in** (off until set up, [google-sign-in.md](google-sign-in.md)): a new Google account gets the same
   pending profile as a registration (Google's name and email) and waits for the owner; nothing is approved by
   the app. An email that already has a password stays the same account (same uid, profile and role).
-- **Lost phone**: Admin › Users › Reset password (a Google-only person has no password: Remove, then Restore). Changing the password ends every other sign-in of that
+- **Lost phone**: Settings › Team › Reset password (a Google-only person has no password: Remove, then Restore). Changing the password ends every other sign-in of that
   account within an hour (Firebase revokes its sessions). To stop the lost phone at once, Remove the person
   first, then Restore and approve them after the reset.
 - Admin › Clear Data › Users still deletes profiles (a fresh start); those people can register again.
@@ -718,9 +722,9 @@ app, once per project, by one of:
 - **The migration tool** (`tools/migrate/README.md`): `apply` copies the profiles with their roles and the
   same uids, and `auth:import` the logins, so the old owner arrives as owner.
 
-Then sign in as that owner and approve everyone else in Admin › Users as usual. That first owner can make
+Then sign in as that owner and approve everyone else in Settings › Team as usual. That first owner can make
 others owner from the app (see "Owners" below); the console is needed only once. On their first sign-in
-the app lists them in `settings/team.ownerUids` (about 15 s after start-up).
+the app lists them in `settings/team.ownerUids` (about 3 minutes after start-up, or sooner when they open Settings › Team or Admin).
 
 ## Owners: more than one, never none
 
@@ -728,7 +732,7 @@ A shop can have any number of owners. Every owner has every owner power (all che
 notifications, the anomaly scan and Rentals already treat each owner the same), and nothing in the app names
 "the" owner.
 
-- **Who changes roles:** only an owner, in **Admin › Users › Edit role**: a choice of **Member / Manager /
+- **Who changes roles:** only an owner, in **Settings › Team › Edit role**: a choice of **Member / Manager /
   Owner** (the current one marked "(now)"). Managers and members never see Admin or the choice, and the rules
   refuse them any role or status change (their own included) and any write to `settings/team`.
 - **Making someone owner** needs a confirmation (en + hi): "*Ramesh will get full control: money, settings,
@@ -747,14 +751,14 @@ notifications, the anomaly scan and Rentals already treat each owner the same), 
   listed owner is never taken off without losing the role, and that the list never empties. Two owners
   demoting each other at the same moment both write the list, so the second fails.
 - **Backfill (projects from before multi-owner):** each owner's phone lists that owner when they sign in
-  (`ensureSelfListedOwner`, about 15 s after start-up, one read, once per phone), the owner's phone lists
+  (`ensureSelfListedOwner`, about 3 minutes after start-up so it stays out of the first screens' reads, one read, once per phone), the owner's phone lists
   any owner it sees in the profiles when it rebuilds the team directory, and Admin lists every active owner
   right before a demotion or removal. Until an owner is listed, nobody can demote anyone on the strength of
   them (the list may under-count, never over-count). An older app that rewrites the whole directory drops
   the list; the next owner sign-in or Admin visit lists the owners again.
 - **The first owner ("Founder" / "पहला मालिक"), `settings/team.firstOwnerUid`:** the shop's founding owner.
-  While they are an active owner, **no other owner can demote, remove (Delete) or disable them**: in Admin ›
-  Users their row has the Founder tag and, for other owners, no Edit role or Delete (a note says "Only the
+  While they are an active owner, **no other owner can demote, remove (Delete) or disable them**: in Settings ›
+  Team their row has the Founder tag and, for other owners, no Edit role or Remove from shop (a note says "Only the
   founder can change their own role or remove themselves."); the rules refuse it too. They can **step down**
   like any owner (only with another active owner; the confirmation warns that they then lose the
   protection), and are then an ordinary person whom owners may change again. The tag is also in Settings ›

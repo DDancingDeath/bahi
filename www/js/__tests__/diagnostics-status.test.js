@@ -250,7 +250,7 @@ describe('Diagnostics › Status: test error reports (#122)', () => {
         setLang('hi');
         try {
             await DiagnosticsManager.showTab('status');
-            expect(card().querySelector('[data-errtest="error"]').textContent).toBe('टेस्ट गड़बड़ी भेजें');
+            expect(card().querySelector('[data-errtest="error"]').textContent).toBe('टेस्ट गलती भेजें');
         } finally {
             setLang('en');
         }

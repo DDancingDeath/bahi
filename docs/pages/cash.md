@@ -19,4 +19,9 @@ Only cash counts here, for one day's cash session.
 One session per day: the second phone joins it. Opening needs internet. A closed
 day can't be reopened; a day closed without a count shows "Not counted" and can
 be counted later. A day with a change still on this phone (offline) shows
-"Waiting to sync" in the list, then "Saved" once the server has it.
+"Not sent yet" in the list, then "Saved" once the server has it.
+
+There is one Cash screen: Today › Cash (Money's cash drawer link opens it too). Closing needs the
+internet, because the expected cash must include every phone's entries. Offline, Close cash keeps the
+count (and note) on this phone and says so; when the internet is back the count is put back in the
+fields with a note, and one tap on Close cash finishes the day.

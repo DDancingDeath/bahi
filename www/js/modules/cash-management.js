@@ -14,7 +14,8 @@ import { SyncStatus } from '../ui/sync-status.js';
 import { Helpers } from '../utils/helpers.js';
 import { todayLocalISO, parseLocalDate, parseAnyBillDate, displayLocale, localISODaysAgo, formatTimeOfDay } from '../utils/dates.js';
 import { needsHistoryFrom, ensureHistoryFrom } from '../utils/history-window.js';
-import { parseCashAmount, isNotCounted, autoCloseFields, sessionForDate, duplicateSessionDays, CASH_NEEDS_INTERNET, openHours } from '../utils/cash-session.js';
+import { parseCashAmount, isNotCounted, autoCloseFields, sessionForDate, duplicateSessionDays, CASH_NEEDS_INTERNET, openHours, offlineCountFor, OFFLINE_COUNT_KEY } from '../utils/cash-session.js';
+import { safeSetItem } from '../utils/storage-full.js';
 import {
     drawerDay, expectedCash, drawerStatus, signOutSummary, countCheck, closeCheck, openingCheck,
     savedDifference, differenceBand, sessionDetail, noBillLeg, lastCountedSession
@@ -28,6 +29,7 @@ import { OutstandingManager } from './outstanding.js';
 import { billParty, legAmount as dueLegAmount } from '../utils/due-payments.js';
 import { partyNameKey, sameParty } from '../utils/parties.js';
 import { t, tn, getLang } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { pickLang } from '../i18n/localize.js';
 import { can } from '../utils/role-access.js';
 import { tip } from '../tip/index.js';
@@ -136,6 +138,10 @@ export class CashManagementManager {
             el.addEventListener(type, fn);
         };
         bindOnce('cashSignOutAmount', 'input', () => this.validateSignOut());
+        if (!this.onlineBound && typeof window !== 'undefined') {
+            this.onlineBound = true;
+            window.addEventListener('online', () => this.renderOfflineCount());
+        }
         bindOnce('cashTransactionType', 'change', () => this.updateTransactionForm());
         bindOnce('partyName', 'input', () => this.populateDueBills());
         bindOnce('dueBillSelect', 'change', () => this.showDueBillDetails());
@@ -313,7 +319,7 @@ export class CashManagementManager {
             const closedCount = results.filter(Boolean).length;
             
             if (closedCount > 0) {
-                UIManager.showToast(t('msg.cash.auto_closed_previous_session_s', { closedCount }));
+                UIManager.showToast(tn('msg.cash.auto_closed_previous_session_s', closedCount, { closedCount }));
             }
         } catch (error) {
             console.error('Error auto signing out previous sessions:', error);
@@ -501,6 +507,7 @@ export class CashManagementManager {
                 this.updateStatusCard();
                 this.updateSignOutSummary();
                 this.renderLongOpen();
+                this.renderOfflineCount();
             }
         } else {
             // No session - show sign in with empty status
@@ -512,6 +519,51 @@ export class CashManagementManager {
             
             this.updateStatusCard();
         }
+    }
+
+    static offlineCountKey() {
+        return `${OFFLINE_COUNT_KEY}.${AppState.currentUser?.uid || 'anon'}`;
+    }
+
+    static saveOfflineCount(count) {
+        return safeSetItem(this.offlineCountKey(), JSON.stringify(count)).ok;
+    }
+
+    static clearOfflineCount() {
+        try { localStorage.removeItem(this.offlineCountKey()); } catch (_) { /* nothing stored */ }
+    }
+
+    /** The count saved offline that still applies to today's open session, else null (U-32). */
+    static offlineCount() {
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem(this.offlineCountKey()) || 'null'); } catch (_) { saved = null; }
+        const count = offlineCountFor(saved, this.todaySession, todayLocalISO());
+        if (saved && !count) this.clearOfflineCount();
+        return count;
+    }
+
+    /**
+     * Shows a count saved while offline above Close cash and puts it back in the fields, so
+     * the close finishes with one tap once the phone is online (U-32).
+     */
+    static renderOfflineCount() {
+        const box = document.getElementById('cashOfflineCount');
+        if (!box) return;
+        const count = this.offlineCount();
+        box.hidden = !count;
+        if (!count) return;
+        const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+        box.textContent = t(online ? 'ui.cash.offline_count_online' : 'ui.cash.offline_count_waiting', {
+            amount: formatAmount(count.amount, { exact: true }),
+            time: formatTimeOfDay(count.at, { lang: getLang() })
+        });
+        const amount = document.getElementById('cashSignOutAmount');
+        if (amount && amount.value === '') {
+            amount.value = String(count.amount);
+            this.validateSignOut();
+        }
+        const notes = document.getElementById('cashSignOutNotes');
+        if (notes && notes.value === '' && count.notes) notes.value = count.notes;
     }
 
     /** C10 (Q25 of #111): the drawer open for 14 hours or more is called out above Close cash. */
@@ -718,7 +770,7 @@ export class CashManagementManager {
             UIManager.showToast(t('msg.cash.count_saved', { amount: formatAmount(amount, { exact: true }) }));
         } catch (error) {
             console.error('Late count error:', error);
-            UIManager.showToast(t('msg.cash.failed_save_count', { message: error.message }));
+            UIManager.showToast(t('msg.cash.failed_save_count', { message: friendlyError(error) }));
         }
     }
 
@@ -808,7 +860,7 @@ export class CashManagementManager {
             console.error('Sign in error:', error);
             UIManager.showToast(error?.code === CASH_NEEDS_INTERNET
                 ? t('msg.cash.open_needs_internet')
-                : t('msg.cash.failed_sign_in', { message: error.message }));
+                : t('msg.cash.failed_sign_in', { message: friendlyError(error) }));
         }
     }
 
@@ -823,8 +875,15 @@ export class CashManagementManager {
         }
         // Closing is not queued offline: the count must use every phone's entries, and
         // another phone may close the day meanwhile (the rules then refuse this close).
+        // The count is kept on this phone and the close finishes online (U-32).
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-            UIManager.showToast(t('msg.cash.close_needs_internet'), 'warning');
+            if (!this.todaySession || this.todaySession.signedOut) {
+                UIManager.showToast(t('msg.cash.close_needs_internet'), 'warning');
+                return;
+            }
+            const kept = this.saveOfflineCount({ sessionId: String(this.todaySession.id), date: this.todaySession.date, amount: actualAmount, notes: closingNotes || '', at: Date.now() });
+            UIManager.showToast(t(kept ? 'msg.cash.count_saved_offline' : 'msg.sync.storage_full'), kept ? 'warning' : 'error');
+            this.renderOfflineCount();
             return;
         }
         // This phone's own entries not on the server yet are missing from the other phones' counts (#70).
@@ -886,6 +945,7 @@ export class CashManagementManager {
             AuditService.note(AuditService.ACTIONS.CASH_CLOSE, {
                 date: this.todaySession.date, counted: actualAmount, expected, difference
             });
+            this.clearOfflineCount();
             this.todaySession = updatedSession;
             this.updateUI();
             this.renderHistory();
@@ -900,7 +960,7 @@ export class CashManagementManager {
             clearTimeout(waiting);
             console.error('Sign out error:', error);
             run.completeAndFail('write_failed', { code: String(error?.code || 'unknown').slice(0, 40) });
-            UIManager.showToast(t('msg.cash.failed_sign_out', { message: error.message }));
+            UIManager.showToast(t('msg.cash.failed_sign_out', { message: friendlyError(error) }));
         }
     }
 
@@ -964,7 +1024,7 @@ export class CashManagementManager {
                         .then(() => this.updateUI())
                         .catch(e => console.error('Cash refresh failed:', e));
                     this.renderHistory();
-                    UIManager.showToast(t('msg.cash.failed_add_deposit', { message: error.message }));
+                    UIManager.showToast(t('msg.cash.failed_add_deposit', { message: friendlyError(error) }));
                 });
                 await this.calculateTodayTransactions();
                 this.updateUI();
@@ -977,7 +1037,7 @@ export class CashManagementManager {
                 document.getElementById('transactionNotes').value = '';
             } catch (error) {
                 console.error('Add deposit error:', error);
-                UIManager.showToast(t('msg.cash.failed_add_deposit', { message: error.message }));
+                UIManager.showToast(t('msg.cash.failed_add_deposit', { message: friendlyError(error) }));
             }
         } else {
             // Due payment (received or paid)
@@ -1046,7 +1106,7 @@ export class CashManagementManager {
                         .then(() => this.updateUI())
                         .catch(e => console.error('Cash refresh failed:', e));
                     this.renderHistory();
-                    UIManager.showToast(t('msg.cash.failed_record_payment', { message: error.message }));
+                    UIManager.showToast(t('msg.cash.failed_record_payment', { message: friendlyError(error) }));
                 });
                 await this.calculateTodayTransactions();
                 this.updateUI();
@@ -1061,7 +1121,7 @@ export class CashManagementManager {
                 this.populateDueBills();
             } catch (error) {
                 console.error('Record payment error:', error);
-                UIManager.showToast(t('msg.cash.failed_record_payment', { message: error.message }));
+                UIManager.showToast(t('msg.cash.failed_record_payment', { message: friendlyError(error) }));
             }
         }
     }

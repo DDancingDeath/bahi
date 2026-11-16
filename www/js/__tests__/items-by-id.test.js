@@ -443,3 +443,15 @@ describe('English ↔ Hindi name suggestions in the dialog (#134)', () => {
         expect(hindi().value).toBe('मूंग दाल');
     });
 });
+
+test('U-95: the edit sheet says when a rate last changed, from the newest history entry', async () => {
+    document.getElementById('itemEditOverlay').insertAdjacentHTML('beforeend', '<div id="itemModalHistorySection"><p id="itemModalLastChange" hidden></p></div>');
+    FirebaseService.loadRateHistory = jest.fn(async () => [{ field: 'purchase', old: 24, new: 26, at: new Date(2026, 10, 12).getTime() }]);
+    ItemsManager.openEditModal('b');
+    await new Promise(r => setTimeout(r, 0));
+    expect(FirebaseService.loadRateHistory).toHaveBeenCalledWith('b', 1);
+    const last = document.getElementById('itemModalLastChange');
+    expect(last.hidden).toBe(false);
+    expect(last.textContent).toMatch(/^Last changed 12 Nov: .*24.*→.*26/);
+    delete FirebaseService.loadRateHistory;
+});

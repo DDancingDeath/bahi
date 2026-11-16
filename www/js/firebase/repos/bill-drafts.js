@@ -22,27 +22,39 @@ export function saveDraft(draft) {
 }
 
 /**
- * This user's drafts (one query, unordered).
+ * The drafts this user may continue: their own (old drafts were only theirs) and every
+ * shop-shared draft (U-37), one copy each; drafts another worker took over are left out.
  * @param {string} uid
  * @returns {Promise<Object[]>} `{ id, ...data }`
  */
 export async function listDrafts(uid) {
-    const snapshot = await db.collection(name('drafts'))
-        .where('userId', '==', uid)
-        .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const drafts = db.collection(name('drafts'));
+    const [own, shared] = await Promise.all([
+        drafts.where('userId', '==', uid).get(),
+        drafts.where('shared', '==', true).get()
+    ]);
+    const byId = new Map();
+    [...own.docs, ...shared.docs].forEach(doc => byId.set(doc.id, { id: doc.id, ...doc.data() }));
+    return [...byId.values()];
 }
 
 /**
- * How many drafts this user has (the same query as listDrafts).
+ * How many drafts this user can continue (the same queries as listDrafts).
  * @param {string} uid
  * @returns {Promise<number>}
  */
 export async function countDrafts(uid) {
-    const snapshot = await db.collection(name('drafts'))
-        .where('userId', '==', uid)
-        .get();
-    return snapshot.size;
+    return (await listDrafts(uid)).filter(d => !d.takenBy).length;
+}
+
+/**
+ * Another worker continues a shared draft: it is marked taken (only its maker, the owner
+ * or a manager deletes drafts), so nobody else continues it too.
+ * @param {string} draftId
+ * @param {string} uid
+ */
+export async function takeDraft(draftId, uid) {
+    await db.collection(name('drafts')).doc(draftId).update({ takenBy: uid, takenAt: Date.now() });
 }
 
 /**

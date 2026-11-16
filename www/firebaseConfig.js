@@ -200,8 +200,12 @@ const firestoreDb = firebase.firestore();
 // (ports match firebase.json "emulators"). Never active in production or the APK.
 if (['localhost', '127.0.0.1'].includes(window.location.hostname) &&
     new URLSearchParams(window.location.search).get('emulator') === '1') {
-  firebaseAuth.useEmulator('http://127.0.0.1:9099', { disableWarnings: true });
-  firestoreDb.useEmulator('127.0.0.1', 8181);
+  // The same emulators for a second app (Settings › Team › Add worker makes the account in one, U-56)
+  window.happaUseEmulators = (a) => {
+    a.auth().useEmulator('http://127.0.0.1:9099', { disableWarnings: true });
+    a.firestore().useEmulator('127.0.0.1', 8181);
+  };
+  window.happaUseEmulators(firebaseApp);
   console.log('🧪 Using Firebase emulators (auth:9099, firestore:8181)');
 }
 

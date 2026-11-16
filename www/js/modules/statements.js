@@ -10,8 +10,9 @@ import { AppState } from '../utils/state.js';
 import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { UIManager } from '../ui/ui-manager.js';
-import { t, getLang } from '../i18n/index.js';
+import { t, tn, getLang } from '../i18n/index.js';
 import { formatRupees, formatAmount, formatKg } from '../utils/money.js';
+import { caveatKey } from '../utils/takeaways.js';
 import { formatDay, formatMonth, formatDayTime, toLocalISODate, parseLocalDate, todayLocalISO, monthStart, endOfLocalDayExclusive, addLocalDays } from '../utils/dates.js';
 import { pickReplayBase } from '../utils/finance-calc.js';
 import { historyLoadedFrom, isFullHistoryLoaded, ensureHistoryFrom } from '../utils/history-window.js';
@@ -80,7 +81,7 @@ export const StatementsManager = {
         if (list) list.hidden = true;
         if (view) view.hidden = false;
         const now = new Date();
-        if (!this.day) this.day = todayLocalISO();
+        if (!this.day) this.day = this.defaultDay();
         if (!this.month) {
             const m = /^month:(\d{4}-\d{2})$/.exec(getInsightsContext().preset);
             this.month = m ? m[1] : monthKeyOf(now.getTime());
@@ -91,6 +92,42 @@ export const StatementsManager = {
         this.renderControls();
         this.renderCsvOption();
         this.render();
+    },
+
+    /** Today when it has entries, else yesterday: an empty "today" is a wasted first view (U-94). */
+    defaultDay() {
+        const today = todayLocalISO();
+        const d = /** @type {Date} */ (parseLocalDate(today));
+        const { rows } = dayBook(this.src(), { from: d.getTime(), to: endOfLocalDayExclusive(d).getTime() }, { personal: false, sessions: [] });
+        return rows.length ? today : toLocalISODate(/** @type {Date} */ (addLocalDays(d, -1)));
+    },
+
+    /** Day book ‹ › : one day back or forward, never after today. */
+    stepDay(dir) {
+        const d = parseLocalDate(this.day) || new Date();
+        const next = toLocalISODate(/** @type {Date} */ (addLocalDays(d, dir < 0 ? -1 : 1)));
+        if (next > todayLocalISO()) return;
+        this.set('day', next);
+    },
+
+    /** Month statement ‹ › : one month back or forward, within the last 24 months. */
+    stepMonth(dir) {
+        const now = new Date();
+        const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
+        const next = opts[opts.indexOf(this.month) + (dir < 0 ? 1 : -1)];
+        if (next) this.set('month', next);
+    },
+
+    /** Day book preset chip: Today, Yesterday, or "Choose day…" (shows the date box and opens its picker). */
+    dayPreset(value) {
+        const today = todayLocalISO();
+        if (value === 'today') return this.set('day', today);
+        if (value === 'yesterday') return this.set('day', toLocalISODate(/** @type {Date} */ (addLocalDays(/** @type {Date} */ (parseLocalDate(today)), -1))));
+        const box = /** @type {HTMLInputElement|null} */ (document.getElementById('statementsDayPick'));
+        if (!box) return;
+        box.hidden = false;
+        box.focus();
+        try { box.showPicker?.(); } catch (_) { /* the box stays for typing */ }
     },
 
     /** Chooses the party the ledger opens on next (Insights › Parties row). */
@@ -164,11 +201,27 @@ export const StatementsManager = {
         if (h) h.textContent = t(heading);
         let html = '';
         if (this.kind === 'day') {
-            html = `<label>${esc(t('ui.statements.pick_day'))} <input type="date" class="form-control" value="${esc(this.day)}" data-onchange="statements.set('day', this.value)"></label>`;
+            const today = todayLocalISO();
+            const yesterday = toLocalISODate(/** @type {Date} */ (addLocalDays(/** @type {Date} */ (parseLocalDate(today)), -1)));
+            const preset = this.day === today ? 'today' : this.day === yesterday ? 'yesterday' : 'pick';
+            const opt = (v, key) => `<option value="${esc(v)}"${v === preset ? ' selected' : ''}>${esc(t(key))}</option>`;
+            // The shared period control (U-61): ‹ day › and a preset chip; "Choose day…" opens the phone's date picker
+            html = `<div class="ins-period st-day-step">`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(-1)" aria-label="${esc(t('ui.statements.day_before'))}">${icon('chevL')}</button>`
+                + `<span class="ins-period-label">${esc(formatDay(parseLocalDate(this.day) || new Date(), { lang }))}</span>`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(1)" aria-label="${esc(t('ui.statements.day_after'))}"${this.day >= today ? ' disabled' : ''}>${icon('chevR')}</button>`
+                + `<select class="ins-preset st-day-preset" aria-label="${esc(t('ui.statements.pick_day'))}" data-onchange="statements.dayPreset(this.value)">`
+                + `${opt('today', 'ui.money.p_today')}${opt('yesterday', 'ui.history.yesterday')}${opt('pick', 'ui.statements.choose_day')}</select>`
+                + `<input type="date" class="form-control st-day-pick" id="statementsDayPick" value="${esc(this.day)}" max="${esc(today)}" aria-label="${esc(t('ui.statements.pick_day'))}" data-onchange="statements.set('day', this.value)" hidden></div>`;
         } else if (this.kind === 'month') {
             const now = new Date();
             const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
-            html = `<label>${esc(t('ui.statements.pick_month'))} <select class="form-control" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select></label>`;
+            const at = opts.indexOf(this.month);
+            // The shared period control (U-61): ‹ the month as a chip ›, as on Money and the Day book
+            html = `<div class="ins-period st-month-step">`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(-1)" aria-label="${esc(t('ui.money.earlier'))}"${at >= opts.length - 1 ? ' disabled' : ''}>${icon('chevL')}</button>`
+                + `<select class="ins-preset st-month-pick" aria-label="${esc(t('ui.statements.pick_month'))}" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select>`
+                + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(1)" aria-label="${esc(t('ui.money.later'))}"${at <= 0 ? ' disabled' : ''}>${icon('chevR')}</button></div>`;
         } else if (this.kind === 'party') {
             const parties = partyChoices(this.src(), this.partyKind);
             if (!this.partyKey || !parties.some(p => p.key === this.partyKey)) this.partyKey = parties[0]?.key || null;
@@ -253,7 +306,9 @@ export const StatementsManager = {
         const { rows, totals } = dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions: sessions.list });
         const isToday = this.day === todayLocalISO();
         const timeOf = (r) => (r.t ? formatDayTime(r.t, { lang }).split(', ').pop() : '');
-        const body = rows.map(r => `<tr><td>${esc(timeOf(r))}</td><td>${esc(this.kindLabel(r.kind))}</td><td>${esc([r.billNo, r.party, r.note].filter(Boolean).join(' · '))}</td><td class="num">${moneyHtml(r.amount)}</td><td class="num">${r.due ? moneyHtml(r.due) : ''}</td></tr>`).join('');
+        // Phones stack each row like the party ledger (N-20): time and kind, then the details, with the amount always on the right
+        const dueLabel = esc(t('ui.statements.due'));
+        const body = rows.map(r => `<tr><td class="st-when">${esc(timeOf(r))}</td><td class="st-what">${esc(this.kindLabel(r.kind))}</td><td class="st-detail">${esc([r.billNo, r.party, r.note].filter(Boolean).join(' · '))}</td><td class="num st-amt">${moneyHtml(r.amount)}</td><td class="num st-due" data-label="${dueLabel}">${r.due ? moneyHtml(r.due) : ''}</td></tr>`).join('');
         const tot = [
             ['ui.statements.t_sales', totals.sales, totals.salesCount], ['ui.statements.t_purchases', totals.purchases, totals.purchaseCount],
             ['ui.statements.t_expenses', totals.expenses], ['ui.statements.t_withdrawals', totals.withdrawals],
@@ -262,7 +317,8 @@ export const StatementsManager = {
         const html = (isToday ? `<p class="ins-hint"><button type="button" class="btn btn-ghost btn-sm" data-onclick="nav.showTab('day')">${esc(t('ui.statements.today_link'))} ›</button></p>` : '')
             + `<h3 class="st-title">${esc(title)}</h3>`
             + this.duesCaveat(sessions)
-            + `<div class="ins-scroll"><table class="table"><thead><tr><th>${esc(t('ui.statements.time'))}</th><th>${esc(t('ui.statements.what'))}</th><th>${esc(t('ui.statements.details'))}</th><th class="num">${esc(t('ui.money.amount'))}</th><th class="num">${esc(t('ui.statements.due'))}</th></tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`
+            + (body ? `<div class="ins-scroll st-daybook-wrap" tabindex="0" role="region" aria-label="${esc(title)}"><table class="table st-daybook"><thead><tr><th>${esc(t('ui.statements.time'))}</th><th>${esc(t('ui.statements.what'))}</th><th>${esc(t('ui.statements.details'))}</th><th class="num">${esc(t('ui.money.amount'))}</th><th class="num">${dueLabel}</th></tr></thead><tbody>${body}</tbody></table></div>`
+                : emptyState({ icon: 'file', title: t('ui.statements.nothing_on_day'), action: { onclick: 'statements.stepDay(-1)', label: t('ui.statements.day_before') } }))
             + (isToday ? '' : `<div class="st-totals">${tot.map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.statements.t_sales' ? 'M1' : k === 'ui.statements.t_purchases' ? 'M16' : 'M4'}">${Number.isFinite(Number(v)) ? esc(formatRupees(Number(v))) : '—'}</span></div>`).join('')}</div>`);
         let share = [title, ...tot.map(([k, v]) => `${t(k)}: ${formatRupees(v)}`)].join('\n');
         // Today's totals have one home (Today); today's day book lists the bills only.
@@ -296,7 +352,7 @@ export const StatementsManager = {
         const caveats = perms.profit ? m.caveats : m.caveats.filter(c => c.key === 'dues');
         const html = `<h3 class="st-title">${esc(title)}</h3>`
             + lines.map(([k, v, id, perm]) => `<div class="ins-line${/eq$|kept|net_money/.test(k) ? ' ins-total' : ''}${id ? '' : ' ins-sub'}"${perm ? ` data-perm="${perm}"` : ''}><span>${esc(t(k))}</span><span${id ? ` data-metric-export="${id}"` : ''}>${moneyHtml(v)}</span></div>`).join('')
-            + caveats.map(c => `<div class="notice warn ins-caveat"${c.key === 'dues' ? '' : ' data-perm="profit"'}>${icon('triangle', 'i-sm')}<span class="sr-only">⚠ </span><span class="grow">${esc(t(`ui.money.caveat_${c.key}`, { qty: c.qty, amount: formatAmount(c.estimate ?? c.amount ?? c.gap ?? 0) }))}</span></div>`).join('');
+            + caveats.map(c => `<div class="notice warn ins-caveat"${c.key === 'dues' ? '' : ' data-perm="profit"'}>${icon('triangle', 'i-sm')}<span class="sr-only">⚠ </span><span class="grow">${esc(t(`ui.money.caveat_${caveatKey(c)}`, { qty: c.qty, amount: formatAmount(c.estimate ?? c.amount ?? c.gap ?? 0) }))}</span></div>`).join('');
         const share = [title, ...lines.map(([k, v]) => `${plainLabel(t(k))}: ${v === null ? '—' : formatRupees(v)}`)].join('\n');
         return { title, html, share, csvHeader: [t('ui.statements.what', null, cl), t('ui.money.amount', null, cl)], csvRows: lines.map(([k, v]) => [plainLabel(t(k, null, cl)), v === null ? '' : v]) };
     },
@@ -308,13 +364,16 @@ export const StatementsManager = {
         const title = `${t('ui.statements.party')} · ${l.name}`;
         const matches = Math.abs(l.closing - l.due) <= 1;
         const word = (v) => t(this.partyKind === 'supplier' ? 'ui.statements.to_pay' : 'ui.statements.to_receive', { amount: formatRupees(Math.abs(v)) });
-        const body = l.rows.map(r => `<tr><td>${esc(formatDay(r.t, { lang }))}</td><td>${esc([this.kindLabel(r.kind), r.billNo].filter(Boolean).join(' · '))}</td><td class="num">${r.debit ? moneyHtml(r.debit) : ''}</td><td class="num">${r.credit ? moneyHtml(r.credit) : ''}</td><td class="num">${moneyHtml(r.balance)}</td></tr>`).join('');
+        const soldLabel = esc(t(this.partyKind === 'supplier' ? 'ui.statements.bought_col' : 'ui.statements.sold_col'));
+        const paidLabel = esc(t('ui.statements.paid_col'));
+        // Phones stack each row (U-21): date and bill, then sold / paid, with the balance always on the right
+        const body = l.rows.map(r => `<tr><td class="st-when">${esc(formatDay(r.t, { lang, year: false }))}</td><td class="st-what">${esc([this.kindLabel(r.kind), r.billNo].filter(Boolean).join(' · '))}</td><td class="num st-sold" data-label="${soldLabel}">${r.debit ? moneyHtml(r.debit) : ''}</td><td class="num st-paid" data-label="${paidLabel}">${r.credit ? moneyHtml(r.credit) : ''}</td><td class="num st-bal">${moneyHtml(r.balance)}</td></tr>`).join('');
         const loadedNote = isFullHistoryLoaded() ? '' : `<p class="ins-hint">${esc(t('ui.statements.loaded_only'))} <button type="button" class="btn btn-ghost btn-sm" data-onclick="statements.loadOlder(null)">${esc(t('ui.money.load_older'))}</button></p>`;
         const html = `<h3 class="st-title">${esc(title)}</h3>`
             + `<div class="hero st-balance"><div class="hero-cap">${esc(t('ui.statements.balance'))}</div><div class="hero-fig display-num" data-metric-export="O4">${esc(word(l.closing))}</div>`
             + `<div class="notice ${matches ? 'pos' : 'warn'} st-match">${matches ? `${icon('check', 'i-sm')}<span class="grow"><span class="sr-only">✓ </span>${esc(t('ui.statements.matches_outstanding'))}</span>` : `${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(t('ui.statements.differs_outstanding', { amount: formatRupees(l.due) }))}</span>`}</div></div>`
             + loadedNote
-            + `<div class="ins-scroll"><table class="table"><thead><tr><th>${esc(t('ui.statements.date'))}</th><th>${esc(t('ui.statements.what'))}</th><th class="num">${esc(t(this.partyKind === 'supplier' ? 'ui.statements.bought_col' : 'ui.statements.sold_col'))}</th><th class="num">${esc(t('ui.statements.paid_col'))}</th><th class="num">${esc(t('ui.statements.balance'))}</th></tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`;
+            + `<div class="ins-scroll st-ledger-wrap" tabindex="0" role="region" aria-label="${esc(title)}"><table class="table st-ledger"><thead><tr><th>${esc(t('ui.statements.date'))}</th><th>${esc(t('ui.statements.what'))}</th><th class="num">${soldLabel}</th><th class="num">${paidLabel}</th><th class="num">${esc(t('ui.statements.balance'))}</th></tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`;
         const share = [title, word(l.closing), ...l.rows.slice(-10).map(r => `${formatDay(r.t, { lang })} ${this.kindLabel(r.kind)} ${r.billNo} ${r.debit ? `+${formatRupees(r.debit)}` : `−${formatRupees(r.credit)}`} = ${formatRupees(r.balance)}`)].join('\n');
         const cl = this.csvLang();
         const tc = (k) => t(k, null, cl);
@@ -351,7 +410,7 @@ export const StatementsManager = {
         const closing = closingText('rate');
         const html = `<h3 class="st-title">${esc(title)}</h3>`
             + `<div class="ins-line ins-total"><span>${esc(t('ui.statements.closing_stock'))}</span><span data-metric-export="S4"${perms.stockValue ? ' data-perm="stockValue"' : ''}>${esc(closing)}</span></div>`
-            + `<div class="ins-scroll"><table class="table"><thead><tr><th>${esc(t('ui.statements.date'))}</th><th>${esc(t('ui.statements.what'))}</th><th class="num">${esc(t('ui.insights.kg'))}</th><th class="num">${esc(t('ui.statements.stock_kg'))}</th>${showCost ? `<th class="num" data-perm="purchaseRates">${esc(t('ui.statements.avg_cost'))}</th>` : ''}</tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`;
+            + `<div class="ins-scroll" tabindex="0" role="region" aria-label="${esc(title)}"><table class="table"><thead><tr><th>${esc(t('ui.statements.date'))}</th><th>${esc(t('ui.statements.what'))}</th><th class="num">${esc(t('ui.insights.kg'))}</th><th class="num">${esc(t('ui.statements.stock_kg'))}</th>${showCost ? `<th class="num" data-perm="purchaseRates">${esc(t('ui.statements.avg_cost'))}</th>` : ''}</tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`;
         const share = [title, closingText('ratePaise')].join('\n');
         const csvHeader = [tc('ui.statements.date'), tc('ui.statements.what'), tc('ui.statements.bill_no'), tc('ui.insights.party'), tc('ui.insights.kg'), tc('ui.statements.rate'), tc('ui.statements.stock_kg'), ...(showCost ? [tc('ui.statements.avg_cost')] : [])];
         const csvRows = l.rows.map(r => [r.t ? toLocalISODate(new Date(r.t)) : '', this.kindLabel(r.kind, cl), r.billNo, r.party, r.qty, rateOf(r), r.balanceQty, ...(showCost ? [r.avgCost] : [])]);
@@ -368,7 +427,7 @@ export const StatementsManager = {
         if (!this.covered(from)) return this.notLoaded(label, from);
         const rows = exportLines(this.src(), AppState.items || [], { from, to });
         const bills = new Set(rows.map(r => `${r.type}|${r.billNo}|${r.date}`)).size;
-        const html = `<h3 class="st-title">${esc(title)}</h3><p>${esc(t('ui.statements.csv_ready', { lines: rows.length, bills }))}</p>`;
+        const html = `<h3 class="st-title">${esc(title)}</h3><p>${esc(t('ui.statements.csv_ready', { lines: tn('ui.statements.n_lines', rows.length), bills: tn('ui.statements.n_bills', bills) }))}</p>`;
         const cl = this.csvLang();
         const rates = this.perms().purchaseRates;
         const csvHeader = ['date', 'type', 'bill_no', 'party', 'item', 'kg', 'rate', 'line_amount', 'labour', 'amount_after_labour', 'bill_total', 'cash', 'online', 'due']
@@ -378,7 +437,7 @@ export const StatementsManager = {
             const hide = r.type === 'purchase' && !rates;
             return [r.date, this.kindLabel(r.type, cl), r.billNo, r.party, r.item, r.qty, hide ? '' : r.rate, hide ? '' : r.lineAmount, r.labour, hide ? '' : r.amount, r.billTotal, r.cash, r.online, r.due];
         });
-        return { title, html, share: `${title}\n${t('ui.statements.csv_ready', { lines: rows.length, bills })}`, csvHeader, csvRows };
+        return { title, html, share: `${title}\n${t('ui.statements.csv_ready', { lines: tn('ui.statements.n_lines', rows.length), bills: tn('ui.statements.n_bills', bills) })}`, csvHeader, csvRows };
     },
 
     renderAccountant() {
@@ -392,7 +451,7 @@ export const StatementsManager = {
         const sessions = this.sessions({ from, to });
         const rows = accountantLines(this.src(), { from, to }, { sessions: sessions.list });
         const bills = rows.filter(r => r.entry === 'bill').length;
-        const ready = t('ui.statements.accountant_ready', { bills, payments: rows.length - bills });
+        const ready = t('ui.statements.accountant_ready', { bills: tn('ui.statements.n_bills', bills), payments: tn('ui.statements.n_payments', rows.length - bills) });
         const html = `<h3 class="st-title">${esc(title)}</h3>${this.duesCaveat(sessions)}`
             + `<p>${esc(ready)}</p>`
             + `<p class="ins-hint">${esc(t('ui.statements.accountant_hint'))}</p>`;

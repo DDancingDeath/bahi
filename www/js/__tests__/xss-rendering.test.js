@@ -217,6 +217,9 @@ describe('outstanding (Due) list escapes record values', () => {
 });
 
 describe('cash management escapes session values', () => {
+    // Past cash days are off for members by default (U-09); the owner sees them
+    beforeEach(() => { AppState.userRole = 'owner'; });
+    afterEach(() => { AppState.userRole = undefined; });
     const session = () => ({
         id: 's1', date: '2026-10-01', signedOut: true,
         openingBalance: NUM, closingBalance: NUM, expectedBalance: NUM, difference: 0,

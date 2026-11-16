@@ -62,7 +62,7 @@
     <header class="app-bar" id="appBar">
         <button type="button" class="hamburger app-bar-action" data-onclick="nav.toggleMenu()" aria-controls="sideNav" aria-expanded="false" aria-label="Menu" data-i18n-aria-label="ui.nav.menu"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
         <h1 class="app-bar-title" id="appBarTitle" tabindex="-1"></h1>
-        <div class="sync-pill" id="syncStatus" role="status" aria-live="polite" hidden></div>
+        <div class="sync-pill" id="syncStatus" role="status" aria-live="polite" hidden data-onclick="sync.openSheet()" data-onenter="sync.openSheet()"></div>
         <!-- Bluetooth printer on Billing / Wholesale, Android app only (ui/printer-shortcut.js) -->
         <button type="button" class="printer-shortcut app-bar-action" id="printerShortcut" hidden data-state="none" data-onclick="printerSheet.open()" aria-describedby="printerShortcutState" aria-label="Printer (Bluetooth)" data-i18n-aria-label="ui.printer.shortcut" title="Printer (Bluetooth)" data-i18n-title="ui.printer.shortcut">
             <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
@@ -76,9 +76,9 @@
         </button>
     </header>
     <div class="scrim notif-backdrop" id="notifBackdrop" hidden data-onclick="notifications.close()"></div>
-    <div class="sheet notif-sheet" id="notifPanel" role="dialog" aria-label="Notifications" hidden data-i18n-aria-label="ui.common.notifications">
+    <div class="sheet notif-sheet" id="notifPanel" role="dialog" aria-modal="true" aria-label="Notifications" hidden data-i18n-aria-label="ui.common.notifications">
         <div class="notif-head">
-            <h3><svg class="i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg> <span data-i18n="ui.common.notifications">Notifications</span></h3>
+            <h2><svg class="i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg> <span data-i18n="ui.common.notifications">Notifications</span></h2>
             <button type="button" class="btn btn-ghost btn-icon notif-close" data-dismiss data-onclick="notifications.close()" aria-label="Close" data-i18n-aria-label="ui.common.close"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
         </div>
         <div class="notif-actions">
@@ -104,6 +104,7 @@
             <div class="nav-who">
                 <span class="nav-mark" aria-hidden="true"><svg class="i nav-mark-bahi" aria-hidden="true" focusable="false"><use href="#i-bahi"/></svg></span>
                 <h2 data-i18n="ui.app.name">Bahi</h2>
+                <span class="nav-shop" id="navShopName" hidden></span>
                 <div class="nav-user"><span id="currentUserName"><span data-i18n="ui.navigation.loading">Loading…</span></span><span class="nav-role" id="currentUserRole"></span></div>
                 <div class="seg biz-switch" id="bizSwitch" role="group" aria-label="Business" data-i18n-aria-label="ui.biz.business" hidden>
                     <button type="button" data-biz-btn="shop" class="active" aria-pressed="true" data-onclick="business.set('shop')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-wheat"/></svg> <span data-i18n="ui.biz.shop">Aadhat</span></button>
@@ -147,6 +148,10 @@
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span>
                     <span data-i18n="ui.nav.outstanding">Outstanding</span>
                 </a>
+                <a href="#" data-onclick="nav.showTab('ask', event)">
+                    <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg></span>
+                    <span data-i18n="ui.nav.ask">Ask</span>
+                </a>
             </div>
             <div class="nav-group" role="group" aria-labelledby="navGroupMoney">
                 <h3 class="nav-group-title" id="navGroupMoney" data-i18n="ui.nav.group_money">Money</h3>
@@ -170,10 +175,6 @@
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span>
                     <span data-i18n="ui.nav.recurring">Recurring bills</span>
                 </a>
-                <a href="#" data-onclick="nav.showTab('ask', event)">
-                    <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg></span>
-                    <span data-i18n="ui.nav.ask">Ask</span>
-                </a>
             </div>
             <div class="nav-group" role="group" aria-labelledby="navGroupManage">
                 <h3 class="nav-group-title" id="navGroupManage" data-i18n="ui.nav.group_manage">Manage</h3>
@@ -196,15 +197,15 @@
             </div>
             <div class="nav-group" data-biz="rentals" role="group" aria-labelledby="navGroupRentals">
                 <h3 class="nav-group-title" id="navGroupRentals" data-i18n="ui.biz.rentals">Rentals</h3>
-                <a href="#" data-biz="rentals" data-rent-nav="rent" data-onclick="rentals.open('rent', event)">
+                <a href="#" data-biz="rentals" data-rent-nav="rent" data-bar data-onclick="rentals.open('rent', event)">
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-coins"/></svg></span>
                     <span data-i18n="ui.nav.rent">Rent</span>
                 </a>
-                <a href="#" data-biz="rentals" data-rent-nav="tenants" data-onclick="rentals.open('tenants', event)">
+                <a href="#" data-biz="rentals" data-rent-nav="tenants" data-bar data-onclick="rentals.open('tenants', event)">
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-users"/></svg></span>
                     <span data-i18n="ui.nav.tenants">Tenants</span>
                 </a>
-                <a href="#" data-biz="rentals" data-rent-nav="properties" data-onclick="rentals.open('properties', event)">
+                <a href="#" data-biz="rentals" data-rent-nav="properties" data-bar data-onclick="rentals.open('properties', event)">
                     <span class="nav-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-building"/></svg></span>
                     <span data-i18n="ui.nav.properties">Properties</span>
                 </a>
@@ -223,7 +224,12 @@
         <a href="#" class="bottom-nav-item" data-tab="billing" data-onclick="nav.showTab('billing', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.billing">Billing</span></a>
         <a href="#" class="bottom-nav-item" data-tab="day" data-onclick="nav.showTab('day', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.today">Today</span></a>
         <a href="#" class="bottom-nav-item" data-tab="history" data-onclick="nav.showTab('history', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-history"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.history">History</span></a>
-        <a href="#" class="bottom-nav-item" data-tab="due" data-onclick="nav.showTab('due', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.outstanding">Outstanding</span></a>
+        <a href="#" class="bottom-nav-item" data-tab="due" data-onclick="nav.showTab('due', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.outstanding_short">Dues</span></a>
+        <!-- Rentals (U-65): its own pages on the same bar; navigation.css shows one set per business -->
+        <button type="button" class="bottom-nav-item" data-rent-bar="rent" data-onclick="rentals.open('rent', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.rent">This month</span></button>
+        <button type="button" class="bottom-nav-item" data-rent-bar="tenants" data-onclick="rentals.open('tenants', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-users"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.tenants">Tenants</span></button>
+        <button type="button" class="bottom-nav-item" data-rent-bar="properties" data-onclick="rentals.open('properties', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-building"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.properties">Properties</span></button>
+        <button type="button" class="bottom-nav-item" data-rent-bar="reports" hidden data-onclick="rentals.open('reports', event)"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-trend"/></svg></span><span class="bottom-nav-label" data-i18n="ui.rent.reports">Reports</span></button>
         <button type="button" class="bottom-nav-item" data-tab="more" data-onclick="nav.toggleMenu()" aria-controls="sideNav" aria-expanded="false"><span class="bottom-nav-icon" aria-hidden="true"><svg class="i i-lg" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg></span><span class="bottom-nav-label" data-i18n="ui.nav.more">More</span></button>
     </nav>
     <div class="pull-refresh" id="pullRefresh" hidden aria-hidden="true"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span class="pull-refresh-pull" data-i18n="ui.nav.pull_refresh">Pull to refresh</span><span class="pull-refresh-release" data-i18n="ui.nav.release_refresh">Release to refresh</span></div>
@@ -231,13 +237,14 @@
     <!-- Overlay -->
     <div class="scrim nav-scrim" id="overlay"></div>
 
-    <!-- Loading Spinner -->
-    <div class="app-loading" id="loadingOverlay">
-        <div class="spinner"></div>
+    <!-- Loading Spinner: TalkBack hears "Please wait…" while a save or load blocks the screen -->
+    <div class="app-loading" id="loadingOverlay" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <span class="sr-only" id="loadingText"></span>
     </div>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
+    <!-- Toast Notification: a polite status; ui-manager.js makes an error an alert -->
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Theme preview (Settings › Appearance): shown across the app until Apply or Cancel -->
     <div class="theme-preview-bar" id="themePreviewBar" role="status" hidden>

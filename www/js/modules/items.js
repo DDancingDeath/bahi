@@ -14,14 +14,15 @@ import { Helpers } from '../utils/helpers.js';
 import { ensureXLSX } from '../utils/lazy-scripts.js';
 import { findItemById, findDuplicateItem, duplicateItemMessage, itemUsageFrequency, sortItemsByUsage, sortItemsByName, itemToSheetRow, planItemImport, isArchivedItem, visibleItems } from '../utils/item-catalog.js';
 import { adjustItemStock } from '../utils/calc/stock.js';
-import { todayLocalISO, formatDateTimeIN } from '../utils/dates.js';
+import { todayLocalISO, formatDateTimeIN, formatDay } from '../utils/dates.js';
 import {
     snapshotItem, diffItemSnapshots, changeWarnings, buildHistoryEntries, historyDocId,
     formatHistoryValue, fieldLabel, RATE_SANITY_FACTOR, RATE_FIELDS
 } from '../utils/rate-history.js';
 import { createRateEditTracker, diffItemRates, diffItemFields } from '../utils/notification-format.js';
 import { canArchiveItem, ITEM_ARCHIVE_LOCKED_KEY, isPermissionDenied } from '../utils/record-permissions.js';
-import { t } from '../i18n/index.js';
+import { t, getLang } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { attachScrollCue } from '../ui/scroll-cue.js';
 import { CHANGED_ELSEWHERE, isOffline, writeErrorKey } from '../utils/write-conflict.js';
 import { suggestHindiName, suggestEnglishName, autofillValue } from '../utils/item-name-autofill.js';
@@ -149,36 +150,36 @@ const ItemsManager = {
             // Build purchase rates HTML
             const purchaseRatesHTML = item.rates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input purchase" aria-label="${Helpers.escapeHtml(t('ui.items.rate_label_purchase', { n: rateIndex + 1 }))}" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitRate(${id}, ${rateIndex})"
                            placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
-                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.items.remove_rate', { rate: rate }))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
             
             // Build sale rates HTML
             const saleRatesHTML = item.saleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input sale" aria-label="${Helpers.escapeHtml(t('ui.items.rate_label_sale', { n: rateIndex + 1 }))}" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateSaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitSaleRate(${id}, ${rateIndex})"
                            placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
-                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteSaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteSaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.items.remove_rate', { rate: rate }))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
             
             // Build wholesale rates HTML
             const wholesaleRatesHTML = item.wholesaleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input wholesale" aria-label="${Helpers.escapeHtml(t('ui.items.rate_label_wholesale', { n: rateIndex + 1 }))}" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateWholesaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitWholesaleRate(${id}, ${rateIndex})"
                            placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
-                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteWholesaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteWholesaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.items.remove_rate', { rate: rate }))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
             
@@ -637,7 +638,7 @@ const ItemsManager = {
         } catch (error) {
             console.error('Import error:', error);
             UIManager.hideLoading();
-            UIManager.showToast(t('msg.items.failed_import_items', { message: error.message }));
+            UIManager.showToast(t('msg.items.failed_import_items', { message: friendlyError(error) }));
         } finally {
             input.value = '';
         }
@@ -653,6 +654,15 @@ const ItemsManager = {
             wholesaleSales: AppState.salesHistory,
             retailSales: AppState.retailSalesHistory
         }, AppState.items);
+    },
+
+    clearSearch() {
+        const input = /** @type {?HTMLInputElement} */ (document.getElementById('itemsSearchInput'));
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        this.renderItemsTable('');
     },
 
     // Render items table view
@@ -743,16 +753,22 @@ const ItemsManager = {
                     <td class="rates-name">
                         ${Helpers.escapeHtml(displayName || item.name || '-')}${archivedChip}
                     </td>
-                    <td data-perm="purchaseRates" class="rates-figs">${Helpers.escapeHtml(purchaseRates)}</td>
-                    <td class="rates-figs">${Helpers.escapeHtml(saleRates)}</td>${isStaff ? '' : `
-                    <td class="wholesale-column rates-figs">${Helpers.escapeHtml(wholesaleRates)}</td>`}
+                    <td data-perm="purchaseRates" class="rates-figs" data-label="${Helpers.escapeHtml(t('ui.items.short_buy'))}">${Helpers.escapeHtml(purchaseRates)}</td>
+                    <td class="rates-figs" data-label="${Helpers.escapeHtml(t('ui.items.short_retail'))}">${Helpers.escapeHtml(saleRates)}</td>${isStaff ? '' : `
+                    <td class="wholesale-column rates-figs" data-label="${Helpers.escapeHtml(t('ui.items.short_wholesale'))}">${Helpers.escapeHtml(wholesaleRates)}</td>`}
                 `;
             tbody.appendChild(row);
         });
         
+        const clear = document.getElementById('itemsSearchClear');
+        if (clear) clear.hidden = !searchQuery.trim();
         if (sortedItems.length === 0) {
             const colspan = isStaff ? '3' : '4';
-            tbody.innerHTML = `<tr><td colspan="${colspan}">${emptyState({ icon: 'search', title: t('ui.stock.no_items_found') })}</td></tr>`;
+            // One empty search answer across pages (U-72): what was searched, and Clear search
+            const empty = searchQuery.trim()
+                ? emptyState({ icon: 'search', title: t('ui.common.no_match_for', { q: searchQuery.trim() }), action: { onclick: 'items.clearSearch()', label: t('ui.common.clear_search') } })
+                : emptyState({ icon: 'search', title: t('ui.stock.no_items_found') });
+            tbody.innerHTML = `<tr><td colspan="${colspan}">${empty}</td></tr>`;
         }
         attachScrollCue(document.getElementById('itemsTableScroll'));
     },
@@ -847,6 +863,7 @@ const ItemsManager = {
         // Its version when opened: saving over a newer one from another phone is refused (#113)
         this.editStartRev = Number(item.rev) || 0;
         this.resetModalHistory(this.canUseHistory());
+        if (this.canUseHistory()) this.showLastChange(item.id).catch(e => console.warn('Last rate change failed:', e));
         
         this.renderModalRates();
         UIManager.openSheet(document.getElementById('itemEditOverlay'));
@@ -870,10 +887,29 @@ const ItemsManager = {
     resetModalHistory(visible) {
         const section = document.getElementById('itemModalHistorySection');
         if (section) section.hidden = !visible;
+        const last = document.getElementById('itemModalLastChange');
+        if (last) { last.hidden = true; last.textContent = ''; }
         const list = document.getElementById('itemModalHistoryList');
         if (list) list.innerHTML = '';
         const btn = document.getElementById('itemModalHistoryBtn');
         if (btn) btn.style.display = '';
+    },
+
+    /** "Last changed 12 Nov: Purchase rate ₹24 → ₹26" right under the rates (U-95): one read, the newest entry. */
+    async showLastChange(id) {
+        const el = document.getElementById('itemModalLastChange');
+        if (!el || typeof FirebaseService.loadRateHistory !== 'function') return;
+        try {
+            const [h] = await FirebaseService.loadRateHistory(id, 1);
+            if (!h || this.currentEditingItemId !== id) return;
+            el.textContent = t('ui.rate_history.last_change', {
+                date: formatDay(h.at, { lang: getLang(), year: false }),
+                field: fieldLabel(h.field), old: formatHistoryValue(h.field, h.old), new: formatHistoryValue(h.field, h.new)
+            });
+            el.hidden = false;
+        } catch (error) {
+            console.warn('Last rate change not loaded:', error?.code || error);
+        }
     },
 
     /**
@@ -953,11 +989,11 @@ const ItemsManager = {
         const purchaseContainer = document.getElementById('itemModalPurchaseRates');
         purchaseContainer.innerHTML = this.modalRates.purchase.map((rate, idx) => `
             <div class="rate-group">
-                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input purchase" aria-label="${Helpers.escapeHtml(t('ui.items.rate_label_purchase', { n: idx + 1 }))}" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('purchase', ${idx}, this.value)"
                        placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
-                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('purchase', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('purchase', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.items.remove_rate', { rate: rate }))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
         
@@ -965,11 +1001,11 @@ const ItemsManager = {
         const wholesaleContainer = document.getElementById('itemModalWholesaleRates');
         wholesaleContainer.innerHTML = this.modalRates.wholesale.map((rate, idx) => `
             <div class="rate-group">
-                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input wholesale" aria-label="${Helpers.escapeHtml(t('ui.items.rate_label_wholesale', { n: idx + 1 }))}" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('wholesale', ${idx}, this.value)"
                        placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
-                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('wholesale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('wholesale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.items.remove_rate', { rate: rate }))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
         
@@ -977,11 +1013,11 @@ const ItemsManager = {
         const saleContainer = document.getElementById('itemModalSaleRates');
         saleContainer.innerHTML = this.modalRates.sale.map((rate, idx) => `
             <div class="rate-group">
-                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" inputmode="decimal" enterkeyhint="next" class="rate-input sale" aria-label="${Helpers.escapeHtml(t('ui.items.rate_label_sale', { n: idx + 1 }))}" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('sale', ${idx}, this.value)"
                        placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
-                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('sale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
+                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('sale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.items.remove_rate', { rate: rate }))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
     },

@@ -290,6 +290,19 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
         expect(team().ownerUids).toEqual(['owner-1']);
     });
 
+    test('a username + PIN account stays a Member: Manager or Owner is refused before any write', async () => {
+        fake.seed('dev_users', [{ id: 'pin', name: 'Raju', role: 'staff', status: 'active', email: 'raju@happa-dev.bahi.invalid' }]);
+        await AdminManager.loadUsers();
+        for (const next of ['manager', 'owner']) {
+            picker.mockResolvedValueOnce(next);
+            expect(await AdminManager.showChangeRole('pin', 'Raju', 'staff')).toBe(false);
+        }
+        expect(modal).not.toHaveBeenCalled();
+        expect(toast).toHaveBeenCalledWith('A sign-in without email can only be a Member.', 'warning');
+        expect(userDoc('pin').role).toBe('staff');
+        expect(team().ownerUids).toEqual(['owner-1']);
+    });
+
     test('a manager never gets the choice', async () => {
         AppState.userRole = 'manager';
         expect(await AdminManager.showChangeRole('mgr', 'Ramesh', 'manager')).toBe(false);
@@ -302,6 +315,17 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
         picker.mockResolvedValueOnce('owner');
         expect(await AdminManager.showChangeRole('pend', 'Newbie', 'staff')).toBe(false);
         expect(toast).toHaveBeenLastCalledWith('Approve this person first, then change their role.', 'error');
+        expect(modal).not.toHaveBeenCalled();
+    });
+
+    test('a sign-in without email (U-56) is only offered Member, never Owner', async () => {
+        fake.seed('dev_users', [{ id: 'wk', name: 'Raju', role: 'manager', status: 'active', email: 'raju@shop.bahi.invalid' }]);
+        await AdminManager.loadUsers();
+        picker.mockResolvedValueOnce('owner');
+        expect(await AdminManager.showChangeRole('wk', 'Raju', 'manager')).toBe(false);
+        expect(picker.mock.calls[0][1].map(b => b.text)).toEqual(['Member', 'Manager (now)', 'Cancel']);
+        expect(toast).toHaveBeenLastCalledWith('A sign-in without email can only be a Member.', 'warning');
+        expect(userDoc('wk').role).toBe('manager');
         expect(modal).not.toHaveBeenCalled();
     });
 
@@ -337,6 +361,7 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
 
     test('removing another owner asks strongly and takes them off the list', async () => {
         await addOwner('o2', 'Second');
+        expect(document.getElementById('adminActiveUsers').innerHTML).toContain("admin.deleteUser('o2'");
         await expect(AdminManager.deleteUser('o2', 'Second')).resolves.toBe(true);
         expect(modal.mock.calls[0][0]).toContain('"Second" is an owner.');
         expect(userDoc('o2')).toMatchObject({ status: 'disabled' });

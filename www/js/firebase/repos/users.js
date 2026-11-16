@@ -8,6 +8,8 @@
  * @module firebase/repos/users
  */
 
+import { workerDomain } from '../../utils/worker-accounts.js';
+
 const userRef = (uid) => firebase.firestore()
     .collection(window.getCollection ? window.getCollection('users') : 'users').doc(uid);
 
@@ -117,6 +119,17 @@ export function saveOwnSavedRanges(uid, text) {
 }
 
 /**
+ * The person's app language on their own profile (U-86; rules: 'en' or 'hi'), so the next
+ * person on a shared phone gets their own. Queued offline like any write.
+ * @param {string} uid
+ * @param {'en'|'hi'} lang
+ * @returns {Promise<void>}
+ */
+export function saveOwnLang(uid, lang) {
+    return userRef(uid).update({ lang });
+}
+
+/**
  * Changes the person's saved ranges against the profile's current list (a transaction:
  * one read), so a range saved on another phone meanwhile is kept. Needs the server.
  * @param {string} uid
@@ -152,4 +165,59 @@ export function createProfileIfMissing(uid, profile) {
         tx.set(ref, { ...profile, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         return true;
     });
+}
+
+/**
+ * The email domain of this shop's worker accounts (U-56), from the Firebase project in use.
+ * @returns {string}
+ */
+export function workerEmailDomain() {
+    let projectId = '';
+    try { projectId = firebase.app?.()?.options?.projectId || ''; } catch (_) { projectId = ''; }
+    return workerDomain(projectId);
+}
+
+/**
+ * Makes a worker's sign-in (U-56) without signing the owner out: the account is created in a
+ * second Firebase app, which also writes the worker's own pending profile (the rules let only
+ * the account itself create it); the owner then approves it like any registration. Needs the
+ * internet. If the profile can't be written, the new sign-in is deleted again so the username
+ * stays free.
+ * @param {{email: string, password: string, name: string}} worker
+ * @returns {Promise<string>} the new uid
+ */
+export async function createWorkerAccount({ email, password, name }) {
+    const second = firebase.initializeApp(firebase.app().options, `worker-${Date.now()}`);
+    try {
+        if (typeof window !== 'undefined' && typeof window.happaUseEmulators === 'function') window.happaUseEmulators(second);
+        const credential = await second.auth().createUserWithEmailAndPassword(email, password);
+        const uid = credential.user.uid;
+        try {
+            await second.firestore().collection(window.getCollection ? window.getCollection('users') : 'users').doc(uid).set({
+                name: String(name).slice(0, 80),
+                email,
+                role: 'staff',
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+            await credential.user.delete().catch(() => {});
+            throw error;
+        }
+        return uid;
+    } finally {
+        await second.auth().signOut().catch(() => {});
+        await second.delete().catch(() => {});
+    }
+}
+
+/**
+ * How many people wait for approval (U-24; owner only: the rules let the owner read every profile).
+ * One query of at most 20 documents.
+ * @returns {Promise<number>}
+ */
+export async function pendingProfileCount() {
+    const snap = await firebase.firestore().collection(window.getCollection ? window.getCollection('users') : 'users')
+        .where('status', '==', 'pending').limit(20).get();
+    return snap.size;
 }

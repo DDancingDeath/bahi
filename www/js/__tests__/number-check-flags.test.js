@@ -33,7 +33,8 @@ describe('numberCheckFlags', () => {
         expect(flags[0].en).toBe('Bill total = cash + online + due: expected ₹500, found ₹450');
         expect(flags[0].hi).toBe('बिल का कुल = नकद + ऑनलाइन + उधार: होना था ₹500, मिला ₹450');
         expect(flags[1].amount).toBe(20);
-        expect(flags[3]).toMatchObject({ item: 'Rice', amount: 0, en: 'No item below zero stock: expected 0 kg, found -3 kg' });
+        // Said as a finding (U-74), never "No item below zero stock: expected 0 kg, found -3 kg"
+        expect(flags[3]).toMatchObject({ item: 'Rice', amount: 0, en: 'Rice is at -3 kg: sold more than bought. Enter the missing purchase or count the stock.' });
         expect(typeLabel('numcheck-ac2')).toEqual({ en: 'Number check: bill split', hi: 'आँकड़ों की जाँच: बिल का बँटवारा' });
     });
 

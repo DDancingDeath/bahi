@@ -9,6 +9,7 @@
 
 import { UIManager } from '../ui/ui-manager.js';
 import { AuditService } from '../services/audit.js';
+import { Exporter } from '../services/exporter.js';
 import { AppState } from '../utils/state.js';
 import { t, getLang } from '../i18n/index.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
@@ -157,14 +158,7 @@ function downloadCsv() {
         [propName(p, lang), t('ui.rent.yr_total', undefined, lang), ...FIELDS.map(f => p.total[f])]
     ]);
     const blob = new Blob([toCsv(header, rows)], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${APP_IDENTITY.appName}_rent_${report.fy ? 'fy' : 'year'}_${report.year}.csv`;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    Exporter.saveBlob(blob, `${APP_IDENTITY.appName}_rent_${report.fy ? 'fy' : 'year'}_${report.year}.csv`, { shareFirst: false })
+        .catch(e => console.warn('Rent report CSV not saved:', e?.message || e));
     AuditService.log('RENT_REPORT_CSV', { year: report.year, fy: report.fy }).catch(e => console.warn('Rentals audit entry not written:', e?.code || e));
 }

@@ -9,7 +9,9 @@ switched on in the Firebase project first (console steps below). Purchase bills 
 When on, Purchase billing shows the **Photo of weights** camera button beside the weight box, for everyone:
 owner, managers and members. One tap:
 
-1. opens the phone's camera (`<input type="file" accept="image/*" capture="environment">`;
+1. opens the phone's camera (`<input type="file" accept="image/*" capture="environment">`; in the Android app
+   the tap first offers **Take photo** or **Choose photo**, a second input without `capture`, since the WebView opens
+   only the camera for a capture input;
    a computer opens the file picker). Offline, it says "No internet. Please type the
    weights." and puts the cursor in the weight box instead;
 2. makes the photo upright and smaller on the phone (at most 1600 px on the long side,
@@ -59,7 +61,9 @@ free tier's own limit is the cap.
   Only the weights the user adds end up in the bill, as when typed.
 - **App Check (required):** AI Logic enforces App Check (since 2 Nov 2026), so
   `PHOTO_APP_CHECK_REQUIRED` is true: without `appCheck.siteKey` in `happa.config.json`, or when
-  reCAPTCHA can't start, Gemini is never called and the photo button says "not working right
+  reCAPTCHA can't start, Gemini is never called. Without a key the button is not shown at all and
+  Settings › Billing tools says App Check must be set up first (`photoReadingReady()` in
+  `ui/photo-weights.js`); when reCAPTCHA can't start the photo button says "not working right
   now"; nothing else in the app changes. With a key the photo app gets App Check with
   `ReCaptchaEnterpriseProvider` (the same reCAPTCHA Enterprise key as `js/services/app-check.js`,
   which loads `enterprise.js` first) and token auto-refresh, and `getAI(…, { useLimitedUseAppCheckTokens: true })`

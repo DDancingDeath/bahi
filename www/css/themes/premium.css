@@ -43,8 +43,6 @@
     --warning: #85580a;
     --warning-soft: #f5ead0;
     --warning-dot: #c9a65a;
-    --focus: 0 0 0 3px rgba(201, 166, 90, 0.45);
-    --panel-border: #ebe5d9;
     --panel-shadow: 0 1px 2px rgba(60, 40, 10, 0.04), 0 12px 32px -20px rgba(60, 40, 10, 0.25);
     --seg-on: #fffdf9;
     --btn-primary-shadow: inset 0 0 0 1px #3a3128, 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -88,7 +86,6 @@
     --negative-soft: rgba(238, 154, 146, 0.12);
     --warning: #e6c47c;
     --warning-soft: rgba(230, 196, 124, 0.12);
-    --panel-border: rgba(212, 176, 106, 0.1);
     --panel-shadow: none;
     --bar-bg: #13110e;
     --seg-on: #2e2922;

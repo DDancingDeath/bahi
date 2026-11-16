@@ -15,6 +15,7 @@
     --desktop-gutter: max(var(--sp-8), calc((100vw - var(--desktop-nav-width) - var(--desktop-content-max)) / 2));
     /* Desktop density (DIRECTION §5): 36 px controls, 44 px rows */
     --control-h: 36px;
+    --tap-min: 44px;
     --row-h: 44px;
     /* Desktop type scale (DIRECTION §3.2); html[lang="hi"] keeps its larger --fs-sm / --fs-body */
     --fs-body: 14px;
@@ -306,7 +307,7 @@
     height: calc(100dvh - var(--desktop-header-h));
   }
 
-  /* A page's head (<header class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</header>; surfaces.css hides it
+  /* A page's head (<div class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</div>; surfaces.css hides it
      below 1024 px). The header bar shows the title, so the h2 stays for screen readers and the row holds the page's mode and actions. */
   .page-head {
     display: flex;
@@ -382,8 +383,9 @@
     align-items: start;
   }
 
-  /* Live bill-check banner (#188) spans both columns */
-  .bill-check-notice {
+  /* Live bill-check banner (#188) and the Last saved strip (U-05) span both columns */
+  .bill-check-notice,
+  .last-saved {
     grid-column: 1 / -1;
   }
 

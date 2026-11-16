@@ -10,7 +10,7 @@
 
 import { toJsDate, parseLocalDate, formatDate } from './dates.js';
 import { t } from '../i18n/index.js';
-import { billTotal, hasBillAmount, sumMoney } from './money.js';
+import { billTotal, hasBillAmount, sumMoney, outstandingDue } from './money.js';
 
 export const HISTORY_TYPES = ['purchase', 'sale'];
 export const HISTORY_PRESETS = ['all', 'today', 'yesterday', 'week', 'month', 'lastMonth', 'custom'];
@@ -235,14 +235,14 @@ export function filterHistoryBills(bills, { type = 'all', range = null, search =
 /**
  * H-TOTAL: the ₹ total of the bills a History list shows (the caller passes the
  * counted ones: no voided bills, no old-app carried dues). Σ BILL-TOTAL;
- * `unknown` = bills with no amount (not in the total, #80).
+ * `unknown` = bills with no amount (not in the total, #80); `due` = their open dues (BILL-DUE, U-73).
  * @param {Array<Rec>} bills
- * @returns {{count: number, total: number, unknown: number}}
+ * @returns {{count: number, total: number, unknown: number, due: number}}
  */
 export function historyListTotal(bills) {
     const list = bills || [];
     const known = list.filter(b => hasBillAmount(b));
-    return { count: list.length, total: sumMoney(known, billTotal), unknown: list.length - known.length };
+    return { count: list.length, total: sumMoney(known, billTotal), unknown: list.length - known.length, due: sumMoney(list, outstandingDue) };
 }
 
 /**

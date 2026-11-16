@@ -750,9 +750,16 @@ export const RateTrendsManager = {
             el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.no_history_item') });
             return;
         }
-        el.innerHTML = ITEM_RATE_KINDS.map(kind => {
+        const outlooks = ITEM_RATE_KINDS.map(kind => this.outlookFor(kind));
+        // None of the rates has enough history: one line instead of three identical cards (U-76)
+        if (outlooks.every(o => o.status !== 'ok')) {
+            el.innerHTML = `<div class="rt-outlook rt-outlook-none"><div class="rt-outlook-head">${esc(t('ui.trends.not_enough_all'))}</div>
+                <div class="rt-muted">${esc(explainOutlook(outlooks[0]))}</div></div>`;
+            return;
+        }
+        el.innerHTML = ITEM_RATE_KINDS.map((kind, i) => {
             const label = fieldLabel(kind);
-            const o = this.outlookFor(kind);
+            const o = outlooks[i];
             const why = explainOutlook(o);
             if (o.status !== 'ok') {
                 return `<div class="rt-outlook rt-outlook-none"><div class="rt-outlook-head">${esc(t('ui.trends.not_enough', { label }))}</div>
@@ -762,7 +769,7 @@ export const RateTrendsManager = {
             return `<div class="rt-outlook rt-outlook-${o.direction}">
                 <div class="rt-outlook-head"><span class="rt-arrow">${arrow}</span> ${esc(label)}: ${esc(t(DIRECTION_KEYS[o.direction]))}</div>
                 <div class="rt-outlook-meta"><span class="rt-conf rt-conf-${o.confidence}">${esc(t(CONFIDENCE_KEYS[o.confidence]))}</span>
-                    ${esc(t('ui.trends.years_of_data', { n: o.seasons }))}</div>
+                    ${esc(tn('ui.trends.years_of_data', o.seasons))}</div>
                 <div class="rt-muted">${esc(why)}</div></div>`;
         }).join('');
     },
@@ -828,17 +835,21 @@ export const RateTrendsManager = {
         if (!canvas || !canvas.getContext) return null;
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
+        canvas.hidden = false;
+        canvas.parentElement?.querySelector(':scope > .rt-nodata')?.remove();
         canvas.width = Math.max(280, canvas.parentElement?.offsetWidth || 600);
         canvas.height = height;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         return { canvas, ctx };
     },
 
-    noData(c) {
-        c.ctx.font = '14px Arial';
-        c.ctx.fillStyle = token('--ink-3');
-        c.ctx.textAlign = 'center';
-        c.ctx.fillText(t('ui.trends.no_data'), c.canvas.width / 2, c.canvas.height / 2);
+    /** An empty chart is one short line, not an empty box (U-76); `key` says why when it is known. */
+    noData(c, key = 'ui.trends.no_data') {
+        c.canvas.hidden = true;
+        const note = document.createElement('p');
+        note.className = 'rt-nodata rt-muted';
+        note.textContent = t(key);
+        c.canvas.after(note);
     },
 
     /**
@@ -870,7 +881,7 @@ export const RateTrendsManager = {
         ctx.strokeStyle = token('--line');
         ctx.lineWidth = 1;
         ctx.fillStyle = axis;
-        ctx.font = '10px Arial';
+        ctx.font = '12px Arial';
         ctx.textAlign = 'right';
         for (let g = 0; g <= 4; g++) {
             const v = lo + ((hi - lo) * g) / 4;
@@ -930,6 +941,15 @@ export const RateTrendsManager = {
                 ctx.fill();
             });
         });
+        // End labels (U-76): each line's last rate next to its last point, so lines differ by more than colour
+        series.filter(s => s.endLabel).forEach(s => {
+            const i = s.values.map(v => v !== null && v !== undefined).lastIndexOf(true);
+            if (i < 0) return;
+            ctx.fillStyle = s.color;
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = xAt(i) > canvas.width - 90 ? 'right' : 'left';
+            ctx.fillText(`${s.endLabel} ${formatRupees(s.values[i], { decimals: s.values[i] < 100 ? 1 : 0 })}`, xAt(i) + (ctx.textAlign === 'right' ? -6 : 6), yAt(s.values[i]) - 6);
+        });
         return undefined;
     },
 
@@ -945,8 +965,8 @@ export const RateTrendsManager = {
         const { periods, bills, items, cut } = this.lineData();
         const series = [];
         ITEM_RATE_KINDS.forEach(k => {
-            series.push({ values: periods.map(p => bills[k][p] ?? null), color: COLORS[k], dash: DASH, width: 2 });
-            if (cut) series.push({ values: periods.map(p => items[k][p] ?? null), color: COLORS[k] });
+            series.push({ values: periods.map(p => bills[k][p] ?? null), color: COLORS[k], dash: DASH, width: 2, endLabel: cut ? '' : t(KIND_KEYS[k]) });
+            if (cut) series.push({ values: periods.map(p => items[k][p] ?? null), color: COLORS[k], endLabel: t(KIND_KEYS[k]) });
         });
         const marker = cut ? { index: periods.indexOf(cut), label: t('ui.trends.cutoff_marker') } : null;
         this.drawLines(c, periods.map(p => this.axisLabel(p)), series, marker);
@@ -958,7 +978,8 @@ export const RateTrendsManager = {
         const { ctx, canvas } = c;
         const rows = this.visibleRows();
         const periods = this.periodAxis(rows.map(r => r.period));
-        if (!periods.length) return this.noData(c);
+        // Kg here comes from the history built from bills, not from the bills Insights › Items reads (U-76)
+        if (!periods.length) return this.noData(c, this.meta?.backfillDone ? 'ui.trends.no_data' : 'ui.trends.kg_needs_history');
         const byPeriod = new Map(rows.map(r => [r.period, r]));
         const max = chartScaleMax(rows.flatMap(r => [r.kgBought, r.kgSold]));
         const left = 46;
@@ -967,7 +988,7 @@ export const RateTrendsManager = {
         const slot = (canvas.width - left - 12) / periods.length;
         const barW = Math.max(1, Math.min(14, slot / 2 - 1));
         ctx.fillStyle = token('--ink-2');
-        ctx.font = '10px Arial';
+        ctx.font = '12px Arial';
         ctx.textAlign = 'right';
         ctx.fillText(kgText(max), left - 4, 14);
         ctx.fillText('0', left - 4, canvas.height - bottom);

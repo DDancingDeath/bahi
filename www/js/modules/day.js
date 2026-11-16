@@ -23,6 +23,11 @@ import { ManualReminders, TODAY_REMINDERS_KEY } from '../ui/manual-reminders.js'
 import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
 import { icon } from '../ui/icons.js';
 import { payDueReminder, billsDueReminder } from '../utils/pay-reminder.js';
+import { getPendingJoins, writeOffsByOthers } from '../utils/owner-alerts.js';
+import { firstRunSteps, showFirstRun, appLockOfferDue, FIRST_RUN_HIDDEN_KEY, FIRST_RUN_TEAM_KEY } from '../utils/first-run.js';
+import { normalizePrinterSettings } from '../utils/printer-settings.js';
+import { safeSetItem } from '../utils/storage-full.js';
+import { SyncStatus } from '../ui/sync-status.js';
 
 // Use helper functions
 const formatDate = (date) => Helpers.formatDate(date);
@@ -31,9 +36,11 @@ const LABOUR_PAID_KEYS = { same: 'ui.today.labour_paid_same', more: 'ui.today.la
 const CHANNELS = { retail: 'Retail', wholesale: 'Wholesale', purchase: 'Purchase' };
 const BILL_KIND_KEYS = { retail: 'ui.finance.bill_retail', wholesale: 'ui.finance.bill_wholesale', purchase: 'ui.reports.pdf_purchase' };
 const BILLS_SHOWN = 8;
+/** Bills in memory by kind, for the owner's write-off reminder (U-08). */
+const loadedBillsByKind = () => ({ purchase: AppState.purchaseHistory || [], retail: AppState.retailSalesHistory || [], wholesale: AppState.salesHistory || [] });
 const REMINDER_ICONS = {
     collect: icon('arrIn'), collect_wholesale: icon('truck'), pay: icon('arrOut'), rent: icon('home'), leases: icon('file'),
-    salaries: icon('users'), bills: icon('receipt'), backup: icon('clipCheck')
+    salaries: icon('users'), bills: icon('receipt'), backup: icon('clipCheck'), join: icon('user'), writeoff: icon('alert'), firstrun: icon('clipCheck'), lock: icon('lock')
 };
 /** Opens a Today reminder: its icon tile and body (the caller closes both divs). */
 const reminderOpen = (kind) => `<div class="today-reminder" data-reminder="${kind}"><span class="lead-icon">${REMINDER_ICONS[kind]}</span><div class="today-reminder-body">`;
@@ -181,6 +188,13 @@ export const DayManager = {
         });
         const { labour } = s;
         this.renderReminders();
+        // Day details (labour, payment split, dues, by bill type, items) open for the owner and manager,
+        // folded for Members, who need the cash, today's bills and reminders (U-35)
+        const more = /** @type {?HTMLDetailsElement} */ (document.getElementById('todayMore'));
+        if (more && AppState.userRole && !more.dataset.roleSet) {
+            more.dataset.roleSet = '1';
+            more.open = AppState.userRole === 'owner' || AppState.userRole === 'manager';
+        }
 
         // Update UI - Main Stats
         this.updateElement('todayTotalPurchases', moneyText(s.purchases));
@@ -200,10 +214,11 @@ export const DayManager = {
         this.updateElement('todayTotalIn', moneyText(s.totalIn));
         this.updateElement('todayTotalOut', moneyText(s.totalOut));
         
-        // Net outflow with color coding
+        // Nothing in or out yet: a neutral line, not "More went out" over ₹0 (N-18)
         const cashFlowLabel = document.getElementById('todayCashFlowLabel');
         if (cashFlowLabel) {
-            cashFlowLabel.textContent = t(s.isOutflow ? 'ui.today.net_outflow' : 'ui.today.net_inflow');
+            const key = !s.totalIn && !s.totalOut ? 'ui.today.net_none' : s.isOutflow ? 'ui.today.net_outflow' : 'ui.today.net_inflow';
+            cashFlowLabel.textContent = t(key);
         }
         
         this.updateElement('todayNetCashFlow', moneyText(s.netAmount));
@@ -293,7 +308,7 @@ export const DayManager = {
         const party = (p) => `<li class="today-reminder-party"><span>${e(p.name || t('ui.reports.unknown'))}</span>`
             + ` <strong>${e(moneyText(p.total))}</strong>`
             + ` <span class="today-reminder-days">${e([t('ui.outstanding.party_overdue', { amount: moneyText(p.overdue) }),
-                ...(p.oldestDays !== null && p.oldestDays !== undefined ? [t('ui.today.reminder_days', { count: p.oldestDays })] : [])].join(' · '))}</span>`
+                ...(p.oldestDays !== null && p.oldestDays !== undefined ? [tn('ui.today.reminder_days', p.oldestDays)] : [])].join(' · '))}</span>`
             + '</li>';
         const block = (kind, r, open) => reminderOpen(kind)
             + `<div class="today-reminder-head"><strong>${e(t(`ui.today.reminder_${kind}`))}</strong> ${e(moneyText(r.total))}</div>`
@@ -331,7 +346,7 @@ export const DayManager = {
                 chips.push(t('ui.today.rem_chip_rent', { amount: moneyText(rent.due) }));
                 late = late || rent.late > 0;
                 parts.push(`${reminderOpen('rent')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_rent'))}</strong> ${e(moneyText(rent.due))}</div>`
-                    + `<div>${e(t('ui.today.reminder_rent_units', { count: rent.dueUnits, late: rent.late }))}</div>`
+                    + `<div>${e(tn('ui.today.reminder_rent_units', rent.dueUnits, { late: rent.late }))}</div>`
                     + `<div class="today-reminder-more">${e(t('ui.today.reminder_as_of', { time: formatDayTime(rent.at, { lang: getLang() }) }))}</div>`
                     + `<button type="button" class="btn btn-sm" data-onclick="rentals.open('rent', event)">${e(t('ui.today.reminder_open_rent'))}</button></div></div>`);
             }
@@ -349,6 +364,30 @@ export const DayManager = {
         }
         // REM-3 (#63): the owner checks a backup file at least every 30 days
         if (AppState.userRole === 'owner') {
+            // U-58: a new shop's first steps, until done or hidden
+            const firstRun = this.firstRunHtml();
+            if (firstRun) parts.unshift(firstRun);
+            // U-55: offer the phone lock once (off until the owner sets a PIN)
+            let lockDue = false;
+            try { lockDue = appLockOfferDue(localStorage, AppState.currentUser?.uid || '', AppState.userRole); } catch (_) { lockDue = false; }
+            if (lockDue) {
+                parts.push(`${reminderOpen('lock')}<div class="today-reminder-head"><strong>${e(t('ui.applock.offer_title'))}</strong></div><div>${e(t('ui.applock.offer_text'))}</div>`
+                    + `<button type="button" class="btn btn-sm btn-tonal" data-onclick="appLock.setup()">${e(t('ui.applock.set_up'))}</button> `
+                    + `<button type="button" class="btn btn-sm btn-ghost" data-onclick="appLock.dismissOffer()">${e(t('ui.applock.no_thanks'))}</button></div></div>`);
+            }
+            // U-24: people waiting for the owner's approval
+            const waiting = getPendingJoins();
+            if (waiting > 0) {
+                parts.unshift(`${reminderOpen('join')}<div class="today-reminder-head"><strong>${e(tn('ui.today.reminder_join', waiting))}</strong></div>`
+                    + `<button type="button" class="btn btn-sm btn-tonal" data-onclick="team.openWaiting()">${e(t('ui.today.reminder_open_join'))}</button></div></div>`);
+            }
+            // U-08: dues someone else wrote off this week
+            const writeOffs = writeOffsByOthers(loadedBillsByKind(), AppState.currentUser?.uid || '', now.getTime());
+            if (writeOffs.length) {
+                parts.push(`${reminderOpen('writeoff')}<div class="today-reminder-head"><strong>${e(tn('ui.today.reminder_writeoffs', writeOffs.length))}</strong></div>`
+                    + `<ul>${writeOffs.slice(0, 3).map(w => `<li class="today-reminder-party"><span>${e([w.billNumber ? `#${w.billNumber}` : '', w.party].filter(Boolean).join(' '))}</span> <strong>${e(moneyText(w.amount))}</strong> <span class="today-reminder-days">${e(t('ui.today.reminder_writeoff_by', { name: w.by || t('ui.reports.unknown') }))}</span></li>`).join('')}</ul>`
+                    + `<button type="button" class="btn btn-sm" data-onclick="history.viewBill('${Helpers.escapeJsAttr(`id:${writeOffs[0].billId}`)}', '${Helpers.escapeJsAttr(writeOffs[0].billType)}')">${e(t('ui.today.reminder_open_writeoff'))}</button></div></div>`);
+            }
             // WP-11 (#373): salaries due, as the Workers page last worked them out on this phone
             let pay = null;
             try { pay = payDueReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { pay = null; }
@@ -374,7 +413,7 @@ export const DayManager = {
             if (drill?.due) {
                 chips.push(t('ui.today.rem_chip_backup'));
                 parts.push(`${reminderOpen('backup')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_backup'))}</strong></div>`
-                    + `<div>${e(drill.lastAt === null ? t('ui.today.reminder_backup_never') : t('ui.today.reminder_backup_days', { count: drill.days }))}</div>`
+                    + `<div>${e(drill.lastAt === null ? t('ui.today.reminder_backup_never') : tn('ui.today.reminder_backup_days', drill.days))}</div>`
                     + `<button type="button" class="btn btn-sm" data-onclick="day.openBackupCheck()">${e(t('ui.today.reminder_open_backup'))}</button></div></div>`);
             }
         }
@@ -400,6 +439,36 @@ export const DayManager = {
         })}</div>`;
         refocusDisclosure('todayReminders', hadFocus);
         ManualReminders.restoreFocus();
+    },
+
+    /**
+     * U-58: the owner's first-run checklist (business name, items and rates, team, printer) with
+     * where to do each and Help; hidden for good with "Hide this list".
+     * @returns {string} HTML ('' when there is nothing to show)
+     */
+    firstRunHtml() {
+        const uid = AppState.currentUser?.uid || '';
+        const read = (key) => { try { return localStorage.getItem(`${key}.${uid}`); } catch (_) { return null; } };
+        const printer = normalizePrinterSettings(AppState.printerSettings);
+        const steps = firstRunSteps({
+            shopName: AppState.settings?.shopName,
+            itemCount: (AppState.items || []).length,
+            teamSeen: read(FIRST_RUN_TEAM_KEY) === '1',
+            printerSet: !!printer.deviceId || printer.printers.length > 0
+        });
+        if (!showFirstRun(steps, { isOwner: AppState.userRole === 'owner', hidden: read(FIRST_RUN_HIDDEN_KEY) === '1' })) return '';
+        const e = Helpers.escapeHtml;
+        const rows = steps.map(s => `<li class="first-run-step${s.done ? ' done' : ''}">${s.done ? icon('check', 'i-sm') : ''}<span>${e(t(`ui.firstrun.step_${s.id}`))}</span>`
+            + (s.done ? '' : ` <button type="button" class="btn btn-sm btn-ghost" data-onclick="nav.showTab('${s.route}', event)">${e(t('ui.firstrun.do_it'))}</button>`) + '</li>').join('');
+        return `${reminderOpen('firstrun')}<div class="today-reminder-head"><strong>${e(t('ui.firstrun.title'))}</strong></div>`
+            + `<ul class="first-run-list">${rows}</ul>`
+            + `<button type="button" class="btn btn-sm" data-onclick="nav.showTab('settings-help', event)">${e(t('ui.firstrun.help'))}</button> `
+            + `<button type="button" class="btn btn-sm btn-ghost" data-onclick="day.hideFirstRun()">${e(t('ui.firstrun.hide'))}</button></div></div>`;
+    },
+
+    hideFirstRun() {
+        safeSetItem(`${FIRST_RUN_HIDDEN_KEY}.${AppState.currentUser?.uid || ''}`, '1');
+        this.renderReminders();
     },
 
     /** Admin › Data, where the owner checks a backup file (REM-3, #63). */
@@ -443,7 +512,7 @@ export const DayManager = {
                 const ref = Helpers.escapeJsAttr(`id:${bill.id}`);
                 return `<button type="button" class="today-bill-${type}" data-today-bill data-onclick="history.viewBill('${ref}', '${type}')" aria-label="${esc(t('ui.today.bill_open_aria', { bill: [t(BILL_KIND_KEYS[type]), no, party].filter(Boolean).join(' ') }))}">
                     <span class="today-bill-time">${esc(at ? Helpers.formatTime(new Date(at)) : '')}</span>
-                    <span class="today-bill-main"><span class="today-bill-party">${esc(party || no)}</span><span class="today-bill-kind">${esc([t(BILL_KIND_KEYS[type]), party ? no : ''].filter(Boolean).join(' · '))}</span></span>
+                    <span class="today-bill-main"><span class="today-bill-party">${esc(party || no)}</span><span class="today-bill-kind">${esc([t(BILL_KIND_KEYS[type]), party ? no : '']                    .filter(Boolean).join(' · '))}</span>${SyncStatus.chipHtml(bill.id)}</span>
                     <strong class="today-bill-total">${esc(moneyText(total))}</strong>
                 </button>`;
             }).join('');

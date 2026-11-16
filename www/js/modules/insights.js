@@ -11,6 +11,7 @@ import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { t, tn, getLang } from '../i18n/index.js';
 import { formatRupees, formatAmount, formatKg, moneyText, screenMinus } from '../utils/money.js';
+import { caveatKey } from '../utils/takeaways.js';
 import { formatMonth, formatDay, monthStart, latestMonthStart } from '../utils/dates.js';
 import { pickReplayBase } from '../utils/finance-calc.js';
 import { historyLoadedFrom, isFullHistoryLoaded, ensureHistoryFrom } from '../utils/history-window.js';
@@ -276,7 +277,7 @@ export const InsightsManager = {
         }
         const deadCount = this.deadStockCount(now);
         this.html('insightsActionsLinks',
-            (deadCount > 0 ? this.actionCard(icon('box'), t('ui.insights.act_dead_stock', { n: deadCount }), 'stock', t('ui.insights.open_stock')) : '')
+            (deadCount > 0 ? this.actionCard(icon('box'), tn('ui.insights.act_dead_stock', deadCount), 'stock', t('ui.insights.open_stock')) : '')
             + this.actionCard(icon('flag'), t('ui.insights.act_anomalies'), 'anomalies', t('ui.insights.open_anomalies')));
         const any = ['insightsActionsDues', 'insightsActionsBelow', 'insightsActionsLow', 'insightsActionsStock']
             .some(id => (document.getElementById(id)?.innerHTML || '').trim());
@@ -368,7 +369,7 @@ export const InsightsManager = {
         if (!profitKnown) tk += `<p>${esc(t('ui.tk.profit_unknown'))}</p>`;
         this.html('insightsItemsTakeaway', tk);
         const unc = m.caveats.find(c => c.key === 'uncosted');
-        this.html('insightsItemsCaveats', unc ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t('ui.money.caveat_uncosted', { qty: unc.qty, amount: formatAmount(unc.estimate) })))}</span></div>` : '');
+        this.html('insightsItemsCaveats', unc ? `<div class="notice warn ins-caveat">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>${esc(screenMinus(t(`ui.money.caveat_${caveatKey({ key: 'uncosted', estimate: unc.estimate })}`, { qty: unc.qty, amount: formatAmount(unc.estimate) })))}</span></div>` : '');
         const total = m.M1.total || 0;
         const pct = (v) => sharePct(v, total);
         this.html('insightsSplit', `<div class="row ins-line"><span class="row-main">${esc(t('ui.insights.retail'))}</span><span class="row-amt">${esc(formatRupees(m.M1.retail.total, TM))} · ${pct(m.M1.retail.total)}%</span></div>`
@@ -427,7 +428,7 @@ export const InsightsManager = {
         const lyCheck = kind === 'sales' ? this.stoppedCheck(src, new Date()) : { list: [], known: true };
         const stopped = lyCheck.list;
         let tk = share.pct !== null ? `<p>${esc(t(kind === 'sales' ? 'ui.insights.tk_top5_customers' : 'ui.insights.tk_top5_suppliers', { pct: share.pct }))}</p>` : '';
-        if (stopped.length) tk += `<p>${esc(t('ui.insights.tk_stopped', { n: stopped.length, days: this.cfg().stoppedComingDays }))}</p>`;
+        if (stopped.length) tk += `<p>${esc(tn('ui.insights.tk_stopped', stopped.length, { days: this.cfg().stoppedComingDays }))}</p>`;
         this.html('insightsPartiesTakeaway', tk);
         const card = document.getElementById('insightsStoppedCard');
         if (card) card.hidden = kind !== 'sales';
