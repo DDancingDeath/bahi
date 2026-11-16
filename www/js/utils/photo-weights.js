@@ -237,8 +237,24 @@ export function isQuotaError(err) {
     return /RESOURCE_EXHAUSTED|\b429\b|quota/i.test(String(err?.message || ''));
 }
 
+/** Waits before the automatic retries when Gemini is overloaded (500 / 503): at most 2 retries. */
+export const OVERLOAD_RETRY_DELAYS_MS = [1500, 4000];
+
 /**
- * The message (msg.photo_weights.*) for a photo that could not be read. Never retried by itself.
+ * Is Gemini only busy for a moment (500 "high demand" / 503 UNAVAILABLE)? Those are retried;
+ * the daily limit (429), other 4xx and a cancel never are.
+ * @param {*} err
+ * @returns {boolean}
+ */
+export function isOverloadError(err) {
+    if (!err || err.name === 'AbortError' || isQuotaError(err)) return false;
+    const status = err?.customErrorData?.status ?? err?.status;
+    if (typeof status === 'number') return status === 500 || status === 503;
+    return /high demand|overloaded|\bUNAVAILABLE\b|\[50[03]\b/i.test(String(err?.message || ''));
+}
+
+/**
+ * The message (msg.photo_weights.*) for a photo that could not be read (after any overload retries).
  * @param {*} err
  * @param {{online?: boolean}} [opts]
  * @returns {'msg.photo_weights.offline'|'msg.photo_weights.limit'|'msg.photo_weights.unavailable'|'msg.photo_weights.failed'}
