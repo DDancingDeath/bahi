@@ -65,7 +65,7 @@ jobs:
 
       - name: Resolve Happa project (refuses aadhat-management)
         env:
-          SA_JSON: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA || secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          SA_JSON: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA || secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}
         run: node scripts/happa-config.js guard --require-ready --require-sa --sa-env SA_JSON
 
       # firebase-admin 14 needs Node >= 22 and only lists @google-cloud/firestore as an
@@ -78,7 +78,7 @@ jobs:
       - name: Export Firestore
         id: export
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA || secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA || secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}
           BACKUP_TRIGGER: ${{ github.event_name }}
           BACKUP_MODE: ${{ inputs.mode || 'auto' }}
           BACKUP_FORCE: ${{ inputs.force && 'true' || 'false' }}

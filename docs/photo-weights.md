@@ -36,6 +36,7 @@ Spec: PW-1 in [calculations.md](calculations.md). Page doc: [Billing](pages/bill
 | Case | What the user sees | Then |
 |---|---|---|
 | Offline | "No internet. Please type the weights." | Cursor in the weight box |
+| Gemini busy (HTTP 500 "high demand" / 503 `UNAVAILABLE`) | "Busy, trying again…" (`ui.photo_weights.busy`) in place of "Reading the weights…" | Tried again by itself after 1.5 s, then 4 s (`OVERLOAD_RETRY_DELAYS_MS`, 2 retries, inside the 25 s timeout); Cancel or the timeout stops it and nothing more is sent. Still busy → "Couldn't read the photo…" |
 | Free daily limit used up (HTTP 429 / `RESOURCE_EXHAUSTED`) | "Photo reading limit reached for today — please type the weights." | **Type the weights**; no retry |
 | AI Logic not switched on, App Check refused, model gone (401 / 403 / 404) | "Reading photos is not working right now. Please type the weights." | **Type the weights** |
 | No weights found | "No weights found in the photo. Take it closer, or type the weights." | **Retake photo** or **Type the weights** |
@@ -107,7 +108,7 @@ the record and for happa-bfc07 later:
 | APIs on | `serviceusage` `services:batchEnable` firebasevertexai, generativelanguage, firebaseappcheck, recaptchaenterprise |
 | AI Logic "genai config" (= Get started › Gemini Developer API) | `PATCH firebasevertexai.googleapis.com/v1beta/projects/<p>/locations/global/config?updateMask=generativeLanguageConfig` body `{"generativeLanguageConfig":{}}`. No Gemini API key: AI Logic no longer needs one (the `apiKey` field is deprecated). Without this config every call fails with "Firebase AI Logic genai config not found". |
 | reCAPTCHA key | `POST recaptchaenterprise.googleapis.com/v1/projects/<p>/keys` (`webSettings.integrationType` SCORE, `allowedDomains` the sites + `localhost`) |
-| App Check provider | `PATCH firebaseappcheck.googleapis.com/v1/projects/<p>/apps/<webAppId>/recaptchaEnterpriseConfig?updateMask=siteKey,tokenTtl` (`tokenTtl` 3600s; min score 0.5, the default) |
+| App Check provider | `PATCH firebaseappcheck.googleapis.com/v1/projects/<p>/apps/<webAppId>/recaptchaEnterpriseConfig?updateMask=siteKey,tokenTtl` (`tokenTtl` 3600s); `?updateMask=riskAnalysis.minValidScore` body `{"riskAnalysis":{"minValidScore":0.3}}` (0.3 since 16 Nov 2026, docs/security.md) |
 | Enforce | `PATCH firebaseappcheck.googleapis.com/v1beta/projects/<p>/services/firebaseml.googleapis.com?updateMask=enforcementMode` `ENFORCED` (`firebasevertexai.googleapis.com` is not an App Check service id) |
 
 bahi-happa: key `6LeLOiMuAAAAAFwG1zM7ElYJWZlvqpxROKr2qpCp` (display name "Bahi"; bahi-happa.web.app,
@@ -115,8 +116,8 @@ bahi-happa.firebaseapp.com, localhost). Neither project has a Gemini API key; th
 Android keys don't list `generativelanguage.googleapis.com`, so they can't call Gemini directly. If a
 Gemini key is ever made, restrict it to `generativelanguage.googleapis.com` and never put it in the app.
 
-**Headless checks:** reCAPTCHA scores a headless browser low (0.3 on bahi-happa-dev's key, under the 0.5
-minimum → "App attestation failed", 403). To test the AI path there, register a short-lived App Check
+**Headless checks:** reCAPTCHA scores a headless browser low (0.3 on bahi-happa-dev's key; under the
+minimum score → "App attestation failed", 403). To test the AI path there, register a short-lived App Check
 debug token (`apps/<id>/debugTokens`), set `self.FIREBASE_APPCHECK_DEBUG_TOKEN` before the page loads,
 and delete the token afterwards.
 3. **Check the free limit.** AI Studio (signed in as the owner) › the project › rate limits:

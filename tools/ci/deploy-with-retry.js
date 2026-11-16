@@ -56,6 +56,14 @@ function isRulesApiOutage(log) {
     return RULES_API_OUTAGE_RE.test(stripAnsi(log));
 }
 
+// "Request to https://serviceusage.googleapis.com/v1/projects/p/services/firestore.googleapis.com had HTTP Error: 403, Permission denied to get service ..."
+const SERVICE_USAGE_DENIED_RE = /serviceusage\.googleapis\.com\/\S*[^\n]*HTTP Error: 403\b/i;
+
+/** True when firebase-tools was refused only at its "is the API enabled?" check. */
+function isServiceUsageDenied(log) {
+    return SERVICE_USAGE_DENIED_RE.test(stripAnsi(log));
+}
+
 /** 'permission' | 'compile' | 'release-exists' | 'transient' | 'unknown' for a failed deploy's output. */
 function classify(log) {
     const text = stripAnsi(log);
@@ -147,6 +155,13 @@ async function deployWithRetry(opts, { run = runOnce, wait = sleep, delays = DEF
         if (code === 0) return 0;
 
         const kind = classify(output);
+        if (kind === 'permission' && opts.rulesApiFallback && isServiceUsageDenied(output)) {
+            // firebase-tools checks that the APIs are on before deploying; a key without
+            // Service Usage Consumer (e.g. the Firebase Admin SDK account) is refused there,
+            // although it may publish rules. The REST fallback needs only the Rules API.
+            console.log(`::warning title=Service Usage check refused::firebase deploy could not check the project's APIs (needs 'Service Usage Consumer' on ${opts.saEmail || 'the service account'}); publishing the rules through the Rules REST API instead.`);
+            return FALLBACK_EXIT;
+        }
         if (kind === 'permission') {
             permissionHint(opts.saEmail, opts.project, output);
             return 1;
@@ -205,4 +220,4 @@ if (require.main === module) {
     deployWithRetry(opts, { delays, verifyLive }).then(code => process.exit(code));
 }
 
-module.exports = { classify, isRulesApiOutage, parseArgs, parseDelays, deployWithRetry, DEFAULT_DELAYS_S, FALLBACK_EXIT, RULES_API_FALLBACK_AFTER };
+module.exports = { classify, isRulesApiOutage, isServiceUsageDenied, parseArgs, parseDelays, deployWithRetry, DEFAULT_DELAYS_S, FALLBACK_EXIT, RULES_API_FALLBACK_AFTER };

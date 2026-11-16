@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Fake `firebase deploy` for tests/ci/deploy-with-retry.test.js. FAKE_OUTCOMES
 // lists one outcome per call (ok | 503 | 500 | 429 | 409 | reset | compile |
-// permission | weird); FAKE_STATE is a file that counts the calls so far. Its
+// permission | serviceusage | weird); FAKE_STATE is a file that counts the calls so far. Its
 // own arguments are appended to FAKE_ARGS_LOG.
 const fs = require('fs');
 
@@ -25,6 +25,7 @@ const errors = {
     reset: 'Error: read ECONNRESET',
     compile: `${ESC}[33m⚠  [E] 12:5 - Missing 'match' keyword before path.${ESC}[39m\nError: Compilation errors in ${ESC}[1mfirestore.rules${ESC}[22m.`,
     permission: 'Error: Request to https://firebaserules.googleapis.com/v1/projects/happa-test:test had HTTP Error: 403, The caller does not have permission',
+    serviceusage: 'Error: Request to https://serviceusage.googleapis.com/v1/projects/happa-test/services/firestore.googleapis.com had HTTP Error: 403, Permission denied to get service [firestore.googleapis.com]',
     weird: 'Error: Something nobody expected.'
 };
 

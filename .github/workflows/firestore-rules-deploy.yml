@@ -25,10 +25,14 @@
 # changed since the last deploy
 # (input "indexes"; true when unknown). The same live-ruleset check follows.
 #
-# The service account in FIREBASE_SERVICE_ACCOUNT_HAPPA needs, in
-# addition to its hosting roles: Firebase Rules Admin
-# (roles/firebaserules.admin) and Cloud Datastore Index Admin
-# (roles/datastore.indexAdmin).
+# The service account in FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA (bahi-happa's
+# Firebase Admin SDK account since the #72 cut-over) publishes rules through the
+# Rules API. Without 'Service Usage Consumer' firebase deploy is refused at its
+# API check, and the step switches to the REST fallback at once (same result).
+# Indexes need 'Cloud Datastore Index Admin' (roles/datastore.indexAdmin) and
+# 'Service Usage Consumer' (roles/serviceusage.serviceUsageConsumer); until the
+# owner adds them, a change to firestore.indexes.json fails this job with the
+# IAM hint (deploy those by hand: firebase deploy --only firestore:indexes).
 name: Deploy Firestore rules and indexes
 
 on:
@@ -86,13 +90,13 @@ jobs:
         if: steps.head.outputs.current == 'true'
         id: project
         env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}
         run: node scripts/happa-config.js guard --require-ready --require-sa --sa-env SA_JSON
 
       - name: Write service account key
         if: steps.head.outputs.current == 'true'
         env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}
         run: |
           umask 077
           printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
@@ -143,6 +147,11 @@ jobs:
         run: |
           if [ "$INDEXES" = "false" ]; then
             echo "firestore.indexes.json is unchanged since the last deploy; not deploying indexes."
+            exit 0
+          fi
+          # Read-only: a key without Cloud Datastore Index Admin cannot create indexes,
+          # so skip the deploy when every index of the file is already live (READY).
+          if node tools/ci/indexes-live.js check --project "$PROJECT_ID" --indexes firestore.indexes.json; then
             exit 0
           fi
           SA_EMAIL=$(jq -r .client_email "$GOOGLE_APPLICATION_CREDENTIALS")

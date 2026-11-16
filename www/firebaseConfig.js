@@ -68,15 +68,14 @@ console.log(`🔧 App Environment: ${APP_ENV} | Collection Prefix: "${COLLECTION
 // Single Firebase Config (same project for both environments), from happa.config.json
 // <happa-config>
 const firebaseConfig = {
-  "apiKey": "AIzaSyDRSZiNfMAwU9jDfFnHf3zldvT6lUZEUtg",
-  "authDomain": "happa-bfc07.firebaseapp.com",
-  "projectId": "happa-bfc07",
-  "storageBucket": "happa-bfc07.firebasestorage.app",
-  "messagingSenderId": "516108799937",
-  "appId": "1:516108799937:web:a4e3fdbff054b9cc07a940",
-  "measurementId": "G-1514HNS14K"
+  "apiKey": "AIzaSyBTmwhr7Ks8lY4DvdkiNsXYp7yUKKjD_B0",
+  "authDomain": "bahi-happa.firebaseapp.com",
+  "projectId": "bahi-happa",
+  "storageBucket": "bahi-happa.firebasestorage.app",
+  "messagingSenderId": "6046579556",
+  "appId": "1:6046579556:web:ce3a9215b01c41c3fb9871"
 };
-const appCheckSiteKey = "";
+const appCheckSiteKey = "6LeLOiMuAAAAAFwG1zM7ElYJWZlvqpxROKr2qpCp";
 const googleSignInWeb = false;
 // </happa-config>
 
