@@ -519,9 +519,11 @@ in `.github/review-rules-examples/`.
   The `main` build keeps the Gradle cache that tag runs restore (a tag run can
   only read caches from its own ref or `main`); Gradle itself is fetched with
   retries.
-- **`firebase-hosting-pull-request.yml`**: a preview channel per PR (test data)
-  on each hosting site, expiring after 2 days; when the PR closes its channels
-  are deleted on every site (Firebase limits the channels per site).
+- **`firebase-hosting-pull-request.yml`**: a preview channel per PR on the
+  **test project `bahi-happa-dev`** (built with `happa-config.js target
+  bahi-happa-dev` in the runner, secret `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV`),
+  so previews never touch the shop's data; channels expire after 2 days and are
+  deleted when the PR closes (Firebase limits the channels per site).
 - **Required check name: `Playwright E2E (emulators)`** (the job that collects
   the shards; it passes when E2E was not needed). Don't rename it: branch
   protection matches it by name. The shard jobs (`E2E shard N/3`) are not stable
