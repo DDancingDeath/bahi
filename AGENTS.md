@@ -20,40 +20,34 @@ and is wrapped in **Capacitor** for Android distribution.
   package, Firebase project and site all come from `happa.config.json`
   (`npm run apply:happa-config` writes them everywhere, `npm run check:happa-config`
   is the release gate; go-live steps in `docs/happa-go-live.md`).
-- **Live URL**: `https://myhappa.web.app` (hosting site `myhappa` in Firebase
-  project `happa-bfc07`, from `happa.config.json`). The only site that serves the
-  app. `happaapp.web.app` and `happa-bfc07.web.app` (`redirectHostingSites`) only
-  301 every path to it, so there is one origin (one offline store, one service worker).
-- **New Firebase projects (#72, cut-over pending)**: prod `bahi-happa` (site
-  `bahi-happa.web.app`) and dev `bahi-happa-dev` (site `bahi-happa-dev.web.app`), in the
-  shop's Google account. Their web config is in `happa.config.json` `environments.prod` /
-  `environments.dev`; the committed files still point at `happa-bfc07` until cut-over.
-  `.firebaserc` aliases: `default` (the active project), `prod`, `dev`, `legacy`
-  (`happa-bfc07`). Build for one of them with
-  `node scripts/happa-config.js apply --env prod|dev` (don't commit the result before
-  cut-over); `guard --env` refuses a `-dev` project for prod and the reverse.
-  Workflows `bahi-deploy-prod.yml` (push to `main`) and `bahi-deploy-dev.yml` (push to
-  `dev`, or manual with optional sample data) do nothing until the repo variable
-  `BAHI_CUTOVER` is `true`; secrets `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA` and
-  `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV`. **At cut-over**: set `BAHI_CUTOVER=true`,
-  disable `firebase-hosting-merge.yml` (it still deploys to `happa-bfc07`), then flip
-  `firebase` in `happa.config.json` to the prod values. **In the same step as that flip**,
-  re-point the old secrets to `bahi-happa` service-account keys (same names, new values;
-  no workflow edit), or every guard below fails with "belongs to happa-bfc07" and prod
-  gets no backups:
-  - `FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA` (falls back to `FIREBASE_SERVICE_ACCOUNT_HAPPA`):
-    `firestore-backup.yml` (daily backup) and `tip-autobugs.yml`. Roles: **Cloud Datastore
-    Viewer** (`roles/datastore.viewer`) only; Cloud Datastore User also works.
-  - `FIREBASE_SERVICE_ACCOUNT_HAPPA`: `firebase-hosting-pull-request.yml` (PR previews; on
-    `bahi-happa` with `dev_` data until they move to dev), `firestore-rules-deploy.yml`
-    (manual rules dispatch) and the backup/TIP fallback. Roles: the same as
-    `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA` (Firebase Hosting Admin, Firebase Rules Admin,
-    Cloud Datastore Index Admin; Cloud Datastore User for the fallback).
-  Alternative: switch those workflows to the `_BAHI_HAPPA` secret names in the flip PR.
-  Then run `firestore-backup.yml` by hand once and check it backs up `bahi-happa`.
-  Sample data for dev only:
-  `node tools/dev/load-sample-data.js [--apply] [--prefix dev_]` (refuses any project
-  not ending in `-dev`). The `dev_` collection prefix (rule 2) stays for one more release.
+- **Live URL**: `https://bahi-happa.web.app` (hosting site `bahi-happa` in Firebase
+  project `bahi-happa`, in the shop's Google account; from `happa.config.json`). The only
+  site that serves the app (one origin, one offline store, one service worker). Since the
+  #72 cut-over (16 Nov 2026) every push to `main` deploys it (`firebase-hosting-merge.yml`,
+  secret `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA`), and `bahi-dev-deploy.yml` deploys the
+  same commit to the **test project `bahi-happa-dev`** (`bahi-happa-dev.web.app`, built
+  with `node scripts/happa-config.js target bahi-happa-dev`: "Bahi Dev", its App Check key,
+  the dev-latest /download; secret `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV`). PR previews
+  run on bahi-happa-dev too. The hand-kept local config branches (`local/bahi-prod-config`,
+  `local/bahi-dev-config`) are no longer needed.
+  - Both secrets hold the projects' **Firebase Admin SDK** service-account keys. They can
+    deploy Hosting and publish rules (`firestore-rules-deploy.yml` switches to the Rules
+    REST API when firebase-tools is refused at its Service Usage check) and read Firestore
+    (backup, TIP), but cannot create indexes: `tools/ci/indexes-live.js` skips the indexes
+    deploy when every index is already live. A new index needs the roles **Cloud Datastore
+    Index Admin** + **Service Usage Consumer** on that account (owner, Google Cloud console
+    → IAM), or a deploy by hand: `firebase deploy --only firestore:indexes`.
+  - `firestore-backup.yml` and `tip-autobugs.yml` read `bahi-happa`
+    (`FIREBASE_BACKUP_SERVICE_ACCOUNT_HAPPA` if set, else `FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA`).
+  - **Retired: `happa-bfc07`** (`myhappa.web.app`, `happaapp.web.app`,
+    `happa-bfc07.web.app`). Its data was copied to bahi-happa; its sites only 301 every path
+    to the same path on `bahi-happa.web.app` (deployed once from the ops branch, not from
+    `main`), and its Firestore rules are read-only. Only `FIREBASE_SERVICE_ACCOUNT_HAPPA`
+    reaches it; no workflow on `main` uses that secret. Deleting the project is a later
+    owner step (RENAME_PLAN / docs/release-checklist.md).
+  - Sample data for dev only:
+    `node tools/dev/load-sample-data.js [--apply] [--prefix dev_]` (refuses any project
+    not ending in `-dev`). The `dev_` collection prefix (rule 2) stays for one more release.
 - **Old app (archived, never changed)**: Android `com.hitesh.aadhat`, Firebase
   project `aadhat-management`, site `aadhat-management.web.app`, last release
   v1.6.1. No workflow may deploy to it; the CI guard
@@ -521,7 +515,7 @@ in `.github/review-rules-examples/`.
   build; every `v*` tag): a debug APK build, or on a tag the signed release.
   The APK is built for the Firebase project of `config/targets/<target>.json`
   (default `bahi-happa`, swapped in by `happa-config.js target` in the runner
-  only); the committed `happa.config.json` stays the web deploy's `happa-bfc07`.
+  only); the committed `happa.config.json` is the same project since the #72 cut-over.
   The `main` build keeps the Gradle cache that tag runs restore (a tag run can
   only read caches from its own ref or `main`); Gradle itself is fetched with
   retries.
@@ -621,10 +615,11 @@ Runs are serialized (`concurrency: deploy-main`, never cancelled). The
 `firestore-rules-deploy.yml` no longer runs on push by itself; a manual
 dispatch deploys only the rules and indexes.
 
-`bahi-deploy-prod.yml` also runs on every push to `main`, but its job is skipped
-unless the repo variable `BAHI_CUTOVER` is `true` (section 1, #72). It builds with
-`apply --env prod` and deploys rules, indexes and Hosting to `bahi-happa` through
-`bahi-deploy.yml`, which `bahi-deploy-dev.yml` shares for `bahi-happa-dev`.
+`bahi-dev-deploy.yml` also runs on every push to `main` (its own `deploy-dev`
+queue): it builds with `happa-config.js target bahi-happa-dev` and publishes the
+rules (Rules REST API), any missing indexes and Hosting to the test project
+`bahi-happa-dev`, then checks the BUILD_ID there. A dev failure does not block the
+shop's deploy, and the shop's deploy does not wait for dev.
 
 ### Numbers on screen (#216)
 

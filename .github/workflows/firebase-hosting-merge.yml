@@ -1,9 +1,12 @@
-# Deploys Happa on every push to main: the Firestore rules and indexes first
+# Deploys Bahi on every push to main: the Firestore rules and indexes first
 # (when they changed), then Hosting -- the production build on the app's site,
-# myhappa.web.app. The other sites in firebase.json (happaapp, happa-bfc07) get
-# no app files, only a 301 of every path to myhappa (one origin, one offline store).
-# The project and sites come from happa.config.json; the guard refuses the
-# old app's project (aadhat-management), which is never deployed from here again.
+# bahi-happa.web.app (project bahi-happa, secret FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA;
+# since the #72 cut-over). Any redirectHostingSites in firebase.json get no app
+# files, only a 301 of every path to the app's site. The test project
+# bahi-happa-dev is deployed by bahi-dev-deploy.yml from the same push. The
+# project and sites come from happa.config.json; the guard refuses a key from
+# another project and the old app's project (aadhat-management). The retired
+# happa-bfc07 (myhappa) is never deployed from here again.
 #
 # Order (after #196, where the new app ran ~25 minutes on the old rules and its
 # writes were refused): rules are backward-compatible by design, so they go
@@ -100,7 +103,7 @@ jobs:
         if: steps.head.outputs.current == 'true'
         id: project
         env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}
         run: node scripts/happa-config.js guard --require-ready --require-sa --sa-env SA_JSON
       # tools/ci/deploy-plan.js looks for this step name to confirm a run deployed.
       - name: Deploy to Firebase Hosting
@@ -108,7 +111,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}
           channelId: live
           projectId: ${{ steps.project.outputs.project_id }}
       - name: Check the app site serves this build and the others redirect

@@ -6,7 +6,7 @@
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { classify, isRulesApiOutage, deployWithRetry, FALLBACK_EXIT } = require('../../tools/ci/deploy-with-retry');
+const { classify, isRulesApiOutage, isServiceUsageDenied, deployWithRetry, FALLBACK_EXIT } = require('../../tools/ci/deploy-with-retry');
 
 const SCRIPT = path.join(__dirname, '../../tools/ci/deploy-with-retry.js');
 const FAKE = path.join(__dirname, 'fake-firebase.js');
@@ -107,6 +107,26 @@ describe('--rules-api-fallback', () => {
         const r = deploy(['503', 'ok'], { flags: ['--rules-api-fallback'] });
         expect(r.code).toBe(0);
         expect(r.calls).toBe(2);
+    });
+
+    test('a key refused only at the Service Usage check switches to the REST fallback at once', () => {
+        const r = deploy(['serviceusage', 'ok'], { flags: ['--rules-api-fallback'] });
+        expect(r.code).toBe(FALLBACK_EXIT);
+        expect(r.calls).toBe(1);
+        expect(r.out).toMatch(/::warning title=Service Usage check refused::.*Rules REST API/);
+    });
+
+    test('without --rules-api-fallback the Service Usage refusal fails with the IAM hint', () => {
+        const r = deploy(['serviceusage', 'ok']);
+        expect(r.code).toBe(1);
+        expect(r.out).toMatch(/::error title=Service account is missing roles::/);
+    });
+
+    test('other permission errors still fail with the IAM hint', () => {
+        const r = deploy(['permission', 'ok'], { flags: ['--rules-api-fallback'] });
+        expect(r.code).toBe(1);
+        expect(r.out).toMatch(/::error title=Service account is missing roles::/);
+        expect(isServiceUsageDenied('Error: Request to https://firebaserules.googleapis.com/v1/projects/p:test had HTTP Error: 403, The caller does not have permission')).toBe(false);
     });
 
     test('which errors count as a Rules API outage', () => {
