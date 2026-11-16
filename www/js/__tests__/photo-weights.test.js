@@ -218,23 +218,40 @@ describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
         const busy = () => Object.assign(new Error('[500 ] This model is currently experiencing high demand.'), { customErrorData: { status: 500 } });
         const ok = { response: { text: () => '{"weights":[],"crossed_out":[]}' } };
         const depsFor = (generate, extra = {}) => ({ loadSdk: async () => fakeSdk(generate).sdk, options: () => ({}), win: { APP_CHECK_SITE_KEY: 'site' }, startAppCheck: jest.fn().mockResolvedValue({}), model: 'm', ...extra });
-        const settle = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
-        afterEach(() => jest.useRealTimers());
+        // Real timers only: the 1.5 s / 4 s waits are caught (not run) so the test decides when they end.
+        const until = async (cond) => {
+            for (let i = 0; i < 500 && !cond(); i++) await new Promise((r) => setTimeout(r, 0));
+            expect(cond()).toBe(true);
+        };
+        const holdLongTimers = () => {
+            const held = [];
+            const real = global.setTimeout;
+            jest.spyOn(global, 'setTimeout').mockImplementation((cb, ms, ...args) => {
+                if (ms >= 1000) {
+                    held.push({ ms, cb });
+                    return 0;
+                }
+                return real(cb, ms, ...args);
+            });
+            return held;
+        };
+        afterEach(() => jest.restoreAllMocks());
 
         test('busy twice, then read: waits 1.5 s and 4 s, says so each time, sends the same photo', async () => {
-            jest.useFakeTimers();
+            const held = holdLongTimers();
             const generate = jest.fn().mockRejectedValueOnce(busy()).mockRejectedValueOnce(busy()).mockResolvedValue(ok);
             const onRetry = jest.fn();
             const reading = readWeightsPhoto(new Blob(['jpeg'], { type: 'image/jpeg' }), { deps: depsFor(generate), onRetry });
-            await jest.advanceTimersByTimeAsync(0);
+            await until(() => held.length === 1);
+            expect(held[0].ms).toBe(1500);
             expect(generate).toHaveBeenCalledTimes(1);
             expect(onRetry).toHaveBeenLastCalledWith(1);
-            await jest.advanceTimersByTimeAsync(1499);
-            expect(generate).toHaveBeenCalledTimes(1);
-            await jest.advanceTimersByTimeAsync(1);
+            held[0].cb();
+            await until(() => held.length === 2);
+            expect(held[1].ms).toBe(4000);
             expect(generate).toHaveBeenCalledTimes(2);
             expect(onRetry).toHaveBeenLastCalledWith(2);
-            await jest.advanceTimersByTimeAsync(4000);
+            held[1].cb();
             await expect(reading).resolves.toEqual({ weights: [], crossed_out: [] });
             expect(generate).toHaveBeenCalledTimes(3);
             expect(generate.mock.calls[2][0][1]).toEqual(generate.mock.calls[0][0][1]);
@@ -263,15 +280,16 @@ describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
         });
 
         test('Cancel (or the timeout) while waiting to retry: stops at once, nothing more is uploaded', async () => {
-            jest.useFakeTimers();
+            const held = holdLongTimers();
             const generate = jest.fn().mockRejectedValue(busy());
             const ctrl = new AbortController();
-            const reading = readWeightsPhoto(new Blob(['x']), { signal: ctrl.signal, deps: depsFor(generate), onRetry: () => ctrl.abort() });
+            const reading = readWeightsPhoto(new Blob(['x']), { signal: ctrl.signal, deps: depsFor(generate) });
             const caught = reading.catch((e) => e);
-            await jest.advanceTimersByTimeAsync(0);
-            await settle();
+            await until(() => held.length === 1);
+            ctrl.abort();
             expect(await caught).toMatchObject({ name: 'AbortError' });
-            await jest.advanceTimersByTimeAsync(10000);
+            held[0].cb();
+            await new Promise((r) => setTimeout(r, 0));
             expect(generate).toHaveBeenCalledTimes(1);
         });
     });
