@@ -1,5 +1,5 @@
 <div id="stock" class="tab">
-    <header class="page-head"><h2 data-i18n="ui.nav.stocks">Stock</h2></header>
+    <div class="page-head"><h2 data-i18n="ui.nav.stocks">Stock</h2></div>
 
         <div class="seg stock-seg" role="group">
             <button type="button" aria-pressed="true" data-onclick="stock.filterTab('current', event)" data-i18n="ui.stock.current_stock">Current stock</button>
@@ -25,6 +25,10 @@
                 <div class="metric">
                     <div class="metric-label" data-i18n="ui.stock.summary_items">Items in stock</div>
                     <div id="stockSummaryItems" class="metric-value">0</div>
+                </div>
+                <div class="metric tone-neg" id="stockSummaryBelowZeroCell" hidden>
+                    <div class="metric-label" data-i18n="ui.stock.summary_below_zero">Below zero</div>
+                    <div id="stockSummaryBelowZero" class="metric-value">0</div>
                 </div>
                 <div class="metric" id="stockSummaryKgCell">
                     <div class="metric-label" data-i18n="ui.stock.summary_kg">Total weight</div>
@@ -62,7 +66,7 @@
                     </select>
                 </div>
 
-                <div class="metrics stock-now">
+                <div class="metrics stock-now" id="adjustStockNow" hidden>
                     <div class="metric">
                         <div class="metric-label" data-i18n="ui.stock.current_stock">Current stock</div>
                         <div class="metric-value"><span id="currentStockDisplay">-</span> kg</div>
@@ -94,14 +98,22 @@
                     <label for="adjustRate" data-i18n="ui.stock.rate_kg_optional">Rate (optional)</label>
                     <div class="adorn">
                         <span class="adorn-pre">₹</span>
-                        <input type="number" inputmode="decimal" id="adjustRate" class="input" placeholder="0" value="0" />
+                        <input type="number" inputmode="decimal" id="adjustRate" class="input" placeholder="Average cost if empty" data-i18n-placeholder="ui.stock.rate_placeholder" />
                         <span class="adorn-post">/kg</span>
                     </div>
                 </div>
 
                 <div class="field">
-                    <label for="adjustReasonCode" data-i18n="ui.stock.reason">Reason</label>
-                    <select id="adjustReasonCode" class="input">
+                    <label id="adjustReasonLabel" data-i18n="ui.stock.reason">Reason</label>
+                    <!-- One tap per reason (U-77); the select keeps the value the stock code reads -->
+                    <div class="adjust-reasons" role="group" aria-labelledby="adjustReasonLabel">
+                        <button type="button" class="chip" data-reason="count" aria-pressed="false" data-onclick="stock.setReason('count')" data-i18n="ui.stock.reason_count">Physical count</button>
+                        <button type="button" class="chip" data-reason="damage" aria-pressed="false" data-onclick="stock.setReason('damage')" data-i18n="ui.stock.reason_damage">Damaged</button>
+                        <button type="button" class="chip" data-reason="theft" aria-pressed="false" data-onclick="stock.setReason('theft')" data-i18n="ui.stock.reason_theft">Theft or loss</button>
+                        <button type="button" class="chip" data-reason="opening" aria-pressed="false" data-onclick="stock.setReason('opening')" data-i18n="ui.stock.reason_opening">Opening stock</button>
+                        <button type="button" class="chip" data-reason="other" aria-pressed="false" data-onclick="stock.setReason('other')" data-i18n="ui.stock.reason_other">Other</button>
+                    </div>
+                    <select id="adjustReasonCode" class="input" hidden aria-hidden="true" tabindex="-1">
                         <option value="" data-i18n="ui.stock.select_reason">Select reason</option>
                         <option value="opening" data-i18n="ui.stock.reason_opening">Opening stock</option>
                         <option value="count" data-i18n="ui.stock.reason_count">Physical count</option>

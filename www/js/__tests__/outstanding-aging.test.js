@@ -12,7 +12,8 @@ import {
     REMINDER_MAX_BILLS, buildReminderText, buildStatement, cleanText, normalizePhone, whatsAppReminderUrl
 } from '../utils/due-reminder.js';
 import { OutstandingManager } from '../modules/outstanding.js';
-import { openExternal } from '../utils/open-external.js';
+import { openExternal, notOpenedKey } from '../utils/open-external.js';
+import { t } from '../i18n/index.js';
 import { PrinterService } from '../services/printer.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
@@ -182,7 +183,7 @@ describe('#77 reminder message', () => {
         const s = buildStatement(party, { kind: 'payable', shopName: 'Shop', today: TODAY });
         expect(s).toMatchObject({
             shopName: 'Shop', partyName: 'Ram Lal', asOf: '22/10/2026', total: 123456.6,
-            totalLabel: 'Total payable', filename: 'statement_Ram_Lal_20261022.png'
+            totalLabel: 'Total due', filename: 'statement_Ram_Lal_20261022.png'
         });
         expect(s.rows.map(r => r.date)).toEqual(['01/09/2026', '10/10/2026']);
         expect(buildStatement({ name: '', bills: [] }).partyName).toBe('No name');
@@ -240,12 +241,47 @@ describe('#46/#77 Outstanding panel', () => {
         expect(document.querySelectorAll('#dueList [data-history-item]')).toHaveLength(2);
     });
 
+    test('U-19/U-20: bills fold under the parties; a party tap shows its bills; chase rows act; Call only with a phone', () => {
+        AppState.userRole = 'staff';
+        OutstandingManager.billsOpen = false;
+        OutstandingManager.partyFilter = null;
+        OutstandingManager.renderDue();
+        expect(document.getElementById('dueList').hidden).toBe(true);
+        expect(document.getElementById('dueBillsToggle').textContent).toContain('Bills (2)');
+        const chase = document.querySelector('.aging-chase li button');
+        expect(chase.getAttribute('data-onclick')).toMatch(/^outstanding\.receiveFromParty\(/);
+        expect(document.querySelectorAll('#dueAgingParties [data-party-pay]')).toHaveLength(2);
+        expect(document.querySelectorAll('#dueAgingParties [data-party-call]')).toHaveLength(1);
+        const open = jest.spyOn(window, 'open').mockImplementation(() => ({}));
+        OutstandingManager.callParty(normalizePartyName('Ram <img src=x onerror=alert(1)>'));
+        expect(open).toHaveBeenCalledWith('tel:+919876543210', '_blank');
+        OutstandingManager.openParty(normalizePartyName("O'Neil"));
+        expect(document.getElementById('dueList').hidden).toBe(false);
+        expect([...document.querySelectorAll('#dueList [data-history-item]')].map(el => el.textContent)).toEqual([expect.stringContaining('#R2')]);
+        OutstandingManager.clearPartyFilter();
+        AppState.userRole = 'owner';
+    });
+
+    test('U-72: a search hides the all-party totals and says when nothing matches, with Clear search', () => {
+        OutstandingManager.renderDue();
+        const input = document.getElementById('outstandingSearchInput');
+        input.value = 'zzz';
+        OutstandingManager.searchOutstanding();
+        expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(true);
+        expect(document.getElementById('dueList').hidden).toBe(false);
+        expect(document.querySelector('#dueList .no-results-message').textContent).toContain('Nothing matches “zzz”');
+        OutstandingManager.clearSearch();
+        expect(input.value).toBe('');
+        expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(false);
+        expect(document.querySelector('#dueList .no-results-message')).toBeNull();
+    });
+
     test('payables show no Remind button and no chase list', () => {
         AppState.currentDueFilter = 'purchase';
         AppState.purchaseHistory = [{ id: 'p1', customerName: 'Supplier', timestamp: Date.now(), payment: { cash: 0, online: 0, due: 70 } }];
         OutstandingManager.renderDue();
         const panel = document.getElementById('dueAging');
-        expect(panel.textContent).toContain('Payables by age');
+        expect(panel.textContent).toContain('To pay, by age');
         expect(panel.querySelector('.aging-remind')).toBeNull();
         expect(panel.querySelector('.aging-chase')).toBeNull();
     });
@@ -315,7 +351,7 @@ describe('#125 wholesale dues on Outstanding (All / Retail / Wholesale)', () => 
         OutstandingManager.filterDue('retail');
         expect(ids()).toEqual(['r1', 'r2']);
         expect(total()).toBe('₹580');
-        expect(document.querySelector('#dueAging .aging-title').textContent).toBe('Retail receivables by age');
+        expect(document.querySelector('#dueAging .aging-title').textContent).toBe('Retail: to receive, by age');
         expect(document.querySelector('#dueList .due-kind-chip')).toBeNull();
         OutstandingManager.filterDue('wholesale');
         expect(ids()).toEqual(['w1', 'w2']);
@@ -435,5 +471,25 @@ describe('openExternal (WhatsApp / browser links)', () => {
         expect(openExternal('https://wa.me/?text=hi', w)).toBe('system');
         expect(w.open).toHaveBeenCalledWith('https://wa.me/?text=hi', '_system');
         expect(w.location.href).toBe('http://app/');
+    });
+
+    test('APK with AppShell: Android opens it, and says so when no app could', async () => {
+        const toast = jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
+        const w = fakeWin(null, true);
+        w.Capacitor.Plugins = { AppShell: { openUrl: jest.fn(async ({ url }) => ({ opened: !url.startsWith('upi:') })) } };
+        expect(openExternal('https://wa.me/?text=hi', w)).toBe('system');
+        expect(openExternal('upi://pay?pa=shop@upi', w)).toBe('system');
+        await new Promise(r => setTimeout(r, 0));
+        expect(w.open).not.toHaveBeenCalled();
+        expect(toast).toHaveBeenCalledTimes(1);
+        expect(toast).toHaveBeenCalledWith(t('msg.common.could_not_open_upi'), 'warning');
+        toast.mockRestore();
+    });
+
+    test('the "could not open" message names WhatsApp, UPI or a link', () => {
+        expect(notOpenedKey('https://wa.me/919999?text=x')).toBe('msg.common.could_not_open_whatsapp');
+        expect(notOpenedKey('whatsapp://send?text=x')).toBe('msg.common.could_not_open_whatsapp');
+        expect(notOpenedKey('upi://pay?pa=x')).toBe('msg.common.could_not_open_upi');
+        expect(notOpenedKey('https://example.com/a.apk')).toBe('msg.common.could_not_open_link');
     });
 });

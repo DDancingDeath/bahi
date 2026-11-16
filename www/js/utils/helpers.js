@@ -10,6 +10,7 @@
  */
 import { t, getLang } from '../i18n/index.js';
 import { formatAmount } from './money.js';
+import { groupIndianText, normalizeNumberText, parseNumberText } from './number-text.js';
 import { formatDay, formatDayTime, formatTimeOfDay } from './dates.js';
 import { dayCounter } from '../firebase/repos/counters.js';
 import { contactLabel, pickPhoneContact } from './contact-picker.js';
@@ -201,7 +202,8 @@ export class Helpers {
      */
     static getInputNumber(elementId, defaultValue = 0) {
         const el = /** @type {HTMLInputElement|null} */ (document.getElementById(elementId));
-        const value = parseFloat(/** @type {string} */ (el?.value));
+        // Hindi digits and Indian commas read as typed (U-84, U-29)
+        const value = parseNumberText(el?.value);
         return isNaN(value) ? defaultValue : value;
     }
 
@@ -213,7 +215,7 @@ export class Helpers {
      */
     static getInputInt(elementId, defaultValue = 0) {
         const el = /** @type {HTMLInputElement|null} */ (document.getElementById(elementId));
-        const value = parseInt(/** @type {string} */ (el?.value), 10);
+        const value = parseInt(normalizeNumberText(el?.value), 10);
         return isNaN(value) ? defaultValue : value;
     }
 
@@ -428,6 +430,7 @@ export class Helpers {
         if (!el || !check) return;
         const row = /** @type {?HTMLElement} */ (el.closest('.pay-rest'));
         if (row) row.hidden = !!check.ok;
+        if (row?.parentElement) Helpers.foldPaidRows(row.parentElement, !!check.ok);
         const amount = formatAmount(Math.abs(check.difference), { exact: true });
         if (check.ok) {
             el.textContent = '✓ ₹0';
@@ -442,6 +445,44 @@ export class Helpers {
     }
 
     /**
+     * Shorter payment (U-18): the Due row stays folded while nothing is in Due ("Rest → due" fills it), and
+     * with the whole bill in one way (Fill ticked, the others 0) only that row shows, with "Split payment"
+     * beside the Payment title to bring the others back.
+     * @param {HTMLElement} box - the totals block holding the .pay-line rows
+     * @param {boolean} ok - the split adds up to the bill
+     */
+    static foldPaidRows(box, ok) {
+        const lines = /** @type {HTMLElement[]} */ ([...box.children]).filter(l => l.classList.contains('pay-line') && l.querySelector('.pay-fill input[type="checkbox"]'));
+        const tick = (/** @type {HTMLElement} */ l) => /** @type {?HTMLInputElement} */ (l.querySelector('.pay-fill input[type="checkbox"]'));
+        const input = (/** @type {HTMLElement} */ l) => /** @type {?HTMLInputElement} */ (l.querySelector('.bill-money .input'));
+        const amountIn = (/** @type {HTMLElement} */ l) => (input(l)?.id ? Helpers.getInputNumber(/** @type {HTMLInputElement} */ (input(l)).id) : 0);
+        const filled = lines.filter(l => tick(l)?.checked);
+        const one = ok && filled.length === 1 && lines.every(l => l === filled[0] || !(amountIn(l) > 0)) ? filled[0] : null;
+        const due = lines.find(l => /due/i.test(input(l)?.id || ''));
+        const dueEmpty = !!due && !(amountIn(due) > 0) && !tick(due)?.checked && !due.contains(document.activeElement);
+        lines.forEach(l => l.classList.toggle('pay-folded', (!!one && l !== one) || (l === due && dueEmpty)));
+        const title = box.querySelector(':scope > .bill-pay-title');
+        if (!title) return;
+        let split = /** @type {?HTMLButtonElement} */ (title.querySelector('.pay-split'));
+        if (!split && one) {
+            split = document.createElement('button');
+            split.type = 'button';
+            split.className = 'btn btn-ghost btn-sm pay-split';
+            split.addEventListener('click', () => {
+                const kept = lines.find(l => tick(l)?.checked);
+                lines.forEach(l => { const c = tick(l); if (c) c.checked = false; });
+                Helpers.foldPaidRows(box, false);
+                if (kept) input(kept)?.focus();
+            });
+            title.appendChild(split);
+        }
+        if (split) {
+            split.hidden = !one;
+            split.textContent = t('ui.billing.split_payment');
+        }
+    }
+
+    /**
      * Ticking Online / Cash / Due on a bill form: when that box is ticked, write
      * the amounts from prefillPayment() (utils/calc/billing.js) and untick the others.
      * @param {'online'|'cash'|'due'} type
@@ -452,7 +493,7 @@ export class Helpers {
         if (!ids[type] || !/** @type {HTMLInputElement|null} */ (document.getElementById(ids[type][1]))?.checked) return;
         Object.entries(ids).forEach(([key, [inputId, checkboxId]]) => {
             const input = /** @type {HTMLInputElement|null} */ (document.getElementById(inputId));
-            if (input) input.value = values[key];
+            if (input) input.value = input.hasAttribute('data-money') ? groupIndianText(values[key]) : values[key];
             if (key !== type) {
                 const box = /** @type {HTMLInputElement|null} */ (document.getElementById(checkboxId));
                 if (box) box.checked = false;

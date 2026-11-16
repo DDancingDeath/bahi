@@ -7,14 +7,19 @@ import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
 import { computeShortfallsFrom, approxStockNote, stockWarnOnlyNote } from '../utils/stock-check.js';
+import { openExternal } from '../utils/open-external.js';
 import { awaitingServer } from '../utils/data-freshness.js';
 import { normalizeThresholds, stockCreditFor } from '../utils/bill-checks.js';
+import { showAmount } from '../ui/number-input.js';
+import { showUndo, hideUndo } from '../ui/undo-bar.js';
+import { showLastSaved } from '../ui/last-saved.js';
+import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkLineRate } from '../ui/rate-check.js';
 import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import {
-    isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, rangeStatus, retryRange, applyRangeState, renderStaleHistoryHint
+    isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, rangeStatus, retryRange, applyRangeState, renderStaleHistoryHint, syncAllDatesLabel
 } from '../utils/history-window.js';
 import { filterHistoryBills, resolveHistoryRange, validateCustomRange, billTimeMs } from '../utils/history-filters.js';
 import { buildBillRow, buildOpeningGroup, addOpeningToggle, addVoidedToggle, billTableHtml, byNameHtml } from '../ui/bill-row.js';
@@ -25,7 +30,9 @@ import { historyCutoff } from '../utils/role-access.js';
 import { OutstandingManager } from './outstanding.js';
 import { partyNameKey } from '../utils/parties.js';
 import { partyDues } from '../utils/due-payments.js';
-import { getLang, t } from '../i18n/index.js';
+import { onUnsavedBillCheck } from '../ui/navigation.js';
+import { getLang, t, tn } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
@@ -37,13 +44,14 @@ import { icon } from '../ui/icons.js';
 const L = (key, params) => Helpers.escapeHtml(t(key, params));
 
 import {
-    KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, readPayment, openingAmount, openingOldTotals, outstandingDue, isOpeningRecord, isActiveBill,
+    KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, readLineItem, readPayment, openingAmount, openingOldTotals, outstandingDue, isOpeningRecord, isActiveBill,
     formatAmount, formatKg, formatRate, formatRupees
 } from '../utils/money.js';
 import {
-    buildPaymentSplit, computeLine, computeWholesaleTotals, draftLineSum, paidOnScreen, paymentSplit, pendingLine, prefillPayment,
-    restInDue, shownAmount, typedAmount, validatePaymentSplit, wholesaleLiveProfit
+    buildPaymentSplit, computeLine, computeWholesaleTotals, draftLineSum, editKeepsMoney, editSplitFor, paidOnScreen, paymentSplit, pendingLine,
+    prefillPayment, restInDue, shownAmount, typedAmount, validatePaymentSplit, wholesaleLiveProfit, withLineRate
 } from '../utils/calc/billing.js';
+import { askEditReason, BillingManager, commitBillEdit, editCheckContext, syncBillNotes } from './billing.js';
 
 /** Wholesale bills shown under the entry form (the rest are in Wholesale › History). */
 const RECENT_SALES = 5;
@@ -65,6 +73,13 @@ let shownProfit = 0;
  * @type {{id: string, billNumber: (string|null)}|null}
  */
 let pendingBill = null;
+
+/**
+ * The saved sale open in the form to edit (U-30) and its payments when it was opened
+ * (a payment recorded elsewhere before saving is a conflict); null for a new sale.
+ * @type {{bill: Object, paymentSig: *}|null}
+ */
+let editing = null;
 
 function ensurePendingBill() {
     if (!pendingBill) pendingBill = { id: Helpers.generateId(), billNumber: null, attempted: false, date: null, timestamp: null, enteredAt: null };
@@ -270,6 +285,8 @@ export class WholesaleSalesManager {
         const profitPercentEl = document.getElementById('salesProfitPercent');
         
         if (!tbody || !totalEl) return;
+        const share = document.querySelector('#salesEntrySection .bill-share');
+        if (share) share.hidden = wholesaleSaleItems.length === 0;
         
         if (wholesaleSaleItems.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${L('msg.common.no_items_in_bill')}</td></tr>`;
@@ -286,12 +303,12 @@ export class WholesaleSalesManager {
         const remove = L('ui.modals.delete');
         tbody.innerHTML = wholesaleSaleItems.map((item, index) => {
             return `
-                <tr class="bill-line">
-                    <td>${Helpers.escapeHtml(lineItemIdentity(item, AppState.items, AppState.settings.showHindi).label)}</td>
+                <tr class="bill-line" data-onclick="wholesaleSales.editWholesaleItem(${index})">
+                    <td>${lineNameHtml(lineItemIdentity(item, AppState.items, AppState.settings.showHindi).label)}</td>
                     <td>${formatRate(item.rate)}</td>
                     <td>${formatKg(item.qty)} kg</td>
                     <td>${moneyHtml(shownAmount(item.total))}</td>
-                    <td><button type="button" class="btn btn-ghost btn-icon bill-line-remove" data-onclick="wholesaleSales.removeWholesaleItem(${index})" aria-label="${remove}" title="${remove}">${icon('x')}</button></td>
+                    <td><button type="button" class="btn btn-ghost btn-icon bill-line-remove" data-onclick="event.stopPropagation(); wholesaleSales.removeWholesaleItem(${index})" aria-label="${remove}" title="${remove}">${icon('x')}</button></td>
                 </tr>
             `;
         }).join('');
@@ -352,18 +369,197 @@ export class WholesaleSalesManager {
      * @returns {{cash: number, online: number, due: number}}
      */
     static readPaymentSplit() {
-        return paymentSplit({
+        const typed = this.readTypedSplit();
+        // An edited sale's split settles on its new total, as on Billing (#129)
+        return editing ? editSplitFor(typed, this.computeTotals().total, editing.bill) : paymentSplit(typed);
+    }
+
+    /** Cash / online / due as typed, before rounding. */
+    static readTypedSplit() {
+        return {
             online: Helpers.getInputNumber('wholesaleOnlinePayment'),
             cash: Helpers.getInputNumber('wholesaleCashPayment'),
             due: Helpers.getInputNumber('wholesaleDueAmount')
+        };
+    }
+
+    /** The saved sale being edited, or null. */
+    static getEditingSale() {
+        return editing?.bill || null;
+    }
+
+    /**
+     * Opens a saved sale in the form to edit (U-30): its lines, customer, note, expenses and
+     * payment; the date stays the bill's. Saved with an edit record (reason) like Billing's edits.
+     * @param {Object} bill
+     */
+    static openEditor(bill) {
+        if (!bill) return;
+        hideUndo();
+        editing = { bill, paymentSig: FirebaseService.loadedPaymentSignature(bill) };
+        pendingBill = null;
+        wholesaleSaleItems = (Array.isArray(bill.items) ? bill.items : []).map(item => {
+            const line = readLineItem(item);
+            return {
+                itemId: item.itemId, name: line.name, rate: line.rate, qty: line.qty, total: line.total,
+                ...(item.rateCheck ? { rateCheck: item.rateCheck } : {})
+            };
         });
+        const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
+        set('wholesaleCustomerName', bill.customerName || '');
+        set('salesComments', bill.comments || '');
+        set('salesExpensesAmount', String(Number(bill.expenses) || 0));
+        set('sellQuantity', '');
+        this.resetPaymentFields();
+        const paid = readPayment(bill);
+        [['wholesaleOnlinePayment', 'wholesaleOnlineCheckbox', paid.online], ['wholesaleCashPayment', 'wholesaleCashCheckbox', paid.cash],
+            ['wholesaleDueAmount', 'wholesaleDueCheckbox', paid.due]].forEach(([inputId, boxId, value]) => {
+            if (!(value > 0)) return;
+            showAmount(/** @type {?HTMLInputElement} */ (document.getElementById(inputId)), value);
+            const box = /** @type {?HTMLInputElement} */ (document.getElementById(boxId));
+            if (box) box.checked = true;
+        });
+        prepareBillDate('wholesaleDate', bill);
+        syncBillNotes('salesComments');
+        this.showEditNotice();
+        this.filterSalesTab('sales');
+        this.renderWholesaleBill();
+        BillChecksUI.run('wholesale');
+    }
+
+    /** "Editing bill W…" with Cancel edit, while a saved sale is open in the form. */
+    static showEditNotice() {
+        const box = document.getElementById('wholesaleEditNotice');
+        if (!box) return;
+        box.hidden = !editing;
+        const text = document.getElementById('wholesaleEditNoticeText');
+        if (text && editing) text.textContent = t('ui.wholesale.editing_bill', { no: editing.bill.billNumber || '' });
+    }
+
+    /** Leaves the edit without saving: the form is empty again. */
+    static cancelEdit() {
+        editing = null;
+        this.clearForm();
+    }
+
+    /** Empties the form (after a save, or a cancelled edit). */
+    static clearForm() {
+        hideUndo();
+        pendingBill = null;
+        wholesaleSaleItems = [];
+        const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
+        set('wholesaleCustomerName', '');
+        set('sellQuantity', '');
+        set('sellRate', '');
+        clearFieldError('sellRate');
+        set('salesComments', '');
+        set('salesExpensesAmount', '0');
+        this.resetPaymentFields();
+        const date = /** @type {?HTMLInputElement} */ (document.getElementById('wholesaleDate'));
+        if (date) date.disabled = false;
+        resetBillDate('wholesaleDate');
+        const stock = document.getElementById('availableStock');
+        if (stock) stock.textContent = '-';
+        const avg = document.getElementById('avgPurchaseRate');
+        if (avg) avg.textContent = '-';
+        this.syncItemStats();
+        this.showEditNotice();
+        syncBillNotes('salesComments');
+        this.renderWholesaleBill();
+    }
+
+    /**
+     * Saves the sale open in the editor (U-30): needs the internet (checked against the
+     * server copy), keeps the stored money exactly when no money changed (#129), and writes
+     * the edit record with its reason in the same transaction (#121, D-3).
+     * @param {Object} [options] - onWriteIssued(sale) as for a new sale
+     * @returns {Promise<Object|undefined>}
+     */
+    static async _saveEdit(options = {}) {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            UIManager.showToast(t('msg.billing.edit_offline'));
+            return undefined;
+        }
+        const bill = editing.bill;
+        try {
+            if (!(await BillingManager.stillLatestBeforeSave('wholesale', bill))) return undefined;
+            const totals = this.computeTotals();
+            const { total, profit, profitPercent, unknownCost } = totals;
+            const split = this.readPaymentSplit();
+            const expenses = typedAmount(Helpers.getInputNumber('salesExpensesAmount'));
+            const customerName = Helpers.getInputText('wholesaleCustomerName');
+            const comments = Helpers.getInputText('salesComments');
+            this.updatePaymentTotal();
+            const checks = await BillChecksUI.confirmSave('wholesale', editCheckContext(bill));
+            if (!checks.ok) return undefined;
+            const keepMoney = editKeepsMoney({ bill, items: wholesaleSaleItems, typed: this.readTypedSplit() })
+                && expenses === (typedAmount(Number(bill.expenses) || 0));
+            const money = keepMoney ? {} : {
+                items: wholesaleSaleItems.map((item, i) => ({
+                    itemId: item.itemId,
+                    name: item.name,
+                    rate: item.rate,
+                    quantity: item.qty,
+                    total: item.total,
+                    ...(item.rateCheck ? { rateCheck: item.rateCheck } : {}),
+                    ...(unknownCost.includes(i) ? { costUnknown: true } : {})
+                })),
+                total,
+                expenses,
+                profit,
+                profitPercent,
+                ...(unknownCost.length ? { costUnknown: true } : {}),
+                onlinePayment: split.online,
+                cashPayment: split.cash,
+                payment: buildPaymentSplit(split)
+            };
+            const updated = {
+                ...bill,
+                ...money,
+                customerName,
+                comments,
+                editedAt: new Date().toISOString(),
+                editedBy: AppState.currentUser?.uid || 'unknown',
+                ...BillChecksUI.billFields(checks, bill)
+            };
+            const reason = await askEditReason(bill, updated);
+            if (reason === null) return undefined;
+            FirebaseService.withLoadedPaymentSignature(updated, editing.paymentSig);
+            await commitBillEdit(FirebaseService.updateWholesaleSale(updated, {
+                reason,
+                audit: AuditService.entry(AuditService.ACTIONS.EDIT_SALE, {
+                    billNumber: updated.billNumber || 'N/A', amount: total, customer: customerName
+                })
+            }));
+            if (typeof options.onWriteIssued === 'function') options.onWriteIssued(updated);
+            editing = null;
+            this.clearForm();
+            this.renderSalesHistory();
+            BillingManager._refreshAfterEdit();
+            UIManager.showToast(t('msg.billing.sale_updated_successfully'));
+            return updated;
+        } catch (error) {
+            console.error('Failed to update wholesale sale:', error);
+            const code = error?.code;
+            UIManager.showToast(t(code === 'edit-timeout' ? 'msg.billing.edit_timeout'
+                : code === 'conflict' || code === 'reason-required' ? 'msg.billing.edit_conflict'
+                    : code === 'voided' ? 'msg.billing.edit_voided'
+                        : code === 'permission-denied' ? 'msg.billing.edit_refused'
+                            : code === 'unavailable' ? 'msg.billing.edit_offline'
+                                : 'msg.billing.failed_update_bill', { message: error?.message || '' }), 'error');
+            return undefined;
+        }
     }
 
     /** Refresh "Total Received" and what is not split yet. */
     static updatePaymentTotal() {
         const split = this.readPaymentSplit();
         const receivedEl = document.getElementById('wholesaleTotalReceived');
-        if (receivedEl) receivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+        if (receivedEl) {
+            receivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
+            const row = receivedEl.closest('.payment-total');
+            if (row) row.hidden = !(split.cash > 0 && split.online > 0);
+        }
         Helpers.showSplitRemaining('wholesaleSplitRemaining', validatePaymentSplit(this.computeTotals().total, split));
         BillChecksUI.schedule('wholesale');
     }
@@ -390,7 +586,7 @@ export class WholesaleSalesManager {
             return;
         }
         const dueInput = document.getElementById('wholesaleDueAmount');
-        if (dueInput) dueInput.value = rest.due;
+        showAmount(dueInput, rest.due);
         const dueCheckbox = document.getElementById('wholesaleDueCheckbox');
         if (dueCheckbox) dueCheckbox.checked = rest.dueTicked;
         this.updatePaymentTotal();
@@ -432,22 +628,66 @@ export class WholesaleSalesManager {
         const item = itemName ? AppState.items.find(i => i.name === itemName) : null;
         return {
             kind: 'wholesale',
-            isEdit: false,
-            id: pendingBill?.id || null,
+            ...(editing ? editCheckContext(editing.bill) : { isEdit: false, id: pendingBill?.id || null }),
             items: wholesaleSaleItems,
             total: this.computeTotals().total,
             payment: this.readPaymentSplit(),
             partyName: Helpers.getInputText('wholesaleCustomerName'),
-            date: pendingBill?.date || billTimeFor(pickedBillDay('wholesaleDate')).toLocaleString('en-IN'),
-            enteredAt: pendingBill?.enteredAt || pendingBill?.timestamp,
+            ...(editing ? {} : {
+                date: pendingBill?.date || billTimeFor(pickedBillDay('wholesaleDate')).toLocaleString('en-IN'),
+                enteredAt: pendingBill?.enteredAt || pendingBill?.timestamp
+            }),
             entry: item ? { itemId: item.id, name: item.name, rate: readTypedNumber('sellRate'), qty: readTypedNumber('sellQuantity') } : null
         };
     }
 
+    /** Change a bill line's rate in place (per-quintal slip fixed with one tap, U-01). */
+    static setLineRate(index, rate) {
+        if (!wholesaleSaleItems[index] || !(rate > 0)) return;
+        wholesaleSaleItems[index] = withLineRate(wholesaleSaleItems[index], rate);
+        this.renderWholesaleBill();
+    }
+
+    /**
+     * Tap a bill line to change it (as on Billing, U-59): it goes back into the entry boxes.
+     * @param {number} index
+     */
+    static editWholesaleItem(index) {
+        const line = wholesaleSaleItems[index];
+        if (!line) return;
+        const select = /** @type {?HTMLSelectElement} */ (document.getElementById('sellItem'));
+        const item = AppState.items.find(i => i.id === line.itemId) || AppState.items.find(i => i.name === line.name);
+        if (select && item && ![...select.options].some(o => o.value === item.name)) {
+            const opt = document.createElement('option');
+            opt.value = item.name;
+            opt.textContent = lineItemIdentity(line, AppState.items, AppState.settings?.showHindi).label;
+            select.appendChild(opt);
+        }
+        wholesaleSaleItems.splice(index, 1);
+        if (select && item) select.value = item.name;
+        this.loadItemDetails();
+        const rate = /** @type {?HTMLInputElement} */ (document.getElementById('sellRate'));
+        if (rate) rate.value = String(line.rate);
+        const qty = /** @type {?HTMLInputElement} */ (document.getElementById('sellQuantity'));
+        if (qty) {
+            qty.value = String(line.qty);
+            qty.focus();
+        }
+        this.renderWholesaleBill();
+        UIManager.showToast(t('msg.common.item_loaded_editing'));
+    }
+
     static removeWholesaleItem(index) {
+        const line = wholesaleSaleItems[index];
+        if (!line) return;
         wholesaleSaleItems.splice(index, 1);
         this.renderWholesaleBill();
         UIManager.hapticFeedback();
+        const item = lineItemIdentity(line, AppState.items, AppState.settings?.showHindi).label;
+        showUndo(t('msg.billing.line_removed', { item, kg: formatKg(line.qty) }), () => {
+            wholesaleSaleItems.splice(Math.min(index, wholesaleSaleItems.length), 0, line);
+            this.renderWholesaleBill();
+        }, { tag: () => pendingBill?.id ?? null });
     }
 
     static async completeSale(options = {}) {
@@ -462,6 +702,7 @@ export class WholesaleSalesManager {
             UIManager.showToast(t('msg.wholesale.add_items_bill'));
             return;
         }
+        if (editing) return this._saveEdit(options);
 
         const customerName = Helpers.getInputText('wholesaleCustomerName');
         const comments = Helpers.getInputText('salesComments');
@@ -562,6 +803,7 @@ export class WholesaleSalesManager {
             this.updateWholesaleCustomerOptions(customerName);
             
             // Clear bill
+            hideUndo();
             pendingBill = null;
             wholesaleSaleItems = [];
             document.getElementById('wholesaleCustomerName').value = '';
@@ -569,6 +811,7 @@ export class WholesaleSalesManager {
             document.getElementById('sellRate').value = '';
             clearFieldError('sellRate');
             document.getElementById('salesComments').value = '';
+            syncBillNotes('salesComments');
             document.getElementById('salesExpensesAmount').value = '0';
             this.resetPaymentFields();
             resetBillDate('wholesaleDate');
@@ -587,11 +830,12 @@ export class WholesaleSalesManager {
             // per-item stock is shown in the meantime.
             
             UIManager.showToast(this.savedText(saleData));
+            showLastSaved('wholesale', saleData);
             UIManager.hapticFeedback();
             return saleData;
         } catch (error) {
             console.error('Error completing sale:', error);
-            UIManager.showToast(saveFailedText(error, t('msg.common.error', { message: error.message })), 'error');
+            UIManager.showToast(saveFailedText(error, t('msg.common.error', { message: friendlyError(error) })), 'error');
         }
     }
 
@@ -599,6 +843,12 @@ export class WholesaleSalesManager {
         if (Helpers.isBusy('wholesale')) return;
         if (wholesaleSaleItems.length === 0 && this.entryLineEmpty()) {
             UIManager.showToast(t('msg.wholesale.no_items_print'));
+            return;
+        }
+        const ready = await PrinterService.beforeSavePrint();
+        if (ready === 'cancel') return;
+        if (ready === 'save') {
+            await this.completeSale();
             return;
         }
         
@@ -619,7 +869,7 @@ export class WholesaleSalesManager {
             });
         } catch (error) {
             console.error('Print error:', error);
-            UIManager.showToast(t('msg.common.error_2', { value: error?.message || error }));
+            UIManager.showToast(t('msg.common.error_2', { value: friendlyError(error) }));
         }
     }
 
@@ -688,7 +938,7 @@ export class WholesaleSalesManager {
         });
         
         const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        openExternal(url);
     }
 
     /**
@@ -805,8 +1055,8 @@ export class WholesaleSalesManager {
         const html = `
             <div class="due-dlg">
                 <div><strong>${esc(String(name).trim())}</strong><br>
-                    ${esc(t('msg.wholesale.complete_all_due_summary', { count: shown.bills.length, total: amount }))}</div>
-                ${shown.bills.length < group.bills.length ? `<div class="due-dlg-note">${esc(t('msg.wholesale.complete_all_due_oldest', { count: shown.bills.length, all: group.bills.length }))}</div>` : ''}
+                    ${esc(tn('msg.wholesale.complete_all_due_summary', shown.bills.length, { total: amount }))}</div>
+                ${shown.bills.length < group.bills.length ? `<div class="due-dlg-note">${esc(tn('msg.wholesale.complete_all_due_oldest', shown.bills.length, { all: group.bills.length }))}</div>` : ''}
                 <div class="due-dlg-head">${esc(t('ui.wholesale.complete_all_due_how'))}</div>
                 <label class="due-dlg-opt"><input type="radio" name="completeAllMethod" value="cash"> ${esc(t('ui.wholesale.complete_all_due_cash'))}</label>
                 <label class="due-dlg-opt"><input type="radio" name="completeAllMethod" value="online"> ${esc(t('ui.wholesale.complete_all_due_online'))}</label>
@@ -868,7 +1118,7 @@ export class WholesaleSalesManager {
             return;
         }
         settled.forEach(s => Object.assign(s.bill, s.fields));
-        UIManager.showToast(t('msg.wholesale.complete_all_due_done', { count: settled.length, total: formatRupees(total) }));
+        UIManager.showToast(tn('msg.wholesale.complete_all_due_done', settled.length, { total: formatRupees(total) }));
         UIManager.hapticFeedback('light');
         // Saved: a screen that fails to redraw must not look like a failed payment
         try {
@@ -989,6 +1239,7 @@ export class WholesaleSalesManager {
     }
     /** Re-render the recent bills under the entry form and Wholesale › History. */
     static renderSalesHistory() {
+        syncAllDatesLabel(/** @type {?HTMLSelectElement} */ (document.getElementById('wholesaleHistoryPreset')));
         this.renderRecentSales();
         this.renderWholesaleHistory();
     }
@@ -1022,6 +1273,9 @@ export class WholesaleSalesManager {
         const container = document.getElementById('salesRecentList');
         if (!container) return;
         const recent = filterHistoryBills(this.wholesaleBills().filter(b => isActiveBill(b) && !isOpeningRecord(b)), {}).slice(0, RECENT_SALES);
+        // No recent bills: the block stays out of the way (U-36); History says why
+        [container, document.querySelector('#salesEntrySection .ws-recent-title'), document.querySelector('#salesEntrySection .ws-more')]
+            .forEach(el => { if (el) el.hidden = recent.length === 0; });
         if (recent.length === 0) {
             const message = isFullHistoryLoaded() ? t('ui.wholesale.no_sales_yet') : t('ui.wholesale.no_sales_since', { date: formatWindowDate(historyLoadedFrom()) });
             container.innerHTML = emptyState({ icon: 'receipt', title: message });
@@ -1214,7 +1468,7 @@ export class WholesaleSalesManager {
                     </div>`;
         const paymentHTML = (payment.online > 0 || payment.cash > 0 || payment.due > 0) ? `
             <div class="panel bill-view-panel">
-                <h4 class="bill-view-title">${L('ui.history.payment_details')}</h4>
+                <h3 class="bill-view-title">${L('ui.history.payment_details')}</h3>
                 ${payment.online > 0 ? payRow('ui.history.online', payment.online) : ''}
                 ${payment.cash > 0 ? payRow('ui.history.cash', payment.cash) : ''}
                 ${payment.due > 0 ? payRow('ui.history.due', payment.due, true) : ''}
@@ -1223,7 +1477,7 @@ export class WholesaleSalesManager {
         
         const paymentsHistoryHTML = sale.payments && sale.payments.length > 0 ? `
             <div class="panel bill-view-panel">
-                <h4 class="bill-view-title">${L('ui.wholesale.payment_history')}</h4>
+                <h3 class="bill-view-title">${L('ui.wholesale.payment_history')}</h3>
                 ${sale.payments.map(p => `
                     <div class="row bill-view-row">
                         <span class="row-main">• ${Helpers.escapeHtml(p.date)}${p.recordedBy ? ` ${L('ui.wholesale.by_name', { name: p.recordedBy })}` : ''}${p.kind === 'writeOff' ? ` — ${L('ui.wholesale.written_off', { reason: p.reason || '' })}` : ''}</span>
@@ -1267,7 +1521,7 @@ export class WholesaleSalesManager {
                     </div>
                 ` : ''}
                 
-                <h4 class="bill-view-title">${L('ui.history.sale_items')}</h4>
+                <h3 class="bill-view-title">${L('ui.history.sale_items')}</h3>
                 <table class="table bill-view-items">
                     <thead>
                         <tr>
@@ -1296,8 +1550,8 @@ export class WholesaleSalesManager {
         `;
                 document.getElementById('billDetailsContent').innerHTML = content;
         setBillDetailsTitle(billNumber, sale.customerName);
-        // Wholesale bills are not edited here; Void / Delete permanently as in History (#75)
-        setBillActions(sale, { uid: AppState.currentUser?.uid, role: AppState.userRole, raw: AppState.settings?.roleAccess }, { editable: false });
+        // Edit within the role's window, as in History (U-30); Void / Delete permanently as there (#75)
+        setBillActions(sale, { uid: AppState.currentUser?.uid, role: AppState.userRole, raw: AppState.settings?.roleAccess });
         HistoryManager.renderPrintStatus();
         UIManager.openSheet(document.getElementById('billDetailsOverlay'));
     }
@@ -1318,6 +1572,7 @@ BillChecksUI.register('wholesale', {
     tableSelector: '#salesTable',
     saveButtons: WHOLESALE_BUTTONS,
     getDraft: () => WholesaleSalesManager.getCheckDraft(),
+    applyRate: (index, rate) => WholesaleSalesManager.setLineRate(index, rate),
     fields: {
         party: { inputs: ['wholesaleCustomerName'] },
         payment: { inputs: ['wholesaleCashPayment', 'wholesaleOnlinePayment', 'wholesaleDueAmount'], anchor: 'wholesaleSplitRemaining' },
@@ -1335,6 +1590,8 @@ if (typeof window !== 'undefined') {
         if (document.visibilityState === 'visible') prepareBillDate('wholesaleDate');
     });
 }
+
+onUnsavedBillCheck(() => wholesaleSaleItems.length > 0);
 
 // Data changes re-render this page (firestore-service.js emits, utils/events.js).
 on(REFRESH.salesDropdown, () => WholesaleSalesManager.loadItemsDropdown());

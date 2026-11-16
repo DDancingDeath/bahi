@@ -147,6 +147,15 @@ export function paymentBreakdown(bill) {
     later.total = round2(later.cash + later.online);
     return { atSave, later, writtenOff: round2(writtenOff), due: outstandingDue(bill) };
 }
+
+/**
+ * Money received (or paid) on a bill so far: at save plus later payments (bill details' "Paid ₹X").
+ * @param {{atSave: {cash: number, online: number}, later: {total: number}}} parts paymentBreakdown()
+ * @returns {number}
+ */
+export function paidSoFar(parts) {
+    return round2((Number(parts?.atSave?.cash) || 0) + (Number(parts?.atSave?.online) || 0) + (Number(parts?.later?.total) || 0));
+}
 /**
  * Every due payment made in [from, to), from bill entries and session legs,
  * de-duplicated by payment id.

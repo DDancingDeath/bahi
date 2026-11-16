@@ -10,6 +10,7 @@ import { AdminManager } from '../modules/admin.js';
 import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { createFakeFirestore } from './__mocks__/fake-firestore.js';
+import { notificationText } from '../utils/notification-format.js';
 
 let fake;
 
@@ -289,6 +290,19 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
         expect(team().ownerUids).toEqual(['owner-1']);
     });
 
+    test('a username + PIN account stays a Member: Manager or Owner is refused before any write', async () => {
+        fake.seed('dev_users', [{ id: 'pin', name: 'Raju', role: 'staff', status: 'active', email: 'raju@happa-dev.bahi.invalid' }]);
+        await AdminManager.loadUsers();
+        for (const next of ['manager', 'owner']) {
+            picker.mockResolvedValueOnce(next);
+            expect(await AdminManager.showChangeRole('pin', 'Raju', 'staff')).toBe(false);
+        }
+        expect(modal).not.toHaveBeenCalled();
+        expect(toast).toHaveBeenCalledWith('A sign-in without email can only be a Member.', 'warning');
+        expect(userDoc('pin').role).toBe('staff');
+        expect(team().ownerUids).toEqual(['owner-1']);
+    });
+
     test('a manager never gets the choice', async () => {
         AppState.userRole = 'manager';
         expect(await AdminManager.showChangeRole('mgr', 'Ramesh', 'manager')).toBe(false);
@@ -301,6 +315,17 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
         picker.mockResolvedValueOnce('owner');
         expect(await AdminManager.showChangeRole('pend', 'Newbie', 'staff')).toBe(false);
         expect(toast).toHaveBeenLastCalledWith('Approve this person first, then change their role.', 'error');
+        expect(modal).not.toHaveBeenCalled();
+    });
+
+    test('a sign-in without email (U-56) is only offered Member, never Owner', async () => {
+        fake.seed('dev_users', [{ id: 'wk', name: 'Raju', role: 'manager', status: 'active', email: 'raju@shop.bahi.invalid' }]);
+        await AdminManager.loadUsers();
+        picker.mockResolvedValueOnce('owner');
+        expect(await AdminManager.showChangeRole('wk', 'Raju', 'manager')).toBe(false);
+        expect(picker.mock.calls[0][1].map(b => b.text)).toEqual(['Member', 'Manager (now)', 'Cancel']);
+        expect(toast).toHaveBeenLastCalledWith('A sign-in without email can only be a Member.', 'warning');
+        expect(userDoc('wk').role).toBe('manager');
         expect(modal).not.toHaveBeenCalled();
     });
 
@@ -328,6 +353,7 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
         picker.mockResolvedValueOnce('staff');
         await expect(AdminManager.showChangeRole('owner-1', 'Me', 'owner')).resolves.toBe(true);
         expect(modal.mock.calls[0][0]).toContain('You will stop being an owner and become Member');
+        expect(modal.mock.calls[0][0]).toContain('You are the founder: once you step down');
         expect(userDoc('owner-1').role).toBe('staff');
         expect(team().ownerUids).toEqual(['o2']);
         expect(restart).toHaveBeenCalled();
@@ -335,6 +361,7 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
 
     test('removing another owner asks strongly and takes them off the list', async () => {
         await addOwner('o2', 'Second');
+        expect(document.getElementById('adminActiveUsers').innerHTML).toContain("admin.deleteUser('o2'");
         await expect(AdminManager.deleteUser('o2', 'Second')).resolves.toBe(true);
         expect(modal.mock.calls[0][0]).toContain('"Second" is an owner.');
         expect(userDoc('o2')).toMatchObject({ status: 'disabled' });
@@ -356,5 +383,76 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
         expect(await FirebaseService.ensureSelfListedOwner()).toBe(false);
         expect(team()).toBeUndefined();
         AppState.userRole = 'owner';
+    });
+    test('the first owner is recorded once with the owner list: the earliest-created active owner, ties by uid', async () => {
+        fake.raw('dev_settings').delete('team');
+        fake.raw('dev_users').clear();
+        FirebaseService.forgetPeopleCaches();
+        fake.seed('dev_users', [
+            { id: 'owner-1', name: 'Me', role: 'owner', status: 'active', createdAt: new Date('2026-03-01') },
+            { id: 'b-old', name: 'Old', role: 'owner', status: 'approved', createdAt: new Date('2026-01-01') },
+            { id: 'a-old', name: 'Tie', role: 'owner', status: 'approved', createdAt: new Date('2026-01-01') },
+            { id: 'gone', name: 'Gone', role: 'owner', status: 'disabled', createdAt: new Date('2025-01-01') },
+            { id: 'mgr', name: 'Ramesh', role: 'manager', status: 'active', createdAt: new Date('2024-01-01') }
+        ]);
+        await AdminManager.loadUsers();
+        expect([...team().ownerUids].sort()).toEqual(['a-old', 'b-old', 'owner-1']);
+        expect(team().firstOwnerUid).toBe('a-old');
+        expect(document.getElementById('adminActiveUsers').textContent).toContain('Founder');
+        fake.seed('dev_users', [{ id: 'aaa', name: 'No date', role: 'owner', status: 'active' }]);
+        FirebaseService.forgetPeopleCaches();
+        await AdminManager.loadUsers();
+        expect(team().firstOwnerUid).toBe('a-old');
+    });
+
+    test('the founder is marked; another owner gets no Edit role or Delete on that row, and is refused', async () => {
+        await addOwner('o2', 'Second');
+        expect(team().firstOwnerUid).toBe('owner-1');
+        AppState.currentUser = { uid: 'o2' };
+        await AdminManager.loadUsers();
+        const html = document.getElementById('adminActiveUsers').innerHTML;
+        expect(html).toContain('Founder');
+        expect(html).not.toContain("admin.showChangeRole('owner-1'");
+        expect(html).not.toContain("admin.deleteUser('owner-1'");
+        expect(html).toContain('Only the founder can change their own role');
+        picker.mockResolvedValueOnce('manager');
+        expect(await AdminManager.showChangeRole('owner-1', 'Me', 'owner')).toBe(false);
+        expect(toast).toHaveBeenLastCalledWith('Only the founder can change their own role or remove themselves.', 'error');
+        expect(await AdminManager.deleteUser('owner-1', 'Me')).toBe(false);
+        expect(modal).not.toHaveBeenCalled();
+        expect(userDoc('owner-1')).toMatchObject({ role: 'owner', status: 'active' });
+        const { default: hi } = await import('../i18n/hi.js');
+        expect(hi['ui.owners.founder']).toBe('पहला मालिक');
+        AppState.currentUser = { uid: 'owner-1' };
+    });
+
+    test('demoting another owner sends them a bell notification in the same save; other changes do not', async () => {
+        await addOwner('o2', 'Second');
+        AppState.userName = 'Me';
+        const notes = () => [...(fake.raw('dev_notifications')?.values() || [])];
+        picker.mockResolvedValueOnce('staff');
+        await AdminManager.showChangeRole('mgr', 'Ramesh', 'manager');
+        expect(notes()).toEqual([]);
+        picker.mockResolvedValueOnce('manager');
+        await expect(AdminManager.showChangeRole('o2', 'Second', 'owner')).resolves.toBe(true);
+        expect(notes()).toEqual([expect.objectContaining({
+            type: 'role_change', newRole: 'manager', userId: 'o2', changedBy: 'Me', changedByUserId: 'owner-1', read: false
+        })]);
+        expect(notificationText(notes()[0], 'en')).toBe('👤 Me changed your role to Manager');
+        expect(notificationText(notes()[0], 'hi')).toBe('👤 Me ने आपकी भूमिका बदलकर मैनेजर कर दी');
+        delete AppState.userName;
+    });
+
+    test('only the founder hands Founder to another owner, after a confirmation', async () => {
+        await addOwner('o2', 'Second');
+        expect(document.getElementById('adminActiveUsers').innerHTML).toContain("admin.handOverFirstOwner('o2'");
+        await expect(AdminManager.handOverFirstOwner('o2', 'Second')).resolves.toBe(true);
+        expect(modal.mock.calls[0][0]).toContain('Second becomes the founder');
+        expect(modal.mock.calls[0][3]).toMatchObject({ confirmLabel: 'Make founder', danger: true });
+        expect(team().firstOwnerUid).toBe('o2');
+        const html = document.getElementById('adminActiveUsers').innerHTML;
+        expect(html).not.toContain('admin.handOverFirstOwner');
+        expect(html).not.toContain("admin.showChangeRole('o2'");
+        expect(await AdminManager.handOverFirstOwner('o2', 'Second')).toBe(false);
     });
 });

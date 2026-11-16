@@ -182,6 +182,18 @@ describe('Statements: CSV language, dates and permissions', () => {
         return toCsv(StatementsManager.current.csvHeader, StatementsManager.current.csvRows) && text && StatementsManager.current;
     };
 
+    test('U-61: the month statement steps a month with ‹ ›, within the 24 months listed', () => {
+        StatementsManager.open('month');
+        const months = [...document.querySelectorAll('#statementsControls option')].map(o => o.value);
+        StatementsManager.set('month', months[0]);
+        StatementsManager.stepMonth(-1);
+        expect(StatementsManager.month).toBe(months[1]);
+        StatementsManager.stepMonth(1);
+        StatementsManager.stepMonth(1);
+        expect(StatementsManager.month).toBe(months[0]);
+        expect(document.querySelector('#statementsControls .ins-period [data-onclick="statements.stepMonth(1)"]').disabled).toBe(true);
+    });
+
     test('day-book CSV writes ISO dates (YYYY-MM-DD HH:mm); month CSV labels have no = or − signs', () => {
         StatementsManager.open('day');
         const cur = StatementsManager.current;
@@ -242,6 +254,43 @@ describe('Statements: CSV language, dates and permissions', () => {
 
 describe('Statements page', () => {
     const num = (s) => Number(String(s).replace(/−/g, '-').replace(/[^\d.-]/g, ''));
+
+    test('U-94: the day book opens on yesterday when today has nothing yet; ‹ › step a day, never past today', () => {
+        jest.setSystemTime(new Date(NOW + 2 * 86400000));
+        StatementsManager.day = null;
+        StatementsManager.open('day');
+        const today = new Date(NOW + 2 * 86400000);
+        const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        expect(StatementsManager.day).toBe(iso(yesterday));
+        StatementsManager.stepDay(1);
+        expect(StatementsManager.day).toBe(iso(today));
+        StatementsManager.stepDay(1);
+        expect(StatementsManager.day).toBe(iso(today));
+        expect(document.querySelector('#statementsDoc .empty').textContent).toContain('Nothing was entered on this day');
+        StatementsManager.day = null;
+    });
+
+    test('U-61: the day book uses the shared period control: ‹ day ›, a Today / Yesterday / Choose day chip, no raw date box', () => {
+        jest.setSystemTime(new Date(NOW));
+        StatementsManager.open('day');
+        const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const now = new Date(NOW);
+        const chip = () => /** @type {HTMLSelectElement} */ (document.querySelector('#statementsControls .ins-period select.ins-preset'));
+        const box = () => /** @type {HTMLInputElement} */ (document.getElementById('statementsDayPick'));
+        StatementsManager.dayPreset('yesterday');
+        expect(StatementsManager.day).toBe(iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)));
+        expect(chip().value).toBe('yesterday');
+        expect(box().hidden).toBe(true);
+        StatementsManager.stepDay(-1);
+        expect(chip().value).toBe('pick');
+        StatementsManager.dayPreset('pick');
+        expect(box().hidden).toBe(false);
+        StatementsManager.dayPreset('today');
+        expect(StatementsManager.day).toBe(iso(now));
+        expect(chip().value).toBe('today');
+        StatementsManager.day = null;
+    });
 
     test('the list opens a statement and Back returns to the list', () => {
         StatementsManager.init();

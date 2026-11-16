@@ -209,18 +209,18 @@ describe('formatters and parse edge cases (#160: mutation score of dates.js)', (
         expect(formatDateTimeIN(d)).toMatch(/^25 Oct, 8:59 pm$|^25 Oct 2026, 8:59 pm$/);
         setLang('hi');
         expect(displayLocale()).toBe('hi-IN');
-        expect(formatDateTimeIN(d)).toMatch(/अक्तू॰.*8:59 अपराह्न$/);
+        expect(formatDateTimeIN(d)).toMatch(/अक्टूबर.*8:59 अपराह्न$/);
         expect(formatDateTimeIN('junk', undefined, '—')).toBe('—');
     });
 
     test('formatDay, formatMonth, formatTimeOfDay, formatDayTime in both languages', () => {
         expect(formatDay(d)).toBe('25 Oct 2026');
         expect(formatDay(d, { year: false })).toBe('25 Oct');
-        expect(formatDay(d, { lang: 'hi' })).toBe('25 अक्तू॰ 2026');
+        expect(formatDay(d, { lang: 'hi' })).toBe('25 अक्टूबर 2026');
         expect(formatDay('junk')).toBe('');
         expect(formatMonth(d)).toBe('Oct 2026');
         expect(formatMonth(d, { year: false })).toBe('Oct');
-        expect(formatMonth(new Date(2026, 1, 3), { lang: 'hi' })).toBe('फ़र॰ 2026');
+        expect(formatMonth(new Date(2026, 1, 3), { lang: 'hi' })).toBe('फ़रवरी 2026');
         expect(formatMonth(null)).toBe('');
         expect(formatTimeOfDay(d)).toBe('8:59 pm');
         expect(formatTimeOfDay(d, { lang: 'hi' })).toBe('8:59 अपराह्न');
@@ -231,7 +231,7 @@ describe('formatters and parse edge cases (#160: mutation score of dates.js)', (
         expect(formatTimeOfDay(undefined)).toBe('');
         expect(formatDayTime(d, { now: new Date(2026, 0, 1) })).toBe('25 Oct, 8:59 pm');
         expect(formatDayTime(d, { now: new Date(2027, 0, 1) })).toBe('25 Oct 2026, 8:59 pm');
-        expect(formatDayTime(d, { lang: 'hi', now: new Date(2026, 0, 1) })).toBe('25 अक्तू॰, 8:59 अपराह्न');
+        expect(formatDayTime(d, { lang: 'hi', now: new Date(2026, 0, 1) })).toBe('25 अक्टूबर, 8:59 अपराह्न');
         expect(formatDayTime('junk')).toBe('');
     });
 
@@ -305,7 +305,7 @@ describe('formatDate (DATE-TEXT, F0b): one on-screen date and time format', () =
 
     test('follows the app language', () => {
         setLang('hi');
-        expect(formatDate(at, 'datetime', { now })).toBe('14 नव॰, 12:11 पूर्वाह्न');
+        expect(formatDate(at, 'datetime', { now })).toBe('14 नवंबर, 12:11 पूर्वाह्न');
         expect(formatDate(at, 'full', { lang: 'en' })).toBe('14 Nov 2026');
     });
 });

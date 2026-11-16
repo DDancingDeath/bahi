@@ -1,4 +1,7 @@
 {
+  "appCheck": {
+    "siteKey": "6LeLOiMuAAAAAFwG1zM7ElYJWZlvqpxROKr2qpCp"
+  },
   "firebase": {
     "projectId": "bahi-happa",
     "hostingSite": "bahi-happa",

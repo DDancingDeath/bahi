@@ -2,7 +2,7 @@
 
 import { AppState } from './utils/state.js';
 import { UIManager } from './ui/ui-manager.js';
-import { NavigationManager } from './ui/navigation.js';
+import { NavigationManager, billInProgress } from './ui/navigation.js';
 import { BottomNav } from './ui/bottom-nav.js';
 import { VoiceMic } from './ui/voice-mic.js';
 import { PhotoWeights } from './ui/photo-weights.js';
@@ -13,20 +13,19 @@ import { SyncStatus } from './ui/sync-status.js';
 import { startClockCheck } from './ui/clock-banner.js';
 import { installStickyFocus } from './ui/sticky-focus.js';
 import { ThemeManager, CHOICE_AT_LOAD } from './ui/theme.js';
+import { watchSystemBars, keepFocusInView } from './utils/native-shell.js';
 import { AuthManager } from './auth/authentication.js';
 import { FirebaseService } from './firebase/firestore-service.js';
-import { userProfile, saveOwnSavedRanges } from './firebase/repos/users.js';
+import { userProfile, saveOwnSavedRanges, saveOwnLang, pendingProfileCount } from './firebase/repos/users.js';
+import { setPendingJoins, resetOwnerAlerts } from './utils/owner-alerts.js';
 import { syncSavedRangesOnSignIn } from './utils/saved-ranges.js';
 import { on, REFRESH, READS_ALERT } from './utils/events.js';
 import { backgroundReadsAllowed, getQuotaStatus } from './firebase/firestore-meter.js';
 import { ItemsManager } from './modules/items.js';
 import { PrinterService, printerManager, loadReceiptDrawing } from './services/printer.js';
 import { BillingManager, PurchaseManager, RetailSaleManager } from './modules/billing.js';
-import { StockManager } from './modules/stock.js';
-import { WholesaleSalesManager } from './modules/wholesale-sales.js';
 import { HistoryManager } from './modules/history.js';
 import { OutstandingManager } from './modules/outstanding.js';
-import { ExpensesManager } from './modules/miscellaneous.js';
 import { SettingsManager } from './modules/settings.js';
 import { CashManagementManager } from './modules/cash-management.js';
 import { DayManager, loadAnomalies, loadedAnomalies } from './modules/day.js';
@@ -48,6 +47,7 @@ import { AppUpdatesManager } from './modules/app-updates.js';
 import { NotificationsManager } from './modules/notifications.js';
 import { PhoneNotify } from './modules/phone-notify.js';
 import { markStartup, noteStartup, logStartupTimings } from './utils/startup-timings.js';
+import { bootStep, hideBootSplash } from './ui/boot-splash.js';
 
 // Import template loader utility
 import { TemplateLoader, SHELL_TEMPLATES, EAGER_PAGES } from './utils/template-loader.js';
@@ -61,6 +61,7 @@ import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
+import { friendlyError } from './utils/friendly-error.js';
 
 // #59: only the app language's catalogue is loaded before the first screen (DOMContentLoaded waits for it)
 const langReady = loadCatalogue(getLang()).catch(e => console.error('Language catalogue not loaded:', e));
@@ -70,7 +71,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108gq-canonical-due';
+const BUILD_ID = '20261116e-canonical-due';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -167,6 +168,23 @@ let workers = null;
 const loadWorkers = onDemand(() => import('./modules/workers.js').then(m => (workers = m.WorkersManager)));
 let recurring = null;
 const loadRecurring = onDemand(() => import('./modules/recurring-bills.js').then(m => (recurring = m.RecurringBillsManager)));
+// Phone lock (U-55): imported after the first screen for the owner and managers, or with Settings
+let appLock = null;
+const loadAppLock = onDemand(() => import('./ui/app-lock.js').then(m => (appLock = m.AppLock)));
+// Stock, Wholesale and Expenses (U-38): not parsed before the first screen; imported with their page
+// (TemplateLoader.pageCode) or when the phone is idle after the first screen
+let stock = null;
+let wholesale = null;
+let expenses = null;
+const loadStock = onDemand(() => import('./modules/stock.js').then(m => (stock = m.StockManager)));
+const loadWholesale = onDemand(() => import('./modules/wholesale-sales.js').then(m => (wholesale = m.WholesaleSalesManager)));
+const loadExpenses = onDemand(() => import('./modules/miscellaneous.js').then(m => (expenses = m.ExpensesManager)));
+/** Runs fn with the module now when it is in, else after its import (a click on its page always finds it in). */
+const withStock = (fn) => (stock ? fn(stock) : loadStock().then(fn));
+const withWholesale = (fn) => (wholesale ? fn(wholesale) : loadWholesale().then(fn));
+const withExpenses = (fn) => (expenses ? fn(expenses) : loadExpenses().then(fn));
+const PAGE_CODE = { stock: loadStock, 'wholesale-sales': loadWholesale, expenses: loadExpenses };
+TemplateLoader.pageCode = (tab) => PAGE_CODE[tab]?.();
 const ownerRefreshes = new Map();
 /**
  * An owner reminder kept on this phone (salaries #373 WP-11, bills #437 RB-11): once per session on the
@@ -184,6 +202,14 @@ function scheduleOwnerRefresh(name, isStale, refresh) {
     }, { minDelayMs: 20000 });
 }
 function scheduleOwnerReminders() {
+    // U-24: how many people wait for the owner's approval (one small query a session, after the first screen)
+    if (AppState.userRole === 'owner') {
+        const uid = AppState.currentUser?.uid;
+        whenIdle(() => {
+            if (AppState.currentUser?.uid !== uid || navigator.onLine === false) return;
+            pendingProfileCount().then(setPendingJoins).catch(e => console.warn('Waiting-to-join count not read:', e?.code || e));
+        }, { minDelayMs: 15000 });
+    }
     scheduleOwnerRefresh('Salaries due', payDueStale, () => loadWorkers().then(m => m.refreshPayDue()));
     scheduleOwnerRefresh('Bills due', billsDueStale, () => loadRecurring().then(m => m.refreshBillsDue()));
 }
@@ -253,8 +279,8 @@ let pagesReady = Promise.resolve();
 /** What startup renders into a page that is put in later, run when it is added. */
 const PAGE_ADDED = {
     items: () => ItemsManager.renderItems(),
-    'wholesale-sales': () => WholesaleSalesManager.loadItemsDropdown(),
-    expenses: () => { ExpensesManager.updateExpensePersonOptions(); ExpensesManager.renderexpensesHistory(); },
+    'wholesale-sales': () => withWholesale(m => m.loadItemsDropdown()),
+    expenses: () => withExpenses(m => { m.updateExpensePersonOptions(); m.renderexpensesHistory(); }),
     settings: () => {
         PrinterService.updateStatus();
         VoiceMic.apply();
@@ -320,9 +346,9 @@ function refreshForLanguage(lang) {
             HistoryManager.refreshHistory();
         },
         'cash-management': () => CashManagementManager.refreshForLanguage(),
-        'wholesale-sales': () => { WholesaleSalesManager.renderSalesHistory(); WholesaleSalesManager.renderSalesOutstanding(); },
+        'wholesale-sales': () => withWholesale(m => { m.renderSalesHistory(); m.renderSalesOutstanding(); }),
         settings: () => { SettingsManager.loadSettings(); RolesAccessManager.render(); RolesAccessManager.renderPeople(); SettingsManager.renderSections(); },
-        expenses: () => ExpensesManager.renderexpensesHistory(),
+        expenses: () => withExpenses(m => m.renderexpensesHistory()),
         items: () => ItemsManager.renderItemsTable(document.getElementById('itemsSearchInput')?.value || ''),
         diagnostics: () => {
             if (!diagnostics) return;
@@ -336,7 +362,7 @@ function refreshForLanguage(lang) {
         statements: () => { statements?.renderControls(); statements?.render(); },
         billing: () => BillingManager.refreshForLanguage(),
         anomalies: () => loadedAnomalies()?.refreshForLanguage(),
-        stock: () => StockManager.refreshForLanguage(),
+        stock: () => withStock(m => m.refreshForLanguage()),
         admin: () => { admin?.renderTabs(); admin?.renderContent(); },
         health: () => { if (health?.data) health.render(); },
         workers: () => workers?.render(),
@@ -388,7 +414,7 @@ function setupEventListeners() {
     
     // Warn before leaving page with unsaved bill
     window.addEventListener('beforeunload', function(e) {
-        if (AppState.billItems.length > 0 || AppState.salesItems.length > 0) {
+        if (billInProgress()) {
             e.preventDefault();
             e.returnValue = '';
         }
@@ -421,6 +447,8 @@ function loadUserDataAndInitialize() {
     if (!initInFlight) {
         initInFlight = initializeUserData().finally(() => {
             initInFlight = null;
+            // The login screen or the app is drawn by now, whichever way it ended
+            hideBootSplash();
         });
     }
     return initInFlight;
@@ -514,9 +542,10 @@ async function initializeUserData() {
                 // Check if user is approved
                 if (userData.status === 'pending') {
                     notShown();
-                    await firebase.auth().signOut();
                     UIManager.hideLoading();
                     AuthManager.showLoginNotice(t('msg.common.account_pending_approval_wait_admin'), 'info');
+                    // Stays signed in on the waiting card, with Check again (U-24)
+                    if (!AuthManager.showPending(firebase.auth().currentUser, userData.name)) await firebase.auth().signOut();
                     document.getElementById('authScreen').style.display = 'flex';
                     return;
                 }
@@ -533,6 +562,10 @@ async function initializeUserData() {
                 AppState.userRole = userData.role || 'staff';
                 AppState.rentRole = userData.rentRole || null;
                 AppState.userName = userData.name || 'User';
+                // U-86: the language follows the person; this phone's choice stays the fallback
+                if ((userData.lang === 'en' || userData.lang === 'hi') && userData.lang !== getLang()) {
+                    await Promise.resolve(setLang(userData.lang)).catch(e => console.warn('Language not applied:', e?.message || e));
+                }
                 // #140: saved period ranges follow the person (their profile, already read here)
                 try {
                     const up = syncSavedRangesOnSignIn(localStorage, userId, userData.savedRanges);
@@ -658,10 +691,12 @@ async function initializeUserData() {
                 },
                 stock: () => {
                     const shown = (id) => document.getElementById(id)?.style.display !== 'none';
-                    if (shown('stockAdjustmentSection')) return StockManager.renderAdjustmentHistory();
-                    if (shown('deadStockSection')) return StockManager.renderDeadStock();
-                    return Promise.resolve(StockManager.renderStock()).then(() => {
-                        if (document.getElementById('stockSearchInput')?.value.trim()) StockManager.searchStock();
+                    return withStock(m => {
+                        if (shown('stockAdjustmentSection')) return m.renderAdjustmentHistory();
+                        if (shown('deadStockSection')) return m.renderDeadStock();
+                        return Promise.resolve(m.renderStock()).then(() => {
+                            if (document.getElementById('stockSearchInput')?.value.trim()) m.searchStock();
+                        });
                     });
                 }
             },
@@ -691,10 +726,10 @@ async function initializeUserData() {
         // Render initial views
         ItemsManager.renderItems();
         BillingManager.loadItemsDropdown();
-        WholesaleSalesManager.loadItemsDropdown();
+        wholesale?.loadItemsDropdown();
         BillingManager.updateDraftCount();
-        ExpensesManager.updateExpensePersonOptions();
-        ExpensesManager.renderexpensesHistory();
+        expenses?.updateExpensePersonOptions();
+        expenses?.renderexpensesHistory();
 
         // TIP AppStart (#217): the first screen is usable now; the auto-save
         // restore banner below must not count as start time.
@@ -723,6 +758,10 @@ async function initializeUserData() {
         setTimeout(() => startClockCheck({ toast: (m) => UIManager.showToast(m) })
             .catch(e => console.warn('Clock check failed:', e)), 10000);
         
+        if (AppState.userRole === 'owner' || AppState.userRole === 'manager') {
+            const lockUid = AppState.currentUser?.uid;
+            loadAppLock().then(l => l.start(lockUid)).catch(e => console.warn('Phone lock not started:', e?.message || e));
+        }
         UIManager.hideLoading();
         markStartup('app-shown', { online: navigator.onLine });
         tip.start('SessionReads').complete({ startupReads: getQuotaStatus().reads - readsAtStart });
@@ -752,6 +791,7 @@ async function initializeUserData() {
             startAppCheck();
             loadAllCatalogues().catch(e => console.warn('Language catalogue not loaded:', e?.message || e));
             loadReceiptDrawing().catch(e => console.warn('Receipt drawing not loaded:', e?.message || e));
+            [loadStock, loadWholesale, loadExpenses].forEach(load => load().catch(e => console.warn('Page code not loaded:', e?.message || e)));
             if (AppState.userRole !== 'owner' && AppState.userRole !== 'manager') return;
             // ...over server-confirmed data only (#59): a bill missing from the cache is no anomaly
             Promise.all([loadAnomalies(), FirebaseService.whenServerConfirmed()])
@@ -763,10 +803,11 @@ async function initializeUserData() {
         // Team directory (#87): managers read names and roles from it; once a day the owner's phone
         // rebuilds it from the profiles when they differ (late, so it never slows the first screens)
         if (AppState.userRole === 'owner') {
-            // This owner is counted in settings/team.ownerUids (docs/role-permissions.md, "Owners")
+            // This owner is counted in settings/team.ownerUids (docs/role-permissions.md, "Owners"); late too:
+            // taking an owner off the list lists the owners first, so this is only a backfill
             setTimeout(() => FirebaseService.ensureSelfListedOwner()
-                .catch(e => console.warn('Owner list not checked:', e?.code || e)), 15000);
-            setTimeout(() => FirebaseService.ensureTeamDirectory()
+                .catch(e => console.warn('Owner list not checked:', e?.code || e))
+                .then(() => FirebaseService.ensureTeamDirectory())
                 .catch(e => console.warn('Team directory not checked:', e?.code || e)), 180000);
         }
 
@@ -783,7 +824,7 @@ async function initializeUserData() {
         console.error('Error initializing app:', error);
         appStart.complete({ loadFailed: true });
         UIManager.hideLoading();
-        UIManager.showToast(t('msg.app.failed_load_data', { message: error.message }));
+        UIManager.showToast(t('msg.app.failed_load_data', { message: friendlyError(error) }));
     }
 }
 
@@ -799,9 +840,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     // STEP 1: Login screen and app shell now, pages in the background
     markStartup('dom-ready');
     await langReady;
+    bootStep(t('ui.boot.starting'));
     ThemeManager.init(CHOICE_AT_LOAD);
     await injectTemplates();
     markStartup('shell');
+    bootStep(t('ui.boot.signing_in'));
+    watchSystemBars();
+    keepFocusInView();
     
     // STEP 2: Initialize auth tabs after templates are loaded
     AuthManager.initAuthTabs();
@@ -815,7 +860,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (user) {
                 // Registration signs in temporarily to create/recover the profile and then signs
                 // out, and Google sign-in checks the profile first; don't start the app for those.
-                if (AuthManager.authFlowInProgress) return;
+                if (AuthManager.authFlowInProgress) { hideBootSplash(); return; }
+                bootStep(t('ui.boot.loading_data'));
                 // Set current user in AppState
                 AppState.currentUser = user;
                 const authScreen = document.getElementById('authScreen');
@@ -830,6 +876,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 NotificationsManager.stop();
                 PhoneNotify.stop();
                 ManualReminders.reset();
+                resetOwnerAlerts();
+                appLock?.stop();
                 ask?.reset();
                 workers?.reset();
                 recurring?.reset();
@@ -838,10 +886,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 AppState.currentUser = null;
                 document.getElementById('printerPermissionBanner')?.remove();
                 document.getElementById('authScreen').style.display = 'flex';
+                hideBootSplash();
                 // App Check (#89, monitor mode): ready before the sign-in request, after the login screen
                 whenIdle(() => startAppCheck(), { timeoutMs: 4000 });
             }
         });
+    } else {
+        // No Firebase SDK: firebaseConfig.js shows its own message under this screen
+        hideBootSplash();
     }
     
     // STEP 4: Event listeners are set up once the pages are in (injectTemplates)
@@ -1032,17 +1084,27 @@ window.app = {
         login: () => AuthManager.handleLogin(),
         register: () => AuthManager.handleRegister(),
         logout: () => AuthManager.handleLogout(),
+        switchUser: () => AuthManager.handleLogout({ switching: true }),
         forgotPassword: () => AuthManager.handleForgotPassword(),
         sendPasswordReset: () => AuthManager.handleSendPasswordReset(),
         togglePassword: (inputId, btn) => AuthManager.togglePassword(inputId, btn),
         google: () => AuthManager.signInWithGoogle(),
         googleLink: () => AuthManager.linkGoogle(),
-        googleLinkCancel: () => AuthManager.cancelGoogleLink()
+        googleLinkCancel: () => AuthManager.cancelGoogleLink(),
+        checkPending: () => AuthManager.checkPending(),
+        leavePending: () => AuthManager.leavePending()
     },
     
     // App language (#143): Settings switch + login card links
     i18n: {
         setLang: (lang) => setLang(lang),
+        // Settings › Language (U-86): the choice also goes on the person's profile, so it follows them
+        choose: (lang) => {
+            const done = setLang(lang);
+            const uid = AppState.currentUser?.uid;
+            if (uid && (lang === 'en' || lang === 'hi')) saveOwnLang(uid, lang).catch(e => console.warn('Language not saved to the profile:', e?.code || e));
+            return done;
+        },
         getLang: () => getLang()
     },
 
@@ -1082,6 +1144,10 @@ window.app = {
     business: {
         set: (biz) => BusinessSwitcher.set(biz)
     },
+    // Sync pill (U-04): the list of changes not sent yet
+    sync: {
+        openSheet: () => import('./ui/sync-sheet.js').then(m => m.openSyncSheet())
+    },
     rentals: {
         open: (page, evt) => BusinessSwitcher.openRentals(page, evt)
     },
@@ -1101,6 +1167,7 @@ window.app = {
         markAllRead: () => NotificationsManager.markAllRead(),
         openNotification: (id) => NotificationsManager.openNotification(id),
         openReminder: (page) => NotificationsManager.openReminder(page),
+        openOwnerItem: (key) => NotificationsManager.openOwnerItem(key),
         setPhone: (checked) => PhoneNotify.setOn(checked),
         setType: (type, checked) => PhoneNotify.setType(type, checked),
         setTime: (value) => PhoneNotify.setTime(value),
@@ -1114,6 +1181,7 @@ window.app = {
         renderTable: () => ItemsManager.renderItemsTable(),
         refreshTable: () => ItemsManager.refreshTable(),
         search: (query) => ItemsManager.renderItemsTable(query),
+        clearSearch: () => ItemsManager.clearSearch(),
         openAddModal: () => ItemsManager.openAddModal(),
         openEditModal: (id) => ItemsManager.openEditModal(id),
         closeItemModal: () => ItemsManager.closeItemModal(),
@@ -1158,6 +1226,7 @@ window.app = {
         loadSaleRates: () => BillingManager.loadSaleRates(),
         // Labour typed by hand: auto labour stops overwriting it
         markLabourManual: (input) => { input.dataset.manuallySet = 'true'; },
+        toggleLabourDetail: () => PurchaseManager.toggleLabourDetail(),
         
         // Weight management
         addWeight: () => BillingManager.addWeight(),
@@ -1287,50 +1356,58 @@ window.app = {
     
     // Stock
     stock: {
-        filterTab: (view, evt) => StockManager.filterStockTab(view, evt),
-        render: () => StockManager.renderStock(),
-        searchStock: () => StockManager.searchStock(),
-        loadAdjustItemStock: () => StockManager.loadAdjustItemStock(),
-        updateAdjustmentPlaceholder: () => StockManager.updateAdjustmentPlaceholder(),
-        applyAdjustment: () => StockManager.applyStockAdjustment(),
-        startOpeningStock: () => StockManager.startOpeningStock(),
-        renderAdjustmentHistory: () => StockManager.renderAdjustmentHistory(),
-        renderDeadStock: () => StockManager.renderDeadStock(),
-        setDeadStockDays: (days) => StockManager.setDeadStockDays(days),
-        editLowStock: (itemId) => StockManager.editLowStock(itemId),
-        reverseAdjustment: (id) => StockManager.reverseAdjustment(id),
-        openStockCount: () => StockManager.openStockCount()
+        filterTab: (view, evt) => withStock(m => m.filterStockTab(view, evt)),
+        render: () => withStock(m => m.renderStock()),
+        searchStock: () => withStock(m => m.searchStock()),
+        loadAdjustItemStock: () => withStock(m => m.loadAdjustItemStock()),
+        updateAdjustmentPlaceholder: () => withStock(m => m.updateAdjustmentPlaceholder()),
+        applyAdjustment: () => withStock(m => m.applyStockAdjustment()),
+        startOpeningStock: () => withStock(m => m.startOpeningStock()),
+        setReason: (code) => withStock(m => m.setReason(code)),
+        renderAdjustmentHistory: () => withStock(m => m.renderAdjustmentHistory()),
+        renderDeadStock: () => withStock(m => m.renderDeadStock()),
+        setDeadStockDays: (days) => withStock(m => m.setDeadStockDays(days)),
+        editLowStock: (itemId) => withStock(m => m.editLowStock(itemId)),
+        reverseAdjustment: (id) => withStock(m => m.reverseAdjustment(id)),
+        openStockCount: () => withStock(m => m.openStockCount())
     },
     
     // Wholesale Sales
     wholesaleSales: {
-        loadItemsDropdown: () => WholesaleSalesManager.loadItemsDropdown(),
-        loadItemDetails: () => WholesaleSalesManager.loadItemDetails(),
-        addToWholesaleBill: () => WholesaleSalesManager.addToWholesaleBill(),
-        removeWholesaleItem: (index) => WholesaleSalesManager.removeWholesaleItem(index),
-        completeSale: () => WholesaleSalesManager.completeSale(),
-        printWholesaleSale: () => WholesaleSalesManager.printWholesaleSale(),
-        shareViaWhatsApp: () => WholesaleSalesManager.shareViaWhatsApp(),
-        filterTab: (view) => WholesaleSalesManager.filterSalesTab(view),
-        renderHistory: () => WholesaleSalesManager.renderSalesHistory(),
-        setHistoryPreset: (preset) => WholesaleSalesManager.setHistoryPreset(preset),
-        applyHistoryRange: (from, to) => WholesaleSalesManager.applyHistoryRange(from, to),
-        searchHistory: (term) => WholesaleSalesManager.searchHistory(term),
-        toggleHistoryView: () => WholesaleSalesManager.toggleHistoryView(),
-        renderOutstanding: () => WholesaleSalesManager.renderSalesOutstanding(),
-        recordPayment: (saleId) => WholesaleSalesManager.recordPayment(saleId),
-        markSaleAsCleared: (saleId) => WholesaleSalesManager.markSaleAsCleared(saleId),
-        writeOffSale: (saleId) => WholesaleSalesManager.writeOffSale(saleId),
-        completeAllDue: (name) => WholesaleSalesManager.completeAllDue(name),
-        receiveFromParty: (name) => WholesaleSalesManager.receiveFromParty(name),
-        reprintSale: (index) => WholesaleSalesManager.reprintSale(index),
-        reprintSaleById: (saleId) => WholesaleSalesManager.reprintSaleById(saleId),
-        updateProfitCalculation: () => WholesaleSalesManager.updateProfitCalculation(),
-        updatePaymentTotal: () => WholesaleSalesManager.updatePaymentTotal(),
-        fillReceivableAmount: (type) => WholesaleSalesManager.fillReceivableAmount(type),
-        putRestInDue: () => WholesaleSalesManager.putRestInDue(),
-        pickContact: () => WholesaleSalesManager.pickContact(),
-        clearOutstandingParty: () => WholesaleSalesManager.clearOutstandingParty()
+        loadItemsDropdown: () => withWholesale(m => m.loadItemsDropdown()),
+        loadItemDetails: () => withWholesale(m => m.loadItemDetails()),
+        addToWholesaleBill: () => withWholesale(m => m.addToWholesaleBill()),
+        removeWholesaleItem: (index) => withWholesale(m => m.removeWholesaleItem(index)),
+        editWholesaleItem: (index) => withWholesale(m => m.editWholesaleItem(index)),
+        completeSale: () => withWholesale(m => m.completeSale()),
+        printWholesaleSale: () => withWholesale(m => m.printWholesaleSale()),
+        shareViaWhatsApp: () => withWholesale(m => m.shareViaWhatsApp()),
+        filterTab: (view) => withWholesale(m => m.filterSalesTab(view)),
+        renderHistory: () => withWholesale(m => m.renderSalesHistory()),
+        setHistoryPreset: (preset) => withWholesale(m => m.setHistoryPreset(preset)),
+        applyHistoryRange: (from, to) => withWholesale(m => m.applyHistoryRange(from, to)),
+        searchHistory: (term) => withWholesale(m => m.searchHistory(term)),
+        toggleHistoryView: () => withWholesale(m => m.toggleHistoryView()),
+        renderOutstanding: () => withWholesale(m => m.renderSalesOutstanding()),
+        recordPayment: (saleId) => withWholesale(m => m.recordPayment(saleId)),
+        markSaleAsCleared: (saleId) => withWholesale(m => m.markSaleAsCleared(saleId)),
+        writeOffSale: (saleId) => withWholesale(m => m.writeOffSale(saleId)),
+        completeAllDue: (name) => withWholesale(m => m.completeAllDue(name)),
+        receiveFromParty: (name) => withWholesale(m => m.receiveFromParty(name)),
+        reprintSale: (index) => withWholesale(m => m.reprintSale(index)),
+        reprintSaleById: (saleId) => withWholesale(m => m.reprintSaleById(saleId)),
+        updateProfitCalculation: () => withWholesale(m => m.updateProfitCalculation()),
+        updatePaymentTotal: () => withWholesale(m => m.updatePaymentTotal()),
+        fillReceivableAmount: (type) => withWholesale(m => m.fillReceivableAmount(type)),
+        putRestInDue: () => withWholesale(m => m.putRestInDue()),
+        pickContact: () => withWholesale(m => m.pickContact()),
+        clearOutstandingParty: () => withWholesale(m => m.clearOutstandingParty()),
+        // Edit a saved sale (U-30): the page is put in first when it was never opened (#66)
+        openEditor: async (bill) => {
+            await NavigationManager.showTab('wholesale-sales');
+            return withWholesale(m => m.openEditor(bill));
+        },
+        cancelEdit: () => withWholesale(m => m.cancelEdit())
     },
     
     // History
@@ -1347,6 +1424,7 @@ window.app = {
         showEdits: () => HistoryManager.showEdits(),
         filterHistory: (type, event) => HistoryManager.filterHistory(type, event),
         searchHistory: (searchTerm) => HistoryManager.searchHistory(searchTerm),
+        clearSearch: () => HistoryManager.clearSearch(),
         toggleView: () => HistoryManager.toggleView(),
         setDatePreset: (preset) => HistoryManager.setDatePreset(preset),
         setCustomRange: (from, to) => HistoryManager.setCustomRange(from, to),
@@ -1372,6 +1450,14 @@ window.app = {
     // Outstanding
     outstanding: {
         filterDue: (filter, evt) => OutstandingManager.filterDue(filter, evt),
+        currentFilter: () => OutstandingManager.dueFilter(),
+        toggleBills: () => OutstandingManager.toggleBills(),
+        billMoreToggled: (id, open) => OutstandingManager.billMoreToggled(id, open),
+        openParty: (partyKey) => OutstandingManager.openParty(partyKey),
+        callParty: (partyKey) => OutstandingManager.callParty(partyKey),
+        clearSearch: () => OutstandingManager.clearSearch(),
+        partyPayQuick: (what) => OutstandingManager.partyPayQuick(what),
+        partyPaySplitShow: () => OutstandingManager.partyPaySplitShow(),
         render: () => OutstandingManager.renderDue(),
         renderDue: () => OutstandingManager.renderDue(),
         searchOutstanding: () => OutstandingManager.searchOutstanding(),
@@ -1393,7 +1479,7 @@ window.app = {
             const tab = kind === 'wholesale' ? 'wholesale-sales' : 'due';
             const open = () => {
                 NavigationManager.setActiveNavLink(tab);
-                if (kind === 'wholesale') WholesaleSalesManager.showOutstandingParty(name);
+                if (kind === 'wholesale') withWholesale(m => m.showOutstandingParty(name));
                 else OutstandingManager.showParty(kind === 'purchase' ? 'purchase' : kind === 'sale' ? 'sale' : 'retail', name);
             };
             // A page loaded on first visit (#66) is put in first
@@ -1405,25 +1491,25 @@ window.app = {
     
     // Expenses
     expenses: {
-        filterExpenseTab: (view, evt) => ExpensesManager.filterExpenseTab(view, evt),
-        saveBusinessExpense: () => ExpensesManager.saveBusinessExpense(),
-        savePersonalExpense: () => ExpensesManager.savePersonalExpense(),
-        renderHistory: () => ExpensesManager.renderexpensesHistory(),
-        updateExpensePersonOptions: () => ExpensesManager.updateExpensePersonOptions(),
-        saveAndPrintBusiness: () => ExpensesManager.saveAndPrintBusiness(),
-        saveAndPrintPersonal: () => ExpensesManager.saveAndPrintPersonal(),
-        viewExpenseDetails: (index, category) => ExpensesManager.viewExpenseDetails(index, category),
-        closeExpenseDetails: () => ExpensesManager.closeExpenseDetails(),
-        voidExpenseFromModal: () => ExpensesManager.voidExpenseFromModal(),
-        reenterExpenseFromModal: () => ExpensesManager.reenterExpenseFromModal(),
-        toggleVoided: (show) => ExpensesManager.toggleVoided(show),
-        onSearch: (category) => ExpensesManager.onSearch(category),
-        applyTemplate: (category, index) => ExpensesManager.applyTemplate(category, index)
+        filterExpenseTab: (view, evt) => withExpenses(m => m.filterExpenseTab(view, evt)),
+        saveBusinessExpense: () => withExpenses(m => m.saveBusinessExpense()),
+        savePersonalExpense: () => withExpenses(m => m.savePersonalExpense()),
+        renderHistory: () => withExpenses(m => m.renderexpensesHistory()),
+        updateExpensePersonOptions: () => withExpenses(m => m.updateExpensePersonOptions()),
+        saveAndPrintBusiness: () => withExpenses(m => m.saveAndPrintBusiness()),
+        saveAndPrintPersonal: () => withExpenses(m => m.saveAndPrintPersonal()),
+        viewExpenseDetails: (index, category) => withExpenses(m => m.viewExpenseDetails(index, category)),
+        closeExpenseDetails: () => withExpenses(m => m.closeExpenseDetails()),
+        voidExpenseFromModal: () => withExpenses(m => m.voidExpenseFromModal()),
+        reenterExpenseFromModal: () => withExpenses(m => m.reenterExpenseFromModal()),
+        toggleVoided: (show) => withExpenses(m => m.toggleVoided(show)),
+        onSearch: (category) => withExpenses(m => m.onSearch(category)),
+        applyTemplate: (category, index) => withExpenses(m => m.applyTemplate(category, index))
     },
     
     // Anomalies (#187, #40): Day report card on Today + Anomalies page (anomalies.js is imported on first use)
     anomalies: {
-        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'review',
+        ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'correctRate', 'review',
             'shareDayReport', 'printDayReport', 'refreshNow']
             .map(name => [name, (...args) => loadAnomalies().then(m => m[name](...args))])),
         // The cash-close screen's line, when the code is loaded (owner/manager phones load it after the first screen)
@@ -1455,7 +1541,7 @@ window.app = {
             .catch(e => console.warn('Money not loaded:', e?.message || e)),
         ...Object.fromEntries(['setSection', 'setPreset', 'step', 'loadOlder', 'buildHistory', 'toggleWithdrawalForm',
             'saveWithdrawal', 'saveAccount', 'removeAccount', 'useThisPhonesAccounts', 'render',
-            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare']
+            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare', 'loadLinked']
             .map(name => [name, (...args) => loadMoney().then(m => m[name](...args))]))
     },
     // Insights (redesign §5.3): insights.js is imported on first use
@@ -1483,7 +1569,7 @@ window.app = {
     statements: {
         init: (route) => loadStatements().then(m => m.init(route))
             .catch(e => console.warn('Statements not loaded:', e?.message || e)),
-        ...Object.fromEntries(['open', 'back', 'set', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
+        ...Object.fromEntries(['open', 'back', 'set', 'stepDay', 'dayPreset', 'stepMonth', 'loadOlder', 'shareWhatsApp', 'downloadCsv', 'print', 'openParty', 'selectParty', 'setCsvEnglish', 'render']
             .map(name => [name, (...args) => loadStatements().then(m => m[name](...args))]))
     },
 
@@ -1505,6 +1591,7 @@ window.app = {
     day: {
         init: () => DayManager.init(),
         showSubTab: (tab) => DayManager.showSubTab(tab),
+        hideFirstRun: () => DayManager.hideFirstRun(),
         loadTodayData: () => DayManager.loadTodayData(),
         openDues: (kind) => DayManager.openDues(kind),
         openBackupCheck: () => DayManager.openBackupCheck(),
@@ -1536,15 +1623,16 @@ window.app = {
     
     // Sales (alias for wholesaleSales for easier access)
     sales: {
-        loadItemsDropdown: () => WholesaleSalesManager.loadItemsDropdown(),
-        loadItemDetails: () => WholesaleSalesManager.loadItemDetails(),
-        renderHistory: () => WholesaleSalesManager.renderSalesHistory()
+        loadItemsDropdown: () => withWholesale(m => m.loadItemsDropdown()),
+        loadItemDetails: () => withWholesale(m => m.loadItemDetails()),
+        renderHistory: () => withWholesale(m => m.renderSalesHistory())
     },
     
     // Settings
     settings: {
         load: (section) => {
             AppUpdatesManager.renderSettings();
+            loadAppLock().then(l => l.renderSettings()).catch(e => console.warn('Phone lock settings not shown:', e?.message || e));
             SettingsManager.open(section);
         },
         save: () => SettingsManager.saveSettings(),
@@ -1556,6 +1644,7 @@ window.app = {
         saveUpi: () => SettingsManager.saveUpi(),
         saveCheckThresholds: () => SettingsManager.saveCheckThresholds(),
         saveRentals: () => SettingsManager.saveRentals(),
+        setRentMode: (mode) => SettingsManager.setRentMode(mode),
         openOpeningStock: () => SettingsManager.openOpeningStock(),
         setAppearance: (appearance) => SettingsManager.setAppearance(appearance),
         previewTheme: (id) => SettingsManager.previewTheme(id),
@@ -1586,8 +1675,27 @@ window.app = {
     },
 
     // Settings → Roles & access (owner, #84)
+    // Phone lock (U-55)
+    appLock: {
+        setup: () => loadAppLock().then(l => l.setup()),
+        turnOff: () => loadAppLock().then(l => l.turnOff()),
+        unlock: () => loadAppLock().then(l => l.unlock()),
+        dismissOffer: () => loadAppLock().then(l => l.dismissOffer())
+    },
+
+    // Settings › Team (U-54, U-56): people and worker accounts; admin.js is imported on first use
+    team: {
+        render: () => loadAdmin().then(a => a.renderTeam()),
+        addWorker: () => loadAdmin().then(a => a.addWorker()),
+        // From the waiting-to-join alerts (U-24): Team with its people shown
+        openWaiting: () => Promise.resolve(NavigationManager.showTabFromNav('settings-team'))
+            .then(() => new Promise(resolve => setTimeout(resolve, 150)))
+            .then(() => loadAdmin()).then(a => a.renderTeam())
+    },
+
     roles: {
         render: () => RolesAccessManager.render(),
+        showRole: (role) => RolesAccessManager.showRole(role),
         save: () => RolesAccessManager.saveForm(),
         loadPeople: () => RolesAccessManager.loadPeople(),
         setRentRole: (userId, role) => RolesAccessManager.setRentRole(userId, role)
@@ -1611,7 +1719,7 @@ window.app = {
     // Admin (owner only; admin.js is imported on first use)
     admin: {
         ...Object.fromEntries(['init', 'showTab', 'approveUser', 'showActivity', 'rejectUser', 'restoreUser', 'showChangeRole',
-            'resetUserPassword', 'deleteUser', 'loadStorageStats', 'clearAllData', 'checkDueFields', 'backfillDueFields', 'checkBackupFile']
+            'resetUserPassword', 'deleteUser', 'handOverFirstOwner', 'loadStorageStats', 'clearAllData', 'checkDueFields', 'backfillDueFields', 'checkBackupFile']
             .map(name => [name, (...args) => loadAdmin().then(m => m[name](...args))])),
         saveCheckThresholds: () => SettingsManager.saveCheckThresholds(),
         // The backup picker: check the chosen file, then clear the input so the same file can be picked again

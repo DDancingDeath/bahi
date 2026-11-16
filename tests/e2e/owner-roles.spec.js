@@ -1,8 +1,9 @@
 /**
- * Several owners, never none (docs/role-permissions.md, "Owners"): in Admin › Users the owner picks
+ * Several owners, never none (docs/role-permissions.md, "Owners"): in Settings › Team the owner picks
  * Member / Manager / Owner; making someone owner asks first; the only owner cannot step down; an owner
  * demotes another owner. Each change saves the profile and settings/team.ownerUids together (the rules
- * refuse one without the other) and writes CHANGE_USER_ROLE.
+ * refuse one without the other) and writes CHANGE_USER_ROLE. The first owner is recorded and marked "Founder";
+ * a demoted owner gets a bell notification.
  */
 const { test, expect, login, showTab, expectToast } = require('./support/app');
 const { USERS, getDoc, listDocs } = require('./support/emulator');
@@ -20,7 +21,8 @@ test('the owner makes a manager owner after a confirmation, cannot step down alo
     const ownerUid = await uidOf('owner');
     const managerUid = await uidOf('manager');
     await login(page, 'owner');
-    await showTab(page, 'admin');
+    await showTab(page, 'settings-team');
+    await page.click('#teamShowPeople');
     await expect(row(page, 'Manager One')).toBeVisible({ timeout: 30000 });
 
     // The only owner: stepping down is refused before anything is asked or written
@@ -46,16 +48,25 @@ test('the owner makes a manager owner after a confirmation, cannot step down alo
     expect((await getDoc('dev_users', managerUid)).role).toBe('manager');
     expect((await getDoc('dev_settings', 'team')).ownerUids).toEqual([ownerUid]);
 
-    const changes = (await listDocs('dev_auditLogs'))
+    // The first owner is recorded and marked; the demoted owner gets a bell notification
+    expect((await getDoc('dev_settings', 'team')).firstOwnerUid).toBe(ownerUid);
+    await expect(row(page, USERS.owner.email).locator('.tag', { hasText: 'Founder' })).toBeVisible();
+    const notes = (await listDocs('dev_notifications')).filter(n => n.type === 'role_change');
+    expect(notes).toEqual([expect.objectContaining({ userId: managerUid, newRole: 'manager', changedByUserId: ownerUid })]);
+
+    // The audit entry is written after the toast, without waiting
+    await expect.poll(async () => (await listDocs('dev_auditLogs'))
         .filter(a => a.action === 'CHANGE_USER_ROLE' && a.details?.targetUserId === managerUid)
-        .map(a => [a.userId, a.details.from, a.details.to]);
-    expect(changes).toEqual(expect.arrayContaining([[ownerUid, 'manager', 'owner'], [ownerUid, 'owner', 'manager']]));
+        .map(a => [a.userId, a.details.from, a.details.to]), { timeout: 15000 })
+        .toEqual(expect.arrayContaining([[ownerUid, 'manager', 'owner'], [ownerUid, 'owner', 'manager']]));
     expect(problems.pageErrors).toEqual([]);
 });
 
-test('a manager has no Admin, so never the owner choice', async ({ page, problems }) => {
+test('a manager has no Admin or Team, so never the owner choice', async ({ page, problems }) => {
     await login(page, 'manager');
     await page.evaluate(() => window.app.nav.showTab('admin'));
+    await expect(page.locator('#adminActiveUsers .admin-user')).toHaveCount(0);
+    await page.evaluate(() => window.app.nav.showTab('settings-team'));
     await expect(page.locator('#adminActiveUsers .admin-user')).toHaveCount(0);
     expect(problems.pageErrors).toEqual([]);
 });

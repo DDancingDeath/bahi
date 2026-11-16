@@ -101,6 +101,18 @@ test('English: no Hindi text anywhere on the page (history built and not yet bui
     expect(fresh).not.toMatch(DEVANAGARI);
 });
 
+test('U-76: when no rate has enough history, one line says so (not three identical cards)', async () => {
+    await renderPage('en', built());
+    const none = document.querySelectorAll('#rtOutlook .rt-outlook-none');
+    const all = document.querySelectorAll('#rtOutlook .rt-outlook');
+    if (none.length === all.length) {
+        expect(all).toHaveLength(1);
+        expect(all[0].textContent).toContain('Not enough history yet to show rate trends');
+    } else {
+        expect(all).toHaveLength(3);
+    }
+});
+
 test('Hindi: no English sentences from the catalogue on the page', async () => {
     const text = await renderPage('hi', built());
     expect(text).toMatch(/रेट पेज पर रेट में बदलाव/);

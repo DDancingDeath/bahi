@@ -50,7 +50,8 @@ export const ROLE_ACCESS_DEFAULTS = Object.freeze({
     }),
     staff: Object.freeze({
         finance: false, reports: false, analytics: false, wholesale: false,
-        personalExpenses: false, profit: true, stockValue: true, oldCashSessions: true, purchaseRates: true, contacts: true,
+        // Members don't see the shop's margins by default (U-09): profit, stock value, purchase rates, past cash days
+        personalExpenses: false, profit: false, stockValue: false, oldCashSessions: false, purchaseRates: false, contacts: true,
         shopSettings: false, historyDays: 0, editDays: DEFAULT_EDIT_DAYS
     })
 });

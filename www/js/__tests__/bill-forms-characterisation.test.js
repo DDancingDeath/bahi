@@ -154,15 +154,17 @@ describe('purchase form', () => {
             { itemId: 'item-wheat', name: 'Wheat', rate: 33.5, qty: 12.4, total: 415, weights: [12.4] }
         ]);
         expect(rows('#billTable')).toEqual([
-            ['Rice', '₹25.50', '60.3 kg', '₹1,538'],
+            ['Rice2 packets: 40 · 20.3', '₹25.50', '60.3 kg', '₹1,538'],
             ['Wheat', '₹33.50', '12.4 kg', '₹415']
         ]);
-        expect($('weightBreakdownSection').textContent.replace(/\s+/g, ' ').trim()).toBe('Rice (2 packets, 60.3 kg) 40 20.3');
+        expect($('weightBreakdownSection').textContent.trim()).toBe('');
+        expect(document.querySelector('#billTable .bill-line-weights').textContent).toBe('2 packets: 40 · 20.3');
         expect([text('totalWeights'), text('totalPackets')]).toEqual(['0', '0']);
         expect(text('billTotal')).toBe('1,953');
         expect(text('totalPacketsInBill')).toBe('3');
         expect($('manualLaborCharges').value).toBe('6');
-        expect(text('laborCalculation')).toBe('6 × 1');
+        expect($('laborCalculation').dataset.working).toBe('6 × 1');
+        expect(text('laborCalculation')).toBe('1 bag × ₹6 = ₹6');
         expect(text('amountPayable')).toBe('1,947');
         expect(text('totalPayment')).toBe('0');
         expect(text('purchaseSplitRemaining')).toBe('₹1,947 left');
@@ -207,7 +209,7 @@ describe('purchase form', () => {
         await PurchaseManager.addToBill();
         expect(text('billTotal')).toBe('2,130');
         expect($('manualLaborCharges').value).toBe('13');
-        expect(text('laborCalculation')).toBe('6.25 × 2');
+        expect($('laborCalculation').dataset.working).toBe('6.25 × 2');
         expect(text('amountPayable')).toBe('2,117');
         setVal('cashPayment', 2000);
         setVal('customerName', 'Ramesh');
@@ -313,10 +315,11 @@ describe('retail sale form', () => {
             { itemId: 'item-wheat', name: 'Wheat', rate: 33.33, qty: 7, packets: 1, weights: [7], total: 233 }
         ]);
         expect(rows('#saleTable')).toEqual([
-            ['Rice', '₹41.75', '60.35 kg', '₹2,520'],
+            ['Rice3 packets: 25.5 · 24.7 · 10.15', '₹41.75', '60.35 kg', '₹2,520'],
             ['Wheat', '₹33.33', '7 kg', '₹233']
         ]);
-        expect($('saleWeightBreakdownSection').textContent.replace(/\s+/g, ' ').trim()).toBe('Rice (3 packets, 60.35 kg) 25.5 24.7 10.15');
+        expect($('saleWeightBreakdownSection').textContent.trim()).toBe('');
+        expect(document.querySelector('#saleTable .bill-line-weights').textContent).toBe('3 packets: 25.5 · 24.7 · 10.15');
         expect(text('saleTotal')).toBe('2,753');
         expect(text('amountReceivable')).toBe('2,753');
         expect(text('totalSalePacketsInBill')).toBe('4');

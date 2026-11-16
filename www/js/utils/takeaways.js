@@ -96,7 +96,15 @@ export function spendingTakeaways({ business, vsLastYear, topCategory, withdrawn
     if (!show.personal) return out;
     const taken = Math.round((withdrawn || 0) + (personal || 0));
     if (show.profit && kept !== null && kept !== undefined) {
-        out.push({ key: kept >= 0 ? 'ui.tk.kept' : 'ui.tk.kept_negative', params: { taken, kept: Math.abs(Math.round(kept)) } });
+        const profit = Math.round(kept + taken);
+        // A loss: "₹0 went to personal use, ₹X more than the profit" reads as nonsense (U-75)
+        if (profit < 0) {
+            out.push(taken > 0
+                ? { key: 'ui.tk.loss_taken', params: { loss: Math.abs(profit), taken } }
+                : { key: 'ui.tk.loss_nothing_taken', params: { loss: Math.abs(profit) } });
+        } else {
+            out.push({ key: kept >= 0 ? 'ui.tk.kept' : 'ui.tk.kept_negative', params: { taken, kept: Math.abs(Math.round(kept)) } });
+        }
     } else if (taken > 0) {
         out.push({ key: 'ui.tk.taken', params: { taken } });
     }
@@ -116,4 +124,15 @@ export function worthTakeaways({ worth, change, receivable, sinceLabel, accounts
     else out.push({ key: 'ui.tk.worth', params: { amount: Math.round(worth) } });
     if (receivable > 0) out.push({ key: 'ui.tk.worth_receivable', params: { amount: Math.round(receivable) }, link: 'due' });
     return out;
+}
+
+/**
+ * The caveat's sentence key (`ui.money.caveat_<key>`): "profit may be about ₹0 too high" reads as
+ * nonsense, so an uncosted caveat with no estimate says the cost is not known instead (U-75).
+ * @param {{key: string, estimate?: ?number}} c
+ * @returns {string}
+ */
+export function caveatKey(c) {
+    if (c?.key === 'uncosted' && !(Math.round(Number(c.estimate)) > 0)) return 'uncosted_unknown';
+    return c?.key;
 }

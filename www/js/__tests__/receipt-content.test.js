@@ -136,29 +136,26 @@ describe('the printed bill', () => {
         drawn = [];
         rects = [];
         const withBoth = render({ footer: 'Thank you, visit again', qr: true });
-        expect(drawn.slice(-1)).toEqual(['Thank you, visit again']);
+        expect(drawn.slice(-2)).toEqual(['Thank you, visit again', 'Bahi']);
         const dark = encodeQr(billQrText(bill)).modules.flat().filter(Boolean).length;
         expect(rects.length - plainRects).toBe(dark);
         expect(withBoth.height).toBeGreaterThan(plain.height + 100);
     });
 
-    test('the slip and the shared image end with a small centred "by happa" mark, below the QR (#109)', async () => {
+    test('the slip and the shared image end with a small centred "Bahi" line, below the QR (U-89)', async () => {
         const { height } = render({ qr: true });
-        const mark = rects.filter(([, , , h]) => h === 1);
-        const qrBottom = Math.max(...rects.filter(([, , w, h]) => w === h && w > 1 && w < 10).map(([, y, , h]) => y + h));
-        const xs = mark.flatMap(([x, , w]) => [x, x + w]);
-        const ys = mark.map(([, y]) => y);
-        expect(Math.min(...xs)).toBe(Math.round((384 - 87) / 2));
-        expect(Math.max(...xs) - Math.min(...xs)).toBe(87);
-        expect(Math.max(...ys) - Math.min(...ys) + 1).toBe(24);
-        expect(Math.min(...ys)).toBeGreaterThan(qrBottom);
-        expect(height).toBe(Math.max(...ys) + 1 + 4);
+        const [text, x, y] = placed[placed.length - 1];
+        const qrBottom = Math.max(...rects.filter(([, , w, h]) => w === h && w > 1 && w < 10).map(([, top, , h]) => top + h));
+        expect(text).toBe('Bahi');
+        expect(x).toBe((384 - 'Bahi'.length * 9) / 2);
+        expect(y).toBeGreaterThan(qrBottom);
+        expect(height).toBe(y + 16 + 6);
 
-        rects = [];
+        drawn = [];
+        placed = [];
         const shared = await PrinterService.manager.generateBillCanvas(bill, {});
-        const sharedMark = rects.filter(([, , , h]) => h === 1);
-        expect(sharedMark.length).toBe(mark.length);
-        expect(shared.height).toBe(Math.max(...sharedMark.map(([, y]) => y)) + 1 + 4);
+        expect(drawn.slice(-1)).toEqual(['Bahi']);
+        expect(shared.height).toBe(placed[placed.length - 1][2] + 16 + 6);
     });
 
     test('a long bill grows the canvas: totals, QR and the mark are never cut off, on 58 and 80 mm', () => {
@@ -168,10 +165,11 @@ describe('the printed bill', () => {
             drawn = [];
             rects = [];
             const { canvas, height } = PrinterService.manager._renderBillCanvas(long, dots, { qr: true });
-            const markBottom = Math.max(...rects.filter(([, , , h]) => h === 1).map(([, y]) => y)) + 1;
+            const [last, , markBottom] = placed[placed.length - 1];
+            expect(last).toBe('Bahi');
             expect(markBottom).toBeGreaterThan(2600);
             expect(drawn).toEqual(expect.arrayContaining(['Total paid:', 'Due:', '₹100']));
-            expect(height).toBe(Math.ceil((markBottom + 4) * dots / 384));
+            expect(height).toBe(Math.ceil((markBottom + 16 + 6) * dots / 384));
             expect(canvas.height).toBeGreaterThanOrEqual(height);
         }
     });
@@ -251,7 +249,22 @@ describe('the printed bill', () => {
         drawn = [];
         render({});
         expect(drawn).toContain('Receipt');
-        expect(drawn).toContain('चावल');
+        expect(drawn).toContain('Rice');
+        expect(drawn).not.toContain('चावल');
+    });
+
+    test('labour reads "3 bags × ₹6" in the slip language, only when that working still gives the amount (N-16)', () => {
+        const labourBill = { ...bill, billTotal: 200, laborCharges: 18, laborCalc: '6 × 3', grandTotal: 182 };
+        PrinterService.manager._renderBillCanvas(labourBill, 384, {});
+        expect(drawn).toContain('3 bags × ₹6');
+        expect(drawn).not.toContain('6 × 3');
+        drawn = [];
+        PrinterService.manager._renderBillCanvas(labourBill, 384, { lang: 'hi' });
+        expect(drawn).toContain('3 बोरी × ₹6');
+        drawn = [];
+        PrinterService.manager._renderBillCanvas({ ...labourBill, laborCharges: 25, grandTotal: 175 }, 384, {});
+        expect(drawn.some(s => /bag|6 × 3/.test(s))).toBe(false);
+        expect(drawn).toContain('₹25');
     });
 
     test('the party line says Customer on a purchase (owner: no "Supplier") and on a sale, in the slip language', () => {

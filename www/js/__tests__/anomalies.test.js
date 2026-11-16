@@ -5,7 +5,7 @@
 import {
     detectAnomalies, anomalyId, planAnomalyWrites, mergeAnomalies, summarizeAnomalies, buildDayReportText,
     filterAnomalies, presetRange, anomalyPatterns, istDayKey, istHour, addDaysToKey, istDayStartMs, summaryLine,
-    voidedByOthers, withoutStoredVoidTwins, anomalyText
+    voidedByOthers, withoutStoredVoidTwins, anomalyText, withoutVoidedBillChecks
 } from '../utils/anomalies.js';
 
 const T = (h, m = 0, d = 22) => new Date(2026, 9, d, h, m, 0).getTime(); // Oct 2026, IST
@@ -145,6 +145,12 @@ describe('bill rules', () => {
         const stored = { type: 'rate-confirmed', en: 'Wheat: 100 kg × ₹2,400.00 = ₹2,40,000; today\'s rate ₹24.50 would give ₹2,450', hi: 'x ₹24.00' };
         expect(anomalyText(stored)).toEqual({ ...stored, en: 'Wheat: 100 kg × ₹2,400 = ₹2,40,000; today\'s rate ₹24.50 would give ₹2,450', hi: 'x ₹24' });
         expect(anomalyText({ type: 'cash-short', en: 'Short ₹12.00', hi: '' }).en).toBe('Short ₹12.00');
+    });
+
+    test('U-74: an item below zero saved as a failed rule is shown as a finding', () => {
+        const stored = { type: 'numcheck-ac8', item: 'Rice', en: 'No item below zero stock: expected 0 kg, found -25 kg', hi: 'x' };
+        expect(anomalyText(stored).en).toBe('Rice is at −25 kg: sold more than bought. Enter the missing purchase or count the stock.');
+        expect(anomalyText(stored).hi).not.toMatch(/expected|found/);
     });
 
     test('a stored negative weight shows the minus sign on screen; the stored text keeps ASCII', () => {
@@ -505,5 +511,17 @@ describe('report, filters and patterns', () => {
         expect(p.repeat.items).toEqual([{ name: 'Rice', count: 2, days: 2, types: ['rate-high'] }]);
         expect(p.repeat.users.map(u => u.name)).toEqual(['Amit']);
         expect(p.repeat.parties.map(u => u.name)).toEqual(['Ramesh']);
+    });
+});
+
+describe('a voided bill leaves the day report (U-28)', () => {
+    test('its checks go, the void record and other bills stay', () => {
+        const rate = { id: 'r1', type: 'rate-low', refKind: 'bill', refId: 'p1', billType: 'purchase' };
+        const voidRec = { id: 'v1', type: 'bill-voided', refKind: 'bill', refId: 'p1', billType: 'purchase' };
+        const other = { id: 'r2', type: 'rate-low', refKind: 'bill', refId: 'p2', billType: 'purchase' };
+        const sameIdSale = { id: 'r3', type: 'rate-low', refKind: 'bill', refId: 'p1', billType: 'retail' };
+        expect(withoutVoidedBillChecks([rate, voidRec, other, sameIdSale], { purchase: [{ id: 'p1', voided: true }] }))
+            .toEqual([voidRec, other, sameIdSale]);
+        expect(withoutVoidedBillChecks([rate], {})).toEqual([rate]);
     });
 });

@@ -25,7 +25,7 @@ test('Today opens on its figures; Reminders and the Day report start closed and 
         const metrics = await page.locator('#dayTodayContent .today-metrics').boundingBox();
         const box = await page.locator('#todayReminders').boundingBox();
         expect(box.y).toBeGreaterThanOrEqual(metrics.y + metrics.height);
-        expect((await reminders.boundingBox()).height).toBeGreaterThanOrEqual(44);
+        await expect.poll(async () => (await reminders.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
 
     // Keyboard: the row is a button

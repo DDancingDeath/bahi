@@ -226,6 +226,12 @@
   min-width: 0;
 }
 
+/* The period as the shared chip (U-61); its whole text shows (Since 1 Sep 2026) */
+.history-date-filter > select.period-preset {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
 .history-custom-range {
   display: flex;
   flex-wrap: wrap;
@@ -338,6 +344,32 @@
   grid-area: party;
   font-size: var(--fs-body);
   color: var(--ink);
+}
+
+/* Large text (U-17): the party gets its own line under the bill number, so neither is cut to a few letters */
+@media (max-width: 1023px) {
+  :has(> [data-history-item][data-bill-row]) {
+    container-type: inline-size;
+  }
+}
+
+@container (max-width: 18em) {
+  [data-history-item][data-bill-row] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "no amount"
+      "party party"
+      "meta meta";
+  }
+
+  .bill-row__party {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bill-row__party:not(:has(strong)) {
+    display: none;
+  }
 }
 
 .bill-row__amount {
@@ -468,6 +500,17 @@
 
 .bill-table__date {
   white-space: nowrap;
+}
+
+/* Phone (U-70): bill no., party and amount fit the screen; date, items and payment are in the list view and the bill */
+@media (max-width: 599.98px) {
+  [data-bill-table] :is(.bill-table__date, .bill-table__items, .bill-table__chips) {
+    display: none;
+  }
+
+  [data-bill-table] .bill-table__party {
+    overflow-wrap: anywhere;
+  }
 }
 
 .bill-table__by {
@@ -757,4 +800,73 @@
   font-weight: var(--w-strong);
   background: var(--negative-soft);
   color: var(--negative);
+}
+
+/* History top on one row (U-73): date choice and search side by side, the "Date" label for screen readers only */
+.history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.history-controls > .history-date-filter {
+  flex: 1 1 calc(3 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls > .history-search {
+  flex: 2 1 calc(5 * var(--sp-10));
+  margin-bottom: 0;
+}
+
+.history-controls .history-date-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.history-search > .search-clear[hidden] {
+  display: none;
+}
+
+/* Table view needs a wide screen (U-70): phones keep the cards */
+@media (max-width: 599.98px) {
+  .history-table-toggle {
+    display: none;
+  }
+}
+
+/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end */
+.bill-view-head {
+  display: grid;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.bill-view-party {
+  overflow-wrap: anywhere;
+}
+
+.bill-view-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.bill-view-chips:empty {
+  display: none;
+}
+
+.bill-view-more {
+  margin-top: var(--sp-3);
+}
+
+.bill-view-more > summary {
+  color: var(--ink-2);
+  cursor: pointer;
 }

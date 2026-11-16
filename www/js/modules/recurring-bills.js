@@ -2,7 +2,7 @@
  * @fileoverview Recurring bills (#437 phase 1): the owner's electricity, water, rent and other
  * repeating payments. Each bill item has a cadence; each period has a bill amount, payments and a
  * balance carried to the next period (docs/calculations.md RB-1 … RB-11). Imported on first open;
- * one read per bill item per open. Not linked to Money yet (owner decision pending).
+ * one read per bill item per open. Payments show in Money (M22–M24, utils/linked-outflows.js).
  * @module modules/recurring-bills
  */
 
@@ -19,6 +19,7 @@ import {
     entryPeriods, unusualBill, isMonthKey, periodOf, monthKeyOf, billsAfter
 } from '../utils/recurring-bills.js';
 import { saveBillsDue } from '../utils/pay-reminder.js';
+import { setLinkedSource } from '../utils/linked-outflows.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const js = (v) => Helpers.escapeJsAttr(v);
@@ -262,6 +263,7 @@ function ensureCss() {
 
 /** Keeps RB-11 for Today from the loaded items (no reads). */
 function noteDue(list = state.items, uid = AppState.currentUser?.uid) {
+    setLinkedSource('billItems', list);
     if (!uid) return;
     try { saveBillsDue(localStorage, { uid, days: billsDueDays(list, today()) }); } catch (_) { /* never break the page */ }
 }

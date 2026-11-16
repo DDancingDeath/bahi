@@ -1,7 +1,8 @@
 /* ==================== DAY PAGE STYLES ==================== */
 
+/* The page's own gutter comes from .tab (--gutter); no second side padding here (U-64) */
 .day-container {
-  padding: var(--sp-5);
+  padding: 0;
 }
 
 .day-tabs {
@@ -91,7 +92,9 @@
 #dayTodayContent .items-grid { gap: 0; }
 
 /* Hero: net (T12), in (T10) and out (T11) */
-.today-inout { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-2); font-size: var(--fs-sm); }
+/* "New bill" beside the net figure, for every role (U-35) */
+.today-new-bill { float: right; gap: var(--sp-1); margin-left: var(--sp-3); }
+.today-inout { clear: both; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-2); font-size: var(--fs-sm); }
 .today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
 .today-in .i { color: var(--positive); }
 .today-out .i { color: var(--ink-3); }
@@ -190,7 +193,6 @@
 .ask-change-field { display: flex; flex: 1 1 140px; min-width: 0; flex-direction: column; gap: 2px; font-size: var(--fs-sm); color: var(--ink-2); }
 .ask-change-field select { width: 100%; min-height: 44px; font-size: var(--fs-body); }
 .ask-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
-.ask-kind { min-height: 44px; }
 
 /* Cash › history (5.2b): each day is a row, its figures two columns; it lights up under the pointer (#89) */
 .cash-history-list .row.cash-day { align-items: flex-start; padding: var(--sp-3) 0; cursor: pointer; transition: background var(--dur-1) var(--ease); }
@@ -223,3 +225,42 @@
 .cash-entry-meta, .cash-note { color: var(--ink-3); font-size: var(--fs-caption); }
 .cash-note + .cash-note { margin-top: var(--sp-1); }
 .cash-note strong { color: var(--ink-2); }
+
+/* First-run checklist on Today (U-58) */
+.first-run-list {
+  margin: var(--sp-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.first-run-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--control-h);
+}
+
+.first-run-step > span {
+  flex: 1;
+}
+
+.first-run-step.done {
+  color: var(--ink-3);
+}
+/* Day details fold (U-35): open for the owner and manager, folded for Members */
+.today-more > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h);
+  list-style: none;
+  cursor: pointer;
+}
+
+.today-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.today-more[open] > summary > .i {
+  transform: rotate(180deg);
+}

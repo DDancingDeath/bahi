@@ -13,6 +13,7 @@ import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { authErrorMessage } from '../auth/authentication.js';
 import { AuditService } from './audit.js';
 import { removalCheck, activeOwnerIds } from '../utils/owner-roles.js';
@@ -76,14 +77,16 @@ export const UserAdmin = {
      * @param {string} userId
      * @param {string} userName
      * @param {Array<Object>} [users] the loaded profiles: removing an owner needs another active owner
+     * @param {?string} [firstOwnerUid] settings/team.firstOwnerUid: only they may remove themself
      * @returns {Promise<boolean>} true when access was removed
      */
-    async removeUser(userId, userName, users = []) {
+    async removeUser(userId, userName, users = [], firstOwnerUid = null) {
         if (!canManage(userId)) return false;
         const target = (users || []).find(u => u && u.id === userId) || { id: userId };
-        const check = removalCheck({ actor: { id: AppState.currentUser?.uid, role: AppState.userRole }, target, users });
+        const check = removalCheck({ actor: { id: AppState.currentUser?.uid, role: AppState.userRole }, target, users, firstOwnerUid });
         if (!check.ok) {
-            UIManager.showToast(t(check.reason === 'last_owner' ? 'msg.owners.last_owner' : 'msg.common.access_denied'), 'error');
+            const key = { last_owner: 'msg.owners.last_owner', founder: 'msg.owners.founder_locked' }[check.reason];
+            UIManager.showToast(t(key || 'msg.common.access_denied'), 'error');
             return false;
         }
         const confirmed = await UIManager.showModal(
@@ -110,7 +113,7 @@ export const UserAdmin = {
         } catch (error) {
             console.error('Error removing user:', error);
             UIManager.showToast(error?.code === 'last-owner' ? t('msg.owners.last_owner')
-                : t('msg.common.failed_delete_user', { message: error?.message || '' }), 'error');
+                : t('msg.common.failed_delete_user', { message: friendlyError(error) }), 'error');
             return false;
         } finally {
             UIManager.hideLoading();

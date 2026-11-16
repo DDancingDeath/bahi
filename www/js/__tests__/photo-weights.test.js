@@ -205,7 +205,7 @@ describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
 });
 
 const DOM = `
-  <input type="checkbox" id="settingPhotoWeights"><p id="photoWeightsOwnerOnly" hidden></p>
+  <input type="checkbox" id="settingPhotoWeights"><p id="photoWeightsOwnerOnly" hidden></p><p id="photoWeightsNeedsSetup" hidden></p>
   <div id="purchaseSection">
     <select id="billItem"><option value="0">Rice</option></select>
     <input id="billRate"><input id="newWeight"><div id="weightsDisplay"></div>
@@ -221,8 +221,45 @@ const sheet = () => document.getElementById('photoWeightsSheet');
 describe('who sees it: the owner switch, every role, devices that can take a photo', () => {
     beforeEach(() => {
         document.body.innerHTML = DOM;
+        window.APP_CHECK_SITE_KEY = 'site-key';
         jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
         PhotoWeights.setShared(undefined);
+    });
+
+    afterEach(() => {
+        delete window.APP_CHECK_SITE_KEY;
+        delete window.Capacitor;
+    });
+
+    test('no App Check key on this build: no button, and Settings says why', () => {
+        AppState.userRole = 'owner';
+        delete window.APP_CHECK_SITE_KEY;
+        PhotoWeights.setShared({ enabled: true });
+        expect(document.getElementById('photoWeightsPurchase').hidden).toBe(true);
+        expect(document.getElementById('photoWeightsNeedsSetup').hidden).toBe(false);
+        window.APP_CHECK_SITE_KEY = 'site-key';
+        PhotoWeights.apply();
+        expect(document.getElementById('photoWeightsPurchase').hidden).toBe(false);
+        expect(document.getElementById('photoWeightsNeedsSetup').hidden).toBe(true);
+    });
+
+    test('Android app: the tap offers Take photo or Choose photo (a gallery input without capture)', async () => {
+        window.Capacitor = { isNativePlatform: () => true };
+        PhotoWeights.setShared({ enabled: true });
+        const ask = jest.spyOn(UIManager, 'showCustomModal').mockResolvedValueOnce('gallery').mockResolvedValueOnce('camera');
+        const camera = jest.spyOn(document.getElementById('photoWeightsInput'), 'click').mockImplementation(() => {});
+        const gallery = jest.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+        expect(PhotoWeights.pick('purchase')).toBe(true);
+        await tick();
+        const picker = document.getElementById('photoWeightsInputGallery');
+        expect(picker.type).toBe('file');
+        expect(picker.hasAttribute('capture')).toBe(false);
+        expect(gallery.mock.contexts).toContain(picker);
+        PhotoWeights.pick('purchase');
+        await tick();
+        expect(camera).toHaveBeenCalledTimes(1);
+        expect(ask).toHaveBeenCalledTimes(2);
+        gallery.mockRestore();
     });
 
     test('off by default: the button stays hidden and a tap opens nothing', () => {

@@ -17,6 +17,7 @@ import { EXPENSE_LOCKED_KEY, isPermissionDenied } from '../utils/record-permissi
 import { askReason, voidedBannerHtml } from '../ui/bill-status.js';
 import { SyncStatus } from '../ui/sync-status.js';
 import { t } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { saveFailedText, EXPENSE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { refusedForClock } from '../utils/clock-skew.js';
 import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
@@ -100,7 +101,7 @@ export class ExpensesManager {
             forget();
             UIManager.showToast(await refusedForClock(err)
                 ? t('msg.common.phone_clock_wrong_save')
-                : saveFailedText(err, t('msg.expenses.expense_not_saved', { value: err?.message || err })), 'error');
+                : saveFailedText(err, t('msg.expenses.expense_not_saved', { value: friendlyError(err) })), 'error');
             this.refreshExpenseViews();
         });
         this.refreshExpenseViews();

@@ -14,7 +14,7 @@ test('the Purchase name label reads Customer in English and ग्राहक i
     expect(en['ui.billing.supplier_label']).toBe('Customer');
     expect(hi['ui.billing.supplier_label']).toBe('ग्राहक');
     expect(hi['ui.billing.supplier_label']).toBe(hi['ui.billing.customer_label']);
-    expect(billing).toMatch(/<label for="customerName" data-i18n="ui\.billing\.supplier_label">Customer<\/label>/);
+    expect(billing).toMatch(/<label for="customerName"><span data-i18n="ui\.billing\.supplier_label">Customer<\/span>/);
 });
 
 test('no screen text says Supplier (en) or विक्रेता / सप्लायर (hi)', () => {

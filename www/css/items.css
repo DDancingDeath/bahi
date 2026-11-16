@@ -31,6 +31,11 @@
   gap: var(--sp-2);
 }
 
+.rates-unit {
+  color: var(--ink-2);
+  font-weight: var(--w-regular);
+}
+
 .rates-table .rates-name {
   font-weight: var(--w-strong);
 }
@@ -154,4 +159,60 @@
 .autofill-suggest {
   color: var(--ink-3);
   font-style: italic;
+}
+
+.rates-tools .search-field {
+  position: relative;
+}
+
+.rates-tools .search-field > .search-clear {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-1);
+  transform: translateY(-50%);
+}
+
+.rates-tools .search-field > .search-clear[hidden] {
+  display: none;
+}
+
+/* Phones (U-70): one block per item, its rates labelled underneath (Buy · Retail · Wholesale), no hidden column */
+@media (max-width: 599.98px) {
+  .rates-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .rates-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px var(--rule-style) var(--line);
+  }
+
+  .rates-table tbody td {
+    display: block;
+    height: auto;
+    padding: 0;
+    border: none;
+  }
+
+  .rates-table tbody .rates-name {
+    flex: 1 1 100%;
+  }
+
+  .rates-table tbody .rates-figs[data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--ink-3);
+    font-size: var(--fs-sm);
+  }
+
+  .rates-table tbody td[colspan] {
+    flex: 1 1 100%;
+  }
 }

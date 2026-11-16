@@ -23,7 +23,7 @@ import { CashManagementManager } from './cash-management.js';
 import { PrinterService } from '../services/printer.js';
 import { openExternal } from '../utils/open-external.js';
 import { billDateOf } from '../utils/history-filters.js';
-import { getLang, t } from '../i18n/index.js';
+import { getLang, t, tn } from '../i18n/index.js';
 import { byNameHtml } from '../ui/bill-row.js';
 import { tip } from '../tip/index.js';
 import { track } from '../services/usage.js';
@@ -46,6 +46,7 @@ import { can } from '../utils/role-access.js';
 import {
     buildReminderText, buildStatement, normalizePhone, whatsAppReminderUrl
 } from '../utils/due-reminder.js';
+import { quickAmount, splitCash, onlineRest, splitCashOldestFirst, paymentParts } from '../utils/due-split.js';
 
 const PAYMENT_TOLERANCE = 0.01;
 /** Most bills one party payment is spread over (oldest first), as Complete all due. */
@@ -89,15 +90,23 @@ export class OutstandingManager {
      */
     static searchOutstanding() {
         const searchInput = document.getElementById("outstandingSearchInput");
-        const searchTerm = searchInput?.value.toLowerCase().trim() || '';
+        const raw = searchInput?.value.trim() || '';
+        const searchTerm = raw.toLowerCase();
         const container = document.getElementById("dueList");
         
         if (!container) return;
+        const clear = document.getElementById('outstandingSearchClear');
+        if (clear) clear.hidden = !raw;
 
         // Party rows of the aging panel follow the same search (#46)
+        let partiesShown = 0;
         document.querySelectorAll('#dueAgingParties .aging-party').forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
+            const match = row.textContent.toLowerCase().includes(searchTerm);
+            row.style.display = match ? '' : 'none';
+            if (match) partiesShown++;
         });
+        // Totals for all parties would contradict a search: hidden while searching (U-72)
+        document.querySelectorAll('#dueAging .aging-hero, #dueAging .aging-chase').forEach(el => { el.hidden = !!searchTerm; });
         
         const items = container.querySelectorAll('[data-history-item]');
         
@@ -105,6 +114,9 @@ export class OutstandingManager {
             this.renderDue();
             return;
         }
+        container.hidden = !this.billsShown();
+        const toggle = document.getElementById('dueBillsToggle');
+        if (toggle) toggle.setAttribute('aria-expanded', String(!container.hidden));
         
         let visibleCount = 0;
         
@@ -119,16 +131,26 @@ export class OutstandingManager {
         });
         
         let noResultsMsg = container.querySelector('.no-results-message');
-        if (visibleCount === 0 && searchTerm !== '') {
+        if (visibleCount === 0 && partiesShown === 0 && searchTerm !== '') {
             if (!noResultsMsg) {
-                noResultsMsg = document.createElement('p');
-                noResultsMsg.className = 'no-results-message empty';
-                noResultsMsg.textContent = t('ui.outstanding.no_matching');
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'no-results-message';
                 container.appendChild(noResultsMsg);
             }
+            noResultsMsg.innerHTML = emptyState({ icon: 'search', title: t('ui.common.no_match_for', { q: raw }), action: { onclick: 'outstanding.clearSearch()', label: t('ui.common.clear_search') } });
         } else if (noResultsMsg) {
             noResultsMsg.remove();
         }
+    }
+
+    static clearSearch() {
+        const input = document.getElementById('outstandingSearchInput');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        this.renderDue();
+        this.searchOutstanding();
     }
 
     /**
@@ -137,7 +159,7 @@ export class OutstandingManager {
      * @param {'purchase'|'sale'|'retail'|'wholesale'} filter
      */
     static filterDue(filter) {
-        AppState.currentDueFilter = DUE_FILTERS.includes(filter) ? filter : 'purchase';
+        AppState.currentDueFilter = DUE_FILTERS.includes(filter) ? filter : 'sale';
         this.agingBucket = null;
         this.partyFilter = null;
         
@@ -154,7 +176,7 @@ export class OutstandingManager {
 
     /** The list shown: 'retail' / 'wholesale' collapse to 'sale' for a role without Wholesale. */
     static dueFilter() {
-        const f = DUE_FILTERS.includes(AppState.currentDueFilter) ? AppState.currentDueFilter : 'purchase';
+        const f = DUE_FILTERS.includes(AppState.currentDueFilter) ? AppState.currentDueFilter : 'sale';
         return f === 'wholesale' && !this.seesWholesale() ? 'sale' : f;
     }
 
@@ -177,6 +199,20 @@ export class OutstandingManager {
         }
     }
 
+    /** Both totals on the Purchases | Sales buttons, so neither needs a switch to be seen (U-69). */
+    static renderSegTotals() {
+        const lists = { purchases: AppState.purchaseHistory, retailSales: AppState.retailSalesHistory, wholesaleSales: AppState.salesHistory };
+        const total = (filter) => sumMoney(dueRows(lists, filter, { wholesale: this.seesWholesale() }), b => b.outstanding);
+        const set = (id, filter) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const v = total(filter);
+            el.textContent = v > 0 ? formatRupees(v) : '';
+        };
+        set('dueSegTotalPurchase', 'purchase');
+        set('dueSegTotalSale', 'sale');
+    }
+
     /**
      * Render due payments list
      * Shows outstanding amounts for purchases or sales based on filter
@@ -187,6 +223,7 @@ export class OutstandingManager {
         const currentDueFilter = this.dueFilter();
         const container = document.getElementById("dueList");
         this.syncFilterButtons(currentDueFilter);
+        this.renderSegTotals();
         // BILL-DUE of each open bill (voided and cleared bills owe nothing, #75)
         const dueTransactions = dueRows({
             purchases: AppState.purchaseHistory, retailSales: AppState.retailSalesHistory, wholesaleSales: AppState.salesHistory
@@ -206,6 +243,11 @@ export class OutstandingManager {
             return dateB - dateA;
         });
         
+        // Bills stay folded under the party rows until asked for (U-19): a party, an age group, a search or the toggle
+        container.hidden = shownTransactions.length > 0 && !this.billsShown();
+        const toggle = document.getElementById('dueBillsToggle');
+        if (toggle) toggle.setAttribute('aria-expanded', String(!container.hidden));
+
         if (shownTransactions.length === 0) {
             const message = t(partyBills.length > 0 ? 'ui.outstanding.no_bills_in_age_group'
                 : party ? 'ui.outstanding.nothing_for_party'
@@ -246,6 +288,8 @@ export class OutstandingManager {
                 </div>
                 <div class="history-date">${Helpers.formatDate(transaction.date)}${transaction.createdByName ? ` • ${byNameHtml(transaction.createdByName)}` : ''} ${ageBadge}</div>
                 ${openingOldTotals(transaction) ? `<div class="history-date">${tt('ui.outstanding.opening_balance', { total: formatAmount(openingOldTotals(transaction).total), paid: formatAmount(openingOldTotals(transaction).paid) })}</div>` : ''}
+                <details class="due-bill-more"${this.openBills.has(String(transaction.id)) ? ' open' : ''} data-ontoggle="outstanding.billMoreToggled('${id}', this.open)">
+                <summary class="btn btn-sm btn-ghost">${tt(isPurchase ? 'ui.outstanding.bill_pay_or_clear' : 'ui.outstanding.bill_receive_or_clear')} ${icon('chevD', 'i-sm')}</summary>
                 <div class="due-bill-body">
                     <div class="due-bill-line">
                         <span>${totalLabel}</span>
@@ -270,10 +314,55 @@ export class OutstandingManager {
                         ${transaction.transactionType === 'purchase' ? '' : `<button type="button" class="btn btn-sm btn-ghost due-write-off" data-write-off data-onclick="outstanding.writeOffDue('${id}', '${type}')">${tt('ui.outstanding.write_off_bad_debt')}</button>`}
                     </div>
                 </div>
+                </details>
             `;
             
             container.appendChild(div);
         });
+    }
+
+    /** Bills list shown on its own (U-19), and the bills whose Record / clear part is open (kept over redraws). */
+    static billsOpen = false;
+    static openBills = new Set();
+
+    static billsShown() {
+        const search = document.getElementById('outstandingSearchInput')?.value.trim();
+        return this.billsOpen || !!this.partyFilter || !!this.agingBucket || !!search;
+    }
+
+    static toggleBills() {
+        this.billsOpen = !this.billsShown();
+        if (!this.billsOpen) {
+            this.partyFilter = null;
+            this.agingBucket = null;
+        }
+        this.renderDue();
+    }
+
+    static billMoreToggled(id, open) {
+        if (open) this.openBills.add(String(id));
+        else this.openBills.delete(String(id));
+    }
+
+    /** A party row tapped: only that party's bills, shown (U-19). */
+    static openParty(partyKey) {
+        const { party } = this.findParty(partyKey);
+        if (!party) return;
+        this.partyFilter = { key: party.key, name: party.name || t('ui.outstanding.no_name') };
+        this.renderDue();
+        document.getElementById('dueList')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    }
+
+    /** Call a party whose bills carry a phone (U-20). */
+    static callParty(partyKey) {
+        const { party } = this.findParty(partyKey);
+        const phone = normalizePhone(party?.phone);
+        if (!phone) {
+            UIManager.showToast(t('msg.outstanding.no_phone'));
+            return false;
+        }
+        openExternal(`tel:+${phone}`);
+        return true;
     }
 
     /** Selected aging bucket key (null = all) and party sort, kept while the tab is open. */
@@ -324,33 +413,44 @@ export class OutstandingManager {
             kinds.get(k).add(b.transactionType);
         });
         const payType = (p) => (kinds.get(p.key)?.size === 1 ? [...kinds.get(p.key)][0] : null);
+        const canReceive = this.canReceiveFromParty();
         const chase = isPayable ? [] : chaseFirst(aging.parties);
+        // A chase row receives straight away when it can, else opens the party's bills (U-20)
+        const chaseTap = (p) => (canReceive && payType(p) ? `outstanding.receiveFromParty('${attr(p.key)}', '${attr(payType(p))}')` : `outstanding.openParty('${attr(p.key)}')`);
         const chaseHtml = isPayable ? '' : `
             <div class="aging-chase">
                 <h3 class="aging-subtitle">${tt('ui.outstanding.who_to_chase')}</h3>
                 ${chase.length ? `<ol class="panel">${chase.map(p => `
-                    <li class="row aging-b${p.bucket}"><span class="row-main"><strong>${partyName(p)}</strong> — ${moneyHtml(p.total)} · ${withMoney(t('ui.outstanding.party_overdue', { amount: formatRupees(p.overdue) }), p.overdue)}</span>
-                        <span class="aging-age tag${esc(AGE_TONE[p.bucket])} aging-b${p.bucket}">${tt('ui.outstanding.oldest', { age: daysText(p.oldestDays) })}</span></li>`).join('')}</ol>`
+                    <li class="row aging-b${p.bucket}"><button type="button" class="aging-chase-tap" data-onclick="${esc(chaseTap(p))}"><span class="row-main"><strong>${partyName(p)}</strong> — ${moneyHtml(p.total)} · ${withMoney(t('ui.outstanding.party_overdue', { amount: formatRupees(p.overdue) }), p.overdue)}</span>
+                        <span class="aging-age tag${esc(AGE_TONE[p.bucket])} aging-b${p.bucket}">${tt('ui.outstanding.oldest', { age: daysText(p.oldestDays) })}</span></button></li>`).join('')}</ol>`
                     : emptyState({ icon: 'check', tone: 'pos', title: t('ui.outstanding.no_one_owes') })}
             </div>`;
 
         const parties = sortParties(aging.parties, this.agingSort)
             .filter(p => !this.agingBucket || p.bills.some(b => AGING_BUCKETS[b.bucket].key === this.agingBucket));
-        const rows = parties.map(p => `
+        const rows = parties.map(p => {
+            const phone = normalizePhone(p.phone);
+            const more = `${isPayable ? '' : `<button type="button" class="btn btn-sm btn-ghost aging-remind" data-onclick="outstanding.sendReminder('${attr(p.key)}')">${icon('wa', 'i-sm i-fill')}${tt('ui.outstanding.remind')}</button>`}
+                        <button type="button" class="btn btn-sm btn-ghost" data-onclick="outstanding.printStatement('${attr(p.key)}')">${icon('file', 'i-sm')}${tt('ui.outstanding.statement')}</button>`;
+            return `
             <div class="aging-party row aging-b${p.bucket}">
                 <span class="lead-icon aging-avatar" data-initials="${esc(initials(p.name))}" aria-hidden="true">${p.name ? '' : icon('user')}</span>
-                <div class="aging-party-main">
-                    <div class="aging-party-name">${partyName(p)}${p.longOverdue ? ` <span class="aging-badge tag neg">${tt('ui.outstanding.long_overdue')}</span>` : ''}</div>
-                    <div class="aging-party-meta">${esc(billsText(p.bills.length))} · <span class="aging-oldest${esc(AGE_TEXT_TONE[p.bucket])}">${tt('ui.outstanding.oldest', { age: daysText(p.oldestDays) })}</span>${p.overdue > 0 ? ` · ${withMoney(t('ui.outstanding.party_overdue', { amount: formatRupees(p.overdue) }), p.overdue)}` : ''}</div>
-                </div>
+                <button type="button" class="aging-party-main" data-onclick="outstanding.openParty('${attr(p.key)}')">
+                    <span class="aging-party-name">${partyName(p)}${p.longOverdue ? ` <span class="aging-badge tag neg">${tt('ui.outstanding.long_overdue')}</span>` : ''}</span>
+                    <span class="aging-party-meta">${esc(billsText(p.bills.length))} · <span class="aging-oldest${esc(AGE_TEXT_TONE[p.bucket])}">${tt('ui.outstanding.oldest', { age: daysText(p.oldestDays) })}</span>${p.overdue > 0 ? ` · ${withMoney(t('ui.outstanding.party_overdue', { amount: formatRupees(p.overdue) }), p.overdue)}` : ''}</span>
+                </button>
                 <strong class="aging-party-total row-amt">${moneyHtml(p.total)}</strong>
                 <div class="aging-party-actions">
-                    ${!this.canReceiveFromParty() ? '' : payType(p) ? `<button type="button" class="btn btn-sm btn-tonal" data-party-pay data-onclick="outstanding.receiveFromParty('${attr(p.key)}', '${attr(payType(p))}')">${tt(isPayable ? 'ui.outstanding.party_pay_pay' : 'ui.outstanding.party_pay_receive')}</button>`
+                    ${!canReceive ? '' : payType(p) ? `<button type="button" class="btn btn-sm btn-tonal" data-party-pay data-onclick="outstanding.receiveFromParty('${attr(p.key)}', '${attr(payType(p))}')">${tt(isPayable ? 'ui.outstanding.party_pay_pay' : 'ui.outstanding.party_pay_receive')}</button>`
                         : `<span class="aging-party-meta">${tt('ui.outstanding.party_pay_pick_list')}</span>`}
-                    ${isPayable ? '' : `<button type="button" class="btn btn-sm aging-remind" data-onclick="outstanding.sendReminder('${attr(p.key)}')">${icon('wa', 'i-sm i-fill')}${tt('ui.outstanding.remind')}</button>`}
-                    <button type="button" class="btn btn-sm" data-onclick="outstanding.printStatement('${attr(p.key)}')">${icon('file', 'i-sm')}${tt('ui.outstanding.statement')}</button>
+                    ${phone ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-party-call data-onclick="outstanding.callParty('${attr(p.key)}')" aria-label="${tt('ui.outstanding.call_name', { name: p.name || '' })}">${icon('phone', 'i-sm')}</button>` : ''}
+                    <details class="aging-more">
+                        <summary class="btn btn-sm btn-ghost btn-icon" aria-label="${tt('ui.outstanding.more_actions')}">${icon('dots', 'i-sm')}</summary>
+                        <div class="aging-more-menu">${more}</div>
+                    </details>
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
 
         const sortBtn = (by, label) => `<button type="button"${this.agingSort === by ? ' class="active"' : ''} aria-pressed="${this.agingSort === by}" data-onclick="outstanding.setAgingSort('${by}')">${label}</button>`;
 
@@ -372,7 +472,7 @@ export class OutstandingManager {
                     <div class="aging-sort"><span id="dueAgingSortLabel">${tt('ui.outstanding.sort')}</span> <div class="seg" role="group" aria-labelledby="dueAgingSortLabel">${sortBtn('amount', tt('ui.outstanding.sort_amount'))} ${sortBtn('age', tt('ui.outstanding.sort_oldest'))}</div></div>
                     <div id="dueAgingParties" class="panel">${rows}</div>
                 </details>
-                <h3 class="aging-subtitle aging-bills-title">${tt('ui.outstanding.bills_title')}</h3>
+                <h3 class="aging-subtitle aging-bills-title"><button type="button" class="aging-bills-toggle" id="dueBillsToggle" aria-controls="dueList" aria-expanded="${this.billsShown() ? 'true' : 'false'}" data-onclick="outstanding.toggleBills()">${tt('ui.outstanding.bills_count', { count: bills.length })} ${icon('chevD', 'i-sm')}</button></h3>
             </div>`;
     }
 
@@ -1110,9 +1210,9 @@ export class OutstandingManager {
         return { settled, total: sumMoney(settled, s => s.amount) };
     }
 
-    /** "Receive payment" from a party over their bills (#152): owner and managers, like Complete all due. */
+    /** "Receive payment" from a party over their bills (#152); Members too (U-20): every role may record a payment. */
     static canReceiveFromParty() {
-        return AppState.userRole === 'owner' || AppState.userRole === 'manager';
+        return ['owner', 'manager', 'staff'].includes(AppState.userRole);
     }
 
     /** The bills of one Outstanding list (wholesale: the sales-tab bills). */
@@ -1155,20 +1255,35 @@ export class OutstandingManager {
         const esc = (v) => Helpers.escapeHtml(String(v ?? ''));
         const name = String(chosen[0].bill.customerName || '').trim();
         const rows = chosen.map((x, i) => `<tr>
-                <td>${esc(x.bill.billNumber || String(x.bill.id))}<br><small>${esc(Helpers.formatDate(billDateOf(x.bill) || x.bill.date))}</small></td>
+                <td>${esc(Helpers.formatDate(billDateOf(x.bill) || x.bill.date))}<br><small class="due-pp-billno">${esc(x.bill.billNumber || String(x.bill.id))}</small></td>
                 <td class="num">${moneyHtml(x.due, { decimals: hasPaise(x.due) ? 2 : 0 })}</td>
                 <td class="num"><input type="number" class="input due-pp-part" inputmode="decimal" min="0" step="0.01" id="ppPart-${i}" data-party-part
                     data-oninput="outstanding.partyPaySum()" aria-label="${esc(t('ui.outstanding.party_pay_part', { bill: x.bill.billNumber || '' }))}"></td></tr>`).join('');
         const isPay = billType === 'purchase';
+        const full = sumMoney(chosen, x => x.due);
+        const quick = (what, key, amount) => `<button type="button" class="chip" data-onclick="outstanding.partyPayQuick('${esc(what)}')">${esc(t(key, { amount: paiseText(amount) }))}</button>`;
         const html = `
             <div class="due-dlg">
-                <div><strong>${esc(name)}</strong><br>${esc(t('ui.outstanding.party_pay_summary', { count: chosen.length, total: paiseText(sumMoney(chosen, x => x.due)) }))}</div>
-                ${chosen.length < all ? `<div>${esc(t('ui.outstanding.party_pay_oldest', { count: chosen.length, all }))}</div>` : ''}
-                <label class="field">${esc(t(isPay ? 'ui.outstanding.party_pay_amount_paid' : 'ui.outstanding.party_pay_amount_received'))}
-                    <input type="number" class="input" inputmode="decimal" min="0" step="1" id="ppAmount" required data-oninput="outstanding.partyPayFill()"></label>
-                <div class="due-dlg-head">${esc(t('ui.outstanding.party_pay_how'))}</div>
-                <label class="due-dlg-opt"><input type="radio" name="partyPayMethod" value="cash"> ${esc(t('ui.wholesale.complete_all_due_cash'))}</label>
-                <label class="due-dlg-opt"><input type="radio" name="partyPayMethod" value="online"> ${esc(t('ui.wholesale.complete_all_due_online'))}</label>
+                <div><strong>${esc(name)}</strong><br>${esc(tn('ui.outstanding.party_pay_summary', chosen.length, { total: paiseText(full) }))}</div>
+                ${chosen.length < all ? `<div>${esc(tn('ui.outstanding.party_pay_oldest', chosen.length, { all }))}</div>` : ''}
+                <div class="field">
+                    <label for="ppAmount">${esc(t(isPay ? 'ui.outstanding.party_pay_amount_paid' : 'ui.outstanding.party_pay_amount_received'))}</label>
+                    <input type="number" class="input" inputmode="decimal" min="0" step="1" id="ppAmount" required aria-describedby="ppAmountError" data-oninput="outstanding.partyPayFill()">
+                    <div class="field-error" id="ppAmountError" role="alert" hidden></div>
+                </div>
+                <div class="chips due-pp-chips">${quick('full', 'ui.outstanding.party_pay_full', full)}${chosen.length > 1 ? quick('oldest', 'ui.outstanding.party_pay_oldest_bill', dues[0]) : ''}</div>
+                <div class="due-dlg-head" id="ppHowLabel">${esc(t('ui.outstanding.party_pay_how'))}</div>
+                <div role="radiogroup" aria-labelledby="ppHowLabel" data-onchange="outstanding.partyPaySplitShow()">
+                    <label class="due-dlg-opt"><input type="radio" name="partyPayMethod" value="cash"> ${esc(t('ui.wholesale.complete_all_due_cash'))}</label>
+                    <label class="due-dlg-opt"><input type="radio" name="partyPayMethod" value="online"> ${esc(t('ui.wholesale.complete_all_due_online'))}</label>
+                    <label class="due-dlg-opt"><input type="radio" name="partyPayMethod" value="split"> ${esc(t('ui.outstanding.party_pay_split'))}</label>
+                </div>
+                <div class="field" id="ppCashField" hidden>
+                    <label for="ppCash">${esc(t('ui.outstanding.party_pay_cash_part'))}</label>
+                    <input type="number" class="input" inputmode="decimal" min="0" step="1" id="ppCash" aria-describedby="ppOnlineRest" data-oninput="outstanding.partyPaySum()">
+                    <div class="row-meta" id="ppOnlineRest" role="status"></div>
+                </div>
+                <div class="field-error" id="ppMethodError" role="alert" hidden></div>
                 <div class="due-dlg-note">${esc(t('ui.outstanding.party_pay_oldest_first'))}</div>
                 <table class="table due-pp-table">
                     <thead><tr><th>${esc(t('ui.outstanding.party_pay_col_bill'))}</th><th class="num">${esc(t('ui.outstanding.party_pay_col_due'))}</th><th class="num">${esc(t('ui.outstanding.party_pay_col_part'))}</th></tr></thead>
@@ -1176,7 +1291,8 @@ export class OutstandingManager {
                 </table>
                 <div id="ppSum" class="due-dlg-head" role="status"></div>
             </div>`;
-        const ok = await UIManager.showModalWithHtml(html, t(isPay ? 'ui.outstanding.party_pay_title_pay' : 'ui.outstanding.party_pay_title_receive'), true, { confirmLabel: t('ui.confirm.record_payment') });
+        const ok = await UIManager.showModalWithHtml(html, t(isPay ? 'ui.outstanding.party_pay_title_pay' : 'ui.outstanding.party_pay_title_receive'), true,
+            { confirmLabel: t('ui.confirm.record_payment'), validate: () => this.partyPayValidate() });
         if (!ok) return;
         const method = document.querySelector('input[name="partyPayMethod"]:checked')?.value || '';
         const check = this.partyPayCheck();
@@ -1189,9 +1305,64 @@ export class OutstandingManager {
             return;
         }
         const picked = chosen.map((x, i) => ({ bill: x.bill, due: x.due, amount: check.amounts[i] })).filter(x => x.amount > 0);
-        if (await this.partyLandedBeforeSend(billType, name, picked, method)) return;
+        let cashParts = null;
+        if (method === 'split') {
+            const cash = this.partyPayCash(check.total);
+            if (cash === null) {
+                UIManager.showToast(t('msg.outstanding.party_pay_cash_too_much'));
+                return;
+            }
+            cashParts = splitCashOldestFirst(picked.map(x => x.amount), cash);
+        }
+        if (await this.partyLandedBeforeSend(billType, name, picked, method, cashParts)) return;
         await Helpers.runExclusive('due-payment', `${RECORD_PAYMENT_BUTTONS}, [data-complete-all], [data-party-pay]`,
-            () => this._receiveFromParty(billType, name, picked, method));
+            () => this._receiveFromParty(billType, name, picked, method, cashParts));
+    }
+
+    /** The cash typed for a split (U-68); null when more than the total. */
+    static partyPayCash(total) {
+        return splitCash(document.getElementById('ppCash')?.value ?? '', total, PAYMENT_TOLERANCE);
+    }
+
+    /** Dialog: "Full ₹X" / "Oldest bill ₹Y" fill the amount. */
+    static partyPayQuick(what) {
+        const amount = quickAmount(this.partyPay?.dues || [], what === 'oldest' ? 'oldest' : 'full');
+        const el = document.getElementById('ppAmount');
+        if (!el || !amount) return;
+        el.value = String(amount);
+        this.partyPayFill();
+    }
+
+    /** Dialog: the cash box shows only for a split. */
+    static partyPaySplitShow() {
+        const split = document.querySelector('input[name="partyPayMethod"]:checked')?.value === 'split';
+        const box = document.getElementById('ppCashField');
+        if (box) box.hidden = !split;
+        const err = document.getElementById('ppMethodError');
+        if (err) err.hidden = true;
+        this.partyPaySum();
+    }
+
+    /** On Record payment: what is wrong is said under its field and the dialog stays open (U-68). */
+    static partyPayValidate() {
+        const show = (id, text, input) => {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = text || ''; el.hidden = !text; }
+            const field = input && document.getElementById(input);
+            if (field) {
+                if (text) field.setAttribute('aria-invalid', 'true');
+                else field.removeAttribute('aria-invalid');
+            }
+        };
+        const check = this.partyPayCheck();
+        show('ppAmountError', check.ok ? '' : this.partyPayProblem(check), 'ppAmount');
+        const method = document.querySelector('input[name="partyPayMethod"]:checked')?.value || '';
+        const methodText = !method ? t('msg.outstanding.choose_how_due_was_settled')
+            : method === 'split' && check.ok && this.partyPayCash(check.total) === null ? t('msg.outstanding.party_pay_cash_too_much') : '';
+        show('ppMethodError', methodText, method === 'split' ? 'ppCash' : null);
+        const bad = !check.ok ? 'ppAmount' : methodText ? (method === 'split' ? 'ppCash' : null) : null;
+        if (bad) document.getElementById(bad)?.focus();
+        return check.ok && !methodText;
     }
 
     /** Dialog: the amount typed fills the bills oldest first (DUE-FIFO). */
@@ -1229,6 +1400,11 @@ export class OutstandingManager {
         const el = document.getElementById('ppSum');
         if (!el) return;
         const check = this.partyPayCheck();
+        const rest = document.getElementById('ppOnlineRest');
+        if (rest) {
+            const cash = check.ok ? this.partyPayCash(check.total) : null;
+            rest.textContent = cash === null ? '' : t('ui.outstanding.party_pay_online_rest', { amount: paiseText(onlineRest(check.total, cash)) });
+        }
         el.textContent = check.ok
             ? t('ui.outstanding.party_pay_total', { total: paiseText(check.total) })
                 + (check.excess > 0 ? ` · ${t(check.allFull ? 'ui.outstanding.party_pay_more_than_due' : 'ui.outstanding.party_pay_paise_left', { amount: paiseText(check.excess) })}` : '')
@@ -1239,8 +1415,9 @@ export class OutstandingManager {
      * Intent key of a party payment (#70, D-1): same list, party, method and total. Not the split:
      * once a lost payment lands, the same amount fills the bills differently (DUE-FIFO).
      */
-    static partyPayKey(billType, name, picked, method) {
-        return paymentIntentKey({ kind: 'party', billType, billId: partyNameKey(name), cash: sumMoney(picked, x => x.amount), parts: [method] });
+    static partyPayKey(billType, name, picked, method, cashParts = null) {
+        const parts = cashParts ? [method, sumMoney(cashParts, x => x)] : [method];
+        return paymentIntentKey({ kind: 'party', billType, billId: partyNameKey(name), cash: sumMoney(picked, x => x.amount), parts });
     }
 
     /** Document id of a bill (a legacy doc may carry another `id` field). */
@@ -1256,8 +1433,8 @@ export class OutstandingManager {
      * reported as already recorded; later the user is asked (D-1).
      * @returns {Promise<boolean>} true when nothing is to be sent
      */
-    static async partyLandedBeforeSend(billType, name, picked, method) {
-        const key = this.partyPayKey(billType, name, picked, method);
+    static async partyLandedBeforeSend(billType, name, picked, method, cashParts = null) {
+        const key = this.partyPayKey(billType, name, picked, method, cashParts);
         const open = pendingPaymentIntent(key);
         if (!open) return false;
         let entry = null;
@@ -1287,14 +1464,14 @@ export class OutstandingManager {
         return true;
     }
 
-    static async _receiveFromParty(billType, name, picked, method) {
+    static async _receiveFromParty(billType, name, picked, method, cashParts = null) {
         let result;
-        const key = this.partyPayKey(billType, name, picked, method);
+        const key = this.partyPayKey(billType, name, picked, method, cashParts);
         const sum = sumMoney(picked, x => x.amount);
         const total = formatAmount(sum, { exact: true });
         const entryIds = paymentIntentIds(key, picked.map(x => this.docIdOf(x.bill)));
         try {
-            result = await this.receivePartyPayment(billType, picked.map(x => x.bill), picked.map(x => x.amount), method, entryIds, { name });
+            result = await this.receivePartyPayment(billType, picked.map(x => x.bill), picked.map(x => x.amount), method, entryIds, { name, cashParts });
         } catch (error) {
             console.error('Party payment failed:', error);
             if (paymentOutcomeUnknown(error)) {
@@ -1306,7 +1483,7 @@ export class OutstandingManager {
                     ? true : await readBillFromServer(COLLECTION_BY_TYPE[billType] || 'wholesaleSales', docId);
                 if (server === true || (server && paymentEntryOf(server, entryIds[0]))) {
                     settlePaymentIntent(key);
-                    UIManager.showToast(t('msg.outstanding.party_pay_done', { count: picked.length, total: paiseText(sum) }));
+                    UIManager.showToast(tn('msg.outstanding.party_pay_done', picked.length, { total: paiseText(sum) }));
                     UIManager.hapticFeedback('light');
                 } else {
                     UIManager.showToast(t(server === null ? 'msg.outstanding.payment_unconfirmed' : 'msg.outstanding.payment_not_saved', { total }));
@@ -1324,7 +1501,7 @@ export class OutstandingManager {
         settlePaymentIntent(key);
         const { settled } = result;
         settled.forEach(s => Object.assign(s.bill, s.fields));
-        UIManager.showToast(t('msg.outstanding.party_pay_done', { count: settled.length, total: paiseText(result.total) }));
+        UIManager.showToast(tn('msg.outstanding.party_pay_done', settled.length, { total: paiseText(result.total) }));
         UIManager.hapticFeedback('light');
         try {
             this.refreshAfterPayment();
@@ -1343,13 +1520,13 @@ export class OutstandingManager {
      * @param {'purchase'|'retail'|'wholesale'} billType
      * @param {Object[]} bills
      * @param {number[]} amounts - > 0, same order
-     * @param {'cash'|'online'} method
+     * @param {'cash'|'online'|'split'} method - split: `opts.cashParts[i]` of each part in cash, the rest online
      * @param {string[]} [entryIds] - reused when the same payment is retried (#70)
-     * @param {{name?: string}} [opts] - `name`: the party, for the audit entry written in the same
+     * @param {{name?: string, cashParts?: ?number[]}} [opts] - `name`: the party, for the audit entry written in the same
      *   transaction (id `pay_<first entry id>`, D-3); none without it
      * @returns {Promise<{settled: Array<{bill: Object, amount: number, fields: Object}>, total: number}>}
      */
-    static async receivePartyPayment(billType, bills, amounts, method, entryIds = null, { name = null } = {}) {
+    static async receivePartyPayment(billType, bills, amounts, method, entryIds = null, { name = null, cashParts = null } = {}) {
         const collKey = COLLECTION_BY_TYPE[billType] || 'wholesaleSales';
         const at = Date.now();
         const recordedBy = AppState.userName || (AppState.currentUser ? AppState.currentUser.email : 'Unknown');
@@ -1370,7 +1547,7 @@ export class OutstandingManager {
                     return;
                 }
                 const amount = round2(amounts[i]);
-                const parts = method === 'online' ? { cash: 0, online: amount } : { cash: amount, online: 0 };
+                const parts = paymentParts(method, amount, cashParts?.[i]);
                 const entry = { id: ids[i], at, amount, ...parts, date: Helpers.getCurrentDateTime(), recordedBy, recordedById, bulk: true };
                 const out = duePaymentUpdate(fresh, parts, entry, PAYMENT_TOLERANCE);
                 if (!out.ok || fresh.cleared) throw Object.assign(new Error('A due changed'), { code: 'due-changed' });

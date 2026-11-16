@@ -16,12 +16,18 @@ import { verifyBackup, verifyBackupText, recordDrill, readLimited } from '../uti
 import { userCounts, activityByUser, activityRange, ACTIVITY_RANGES } from '../utils/user-activity.js';
 import { historyLoadedFrom } from '../utils/history-window.js';
 import { getLang } from '../i18n/index.js';
+import { friendlyError } from '../utils/friendly-error.js';
 import { buildBackup, isDeleteConfirmed, DELETE_CONFIRM_WORD, canClearCollection } from '../utils/data-export.js';
-import { t } from '../i18n/index.js';
+import { t, tn } from '../i18n/index.js';
 import { UserAdmin, isRemovedProfile, logUserAction } from '../services/user-admin.js';
 import { icon } from '../ui/icons.js';
-import { ROLE_CHOICES, roleChangeCheck, activeOwnerIds } from '../utils/owner-roles.js';
+import { ROLE_CHOICES, roleChangeCheck, activeOwnerIds, isActiveOwner, isFounderLocked, canHandOverFirstOwner } from '../utils/owner-roles.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
+import { setPendingJoins } from '../utils/owner-alerts.js';
+import { FIRST_RUN_TEAM_KEY } from '../utils/first-run.js';
+import { safeSetItem } from '../utils/storage-full.js';
+import { normalizeUsername, rolesFor, validPin, workerEmail, workerUsername } from '../utils/worker-accounts.js';
+import { createWorkerAccount, workerEmailDomain } from '../firebase/repos/users.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
 /** Most audit entries the activity report reads per tap. */
@@ -35,7 +41,8 @@ const BACKUP_READ_CODES = ['too_big', 'encrypted', 'gzip'];
 const ROLE_REFUSALS = {
     last_owner: 'msg.owners.last_owner',
     pending: 'msg.owners.approve_first',
-    own_account: 'msg.users.cannot_change_own_account'
+    own_account: 'msg.users.cannot_change_own_account',
+    founder: 'msg.owners.founder_locked'
 };
 
 /**
@@ -119,7 +126,8 @@ const AdminManager = {
     },
 
     /**
-     * Render Users tab
+     * Admin › Users: the counts, where people are managed (Settings › Team, U-54) and the
+     * per-person activity report.
      */
     async renderUsers() {
         const container = document.getElementById('adminContainer');
@@ -127,26 +135,9 @@ const AdminManager = {
 
         container.innerHTML = `
             <p class="admin-hint" id="adminUserCounts"></p>
-            <section class="admin-section">
-                <h3>${tx('ui.users.pending_registrations')}</h3>
-                <p class="admin-hint">${tx('ui.users.approve_new_users_and_assign')}</p>
-                <div class="panel" id="adminPendingUsers">
-                    <p class="empty">${tx('ui.navigation.loading')}</p>
-                </div>
-            </section>
-
-            <section class="admin-section">
-                <h3>${tx('ui.users.active_users')}</h3>
-                <p class="admin-hint">${tx('ui.users.manage_existing_user_roles')}</p>
-                <div class="panel" id="adminActiveUsers">
-                    <p class="empty">${tx('ui.navigation.loading')}</p>
-                </div>
-            </section>
-
-            <section class="admin-section" id="adminRemovedCard" hidden>
-                <h3>${tx('ui.admin.removed_users')}</h3>
-                <p class="admin-hint">${tx('ui.admin.removed_users_hint')}</p>
-                <div class="panel" id="adminRemovedUsers"></div>
+            <section class="admin-section" id="adminTeamLink">
+                <p class="admin-hint">${tx('ui.admin.people_in_team')}</p>
+                <button type="button" class="btn btn-tonal" data-onclick="nav.showTab('settings-team', event)">${icon('users', 'i-sm')} ${tx('ui.admin.open_team')}</button>
             </section>
 
             <section class="admin-section" id="adminActivityCard">
@@ -160,6 +151,101 @@ const AdminManager = {
         `;
 
         await this.loadUsers();
+    },
+
+    /** The people lists: waiting to join, people, removed (their containers; loadUsers fills them). */
+    peopleListsHtml() {
+        return `
+            <section class="admin-section" id="teamWaitingCard">
+                <h4 class="set-subtitle">${tx('ui.team.waiting_to_join')}</h4>
+                <p class="admin-hint">${tx('ui.users.approve_new_users_and_assign')}</p>
+                <div class="panel" id="adminPendingUsers">
+                    <p class="empty">${tx('ui.navigation.loading')}</p>
+                </div>
+            </section>
+
+            <section class="admin-section">
+                <h4 class="set-subtitle">${tx('ui.users.active_users')}</h4>
+                <p class="admin-hint">${tx('ui.users.manage_existing_user_roles')}</p>
+                <div class="panel" id="adminActiveUsers">
+                    <p class="empty">${tx('ui.navigation.loading')}</p>
+                </div>
+            </section>
+
+            <section class="admin-section" id="adminRemovedCard" hidden>
+                <h4 class="set-subtitle">${tx('ui.admin.removed_users')}</h4>
+                <p class="admin-hint">${tx('ui.admin.removed_users_hint')}</p>
+                <div class="panel" id="adminRemovedUsers"></div>
+            </section>`;
+    },
+
+    /**
+     * Settings › Team (U-54): the one place where the owner approves, changes, resets and removes
+     * people. One users read, when the group opens.
+     * @returns {Promise<boolean>}
+     */
+    async renderTeam() {
+        const card = document.getElementById('teamPeopleCard');
+        const host = document.getElementById('teamPeople');
+        const owner = AppState.userRole === 'owner';
+        if (card) card.hidden = !owner;
+        if (!host || !owner) return false;
+        safeSetItem(`${FIRST_RUN_TEAM_KEY}.${AppState.currentUser?.uid || ''}`, '1');
+        host.innerHTML = this.peopleListsHtml();
+        await this.loadUsers();
+        return true;
+    },
+
+    /**
+     * Settings › Team › Add a worker without email (U-56): a username and a PIN make the worker's
+     * sign-in (createWorkerAccount, in a second app so the owner stays signed in); the owner then
+     * approves it with the chosen role, as any registration. Needs the internet.
+     * @returns {Promise<boolean>} true when the account was made and approved
+     */
+    async addWorker() {
+        if (AppState.userRole !== 'owner') return false;
+        const $ = (id) => /** @type {HTMLInputElement|null} */ (document.getElementById(id));
+        const msg = $('teamWorkerMessage');
+        const say = (key, params, tone = 'neg') => {
+            if (!msg) return;
+            msg.hidden = false;
+            msg.className = `notice ${tone}`;
+            msg.textContent = t(key, params);
+        };
+        const name = ($('teamWorkerName')?.value || '').trim();
+        const username = normalizeUsername($('teamWorkerUser')?.value);
+        const pin = $('teamWorkerPin')?.value || '';
+        const role = 'staff';
+        if (!name) { say('msg.team.enter_name'); $('teamWorkerName')?.focus(); return false; }
+        if (!username) { say('msg.team.bad_username'); $('teamWorkerUser')?.focus(); return false; }
+        if (!validPin(pin)) { say('msg.team.bad_pin'); $('teamWorkerPin')?.focus(); return false; }
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) { say('msg.team.needs_internet'); return false; }
+        const button = $('teamWorkerSubmit');
+        if (button) button.disabled = true;
+        try {
+            const uid = await createWorkerAccount({ email: workerEmail(username, workerEmailDomain()), password: pin, name });
+            await FirebaseService.updateUser(uid, {
+                status: 'active',
+                role,
+                approvedAt: FirebaseService.serverTimestamp(),
+                approvedBy: AppState.currentUser?.uid
+            });
+            logUserAction(AuditService.ACTIONS.APPROVE_USER, { targetUserId: uid, role, workerAccount: true });
+            ['teamWorkerName', 'teamWorkerUser', 'teamWorkerPin'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+            say('msg.team.worker_added', { name, username }, 'pos');
+            await this.loadUsers();
+            return true;
+        } catch (error) {
+            console.error('Worker account not made:', error?.code || error);
+            const code = String(error?.code || '');
+            say(code === 'auth/email-already-in-use' ? 'msg.team.username_taken'
+                : code === 'auth/network-request-failed' ? 'msg.team.needs_internet'
+                    : code === 'auth/invalid-email' ? 'msg.team.bad_username'
+                        : 'msg.team.not_made', { code: code || 'unknown' });
+            return false;
+        } finally {
+            if (button) button.disabled = false;
+        }
     },
 
     /**
@@ -187,6 +273,8 @@ const AdminManager = {
             });
 
             this.users = users;
+            setPendingJoins(pendingUsers.length);
+            this.firstOwnerUid = await this.readFirstOwner();
             this.renderCounts(users);
             this.renderPendingUsers(pendingUsers);
             this.renderActiveUsers(activeUsers);
@@ -222,7 +310,7 @@ const AdminManager = {
                 <div class="row">
                     <div class="row-main">
                         <div class="row-title">${Helpers.escapeHtml(user.name || t('ui.reports.unknown'))}${isMe ? ` <span class="tag">${tx('ui.admin.you')}</span>` : ''}</div>
-                        <div class="row-meta">${Helpers.escapeHtml(user.email || '')}</div>
+                        <div class="row-meta">${Helpers.escapeHtml(workerUsername(user.email) ? t('ui.team.username_is', { username: workerUsername(user.email) }) : (user.email || ''))}</div>
                     </div>
                     <div class="row-trail">${this.userTagHtml(user, kind)}</div>
                 </div>
@@ -239,11 +327,28 @@ const AdminManager = {
                 </div>`;
     },
 
-    /** The person's status (pending, removed / rejected) or role. */
+    /** settings/team.firstOwnerUid (owner), or null when it can't be read: the rules still protect them. */
+    async readFirstOwner() {
+        if (AppState.userRole !== 'owner') return null;
+        try {
+            return await FirebaseService.loadFirstOwner();
+        } catch (e) {
+            console.warn('First owner not read:', e?.code || e);
+            return null;
+        }
+    },
+
+    /** True when this row is the first owner (an active owner). */
+    isFounder(user) {
+        return !!this.firstOwnerUid && user?.id === this.firstOwnerUid && isActiveOwner(user);
+    },
+
+    /** The person's status (pending, removed / rejected) or role; the first owner also gets "Founder". */
     userTagHtml(user, kind) {
         if (kind === 'removed') return `<span class="tag neg">${tx(user.status === 'rejected' ? 'ui.admin.status_rejected' : 'ui.admin.status_removed')}</span>`;
         if (kind === 'pending') return `<span class="tag warn">${tx('ui.admin.pending')}</span>`;
-        return `<span class="tag${user.role === 'owner' ? ' info' : ''}">${Helpers.escapeHtml(Helpers.roleLabel(user.role))}</span>`;
+        const founder = this.isFounder(user) ? `<span class="tag">${tx('ui.owners.founder')}</span> ` : '';
+        return `${founder}<span class="tag${user.role === 'owner' ? ' info' : ''}">${Helpers.escapeHtml(Helpers.roleLabel(user.role))}</span>`;
     },
 
     /** Restore (removed), role + Approve / Reject (pending), Edit role / Reset password / Delete (active). */
@@ -261,7 +366,7 @@ const AdminManager = {
             return `<div class="admin-user-actions">
                     <select class="input admin-role-pick" id="role-${Helpers.escapeHtml(user.id)}">
                         <option value="staff">${Helpers.escapeHtml(Helpers.roleLabel('staff'))}</option>
-                        <option value="manager">${Helpers.escapeHtml(Helpers.roleLabel('manager'))}</option>
+                        ${rolesFor(user.email).includes('manager') ? `<option value="manager">${Helpers.escapeHtml(Helpers.roleLabel('manager'))}</option>` : ''}
                     </select>
                     <button type="button" class="btn btn-sm btn-tonal btn-approve" data-onclick="admin.approveUser('${id}')">
                         ${icon('check', 'i-sm')} ${tx('ui.admin.approve')}
@@ -271,21 +376,69 @@ const AdminManager = {
                     </button>
                 </div>`;
         }
-        return `<div class="admin-user-actions">
-                    <button type="button" class="btn btn-sm btn-tonal" data-onclick="admin.showChangeRole('${id}', '${safeName}', '${Helpers.escapeJsAttr(user.role)}')">
-                        ${icon('sliders', 'i-sm')} ${tx('ui.admin.edit_role')}
-                    </button>
-                    <button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
+        const canChangeRole = user.role !== 'staff' || rolesFor(user.email).length > 1;
+        const me = AppState.currentUser?.uid;
+        const reset = workerUsername(user.email) ? '' : `<button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
                         ${icon('lock', 'i-sm')} ${tx('ui.admin.reset_password')}
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger" data-onclick="admin.deleteUser('${id}', '${safeName}')">
-                        ${icon('trash', 'i-sm')} ${tx('ui.modals.delete')}
+                    </button>`;
+        if (isFounderLocked(user, this.firstOwnerUid, me)) {
+            return `<div class="admin-user-actions">
+                    ${reset}
+                </div>
+                <p class="admin-hint">${tx('msg.owners.founder_locked')}</p>`;
+        }
+        const handOver = canHandOverFirstOwner({ actor: { id: me, role: AppState.userRole }, target: user, firstOwnerUid: this.firstOwnerUid })
+            ? `<button type="button" class="btn btn-sm" data-onclick="admin.handOverFirstOwner('${id}', '${safeName}')">
+                        ${icon('user', 'i-sm')} ${tx('ui.owners.make_founder')}
+                    </button>`
+            : '';
+        return `<div class="admin-user-actions">
+                    ${canChangeRole ? `<button type="button" class="btn btn-sm btn-tonal" data-onclick="admin.showChangeRole('${id}', '${safeName}', '${Helpers.escapeJsAttr(user.role)}')">
+                        ${icon('sliders', 'i-sm')} ${tx('ui.admin.edit_role')}
+                    </button>` : ''}
+                    ${handOver}
+                    ${reset}
+                    <button type="button" class="btn btn-sm btn-danger-outline" data-onclick="admin.deleteUser('${id}', '${safeName}')">
+                        ${icon('x', 'i-sm')} ${tx('ui.confirm.delete_user')}
                     </button>
                 </div>`;
     },
 
+    /**
+     * The first owner hands "Founder" to another owner (confirmation first); afterwards only that owner
+     * can change or remove themself, and this owner is no longer protected.
+     * @returns {Promise<boolean>} true when handed over
+     */
+    async handOverFirstOwner(userId, userName) {
+        const actor = { id: AppState.currentUser?.uid, role: AppState.userRole };
+        const target = (this.users || []).find(u => u.id === userId);
+        if (!canHandOverFirstOwner({ actor, target, firstOwnerUid: this.firstOwnerUid })) {
+            UIManager.showToast(t('msg.common.access_denied'), 'error');
+            return false;
+        }
+        const ok = await UIManager.showModal(t('msg.owners.confirm_make_founder', { userName: userName || '' }),
+            t('ui.owners.make_founder'), true, { confirmLabel: t('ui.owners.make_founder'), danger: true });
+        if (!ok) return false;
+        try {
+            UIManager.showLoading();
+            await FirebaseService.handOverFirstOwner(userId);
+            logUserAction(AuditService.ACTIONS.CHANGE_USER_ROLE, { targetUserId: userId, targetName: userName || '', from: 'owner', to: 'founder' });
+            UIManager.showToast(t('msg.owners.founder_handed', { userName: userName || '' }));
+            await this.loadUsers();
+            return true;
+        } catch (error) {
+            console.error('Error handing over the first owner:', error);
+            UIManager.showToast(t('msg.common.failed_change_role'), 'error');
+            return false;
+        } finally {
+            UIManager.hideLoading();
+        }
+    },
+
     /** People loaded for the Users tab (names for the activity report). */
     users: [],
+    /** settings/team.firstOwnerUid as loaded with the people (owner). */
+    firstOwnerUid: null,
     activitySeq: 0,
 
     /** ADM-1: counts by role, pending and removed, from the list already loaded. */
@@ -386,7 +539,8 @@ const AdminManager = {
      */
     async approveUser(userId) {
         const roleSelect = document.getElementById(`role-${userId}`);
-        const role = roleSelect?.value || 'staff';
+        const person = this.users.find(u => u.id === userId);
+        const role = rolesFor(person?.email).includes(roleSelect?.value) ? roleSelect.value : 'staff';
 
         try {
             UIManager.showLoading();
@@ -445,9 +599,13 @@ const AdminManager = {
         }
         const target = (this.users || []).find(u => u.id === userId) || { id: userId, name: userName, role: currentRole, status: 'active' };
         const from = target.role || currentRole;
-        const next = await this.pickRole(userName, from);
+        const next = await this.pickRole(userName, from, target.email);
         if (!next || next === from) return false;
-        const check = roleChangeCheck({ actor, target, next, users: this.users });
+        if (next !== 'staff' && workerUsername(target.email)) {
+            UIManager.showToast(t('msg.team.member_only'), 'warning');
+            return false;
+        }
+        const check = roleChangeCheck({ actor, target, next, users: this.users, firstOwnerUid: this.firstOwnerUid });
         if (!check.ok) {
             UIManager.showToast(t(ROLE_REFUSALS[check.reason] || 'msg.common.access_denied'), 'error');
             return false;
@@ -460,7 +618,8 @@ const AdminManager = {
                 const listed = await FirebaseService.ensureOwnersListed(activeOwnerIds(this.users));
                 if (!listed.some(id => id !== userId)) throw Object.assign(new Error('last owner'), { code: 'last-owner' });
             }
-            await FirebaseService.changeUserRole(userId, { role: next }, ownerChange);
+            await FirebaseService.changeUserRole(userId, { role: next }, ownerChange,
+                check.kind === 'demote' ? { notifyRole: next } : {});
             logUserAction(AuditService.ACTIONS.CHANGE_USER_ROLE, { targetUserId: userId, targetName: userName || '', from, to: next });
             if (check.kind === 'step_down') {
                 UIManager.showToast(t('msg.owners.stepped_down', { roleLabel: Helpers.roleLabel(next) }));
@@ -485,13 +644,15 @@ const AdminManager = {
     },
 
     /**
-     * The role choice: Member / Manager / Owner, the current one marked.
+     * The role choice: Member / Manager / Owner, the current one marked. A sign-in without email (U-56) is
+     * only offered Member.
      * @returns {Promise<string|null>} the role picked, null on Cancel
      */
-    pickRole(userName, current) {
+    pickRole(userName, current, email) {
         const html = `<h3 class="dialog-title">${tx('ui.owners.pick_title', { userName: userName || '' })}</h3>
             <p>${tx('ui.owners.pick_hint')}</p>`;
-        const buttons = ROLE_CHOICES.map(role => ({
+        const choices = workerUsername(email) ? ROLE_CHOICES.filter(role => role === 'staff' || role === current) : ROLE_CHOICES;
+        const buttons = choices.map(role => ({
             text: role === current ? t('ui.owners.role_now', { roleLabel: Helpers.roleLabel(role) }) : Helpers.roleLabel(role),
             value: role,
             class: role === current ? 'btn btn-tonal' : 'btn'
@@ -511,7 +672,9 @@ const AdminManager = {
                 { confirmLabel: t('msg.owners.remove_owner'), danger: true });
         }
         if (kind === 'step_down') {
-            return UIManager.showModal(t('msg.owners.confirm_step_down', { roleLabel }), t('msg.owners.step_down'), true,
+            const founderNote = this.firstOwnerUid && this.firstOwnerUid === AppState.currentUser?.uid
+                ? `\n\n${t('msg.owners.founder_step_down')}` : '';
+            return UIManager.showModal(t('msg.owners.confirm_step_down', { roleLabel }) + founderNote, t('msg.owners.step_down'), true,
                 { confirmLabel: t('msg.owners.step_down'), danger: true });
         }
         return UIManager.showModal(
@@ -537,7 +700,7 @@ const AdminManager = {
      * @param {string} userName - User's display name
      */
     async deleteUser(userId, userName) {
-        const removed = await UserAdmin.removeUser(userId, userName, this.users);
+        const removed = await UserAdmin.removeUser(userId, userName, this.users, this.firstOwnerUid);
         if (removed) await this.loadUsers();
         return removed;
     },
@@ -627,7 +790,7 @@ const AdminManager = {
                 box.innerHTML = `<p>${tx('ui.duefix.checked', { checked: check.checked })}</p>`
                     + (count
                         ? `<p>${tx('ui.duefix.todo', { count, missing: check.byReason.missing, notNumber: check.byReason.notNumber })}</p>
-                           <button type="button" class="btn btn-primary admin-action" data-onclick="admin.backfillDueFields()">${icon('check', 'i-sm')} ${tx('ui.duefix.run', { count })}</button>`
+                           <button type="button" class="btn btn-primary admin-action" data-onclick="admin.backfillDueFields()">${icon('check', 'i-sm')} ${tx(count === 1 ? 'ui.duefix.run_one' : 'ui.duefix.run', { count })}</button>`
                         : `<p>${tx('ui.duefix.none')}</p>`)
                     + (check.changes.length ? `<p>${tx('ui.duefix.changes', { count: check.changes.length })}</p>` : '');
             } catch (error) {
@@ -657,7 +820,7 @@ const AdminManager = {
                     checked: check.checked, listed: count, written: result.written, failed: result.failed, ...check.byReason
                 });
                 if (box) {
-                    box.textContent = t(result.failed ? 'ui.duefix.done_failed' : 'ui.duefix.done', { written: result.written, failed: result.failed });
+                    box.textContent = (result.failed ? t('ui.duefix.done_failed', { written: result.written, failed: result.failed }) : tn('ui.duefix.done', result.written, { written: result.written }));
                 }
             } catch (error) {
                 console.error('Due backfill failed:', error);
@@ -722,13 +885,13 @@ const AdminManager = {
         const lang = getLang();
         if (!r.ok) {
             const items = r.problems.map(p => `<li>${e(t(`ui.backup.p_${p.code}`, { coll: p.coll, at: p.at, id: p.id, file: p.file, manifest: p.manifest }))}</li>`).join('');
-            const more = r.problemCount > r.problems.length ? `<p>${e(t('ui.backup.more_problems', { count: r.problemCount - r.problems.length }))}</p>` : '';
+            const more = r.problemCount > r.problems.length ? `<p>${e(tn('ui.backup.more_problems', r.problemCount - r.problems.length))}</p>` : '';
             return `<div class="notice neg backup-result backup-bad" data-backup-ok="false">${icon('x', 'i-sm')}<div class="grow"><p><b>${e(t('ui.backup.bad'))}</b></p><ul>${items}</ul>${more}</div></div>`;
         }
         const rows = [...r.collections, ...r.subcollections].map(c => `<tr><td lang="en" translate="no">${e(c.name)}</td><td class="num">${e(c.docs.toLocaleString('en-IN'))}</td></tr>`).join('');
         const lines = [
             t('ui.backup.good_docs', { docs: r.totalDocs.toLocaleString('en-IN'), collections: r.collections.length }),
-            r.exportedAt ? t('ui.backup.good_saved', { when: formatDayTime(r.exportedAt, { lang }), days: r.ageDays }) : '',
+            r.exportedAt ? tn('ui.backup.good_saved', r.ageDays, { when: formatDayTime(r.exportedAt, { lang }), days: r.ageDays }) : '',
             r.newestBillAt ? t('ui.backup.good_newest', { when: formatDay(r.newestBillAt, { lang }) }) : ''
         ].filter(Boolean);
         return `<div class="notice pos backup-result backup-good" data-backup-ok="true">${icon('check', 'i-sm')}<div class="grow"><p><b>${e(t('ui.backup.good'))}</b></p>`
@@ -1025,7 +1188,7 @@ const AdminManager = {
         } catch (error) {
             console.error('Error clearing data:', error);
             UIManager.hideLoading();
-            UIManager.showToast(t('msg.admin.error_clearing_data', { message: error.message }));
+            UIManager.showToast(t('msg.admin.error_clearing_data', { message: friendlyError(error) }));
         }
     }
 };

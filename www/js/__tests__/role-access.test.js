@@ -9,6 +9,8 @@ import { AppState } from '../utils/state.js';
 const NOW = 1_800_000_000_000;
 const DAY = 24 * 60 * 60 * 1000;
 
+const MEMBER_HIDDEN = ['no-perm-personalExpenses', 'no-perm-profit', 'no-perm-stockValue', 'no-perm-oldCashSessions', 'no-perm-purchaseRates'];
+
 describe('Roles & access settings (#84)', () => {
     test('missing settings keep today\'s behaviour (and the 2-day edit window of #87)', () => {
         expect(normalizeRoleAccess(undefined)).toEqual({
@@ -19,7 +21,8 @@ describe('Roles & access settings (#84)', () => {
         expect(canOpenTab('statements', 'manager')).toBe(true);
         expect(canOpenTab('history', 'staff')).toBe(true);
         expect(accessFor('staff').editDays).toBe(2);
-        expect(hiddenPermissionClasses('staff')).toEqual(['no-perm-personalExpenses']);
+        // U-09: members don't see margins by default
+        expect(hiddenPermissionClasses('staff')).toEqual(MEMBER_HIDDEN);
     });
 
     test('#98: personal expenses are off for managers and members until the owner turns them on', () => {
@@ -59,7 +62,7 @@ describe('Roles & access settings (#84)', () => {
         expect(canOpenTab('money', 'manager', raw)).toBe(false);
         expect(canOpenTab('statements', 'staff', raw)).toBe(true);
         expect(canOpenTab('statements', 'stranger', raw)).toBe(true);
-        expect(hiddenPermissionClasses('staff', raw)).toEqual(['no-perm-personalExpenses']);
+        expect(hiddenPermissionClasses('staff', raw)).toEqual(MEMBER_HIDDEN);
         expect(hiddenPermissionClasses('owner', raw)).toEqual([]);
     });
 
@@ -191,10 +194,11 @@ describe('owner/manager-only pages (F23)', () => {
 });
 
 describe('See purchase rates permission (F36)', () => {
-    test('on for both roles by default (today\'s behaviour); the owner can turn it off', () => {
+    test('on for managers, off for members by default (U-09); the owner can change either', () => {
         expect(ROLE_ACCESS_DEFAULTS.manager.purchaseRates).toBe(true);
-        expect(ROLE_ACCESS_DEFAULTS.staff.purchaseRates).toBe(true);
-        expect(hiddenPermissionClasses('staff')).not.toContain('no-perm-purchaseRates');
+        expect(ROLE_ACCESS_DEFAULTS.staff.purchaseRates).toBe(false);
+        expect(hiddenPermissionClasses('staff')).toContain('no-perm-purchaseRates');
+        expect(hiddenPermissionClasses('staff', { staff: { purchaseRates: true } })).not.toContain('no-perm-purchaseRates');
         const raw = { staff: { purchaseRates: false } };
         expect(hiddenPermissionClasses('staff', raw)).toContain('no-perm-purchaseRates');
         expect(hiddenPermissionClasses('manager', raw)).not.toContain('no-perm-purchaseRates');

@@ -865,11 +865,13 @@ function defineSuite(prefix) {
         await assertFails(app('manager1').set({ laborRate: 8, labourUpdatedAt: 1, labourUpdatedBy: 'manager1' }, { merge: true }));
         await assertFails(app('manager1').set({ labourPackageKg: 40 }, { merge: true }));
         await assertFails(app('manager1').set({ businessName: 'Aadhat', businessDetails: 'Main road' }, { merge: true }));
+        await assertFails(app('manager1').set({ upiId: 'shop@upi' }, { merge: true }));
         await seedApp(true);
         await assertSucceeds(app('manager1').set({ laborRate: 8, labourUpdatedAt: 1, labourUpdatedBy: 'manager1' }, { merge: true }));
         await assertSucceeds(app('manager1').set({ labourPackageKg: 40, labourUpdatedAt: 2, labourUpdatedBy: 'manager1' }, { merge: true }));
         await assertSucceeds(app('manager1').set({ checkThresholds: { cashOkRs: 50 }, checksUpdatedAt: 1 }, { merge: true }));
         await assertSucceeds(app('manager1').set({ businessName: 'Aadhat', businessDetails: 'Main road', businessUpdatedAt: 1 }, { merge: true }));
+        await assertSucceeds(app('manager1').set({ upiId: 'shop@upi', businessUpdatedAt: 2, businessUpdatedBy: 'manager1' }, { merge: true }));
         await assertFails(app('manager1').set({ roleAccess: { manager: { shopSettings: true, finance: true } } }, { merge: true }));
         await assertFails(app('manager1').set({ minClientVersion: 99 }, { merge: true }));
         await assertFails(app('manager1').set({ laborRate: 9, tipPolicies: {} }, { merge: true }));
@@ -877,6 +879,19 @@ function defineSuite(prefix) {
         await assertFails(app('staff1').set({ laborRate: 9 }, { merge: true }));
         await assertFails(app('staff1').set({ labourPackageKg: 40 }, { merge: true }));
         await assertSucceeds(app('legacyOwner').set({ businessName: 'Owner set' }, { merge: true }));
+    });
+
+    t('settings/app.upiId (U-62): empty or name@handle, a string of at most 60; an old bad one does not block other saves', async () => {
+        const app = () => as('legacyOwner').collection(`${prefix}settings`).doc('app');
+        await assertSucceeds(app().set({ upiId: 'ram.traders-1@okaxis' }, { merge: true }));
+        await assertSucceeds(app().set({ upiId: '' }, { merge: true }));
+        await assertFails(app().set({ upiId: 'ram traders' }, { merge: true }));
+        await assertFails(app().set({ upiId: 'ram@ok.axis' }, { merge: true }));
+        await assertFails(app().set({ upiId: '<b>@x' }, { merge: true }));
+        await assertFails(app().set({ upiId: `${'a'.repeat(55)}@okaxis` }, { merge: true }));
+        await assertFails(app().set({ upiId: 42 }, { merge: true }));
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(`${prefix}settings`).doc('app').set({ upiId: 'old bad' }, { merge: true }));
+        await assertSucceeds(app().set({ businessName: 'Ram Traders' }, { merge: true }));
     });
 
     // ---- Printed bill shared by every phone (#107): settings/app.receipt ----
@@ -1290,6 +1305,15 @@ function defineSuite(prefix) {
         await assertFails(own('rejected1', 'all|'));
     });
 
+    t('app language follows the person (U-86): only en or hi, only their own profile', async () => {
+        await assertSucceeds(as('staff1').collection(users).doc('staff1').update({ lang: 'hi' }));
+        await assertSucceeds(as('legacyOwner').collection(users).doc('legacyOwner').update({ lang: 'en' }));
+        await assertFails(as('staff1').collection(users).doc('staff1').update({ lang: 'fr' }));
+        await assertFails(as('staff1').collection(users).doc('staff1').update({ lang: 1 }));
+        await assertFails(as('staff1').collection(users).doc('manager1').update({ lang: 'hi' }));
+        await assertFails(as('staff1').collection(users).doc('staff1').update({ lang: 'hi', role: 'owner' }));
+    });
+
     t('staff cannot update another user', () =>
         assertFails(as('staff1').collection(users).doc('pending1').update({ name: 'x' })));
 
@@ -1447,11 +1471,98 @@ function defineSuite(prefix) {
         await assertSucceeds(set('legacyOwner', FieldValue.arrayUnion('legacyOwner')));
     });
 
+    // ---- first owner (settings/team.firstOwnerUid) and the demoted owner's notification ----
+    const setFirst = (uids, first) => env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(teamCol()).doc('team').set({ people: {}, ownerUids: uids, firstOwnerUid: first }));
+    const teamSet = (actor, data) => as(actor).collection(teamCol()).doc('team').set(data, { merge: true });
+
+    t('first owner: another owner cannot demote, remove or delete the first owner', async () => {
+        await setFirst(['legacyOwner', 'owner2'], 'legacyOwner');
+        await assertFails(roleBatch('owner2', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await assertFails(roleBatch('owner2', 'legacyOwner', { role: 'staff' }, 'remove'));
+        await assertFails(roleBatch('owner2', 'legacyOwner', {
+            role: FieldValue.delete(), rentRole: FieldValue.delete(), status: 'disabled', disabledBy: 'owner2'
+        }, 'remove'));
+        await assertFails(as('owner2').collection(users).doc('legacyOwner').update({ status: 'disabled' }));
+        await assertFails(as('owner2').collection(users).doc('legacyOwner').delete());
+        await assertSucceeds(as('owner2').collection(users).doc('legacyOwner').update({ name: 'Renamed' }));
+        await expectOwners(['legacyOwner', 'owner2']);
+        await assertSucceeds(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, 'remove'));
+        await expectOwners(['legacyOwner']);
+    });
+
+    t('first owner: steps down only while another owner is listed, then is an ordinary person', async () => {
+        await setFirst(['legacyOwner'], 'legacyOwner');
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await setFirst(['legacyOwner', 'owner2'], 'legacyOwner');
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'manager', status: 'disabled' }, 'remove'));
+        await assertSucceeds(roleBatch('legacyOwner', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await expectOwners(['owner2']);
+        await assertSucceeds(roleBatch('owner2', 'legacyOwner', { role: 'staff' }, null));
+    });
+
+    t('first owner: set once to a listed active owner; never changed by others, dropped or deleted; handed over only by them', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(teamSet('owner2', { firstOwnerUid: 'manager1' }));
+        await assertFails(teamSet('owner2', { firstOwnerUid: 'ghost' }));
+        await assertFails(teamSet('manager1', { firstOwnerUid: 'manager1' }));
+        await assertSucceeds(teamSet('owner2', { firstOwnerUid: 'legacyOwner' }));
+        await assertFails(teamSet('owner2', { firstOwnerUid: 'owner2' }));
+        await assertFails(teamSet('owner2', { firstOwnerUid: FieldValue.delete() }));
+        await assertFails(teamSet('owner2', { firstOwnerUid: null }));
+        await assertFails(as('owner2').collection(teamCol()).doc('team').set({ people: {}, updatedAt: 1 }));
+        await assertFails(as('owner2').collection(teamCol()).doc('team').delete());
+        await assertFails(as('legacyOwner').collection(teamCol()).doc('team').delete());
+        await assertSucceeds(as('owner2').collection(teamCol()).doc('team').set({ people: { a: { name: 'A', role: 'staff' } }, updatedAt: 1 }, { mergeFields: ['people', 'updatedAt'] }));
+        await assertFails(teamSet('legacyOwner', { firstOwnerUid: 'manager1' }));
+        await assertSucceeds(teamSet('legacyOwner', { firstOwnerUid: 'owner2' }));
+        await assertFails(teamSet('legacyOwner', { firstOwnerUid: 'legacyOwner' }));
+        await assertFails(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, 'remove'));
+    });
+
+    const roleNotes = `${prefix}notifications`;
+    const roleNote = (actor, uid, newRole) => ({
+        type: 'role_change', newRole, changedBy: 'O', changedByUserId: actor, userId: uid, eventKey: 'role-1', read: false, timestamp: serverTimestamp()
+    });
+    const demoteWithNote = (actor, uid, newRole, noteFor = uid, extra = {}) => {
+        const db = as(actor);
+        const b = db.batch();
+        b.update(db.collection(users).doc(uid), { role: newRole });
+        b.set(db.collection(teamCol()).doc('team'), { ownerUids: FieldValue.arrayRemove(uid) }, { merge: true });
+        b.set(db.collection(roleNotes).doc(`role-1_${noteFor}`), { ...roleNote(actor, noteFor, newRole), ...extra });
+        return b.commit();
+    };
+
+    t('first owner: the demoted owner gets a role notification, only with the demotion and only for them', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(as('legacyOwner').collection(roleNotes).doc('role-1_owner2').set(roleNote('legacyOwner', 'owner2', 'manager')));
+        await assertFails(as('legacyOwner').collection(roleNotes).doc('role-1_staff1').set(roleNote('legacyOwner', 'staff1', 'manager')));
+        await assertFails(as('manager1').collection(roleNotes).doc('role-1_staff1').set(roleNote('manager1', 'staff1', 'manager')));
+        await assertFails(demoteWithNote('legacyOwner', 'owner2', 'manager', 'manager1'));
+        await assertFails(demoteWithNote('legacyOwner', 'owner2', 'manager', 'owner2', { newRole: 'staff' }));
+        await assertFails(demoteWithNote('legacyOwner', 'owner2', 'manager', 'owner2', { itemName: 'x' }));
+        await assertSucceeds(demoteWithNote('legacyOwner', 'owner2', 'manager'));
+        await assertSucceeds(as('owner2').collection(roleNotes).doc('role-1_owner2').get());
+        await expectOwners(['legacyOwner']);
+    });
+
     t('owner can still remove a non-owner (disabled profile)', () =>
         assertSucceeds(as('legacyOwner').collection(users).doc('manager1').update({
             role: FieldValue.delete(), rentRole: FieldValue.delete(), approvedAt: FieldValue.delete(), approvedBy: FieldValue.delete(),
             status: 'disabled', disabledAt: new Date(), disabledBy: 'legacyOwner'
         })));
+
+    t('a username + PIN account (U-56) stays a Member: no manager or owner, no email change; removing it works', async () => {
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(users).doc('worker1')
+            .set({ name: 'W', email: 'ramu@shop.bahi.invalid', role: 'staff', status: 'pending' }));
+        const w = () => as('legacyOwner').collection(users).doc('worker1');
+        await assertFails(w().update({ status: 'active', role: 'manager' }));
+        await assertFails(w().update({ role: 'owner' }));
+        await assertFails(w().update({ email: 'ramu@x.com' }));
+        await assertFails(w().update({ email: 'ramu@x.com', role: 'manager' }));
+        await assertSucceeds(w().update({ status: 'active', role: 'staff', approvedBy: 'legacyOwner' }));
+        await assertSucceeds(w().update({ role: FieldValue.delete(), status: 'disabled' }));
+        await assertSucceeds(as('legacyOwner').collection(users).doc('staff1').update({ role: 'manager' }));
+    });
 
     t('nobody writes users/{uid}/preferences (the app never uses it, #64); its user may read it', async () => {
         await assertFails(as('staff1').collection(users).doc('staff1').collection('preferences').doc('ui').set({ a: 1 }));
@@ -3465,6 +3576,23 @@ function defineSuite(prefix) {
         await assertSucceeds(as('legacyOwner').collection(drafts).doc('theirs').delete());
     });
 
+    t('drafts: a shared draft is read and taken over by any member, deleted only by its maker, owner or manager (U-37)', async () => {
+        await seedBill(drafts, 'shop', draft('manager1', { shared: true }));
+        await seedBill(drafts, 'old', draft('manager1'));
+        const take = (uid, extra = {}) => ({ takenBy: uid, takenAt: 5, ...extra });
+        await assertSucceeds(as('staff1').collection(drafts).doc('shop').get());
+        await assertFails(as('staff1').collection(drafts).doc('old').get());
+        await assertFails(as('staff1').collection(drafts).doc('shop').update(take('manager1')));
+        await assertFails(as('staff1').collection(drafts).doc('shop').update(take('staff1', { weights: [] })));
+        await assertFails(as('staff1').collection(drafts).doc('old').update(take('staff1')));
+        await assertFails(as('pending1').collection(drafts).doc('shop').update(take('pending1')));
+        await assertSucceeds(as('staff1').collection(drafts).doc('shop').update(take('staff1')));
+        await assertFails(as('staff1').collection(drafts).doc('shop').delete());
+        await seedBill(drafts, 'byStaff', draft('staff1', { shared: true }));
+        await assertSucceeds(as('manager1').collection(drafts).doc('byStaff').delete());
+        await assertSucceeds(as('manager1').collection(drafts).doc('shop').delete());
+    });
+
     t('notifications: owner and manager fan rate and item edits out to others (batched)', async () => {
         for (const actor of ['legacyOwner', 'manager1']) {
             const db = as(actor);
@@ -3649,6 +3777,11 @@ function defineReadMatrix(prefix) {
             get: (db) => db.collection(c(name)).doc('n-staff').get(), getAllowed: ['owner', 'member'],
             list: (db) => db.collection(c(name)).get(), listAllowed: OWNER
         });
+    });
+    add('drafts: shared (query on shared, U-37)', {
+        seed: [[`${c('drafts')}/d-shop`, { userId: 'staff1', shared: true, timestamp: 1 }]],
+        get: (db) => db.collection(c('drafts')).doc('d-shop').get(), getAllowed: APPROVED,
+        list: (db) => db.collection(c('drafts')).where('shared', '==', true).get(), listAllowed: APPROVED
     });
     add('autoSaves', {
         seed: [[`${c('autoSaves')}/staff1`, { userId: 'staff1' }]],

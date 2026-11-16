@@ -145,17 +145,18 @@ describe('switch (happa.config.json googleSignIn)', () => {
 });
 
 describe('web popup', () => {
-    test('a new Google person gets a pending staff profile, is signed out and waits for the owner', async () => {
+    test('a new Google person gets a pending staff profile and waits for the owner on the waiting card (U-24)', async () => {
         await AuthManager.signInWithGoogle();
         const provider = auth.signInWithPopup.mock.calls[0][0];
         expect(provider).toBeInstanceOf(FakeGoogleProvider);
         expect(provider.params).toEqual({ prompt: 'select_account' });
         const profile = fake.raw('users').get('g1');
         expect(profile).toMatchObject({ name: 'Asha', email: 'Asha@Gmail.com', role: 'staff', status: 'pending' });
-        expect(auth.signOut).toHaveBeenCalled();
+        expect(auth.signOut).not.toHaveBeenCalled();
+        expect($('pendingCard').hidden).toBe(false);
         expect(window.initializeApp).not.toHaveBeenCalled();
         expect(AppState.currentUser).toBeNull();
-        expect(text('googleMessage')).toBe('Registration successful! Please wait for admin approval.');
+        expect(text('googleMessage')).toBe('Account made. Now the owner needs to approve it.');
         expect(AuthManager.authFlowInProgress).toBe(false);
     });
 
@@ -171,13 +172,14 @@ describe('web popup', () => {
     });
 
     test.each([
-        ['pending', 'Your account is pending approval. Please wait for admin approval.'],
-        ['rejected', 'Your account has been rejected. Please contact admin.'],
+        ['pending', "Your account is waiting for the owner's approval."],
+        ['rejected', 'Your account was not approved. Please talk to the owner.'],
         ['disabled', 'This account has been removed. Please contact the owner.']
-    ])('a %s profile is signed straight back out', async (status, message) => {
+    ])('a %s profile does not get in (pending waits on the waiting card, U-24)', async (status, message) => {
         fake.seed('users', [{ id: 'g1', name: 'Asha', email: 'asha@gmail.com', role: 'owner', status }]);
         await AuthManager.signInWithGoogle();
-        expect(auth.signOut).toHaveBeenCalled();
+        if (status === 'pending') expect($('pendingCard').hidden).toBe(false);
+        else expect(auth.signOut).toHaveBeenCalled();
         expect(window.initializeApp).not.toHaveBeenCalled();
         expect(text('googleMessage')).toBe(message);
         expect(fake.raw('users').get('g1')).toMatchObject({ role: 'owner', status });
@@ -317,9 +319,9 @@ describe('an email that already has a password: link after one password sign-in'
         $('googleLinkPassword').value = 'secret1';
         await AuthManager.linkGoogle();
         expect(passwordUser.linkWithCredential).toHaveBeenCalled();
-        expect(auth.signOut).toHaveBeenCalled();
+        expect($('pendingCard').hidden).toBe(false);
         expect(window.initializeApp).not.toHaveBeenCalled();
-        expect(text('googleMessage')).toBe('Your account is pending approval. Please wait for admin approval.');
+        expect(text('googleMessage')).toBe("Your account is waiting for the owner's approval.");
     });
 
     test('Google already linked to another account: signed out, told so', async () => {

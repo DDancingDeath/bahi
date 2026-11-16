@@ -254,8 +254,8 @@ function setRole(role) {
     AppState.currentUser = { uid: `audit-${role}` };
     AppState.userRole = role;
     AppState.settings = role === 'owner' ? { showHindi: false }
-        // Personal expenses on for the member pass (off by default since #98), so its figures match the oracle's
-        : { showHindi: false, roleAccess: { staff: { finance: true, reports: true, analytics: true, personalExpenses: true, personalExpensesChosen: true } } };
+        // Personal expenses (off by default since #98) and the margin switches (off for members since U-09) on for the member pass, so its figures match the oracle's
+        : { showHindi: false, roleAccess: { staff: { finance: true, reports: true, analytics: true, personalExpenses: true, personalExpensesChosen: true, profit: true, stockValue: true, oldCashSessions: true, purchaseRates: true } } };
 }
 
 /**
@@ -912,7 +912,7 @@ async function auditOneDay({ fake, moment, at, label, open, cmp, unknown, T, pas
     const want = Om.today(at, session);
     Object.entries(todayIds).forEach(([k, id]) => cmp(k, 'Today (phone)', P('today'), Math.round(want[k]), shown(id), null, at + 1));
     const net = shown('todayNetCashFlow');
-    cmp('T12_net', 'Today (phone)', P('today'), Math.round(want.T12_net), /outflow/i.test(document.getElementById('todayCashFlowLabel').textContent) ? -net : net, null, at + 1);
+    cmp('T12_net', 'Today (phone)', P('today'), Math.round(want.T12_net), /^More went out/.test(document.getElementById('todayCashFlowLabel').textContent) ? -net : net, null, at + 1);
     cmp('T1_purchaseCount', 'Today (phone)', P('today'), want.T1_purchaseCount, shown('todayPurchaseCount'), null, at + 1, 'count');
     cmp('T2_saleCount', 'Today (phone)', P('today'), want.T2_saleCount, shown('todaySaleCount'), null, at + 1, 'count');
     // Voided bills (#75) never reach the bill lists; History gets them from voidedBills().

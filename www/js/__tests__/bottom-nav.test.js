@@ -8,7 +8,8 @@ const NAV = fs.readFileSync(path.resolve(__dirname, '../../templates/navigation.
 
 test('the bar lists its pages in order, then More', () => {
     document.body.innerHTML = NAV;
-    expect([...document.querySelectorAll('.bottom-nav-item')].map(i => i.dataset.tab)).toEqual([...BAR_TABS, 'more']);
+    expect([...document.querySelectorAll('.bottom-nav-item[data-tab]')].map(i => i.dataset.tab)).toEqual([...BAR_TABS, 'more']);
+    expect([...document.querySelectorAll('.bottom-nav-item[data-rent-bar]')].map(i => i.dataset.rentBar)).toEqual(['rent', 'tenants', 'properties', 'reports']);
 });
 
 test('the open page is marked (aria-current); other pages mark More', () => {
@@ -20,6 +21,9 @@ test('the open page is marked (aria-current); other pages mark More', () => {
     BottomNav.markActive('stock');
     expect([...document.querySelectorAll('.bottom-nav-item.active')].map(i => i.dataset.tab)).toEqual(['more']);
     expect(document.querySelector('[aria-current]')).toBeNull();
+    // Rentals (U-65) marks its own bar items; More is not the open page there
+    BottomNav.markActive('rentals');
+    expect(document.querySelectorAll('.bottom-nav-item.active')).toHaveLength(0);
 });
 
 test('swipe left goes to the next bar page, right to the previous; short, slanted or off-bar swipes do nothing', () => {
@@ -106,7 +110,7 @@ test('the app bar shows the open page\'s menu name, and follows the language (re
     expect(title()).toBe('Rates');
     await setLang('hi');
     expect(title()).toBe('रेट');
-    expect(pageTitleKey('cash-management')).toBe('ui.nav.today');
+    expect(pageTitleKey('cash-management')).toBe('ui.today.cash_management');
     expect(pageTitleKey('settings')).toBe('ui.nav.settings');
     expect(pageTitleKey('rentals')).toBe('ui.biz.rentals');
     expect(pageTitleKey('unknown')).toBe('ui.app.name');
@@ -119,7 +123,7 @@ test('every page template has one page head: a translated h2 without emoji (V1)'
     expect(pages.length).toBeGreaterThanOrEqual(21);
     for (const f of pages) {
         const html = fs.readFileSync(path.join(dir, f), 'utf8');
-        const heads = [...html.matchAll(/<header class="page-head"><h2 data-i18n="(ui\.[\w.]+)">([^<]+)<\/h2>/g)];
+        const heads = [...html.matchAll(/<div class="page-head"><h2 data-i18n="(ui\.[\w.]+)">([^<]+)<\/h2>/g)];
         expect([f, heads.length]).toEqual([f, 1]);
         expect(heads[0][2]).not.toMatch(/\p{Extended_Pictographic}/u);
         expect(html).not.toMatch(/class="(?:ins-title|health-title|rent-title|anomaly-page-title)"/);
