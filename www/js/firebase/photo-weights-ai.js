@@ -7,7 +7,9 @@
  * @module firebase/photo-weights-ai
  */
 
-import { PHOTO_WEIGHTS_MODEL, PHOTO_WEIGHTS_PROMPT, PHOTO_WEIGHTS_SCHEMA, READ_TIMEOUT_MS, parseModelJson } from '../utils/photo-weights.js';
+import {
+    OVERLOAD_RETRY_DELAYS_MS, PHOTO_WEIGHTS_MODEL, PHOTO_WEIGHTS_PROMPT, PHOTO_WEIGHTS_SCHEMA, READ_TIMEOUT_MS, isOverloadError, parseModelJson
+} from '../utils/photo-weights.js';
 import { appCheckSiteKey, startAppCheck } from '../services/app-check.js';
 
 /** AI Logic enforces App Check (since 2 Nov 2026): without a token the call would only be refused. */
@@ -27,7 +29,8 @@ const defaults = () => ({
     options: () => ({ ...window.firebase.app().options }),
     win: window,
     startAppCheck,
-    model: PHOTO_WEIGHTS_MODEL
+    model: PHOTO_WEIGHTS_MODEL,
+    retryDelays: OVERLOAD_RETRY_DELAYS_MS
 });
 
 /** @type {?Promise<*>} */
@@ -77,30 +80,68 @@ function stopIfAborted(signal) {
     if (signal?.aborted) throw aborted();
 }
 
-/**
- * Sends one photo; resolves to the model's JSON answer (utils/photo-weights normaliseReading reads it).
- * Rejects with the SDK's error (e.g. 429 when the free daily limit is used up); never retries.
- * Rejects with an AbortError when `signal` aborts; the request in flight is cancelled too.
- * @param {Blob} blob - the downscaled JPEG
- * @param {{signal?: AbortSignal, deps?: Object}} [opts]
- * @returns {Promise<Object>}
- */
-export async function readWeightsPhoto(blob, { signal, deps } = {}) {
-    stopIfAborted(signal);
-    const model = await modelFor({ ...defaults(), ...(deps || {}) });
-    stopIfAborted(signal);
-    const data = await base64Of(blob);
-    stopIfAborted(signal);
+/** Waits `ms`; rejects with an AbortError as soon as `signal` aborts. */
+function wait(ms, signal) {
+    return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(aborted());
+            return;
+        }
+        const onAbort = () => {
+            clearTimeout(timer);
+            reject(aborted());
+        };
+        const timer = setTimeout(() => {
+            signal?.removeEventListener('abort', onAbort);
+            resolve();
+        }, ms);
+        signal?.addEventListener('abort', onAbort, { once: true });
+    });
+}
+
+/** One request to Gemini. */
+async function generateOnce(model, blob, data, signal) {
     const call = model.generateContent([
         { text: PHOTO_WEIGHTS_PROMPT },
         { inlineData: { mimeType: blob.type || 'image/jpeg', data } }
     ], signal ? { signal } : undefined);
     // Settle at once on abort even if the SDK is slow to; the late result or error of `call` is consumed here
-    const result = await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         signal?.addEventListener('abort', () => reject(aborted()), { once: true });
         call.then(resolve, reject);
     });
-    return parseModelJson(result.response.text());
+}
+
+/**
+ * Sends one photo; resolves to the model's JSON answer (utils/photo-weights normaliseReading reads it).
+ * When Gemini is overloaded (500 / 503) it tries again after each of `retryDelays` (1.5 s, then 4 s),
+ * calling `onRetry(n)` first; any other error (429 daily limit, 4xx) is rejected at once as the SDK gave it.
+ * Rejects with an AbortError when `signal` aborts; the request in flight and any retry still to come are dropped.
+ * @param {Blob} blob - the downscaled JPEG
+ * @param {{signal?: AbortSignal, deps?: Object, onRetry?: (n: number) => void}} [opts]
+ * @returns {Promise<Object>}
+ */
+export async function readWeightsPhoto(blob, { signal, deps, onRetry } = {}) {
+    stopIfAborted(signal);
+    const d = { ...defaults(), ...(deps || {}) };
+    const model = await modelFor(d);
+    stopIfAborted(signal);
+    const data = await base64Of(blob);
+    const delays = d.retryDelays || [];
+    for (let attempt = 0; ; attempt++) {
+        stopIfAborted(signal);
+        let result;
+        try {
+            result = await generateOnce(model, blob, data, signal);
+        } catch (err) {
+            if (signal?.aborted) throw aborted();
+            if (attempt >= delays.length || !isOverloadError(err)) throw err;
+            onRetry?.(attempt + 1);
+            await wait(delays[attempt], signal);
+            continue;
+        }
+        return parseModelJson(result.response.text());
+    }
 }
 
 /** Tests only. */
