@@ -105,7 +105,7 @@ export const PhotoWeightsFlow = {
         try {
             const { canvas, blob } = await prepare(file);
             if (this.open !== state) return finished;
-            const raw = await read(blob, { signal: state.abort.signal });
+            const raw = await read(blob, { signal: state.abort.signal, onRetry: () => this.showBusy(state) });
             if (this.open !== state) return finished;
             track('photo_weights.read');
             const reading = normaliseReading(raw);
@@ -166,10 +166,18 @@ export const PhotoWeightsFlow = {
         p.setAttribute('role', 'status');
         p.setAttribute('aria-live', 'polite');
         body.replaceChildren(p);
+        state.status = p;
         const cancel = button('btn btn-ghost', t('ui.modals.cancel'), () => this.close(state));
         cancel.dataset.dismiss = '';
         footer.replaceChildren(cancel);
         openSheet(overlay, { focus: cancel });
+    },
+
+    /** Gemini is overloaded and the read is tried again by itself (Cancel still stops it). */
+    showBusy(state) {
+        if (this.open !== state || !state.status?.isConnected) return;
+        state.status.textContent = t('ui.photo_weights.busy');
+        state.status.dataset.busy = '';
     },
 
     /** A clear message and the way back to typing; manual entry always stays open. */

@@ -1095,7 +1095,6 @@
             "recordedById": "u1"
           }
         ],
-        "dueAmount": 200,
         "paidAt": 1792557000000,
         "openDue": true,
         "clientVersion": 5
@@ -1202,7 +1201,6 @@
             "recordedById": "u1"
           }
         ],
-        "dueAmount": 400,
         "paidAt": 1792557000000,
         "openDue": true,
         "clientVersion": 5
@@ -1255,8 +1253,7 @@
         ],
         "paidAt": 1792557000000,
         "openDue": false,
-        "clientVersion": 5,
-        "dueAmount": 0
+        "clientVersion": 5
       }
     ],
     [
@@ -5551,7 +5548,6 @@
         "timestamp": 1792540800000,
         "clientVersion": 5,
         "openDue": false,
-        "dueAmount": 0,
         "id": "auto000002",
         "createdAt": "SERVER_TIME"
       }
@@ -5611,7 +5607,6 @@
         "timestamp": 1792540800000,
         "clientVersion": 5,
         "openDue": true,
-        "dueAmount": 70,
         "id": "auto000003",
         "createdAt": "SERVER_TIME"
       }
@@ -6068,7 +6063,6 @@
         "timestamp": 1792540800000,
         "clientVersion": 5,
         "openDue": false,
-        "dueAmount": 0,
         "id": "auto000001",
         "createdAt": "SERVER_TIME"
       }
@@ -6148,7 +6142,6 @@
         "timestamp": 1792540800000,
         "clientVersion": 5,
         "openDue": false,
-        "dueAmount": 0,
         "createdAt": "SERVER_TIME",
         "editCount": 1
       }
@@ -6257,7 +6250,6 @@
           "online": 0,
           "due": 130
         },
-        "dueAmount": 130,
         "openDue": true,
         "clientVersion": 5,
         "editCount": 1
@@ -6322,10 +6314,6 @@
               "online": 0,
               "due": 130
             }
-          },
-          "dueAmount": {
-            "before": 100,
-            "after": 130
           }
         }
       }
@@ -7704,7 +7692,6 @@
           "online": 0,
           "due": 160
         },
-        "dueAmount": 160,
         "openDue": true,
         "clientVersion": 5,
         "editCount": 1
@@ -7769,10 +7756,6 @@
               "online": 0,
               "due": 160
             }
-          },
-          "dueAmount": {
-            "before": 100,
-            "after": 160
           }
         }
       }
