@@ -12,8 +12,9 @@ import { isOffline, needsInternetError } from '../../utils/write-conflict.js';
 import { localISODaysAgo } from '../../utils/dates.js';
 import { safeSetItem } from '../../utils/storage-full.js';
 import { backgroundReadsAllowed } from '../firestore-meter.js';
-import { readTeamDirectory, writeTeamDirectory } from './users.js';
+import { readTeamDirectory, writeTeamDirectory, readTeamDirectoryFromServer, addListedOwner } from './users.js';
 import { buildTeamDirectory, isTeamMember, sameTeam, teamPeople } from '../../utils/team-directory.js';
+import { activeOwnerIds, missingOwners, ownerList } from '../../utils/owner-roles.js';
 
 /** Users list cache for notification fan-out (avoids a query per edit). */
 const USERS_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -45,14 +46,32 @@ let knownTeam;
 /** Syncs run one after another, so two reads of the profiles never write twice. */
 let teamSync = Promise.resolve(false);
 
-/** Owner only: rewrites settings/team when the profiles say something else (#87). */
+/** Owner only: rewrites settings/team when the profiles say something else (#87), and lists any owner missing from ownerUids. */
 async function syncTeamDirectory(users) {
     const next = buildTeamDirectory(users);
     if (knownTeam === undefined) knownTeam = await readTeamDirectory();
-    if (knownTeam && sameTeam(knownTeam, next)) return false;
-    await writeTeamDirectory(next);
-    knownTeam = next;
-    return true;
+    let wrote = false;
+    if (!knownTeam || !sameTeam(knownTeam, next)) {
+        await writeTeamDirectory(next);
+        knownTeam = { ...(knownTeam || {}), people: next.people };
+        wrote = true;
+    }
+    const missing = missingOwners(activeOwnerIds(users), knownTeam);
+    if (missing.length) {
+        knownTeam = await listOwners(missing, knownTeam);
+        wrote = true;
+    }
+    return wrote;
+}
+
+/** Adds each missing owner to settings/team.ownerUids, one write each (the rules check one at a time). */
+async function listOwners(uids, team) {
+    const list = ownerList(team);
+    for (const uid of uids) {
+        await addListedOwner(uid);
+        if (!list.includes(uid)) list.push(uid);
+    }
+    return { ...(team || {}), ownerUids: list };
 }
 
 /** Queues a sync after any running one; never rejects. @returns {Promise<boolean>} true when it wrote */
@@ -141,6 +160,65 @@ export const userProfileMethods = {
         return wrote;
     },
 
+    /**
+     * Makes sure these active owners are in settings/team.ownerUids (read from the server; the
+     * list counts owners for the "never the last owner" rule). Needs the internet.
+     * @param {string[]} owners
+     * @returns {Promise<string[]>} the owner list after
+     */
+    async ensureOwnersListed(owners) {
+        if (isOffline()) throw needsInternetError();
+        const team = await readTeamDirectoryFromServer();
+        const missing = missingOwners(owners, team);
+        const after = missing.length ? await listOwners(missing, team) : team;
+        if (knownTeam !== undefined) knownTeam = { ...(knownTeam || {}), ownerUids: ownerList(after) };
+        return ownerList(after);
+    },
+
+    /**
+     * Startup (owner): lists this owner in settings/team.ownerUids when the list is missing or
+     * lacks them (projects from before multi-owner). Once per phone and owner when it succeeds.
+     * @returns {Promise<boolean>} true when it wrote
+     */
+    async ensureSelfListedOwner() {
+        const uid = AppState.currentUser?.uid;
+        if (AppState.userRole !== 'owner' || !uid) return false;
+        const key = 'happaOwnerListed';
+        if (localStorage.getItem(key) === uid) return false;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+        const team = await readTeamDirectoryFromServer();
+        const wrote = !ownerList(team).includes(uid);
+        if (wrote) await addListedOwner(uid);
+        safeSetItem(key, uid);
+        return wrote;
+    },
+
+    /**
+     * Changes a person's role / status; `ownerChange` adds them to or removes them from the owner
+     * list in the same batch (the rules refuse one without the other). Needs the internet.
+     * @param {string} userId
+     * @param {Object} fields
+     * @param {'add'|'remove'|null} [ownerChange]
+     */
+    async changeUserRole(userId, fields, ownerChange = null) {
+        if (isOffline()) throw needsInternetError();
+        const db = getDb();
+        const batch = db.batch();
+        batch.update(db.collection(col('users')).doc(userId), fields);
+        if (ownerChange) {
+            const fv = firebase.firestore.FieldValue;
+            batch.set(db.collection(col('settings')).doc('team'),
+                { ownerUids: ownerChange === 'add' ? fv.arrayUnion(userId) : fv.arrayRemove(userId) }, { merge: true });
+        }
+        await batch.commit();
+        if (knownTeam && ownerChange) {
+            const list = ownerList(knownTeam).filter(id => id !== userId);
+            knownTeam = { ...knownTeam, ownerUids: ownerChange === 'add' ? [...list, userId] : list };
+        }
+        usersCache = null;
+        auditPeopleCache = null;
+    },
+
     /** Partial update of a user profile (role/status/approval fields). Needs the internet (#113). */
     async updateUser(userId, fields) {
         if (isOffline()) throw needsInternetError();
@@ -186,12 +264,13 @@ export const userProfileMethods = {
     /**
      * Removes a user's access (#74): role and approval are cleared and the profile
      * is kept as `status: 'disabled'`, so the rules refuse it and the person can't
-     * re-register as pending. The Auth account itself needs the Admin SDK.
+     * re-register as pending. The Auth account itself needs the Admin SDK. An owner is taken
+     * off the owner list in the same batch (`wasOwner`).
      */
-    async disableUserProfile(userId, byUid) {
+    async disableUserProfile(userId, byUid, wasOwner = false) {
         if (isOffline()) throw needsInternetError();
         const del = firebase.firestore.FieldValue.delete();
-        await getDb().collection(col('users')).doc(userId).update({
+        await this.changeUserRole(userId, {
             status: 'disabled',
             role: del,
             rentRole: del,
@@ -199,8 +278,6 @@ export const userProfileMethods = {
             approvedBy: del,
             disabledAt: firebase.firestore.FieldValue.serverTimestamp(),
             disabledBy: byUid || null
-        });
-        usersCache = null;
-        auditPeopleCache = null;
+        }, wasOwner ? 'remove' : null);
     }
 };

@@ -803,6 +803,9 @@ async function initializeUserData() {
         // Team directory (#87): managers read names and roles from it; once a day the owner's phone
         // rebuilds it from the profiles when they differ (late, so it never slows the first screens)
         if (AppState.userRole === 'owner') {
+            // This owner is counted in settings/team.ownerUids (docs/role-permissions.md, "Owners")
+            setTimeout(() => FirebaseService.ensureSelfListedOwner()
+                .catch(e => console.warn('Owner list not checked:', e?.code || e)), 15000);
             setTimeout(() => FirebaseService.ensureTeamDirectory()
                 .catch(e => console.warn('Team directory not checked:', e?.code || e)), 180000);
         }

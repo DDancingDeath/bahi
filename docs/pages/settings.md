@@ -30,7 +30,9 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   once). Only "Enable automatic labour charges by default" stays on each phone.
 - **Settings › Rentals** (Rentals owner and managers): defaults for new leases and the tenant page header.
 - **Settings › Team** (owner only), the one place for people: **People** (Show people: Waiting to join with a role
-  picker and Approve / Reject, everyone's role, Reset password, Remove from shop and Restore) and **Add a worker
+  picker and Approve / Reject, everyone's role (**Edit role** offers Member / Manager / Owner: an owner can make an approved
+  person owner after a confirmation, demote another owner or step down, but there is always at least one owner;
+  a pending person is approved first), Reset password, Remove from shop and Restore) and **Add a worker
   without email** (name, username and an 8–12 digit pin as the password; such an account is always a Member, the rules refuse another role: the worker signs in with the username; the account's
   email is made up under a reserved domain no mail reaches, so a forgotten pin means removing the account and making a
   new one), **Roles & access** (pick Manager or Member, then one row per permission; edit window in days; Save for

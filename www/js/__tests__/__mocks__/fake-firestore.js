@@ -50,6 +50,8 @@ const matches = (data, { field, op, value }, id) => {
 
 const INC = Symbol('increment');
 const DEL = Symbol('delete');
+const UNION = Symbol('arrayUnion');
+const REMOVE = Symbol('arrayRemove');
 
 function applyFields(target, fields, { dotted }) {
     const out = clone(target) || {};
@@ -65,6 +67,11 @@ function applyFields(target, fields, { dotted }) {
             delete o[last];
         } else if (value && value[INC] !== undefined) {
             o[last] = (typeof o[last] === 'number' ? o[last] : 0) + value[INC];
+        } else if (value && value[UNION]) {
+            const had = Array.isArray(o[last]) ? o[last] : [];
+            o[last] = [...had, ...value[UNION].filter(x => !had.includes(x))];
+        } else if (value && value[REMOVE]) {
+            o[last] = (Array.isArray(o[last]) ? o[last] : []).filter(x => !value[REMOVE].includes(x));
         } else {
             o[last] = clone(value);
         }
@@ -77,7 +84,7 @@ function mergeFields(target, fields) {
     let out = applyFields(target, {}, { dotted: false });
     Object.entries(fields).forEach(([key, value]) => {
         const plain = value && typeof value === 'object' && !Array.isArray(value)
-            && !value[DEL] && value[INC] === undefined && Object.getPrototypeOf(value) === Object.prototype;
+            && !value[DEL] && value[INC] === undefined && !value[UNION] && !value[REMOVE] && Object.getPrototypeOf(value) === Object.prototype;
         if (plain && out[key] && typeof out[key] === 'object' && !Array.isArray(out[key])) {
             out[key] = mergeFields(out[key], value);
         } else if (plain) {
@@ -310,7 +317,9 @@ export function createFakeFirestore(options = {}) {
             },
             set: async (data, opts = {}) => {
                 const prev = coll(collName).get(id);
-                write(collName, id, opts.merge ? mergeFields(prev, data) : applyFields({}, data, { dotted: false }));
+                write(collName, id, opts.merge ? mergeFields(prev, data)
+                    : opts.mergeFields ? applyFields(prev, Object.fromEntries(opts.mergeFields.map(f => [f, data[f]])), { dotted: false })
+                    : applyFields({}, data, { dotted: false }));
             },
             update: async (fields) => {
                 const prev = coll(collName).get(id);
@@ -388,6 +397,8 @@ export function createFakeFirestore(options = {}) {
             FieldValue: {
                 increment: (n) => ({ [INC]: n }),
                 delete: () => ({ [DEL]: true }),
+                arrayUnion: (...v) => ({ [UNION]: v }),
+                arrayRemove: (...v) => ({ [REMOVE]: v }),
                 serverTimestamp: () => Date.now()
             }
         })

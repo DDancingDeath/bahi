@@ -1303,15 +1303,15 @@ function defineSuite(prefix) {
     t('owner can delete a user', () =>
         assertSucceeds(as('legacyOwner').collection(users).doc('rejected1').delete()));
 
-    // AadhatManagementApp#74: no self-removal, and two owners can't remove each other.
-    t('owner cannot change own role or status', async () => {
+    // AadhatManagementApp#74: no self-removal; multi-owner: settings/team.ownerUids keeps at least one owner.
+    t('owner cannot change own status, nor own role without the owner list', async () => {
         await assertFails(as('owner2').collection(users).doc('owner2').update({ role: 'manager' }));
         await assertFails(as('owner2').collection(users).doc('owner2').update({ status: 'disabled' }));
         await assertFails(as('legacyOwner').collection(users).doc('legacyOwner').update({ role: FieldValue.delete(), status: 'disabled' }));
         await assertSucceeds(as('owner2').collection(users).doc('owner2').update({ name: 'Renamed', lastLogin: new Date() }));
     });
 
-    t('owner cannot remove, demote or delete another owner', async () => {
+    t('owner cannot remove, demote or delete another owner without the owner list', async () => {
         await assertFails(as('legacyOwner').collection(users).doc('owner2').update({
             role: FieldValue.delete(), rentRole: FieldValue.delete(), status: 'disabled', disabledBy: 'legacyOwner'
         }));
@@ -1319,6 +1319,128 @@ function defineSuite(prefix) {
         await assertFails(as('owner2').collection(users).doc('legacyOwner').delete());
         await assertFails(as('legacyOwner').collection(users).doc('legacyOwner').delete());
         await assertSucceeds(as('owner2').collection(users).doc('legacyOwner').update({ name: 'Renamed' }));
+    });
+
+    // ---- owners (multi-owner): settings/team.ownerUids changes in the same batch as the role ----
+    const teamCol = () => `${prefix}settings`;
+    const listOwners = (uids) => env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(teamCol()).doc('team').set({ people: {}, ownerUids: uids }));
+    const expectOwners = async (want) => {
+        let got;
+        await env.withSecurityRulesDisabled(async ctx => { got = (await ctx.firestore().collection(teamCol()).doc('team').get()).data()?.ownerUids; });
+        if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`ownerUids: ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+    };
+    const ownerOnlyWrite = (uid) => as(uid).collection(teamCol()).doc('other').set({ a: 1 });
+    const roleBatch = (actor, uid, fields, change) => {
+        const db = as(actor);
+        const b = db.batch();
+        b.update(db.collection(users).doc(uid), fields);
+        if (change) b.set(db.collection(teamCol()).doc('team'), { ownerUids: change === 'add' ? FieldValue.arrayUnion(uid) : FieldValue.arrayRemove(uid) }, { merge: true });
+        return b.commit();
+    };
+
+    t('owners: an owner makes an approved person owner, with the owner list in the same batch', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(as('legacyOwner').collection(users).doc('manager1').update({ role: 'owner' }));
+        await assertSucceeds(roleBatch('legacyOwner', 'manager1', { role: 'owner' }, 'add'));
+        await expectOwners(['legacyOwner', 'owner2', 'manager1']);
+        await assertSucceeds(roleBatch('manager1', 'staff1', { role: 'owner' }, 'add'));
+        await assertSucceeds(ownerOnlyWrite('staff1'));
+    });
+
+    t('owners: the first owner list can be made by a promotion (no team doc yet)', async () => {
+        await assertSucceeds(roleBatch('legacyOwner', 'manager1', { role: 'owner' }, 'add'));
+        await expectOwners(['manager1']);
+    });
+
+    t('owners: a manager or member never grants owner, nor makes themselves owner, nor edits the list', async () => {
+        await listOwners(['legacyOwner']);
+        await assertFails(roleBatch('manager1', 'manager1', { role: 'owner' }, 'add'));
+        await assertFails(roleBatch('manager1', 'staff1', { role: 'owner' }, 'add'));
+        await assertFails(roleBatch('staff1', 'staff1', { role: 'owner' }, 'add'));
+        await assertFails(as('manager1').collection(users).doc('manager1').update({ role: 'owner' }));
+        await assertFails(as('manager1').collection(teamCol()).doc('team').set({ ownerUids: FieldValue.arrayUnion('manager1') }, { merge: true }));
+        await assertFails(as('manager1').collection(teamCol()).doc('team').set({ ownerUids: FieldValue.arrayRemove('legacyOwner') }, { merge: true }));
+        await assertFails(as('staff1').collection(teamCol()).doc('team').set({ ownerUids: [] }, { merge: true }));
+        await assertFails(asEmail('newbie', 'n@x.com').collection(users).doc('newbie').set({ name: 'N', email: 'n@x.com', role: 'owner', status: 'pending', createdAt: serverTimestamp() }));
+        await expectOwners(['legacyOwner']);
+    });
+
+    t('owners: a pending person is approved first, never made owner in one step', async () => {
+        await listOwners(['legacyOwner']);
+        await assertFails(roleBatch('legacyOwner', 'pending1', { role: 'owner', status: 'active' }, 'add'));
+        await assertFails(roleBatch('legacyOwner', 'rejected1', { role: 'owner', status: 'active' }, 'add'));
+        await assertSucceeds(as('legacyOwner').collection(users).doc('pending1').update({ role: 'manager', status: 'active' }));
+        await assertSucceeds(roleBatch('legacyOwner', 'pending1', { role: 'owner' }, 'add'));
+    });
+
+    t('owners: the last owner cannot be demoted, removed or step down', async () => {
+        await listOwners(['legacyOwner']);
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await listOwners(['owner2']);
+        await assertFails(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, 'remove'));
+        await assertFails(roleBatch('legacyOwner', 'owner2', { role: FieldValue.delete(), status: 'disabled' }, 'remove'));
+        await assertFails(as('legacyOwner').collection(users).doc('owner2').delete());
+        await expectOwners(['owner2']);
+    });
+
+    t('owners: an owner demotes or removes another owner while 2+ are listed', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(as('legacyOwner').collection(users).doc('owner2').update({ role: 'manager' }));
+        await assertFails(roleBatch('legacyOwner', 'owner2', { status: 'disabled' }, 'remove'));
+        await assertFails(as('legacyOwner').collection(users).doc('pending1').update({ role: 'owner' }));
+        await assertFails(as('legacyOwner').collection(users).doc('staff1').update({ role: 'owner', status: 'disabled' }));
+        await assertSucceeds(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, 'remove'));
+        await expectOwners(['legacyOwner']);
+        await assertFails(ownerOnlyWrite('owner2'));
+        await assertFails(roleBatch('owner2', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await listOwners(['legacyOwner', 'owner2']);
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(users).doc('owner2').update({ role: 'owner' }));
+        await assertSucceeds(roleBatch('owner2', 'legacyOwner', {
+            role: FieldValue.delete(), rentRole: FieldValue.delete(), status: 'disabled', disabledBy: 'owner2'
+        }, 'remove'));
+        await expectOwners(['owner2']);
+    });
+
+    t('owners: an owner steps down only while another owner is listed, and only to manager or member', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(roleBatch('owner2', 'owner2', { role: 'none' }, 'remove'));
+        await assertFails(roleBatch('owner2', 'owner2', { role: 'manager', status: 'active' }, 'remove'));
+        await assertFails(roleBatch('owner2', 'owner2', { status: 'disabled' }, 'remove'));
+        await assertSucceeds(roleBatch('owner2', 'owner2', { role: 'manager' }, 'remove'));
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'staff' }, 'remove'));
+        await expectOwners(['legacyOwner']);
+    });
+
+    t('owners: the owner list stays consistent with the profiles', async () => {
+        await listOwners(['legacyOwner']);
+        const set = (actor, value) => as(actor).collection(teamCol()).doc('team').set({ ownerUids: value }, { merge: true });
+        // only active owners are added, one at a time; never a non-owner, never two at once, no repeats
+        await assertFails(set('legacyOwner', FieldValue.arrayUnion('manager1')));
+        await assertFails(set('legacyOwner', ['legacyOwner', 'owner2', 'owner2']));
+        await assertSucceeds(set('legacyOwner', FieldValue.arrayUnion('owner2')));
+        await assertFails(set('legacyOwner', ['legacyOwner', 'owner2', 'ghost']));
+        // a listed owner is not taken off without their demotion; the list never empties
+        await assertFails(set('legacyOwner', FieldValue.arrayRemove('owner2')));
+        await assertFails(set('legacyOwner', ['manager1', 'staff1']));
+        await assertFails(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, null));
+        await assertFails(roleBatch('legacyOwner', 'manager1', { role: 'owner' }, null));
+        // a demotion must take that person off; a promotion must add them
+        const db = as('legacyOwner');
+        const swap = db.batch();
+        swap.update(db.collection(users).doc('owner2'), { role: 'manager' });
+        swap.set(db.collection(teamCol()).doc('team'), { ownerUids: FieldValue.arrayRemove('legacyOwner') }, { merge: true });
+        await assertFails(swap.commit());
+        await expectOwners(['legacyOwner', 'owner2']);
+        // a stale entry (no longer an owner) may be taken off on its own
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(users).doc('owner2').update({ role: 'manager' }));
+        await assertSucceeds(set('legacyOwner', FieldValue.arrayRemove('owner2')));
+        // the directory rewrite keeps the list; an old app's full rewrite drops it, and then nobody is demoted
+        await assertSucceeds(as('legacyOwner').collection(teamCol()).doc('team').set({ people: { a: { name: 'A', role: 'staff' } }, updatedAt: 1 }, { mergeFields: ['people', 'updatedAt'] }));
+        await expectOwners(['legacyOwner']);
+        await assertSucceeds(as('legacyOwner').collection(teamCol()).doc('team').set({ people: {}, updatedAt: 1 }));
+        await expectOwners(undefined);
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await assertSucceeds(set('legacyOwner', FieldValue.arrayUnion('legacyOwner')));
     });
 
     t('owner can still remove a non-owner (disabled profile)', () =>

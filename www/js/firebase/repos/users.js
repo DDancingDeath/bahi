@@ -26,12 +26,31 @@ export async function readTeamDirectory() {
 }
 
 /**
- * Replaces the team directory (owner only in the rules).
+ * Replaces the people of the team directory (owner only in the rules); the owner list is kept.
  * @param {{people: Object}} directory
  * @returns {Promise<void>}
  */
 export function writeTeamDirectory(directory) {
-    return teamRef().set({ people: directory.people, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    return teamRef().set({ people: directory.people, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+        { mergeFields: ['people', 'updatedAt'] });
+}
+
+/**
+ * The team directory read from the server (the owner list must not come from the offline cache).
+ * @returns {Promise<Object|null>}
+ */
+export async function readTeamDirectoryFromServer() {
+    const doc = await teamRef().get({ source: 'server' });
+    return doc.exists ? doc.data() : null;
+}
+
+/**
+ * Adds one active owner to `settings/team.ownerUids` (the rules check that their profile is one).
+ * @param {string} uid
+ * @returns {Promise<void>}
+ */
+export function addListedOwner(uid) {
+    return teamRef().set({ ownerUids: firebase.firestore.FieldValue.arrayUnion(uid) }, { merge: true });
 }
 
 const deviceLogRef = (uid) => firebase.firestore()
