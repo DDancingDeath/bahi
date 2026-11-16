@@ -2587,6 +2587,33 @@
           }
         },
         "updatedAt": "SERVER_TIME"
+      },
+      {
+        "mergeFields": [
+          "people",
+          "updatedAt"
+        ]
+      }
+    ],
+    [
+      "collection",
+      "dev_settings"
+    ],
+    [
+      "doc",
+      "team"
+    ],
+    [
+      "set",
+      {
+        "ownerUids": {
+          "arrayUnion": [
+            "u1"
+          ]
+        }
+      },
+      {
+        "merge": true
       }
     ]
   ],
@@ -3120,6 +3147,33 @@
           }
         },
         "updatedAt": "SERVER_TIME"
+      },
+      {
+        "mergeFields": [
+          "people",
+          "updatedAt"
+        ]
+      }
+    ],
+    [
+      "collection",
+      "dev_settings"
+    ],
+    [
+      "doc",
+      "team"
+    ],
+    [
+      "set",
+      {
+        "ownerUids": {
+          "arrayUnion": [
+            "u1"
+          ]
+        }
+      },
+      {
+        "merge": true
       }
     ],
     [
@@ -3187,6 +3241,12 @@
           }
         },
         "updatedAt": "SERVER_TIME"
+      },
+      {
+        "mergeFields": [
+          "people",
+          "updatedAt"
+        ]
       }
     ],
     [
@@ -3244,6 +3304,12 @@
           }
         },
         "updatedAt": "SERVER_TIME"
+      },
+      {
+        "mergeFields": [
+          "people",
+          "updatedAt"
+        ]
       }
     ],
     [
@@ -3287,6 +3353,9 @@
       "get"
     ],
     [
+      "batch"
+    ],
+    [
       "collection",
       "dev_users"
     ],
@@ -3295,7 +3364,8 @@
       "u4"
     ],
     [
-      "update",
+      "batch.update",
+      "ref(dev_users/u4)",
       {
         "status": "disabled",
         "role": "delete(true)",
@@ -3305,6 +3375,9 @@
         "disabledAt": "SERVER_TIME",
         "disabledBy": "u1"
       }
+    ],
+    [
+      "batch.commit"
     ],
     [
       "collection",

@@ -45,7 +45,9 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   unless this phone's user turns it on: crashes and freezes then go to the shop's Firebase with the
   phone's details; the app adds no names or amounts, but an error message can hold text; docs/error-reporting.md says exactly what is sent).
 - **Admin › Users**: counts, a link to Settings › Team (where approving, roles, password resets and
-  **Remove from shop** now are; Restore brings a removed person back as a pending registration) and Activity by person.
+  **Remove from shop** now are; Restore brings a removed person back as a pending registration) and Activity by person. **Edit role** offers Member / Manager / Owner: an owner can make an approved
+  person owner (after a confirmation), demote another owner or step down, but there is always at least
+  one owner. A pending person is approved first; a sign-in without email stays a Member.
 - **Admin › Data › Bill dues: stored in one place** (owner): **Check bills** reads every bill once
   and says how many older bills keep their due in an old place; **Store the due** writes it in the one
   place the app uses. No amount on any screen changes (BILL-PAY); check that a recent backup is good first.
