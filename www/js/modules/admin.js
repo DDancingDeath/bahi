@@ -365,9 +365,9 @@ const AdminManager = {
                     ${workerUsername(user.email) ? '' : `<button type="button" class="btn btn-sm" data-onclick="admin.resetUserPassword('${id}', '${Helpers.escapeJsAttr(user.email || '')}')">
                         ${icon('lock', 'i-sm')} ${tx('ui.admin.reset_password')}
                     </button>`}
-                    ${user.role === 'owner' ? '' : `<button type="button" class="btn btn-sm btn-danger-outline" data-onclick="admin.deleteUser('${id}', '${safeName}')">
+                    <button type="button" class="btn btn-sm btn-danger-outline" data-onclick="admin.deleteUser('${id}', '${safeName}')">
                         ${icon('x', 'i-sm')} ${tx('ui.confirm.delete_user')}
-                    </button>`}
+                    </button>
                 </div>`;
     },
 

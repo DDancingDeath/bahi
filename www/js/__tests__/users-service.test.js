@@ -359,6 +359,7 @@ describe('owners (multi-owner): the role choice, its confirmations and the owner
 
     test('removing another owner asks strongly and takes them off the list', async () => {
         await addOwner('o2', 'Second');
+        expect(document.getElementById('adminActiveUsers').innerHTML).toContain("admin.deleteUser('o2'");
         await expect(AdminManager.deleteUser('o2', 'Second')).resolves.toBe(true);
         expect(modal.mock.calls[0][0]).toContain('"Second" is an owner.');
         expect(userDoc('o2')).toMatchObject({ status: 'disabled' });
