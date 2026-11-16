@@ -2213,6 +2213,7 @@ export default {
     'ui.photo_weights.heavy': "Over {limit} kg",
     'ui.photo_weights.photo_alt': "Photo of the weight sheet with each weight numbered",
     'ui.photo_weights.reading': "Reading the weights…",
+    'ui.photo_weights.busy': "Busy, trying again…",
     'ui.photo_weights.remove': "Remove weight {n}",
     'ui.photo_weights.retake': "Retake photo",
     'ui.photo_weights.sheet_count_off': "The sheet says {sheet} bags, but there are {read} here. Check them.",

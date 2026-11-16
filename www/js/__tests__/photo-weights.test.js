@@ -16,7 +16,7 @@ import { PhotoWeights, canPickPhoto } from '../ui/photo-weights.js';
 import { PhotoWeightsFlow } from '../modules/photo-weights.js';
 import { readWeightsPhoto, _resetPhotoWeightsAi } from '../firebase/photo-weights-ai.js';
 import {
-    fitWithin, isQuotaError, normaliseReading, normaliseRotation, parseModelJson, parseWeightText, photoErrorKey,
+    fitWithin, isOverloadError, isQuotaError, normaliseReading, normaliseRotation, parseModelJson, parseWeightText, photoErrorKey,
     reviewSummary, rotateBox, PHOTO_WEIGHTS_MODEL, PHOTO_WEIGHTS_SCHEMA
 } from '../utils/photo-weights.js';
 
@@ -119,6 +119,17 @@ describe('errors: free limit, offline, not set up', () => {
         expect(photoErrorKey(Object.assign(new Error('x'), { customErrorData: { status: 403 } }))).toBe('msg.photo_weights.unavailable');
         expect(photoErrorKey(new Error('timeout'))).toBe('msg.photo_weights.failed');
     });
+    test('Gemini busy (500 high demand / 503 UNAVAILABLE) is retried; the limit, other 4xx and a cancel are not', () => {
+        const sdk = (status, msg) => Object.assign(new Error(`AI: Error fetching from …: [${status} ] ${msg}`), { code: 'fetch-error', customErrorData: { status } });
+        expect(isOverloadError(sdk(500, 'This model is currently experiencing high demand.'))).toBe(true);
+        expect(isOverloadError(sdk(503, 'UNAVAILABLE'))).toBe(true);
+        expect(isOverloadError(new Error('The model is overloaded. UNAVAILABLE'))).toBe(true);
+        expect(isOverloadError(sdk(429, 'Resource has been exhausted'))).toBe(false);
+        expect(isOverloadError(sdk(400, 'UNAVAILABLE in the text'))).toBe(false);
+        expect(isOverloadError(sdk(403, 'App attestation failed'))).toBe(false);
+        expect(isOverloadError(Object.assign(new Error('cancelled'), { name: 'AbortError' }))).toBe(false);
+        expect(isOverloadError(new Error('timeout'))).toBe(false);
+    });
 });
 
 describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
@@ -201,6 +212,68 @@ describe('readWeightsPhoto (Firebase AI Logic, mocked)', () => {
         ctrl.abort();
         await expect(reading).rejects.toMatchObject({ name: 'AbortError' });
         finish(new DOMException('Aborted', 'AbortError'));
+    });
+
+    describe('Gemini busy: up to 2 retries after 1.5 s and 4 s', () => {
+        const busy = () => Object.assign(new Error('[500 ] This model is currently experiencing high demand.'), { customErrorData: { status: 500 } });
+        const ok = { response: { text: () => '{"weights":[],"crossed_out":[]}' } };
+        const depsFor = (generate, extra = {}) => ({ loadSdk: async () => fakeSdk(generate).sdk, options: () => ({}), win: { APP_CHECK_SITE_KEY: 'site' }, startAppCheck: jest.fn().mockResolvedValue({}), model: 'm', ...extra });
+        const settle = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
+        afterEach(() => jest.useRealTimers());
+
+        test('busy twice, then read: waits 1.5 s and 4 s, says so each time, sends the same photo', async () => {
+            jest.useFakeTimers();
+            const generate = jest.fn().mockRejectedValueOnce(busy()).mockRejectedValueOnce(busy()).mockResolvedValue(ok);
+            const onRetry = jest.fn();
+            const reading = readWeightsPhoto(new Blob(['jpeg'], { type: 'image/jpeg' }), { deps: depsFor(generate), onRetry });
+            await jest.advanceTimersByTimeAsync(0);
+            expect(generate).toHaveBeenCalledTimes(1);
+            expect(onRetry).toHaveBeenLastCalledWith(1);
+            await jest.advanceTimersByTimeAsync(1499);
+            expect(generate).toHaveBeenCalledTimes(1);
+            await jest.advanceTimersByTimeAsync(1);
+            expect(generate).toHaveBeenCalledTimes(2);
+            expect(onRetry).toHaveBeenLastCalledWith(2);
+            await jest.advanceTimersByTimeAsync(4000);
+            await expect(reading).resolves.toEqual({ weights: [], crossed_out: [] });
+            expect(generate).toHaveBeenCalledTimes(3);
+            expect(generate.mock.calls[2][0][1]).toEqual(generate.mock.calls[0][0][1]);
+        });
+
+        test('still busy after 2 retries: the last error comes back (3 calls in all)', async () => {
+            const err = busy();
+            const generate = jest.fn().mockRejectedValueOnce(busy()).mockRejectedValueOnce(busy()).mockRejectedValue(err);
+            const onRetry = jest.fn();
+            await expect(readWeightsPhoto(new Blob(['x']), { deps: depsFor(generate, { retryDelays: [0, 0] }), onRetry })).rejects.toBe(err);
+            expect(generate).toHaveBeenCalledTimes(3);
+            expect(onRetry).toHaveBeenCalledTimes(2);
+            expect(photoErrorKey(err)).toBe('msg.photo_weights.failed');
+        });
+
+        test('a 400 or 403 is never retried', async () => {
+            for (const status of [400, 403]) {
+                _resetPhotoWeightsAi();
+                const err = Object.assign(new Error(`[${status} ] UNAVAILABLE`), { customErrorData: { status } });
+                const generate = jest.fn().mockRejectedValue(err);
+                const onRetry = jest.fn();
+                await expect(readWeightsPhoto(new Blob(['x']), { deps: depsFor(generate, { retryDelays: [0, 0] }), onRetry })).rejects.toBe(err);
+                expect(generate).toHaveBeenCalledTimes(1);
+                expect(onRetry).not.toHaveBeenCalled();
+            }
+        });
+
+        test('Cancel (or the timeout) while waiting to retry: stops at once, nothing more is uploaded', async () => {
+            jest.useFakeTimers();
+            const generate = jest.fn().mockRejectedValue(busy());
+            const ctrl = new AbortController();
+            const reading = readWeightsPhoto(new Blob(['x']), { signal: ctrl.signal, deps: depsFor(generate), onRetry: () => ctrl.abort() });
+            const caught = reading.catch((e) => e);
+            await jest.advanceTimersByTimeAsync(0);
+            await settle();
+            expect(await caught).toMatchObject({ name: 'AbortError' });
+            await jest.advanceTimersByTimeAsync(10000);
+            expect(generate).toHaveBeenCalledTimes(1);
+        });
     });
 });
 
@@ -377,6 +450,24 @@ describe('check sheet', () => {
         sheet().querySelector('.btn-primary').click();
         await expect(done).resolves.toBe(false);
         expect(document.activeElement.id).toBe('newWeight');
+    });
+
+    test('Gemini busy: "Busy, trying again…" while it retries by itself, then the weights', async () => {
+        let go;
+        const read = jest.fn((blob, opts) => new Promise((resolve) => {
+            opts.onRetry(1);
+            go = () => resolve({ weights: [entry(20, '20', 1, 1)], crossed_out: [] });
+        }));
+        const done = PhotoWeightsFlow.read(new Blob(['x']), 'purchase', { prepare, read });
+        await tick();
+        const status = sheet().querySelector('.pw-status');
+        expect(status.textContent).toBe('Busy, trying again…');
+        expect(status.getAttribute('role')).toBe('status');
+        go();
+        await tick();
+        expect(sheet().querySelector('#pwWeight0').value).toBe('20');
+        sheet().querySelector('.pw-add').click();
+        await expect(done).resolves.toBe(true);
     });
 
     test('offline when the photo comes back: nothing is sent', async () => {

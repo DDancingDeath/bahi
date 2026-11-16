@@ -291,6 +291,15 @@ Dev" test APK). `bahi-happa` (16 Nov 2026): its own key `6LeLOiMuAAAAAFwG1zM7ElY
 its web app, AI Logic ENFORCED, Firestore and Auth unenforced; set in the local prod config branch and
 in `config/targets/bahi-happa.json` (the APK from rc15). `happa-bfc07` has no key yet.
 
+**Minimum score 0.3 (16 Nov 2026, owner-approved trade-off).** Both web apps (bahi-happa and
+bahi-happa-dev) accept reCAPTCHA Enterprise scores from **0.3** (`riskAnalysis.minValidScore`; the
+default is 0.5). Real phones, the APK's WebView on `https://localhost` and a fresh install can score
+under 0.5 and would get "App attestation failed" (403), so photo of weights would stop for a real user.
+For a small shop that risk matters more than the extra bots a lower bar lets through: App Check only
+guards AI Logic here (Firestore / Auth are not enforced), and abuse can at most use the free Gemini
+quota, which then shows "limit reached". Raise it again (or add Play Integrity for the APK) if App
+Check › Metrics shows unverified traffic growing.
+
 **Firestore stays NOT enforced.** Enforcing App Check on Firestore would break the
 tenant link page `/r/`: it reads Firestore over REST with no SDK (its "tiny, no SDK"
 design), so it has no App Check token. It would also refuse every old APK at once.

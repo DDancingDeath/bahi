@@ -2213,6 +2213,7 @@ export default {
     'ui.photo_weights.heavy': "{limit} kg से ज़्यादा",
     'ui.photo_weights.photo_alt': "वज़न की पर्ची की फ़ोटो, हर वज़न पर नंबर",
     'ui.photo_weights.reading': "वज़न पढ़ रहे हैं…",
+    'ui.photo_weights.busy': "व्यस्त है, फिर कोशिश कर रहे हैं…",
     'ui.photo_weights.remove': "वज़न {n} हटाएं",
     'ui.photo_weights.retake': "फिर से फ़ोटो लें",
     'ui.photo_weights.sheet_count_off': "पर्ची पर {sheet} बोरी लिखी हैं, पर यहां {read} हैं। जांचें।",
