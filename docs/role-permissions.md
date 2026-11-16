@@ -18,7 +18,7 @@ permission ids keep `shop`.
 
 | Stored value | Shown as | Configurable | Notes |
 |---|---|---|---|
-| `owner` | Owner / मालिक | no | Always sees and does everything; no edit window. Every change still keeps its record, enforced by the rules (OD-14, see "The owner's own changes"). |
+| `owner` | Owner / मालिक | no | Always sees and does everything; no edit window. Every change still keeps its record, enforced by the rules (OD-14, see "The owner's own changes"). There may be several owners, never none (see "Owners"). |
 | `manager` | Manager / मैनेजर | yes | The spec's "admin". The name stays `manager`. |
 | `staff` | Member / सदस्य | yes | The stored value stays `staff` (rules, profiles); the UI never says "staff". |
 
@@ -433,7 +433,7 @@ rejected / no profile / unknown role.
 | `drafts` | own only (`where('userId', '==', uid)`, get by id) | own |
 | `autoSaves/{uid}` | own doc | own |
 | `users` | own profile at start-up / login / registration; full list: Admin and Roles & access › People (owner only) | **own only**. Names shown on bills, payments and audit rows are stored on those records |
-| `settings/team` (#87) | names and roles of the approved people, written by the owner's phone whenever it reads the profiles (Admin, App health, notification fan-out; and once a day 3 minutes after start-up, one read per profile + the doc; it writes only when a name or role differs) and by `tools/migrate`; one get for managers' App health device names and their notification fan-out on item and rate edits | no (managers only) |
+| `settings/team` (#87) | names and roles of the approved people, plus `ownerUids` (the active owners, see "Owners"), written by the owner's phone whenever it reads the profiles (Admin, App health, notification fan-out; and once a day 3 minutes after start-up, one read per profile + the doc; it writes only when a name or role differs) and by `tools/migrate`; one get for managers' App health device names and their notification fan-out on item and rate edits | no (managers only) |
 | `settings/accounts` (#74) | Money › Worth's bank, savings and other accounts, shared by every phone: one get each time Money opens on Worth (the page's own saves update it on the phone); owner and managers with Money only | no (bank balances are private; a member's M15 leaves them out and says so) |
 | `users/{uid}/preferences` | own | own |
 | `auditLogs`, `telemetry` | append by everyone; read in Settings/Diagnostics and the anomaly scan by the owner only | no |
@@ -718,7 +718,44 @@ app, once per project, by one of:
 - **The migration tool** (`tools/migrate/README.md`): `apply` copies the profiles with their roles and the
   same uids, and `auth:import` the logins, so the old owner arrives as owner.
 
-Then sign in as that owner and approve everyone else in Admin › Users as usual.
+Then sign in as that owner and approve everyone else in Admin › Users as usual. That first owner can make
+others owner from the app (see "Owners" below); the console is needed only once. On their first sign-in
+the app lists them in `settings/team.ownerUids` (about 15 s after start-up).
+
+## Owners: more than one, never none
+
+A shop can have any number of owners. Every owner has every owner power (all checks are `role == 'owner'`;
+notifications, the anomaly scan and Rentals already treat each owner the same), and nothing in the app names
+"the" owner.
+
+- **Who changes roles:** only an owner, in **Admin › Users › Edit role**: a choice of **Member / Manager /
+  Owner** (the current one marked "(now)"). Managers and members never see Admin or the choice, and the rules
+  refuse them any role or status change (their own included) and any write to `settings/team`.
+- **Making someone owner** needs a confirmation (en + hi): "*Ramesh will get full control: money, settings,
+  people, deleting bills. Make owner?*". Only an **approved** person can be made owner: a pending
+  registration is approved as Member or Manager first (the approve list never offers Owner), then made owner
+  with Edit role. Two deliberate steps, so an unknown sign-up is never one tap away from full control.
+- **Taking it away:** an owner can demote or remove (Delete) another owner, with a strong, red confirmation
+  that says they lose full control. An owner can **step down** (their own row has Edit role) to Manager or
+  Member; the app then restarts in the new role.
+- **Never the last owner:** demoting, removing or stepping down is refused, in the app and in the rules, unless
+  another active owner remains. An owner can never remove (disable) themselves or change their own status.
+- **The owner list, `settings/team.ownerUids`:** the rules can't count profiles, so the uids of the active
+  owners are kept in the team directory, changed **in the same batch** as each role change (an owner added
+  on promotion, taken off on demotion or removal). The rules check that a demotion only happens while the list
+  has 2+ owners and names that person, that every uid added is an active owner after the write, that a
+  listed owner is never taken off without losing the role, and that the list never empties. Two owners
+  demoting each other at the same moment both write the list, so the second fails.
+- **Backfill (projects from before multi-owner):** each owner's phone lists that owner when they sign in
+  (`ensureSelfListedOwner`, about 15 s after start-up, one read, once per phone), the owner's phone lists
+  any owner it sees in the profiles when it rebuilds the team directory, and Admin lists every active owner
+  right before a demotion or removal. Until an owner is listed, nobody can demote anyone on the strength of
+  them (the list may under-count, never over-count). An older app that rewrites the whole directory drops
+  the list; the next owner sign-in or Admin visit lists the owners again.
+- **Audit:** every change writes `CHANGE_USER_ROLE` with who (the entry's `userId` / `userName`), whom
+  (`details.targetUserId`, `targetName`) and `from` → `to` (removing an owner: `to: 'removed'`, besides
+  `REMOVE_USER`).
+- Rules: `profileRoleChangeOk()`, `teamOwnersOk()` (docs/security.md, "user profile rules").
 
 ## Manual reminders on Today (#86)
 
