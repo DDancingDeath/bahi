@@ -6,38 +6,36 @@
 .bill-checks-warn {
     outline: 1px solid var(--negative-line);
     outline-offset: 4px;
-    border-radius: 12px;
+    border-radius: var(--r-panel);
 }
 
 .bill-checks-warn {
     outline-color: var(--warning-line);
 }
 
-.bill-check-banner {
+.bill-check-notice {
     position: sticky;
     top: 0;
-    z-index: 5;
-    margin: 0 0 12px;
-    padding: 8px 12px;
-    border-radius: var(--r-panel);
+    z-index: var(--z-sticky);
+    flex-direction: column;
+    gap: var(--sp-1);
+    margin: 0 0 var(--sp-3);
     border: 1px solid var(--negative-line);
-    /* The soft tint over an opaque surface: the banner sticks over the bill as it scrolls */
-    background: linear-gradient(var(--negative-soft), var(--negative-soft)), var(--surface);
-    color: var(--negative);
-    font-size: var(--fs-sm);
+    border-radius: var(--r-panel);
 }
 
-.bill-check-banner[hidden] {
-    display: none;
-}
-
-.bill-check-banner.bill-check-warn {
+.bill-check-notice.warn {
     border-color: var(--warning-line);
-    background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--surface);
-    color: var(--warning);
 }
 
-.bill-check-banner-head {
+/* Phone and tablet: a stuck banner covers the weight list as the bill scrolls */
+@media (max-width: 1023.98px) {
+    .bill-check-notice {
+        position: static;
+    }
+}
+
+.bill-check-notice-head {
     display: block;
     width: 100%;
     padding: 0;
@@ -50,31 +48,30 @@
     cursor: pointer;
 }
 
-.bill-check-banner ul {
-    margin: 6px 0 0;
-    padding-left: 4px;
+.bill-check-notice ul {
+    margin: 0;
+    padding-left: var(--sp-1);
     list-style: none;
-    font-size: 14px;
 }
 
 input.bill-check-block,
 select.bill-check-block {
-    border-color: var(--danger-dark) !important;
-    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25) !important;
+    border-color: var(--negative) !important;
+    box-shadow: var(--ring-danger) !important;
 }
 
 input.bill-check-warn,
 select.bill-check-warn {
-    border-color: var(--warning-dark) !important;
-    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.25) !important;
+    border-color: var(--warning) !important;
+    box-shadow: var(--ring-warning) !important;
 }
 
 tr.bill-check-block > td {
-    background: var(--danger-soft);
+    background: var(--negative-soft);
 }
 
 tr.bill-check-block > td:first-child {
-    box-shadow: inset 4px 0 0 var(--danger-dark);
+    box-shadow: var(--stripe) var(--negative);
 }
 
 tr.bill-check-warn > td {
@@ -82,28 +79,29 @@ tr.bill-check-warn > td {
 }
 
 tr.bill-check-warn > td:first-child {
-    box-shadow: inset 4px 0 0 var(--warning-dark);
+    box-shadow: var(--stripe) var(--warning);
 }
 
 .bill-check-msg {
     margin: 2px 0 8px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     font-weight: var(--w-strong);
     line-height: 1.35;
-    color: var(--on-danger-soft);
+    text-align: left;
+    color: var(--negative);
 }
 
 .bill-check-msg.bill-check-warn {
-    color: var(--on-warning-soft);
+    color: var(--warning);
 }
 
-tr.bill-check-row > td {
+tr.bill-check-line > td {
     padding-top: 0;
     border-top: none;
 }
 
-tr.bill-check-row .bill-check-msg {
-    margin: 0 0 4px;
+tr.bill-check-line .bill-check-msg {
+    margin: 0 0 var(--sp-1);
 }
 
 .bill-check-save-blocked {
@@ -112,13 +110,13 @@ tr.bill-check-row .bill-check-msg {
 }
 
 .bill-check-save-override {
-    outline: 2px dashed var(--warning-dark);
+    outline: 2px dashed var(--warning);
     outline-offset: 2px;
 }
 
-.bill-check-modal-list {
-    margin: 0 0 12px;
-    padding-left: 4px;
+.bill-check-list {
+    margin: 0 0 var(--sp-3);
+    padding-left: var(--sp-1);
     list-style: none;
     text-align: left;
 }
@@ -126,16 +124,8 @@ tr.bill-check-row .bill-check-msg {
 .bill-check-reason {
     width: 100%;
     margin-top: 6px;
-    padding: 8px;
+    padding: var(--sp-2);
     box-sizing: border-box;
-}
-
-body.dark-mode tr.bill-check-block > td {
-    background: rgba(220, 38, 38, 0.18);
-}
-
-body.dark-mode tr.bill-check-warn > td {
-    background: rgba(217, 119, 6, 0.2);
 }
 
 /* Existing due of the party under the name field (#166) — information only */
@@ -144,10 +134,10 @@ body.dark-mode tr.bill-check-warn > td {
     width: 100%;
     margin: -4px 0 10px;
     padding: 6px 10px;
-    border: 1px solid var(--info-border);
-    border-radius: 6px;
+    border: 1px solid var(--info-line);
+    border-radius: var(--r-sm);
     background: var(--info-soft);
-    color: var(--on-info-soft);
+    color: var(--info);
     font-size: var(--fs-sm);
     font-weight: var(--w-strong);
     line-height: 1.35;
@@ -156,19 +146,7 @@ body.dark-mode tr.bill-check-warn > td {
 }
 
 .party-due-line.party-due-old {
-    border-color: var(--warning-border);
+    border-color: var(--warning-line);
     background: var(--warning-soft);
-    color: var(--on-warning-soft);
-}
-
-body.dark-mode .party-due-line {
-    background: #172554;
-    border-color: #1e3a8a;
-    color: #bfdbfe;
-}
-
-body.dark-mode .party-due-line.party-due-old {
-    background: #3a2a06;
-    border-color: #92400e;
-    color: #fde68a;
+    color: var(--warning);
 }

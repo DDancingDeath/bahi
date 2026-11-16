@@ -10,7 +10,7 @@
  * Screenshots of each dialog (English and Hindi) go to the test's output folder.
  */
 const { devices } = require('@playwright/test');
-const { test, expect, login, showTab, expectToast, confirmModalIfOpen, clickAfterTyping } = require('./support/app');
+const { test, expect, login, showTab, expectToast, confirmModalIfOpen, clickAfterTyping, openDisclosure } = require('./support/app');
 const { listDocs, deleteAll } = require('./support/emulator');
 
 const wheat = (page, select) => page.$eval(select, (el) => [...el.options].find(o => /Wheat|गेहूं/.test(o.textContent))?.value);
@@ -23,7 +23,7 @@ async function retailLine(page, rate) {
     await page.selectOption('#saleItem', await wheat(page, '#saleItem'));
     await page.fill('#saleRate', String(rate));
     await page.fill('#saleWeight', '15');
-    await page.click('#saleSection .add-to-bill-btn');
+    await page.click('#saleSection [data-add-line]');
 }
 
 test('extreme rate and heavy bag: Fix first, confirmed cases saved with who, the owner sees them (OD-02)', async ({ page, browser, baseURL, problems }, testInfo) => {
@@ -35,10 +35,10 @@ test('extreme rate and heavy bag: Fix first, confirmed cases saved with who, the
 
     // ---- ₹260 typed for ₹26: "Fix rate" is the default and adds nothing ----
     await retailLine(page, 260);
-    const rate = page.locator('.rate-check-dialog');
-    await expect(rate.locator('#rateCheckMessage')).toHaveText('Wheat 15 kg × ₹260.00 = ₹3,900. Today\'s rate ₹26.00 would give ₹390.');
+    const rate = page.locator('.rate-check-sheet');
+    await expect(rate.locator('#rateCheckMessage')).toHaveText('Wheat 15 kg × ₹260 = ₹3,900. Today\'s rate ₹26 would give ₹390.');
     await expect(rate.locator('[data-choice="fix"]')).toBeFocused();
-    await expect(rate.locator('[data-choice="confirm"]')).toHaveText('Yes, ₹260.00 is right');
+    await expect(rate.locator('[data-choice="confirm"]')).toHaveText('Yes, ₹260 is right');
     await shot(page, testInfo, 'rate-check-en');
     await page.keyboard.press('Enter'); // the focused default: Fix rate
     await expect(rate).toHaveCount(0);
@@ -47,14 +47,14 @@ test('extreme rate and heavy bag: Fix first, confirmed cases saved with who, the
 
     // ---- a normal rate asks nothing ----
     await page.fill('#saleRate', '26');
-    await page.click('#saleSection .add-to-bill-btn');
+    await page.click('#saleSection [data-add-line]');
     await expect(page.locator('#saleTotal')).toHaveText('390');
     await expect(rate).toHaveCount(0);
 
     // ---- "Yes, ₹260 is right": added, and saved with who confirmed it ----
     await retailLine(page, 260);
     await rate.locator('[data-choice="confirm"]').click();
-    await expect(page.locator('#saleTotal')).toHaveText('4290');
+    await expect(page.locator('#saleTotal')).toHaveText('4,290');
     await page.fill('#saleCustomerName', customer);
     await page.fill('#saleCashPayment', '4290');
     await clickAfterTyping(page, '#saveSaleBtn');
@@ -75,7 +75,7 @@ test('extreme rate and heavy bag: Fix first, confirmed cases saved with who, the
     await page.selectOption('#billItem', await wheat(page, '#billItem'));
     await page.fill('#billRate', '22');
     await page.fill('#newWeight', '485');
-    await page.click('#purchaseSection .quick-add-btn-inline');
+    await page.click('#purchaseSection [data-add-weight]');
     const bag = page.locator('.bag-check-dialog');
     await expect(bag.locator('#bagCheckMessage')).toHaveText('Bag weight 485 kg — usually under 100 kg. Did you mean 48.5?');
     await expect(bag.locator('[data-choice="fix"]')).toBeFocused();
@@ -85,17 +85,17 @@ test('extreme rate and heavy bag: Fix first, confirmed cases saved with who, the
     await expect(page.locator('#newWeight')).toHaveValue('485');
     await expect(page.locator('#newWeight')).toBeFocused();
     await page.fill('#newWeight', '48.5');
-    await page.click('#purchaseSection .quick-add-btn-inline');
+    await page.click('#purchaseSection [data-add-weight]');
     await expect(bag).toHaveCount(0);
     await page.fill('#newWeight', '100');
-    await page.click('#purchaseSection .quick-add-btn-inline');
+    await page.click('#purchaseSection [data-add-weight]');
     await expect(bag).toHaveCount(0); // exactly 100 kg is fine
     await page.fill('#newWeight', '485');
-    await page.click('#purchaseSection .quick-add-btn-inline');
+    await page.click('#purchaseSection [data-add-weight]');
     await bag.locator('[data-choice="confirm"]').click();
-    await page.click('#purchaseSection .add-to-bill-btn');
+    await page.click('#purchaseSection [data-add-line]');
     await expect(bag).toHaveCount(0); // asked once
-    await expect(page.locator('#billTotal')).toHaveText('13937');
+    await expect(page.locator('#billTotal')).toHaveText('13,937');
     await page.fill('#customerName', supplier);
     await page.check('#cashCheckbox');
     await clickAfterTyping(page, '#saveBillBtn');
@@ -113,10 +113,13 @@ test('extreme rate and heavy bag: Fix first, confirmed cases saved with who, the
         await login(owner, 'owner');
         await showTab(owner, 'day');
         const card = owner.locator('#dayReportCard');
-        await expect(card.locator('.anomaly-row', { hasText: 'Wheat: 15 kg × ₹260.00 = ₹3,900; today\'s rate ₹26.00 would give ₹390' }).first()).toContainText('Extreme rate confirmed', { timeout: 30000 });
-        await expect(card.locator('.anomaly-row', { hasText: 'Wheat: bag of 485 kg (usually under 100 kg)' }).first()).toContainText('Staff One');
+        await expect(card.locator('.anom-row', { hasText: 'Wheat: 15 kg × ₹260 = ₹3,900; today\'s rate ₹26 would give ₹390' }).first()).toContainText('Extreme rate confirmed', { timeout: 30000 });
+        await expect(card.locator('.anom-row', { hasText: 'Wheat: bag of 485 kg (usually under 100 kg)' }).first()).toContainText('Staff One');
+        // Closed by default: the counts show on its one row; open it for the screenshot
+        await expect(card.locator('#dayReportToggle .tag').first()).toBeVisible();
+        await openDisclosure(owner, 'dayReport');
         // The card redraws when its stored records arrive: scroll in the page, not on a held element
-        await owner.evaluate(() => [...document.querySelectorAll('#dayReportCard .anomaly-row')]
+        await owner.evaluate(() => [...document.querySelectorAll('#dayReportCard .anom-row')]
             .find(r => r.textContent.includes('Extreme rate confirmed'))?.scrollIntoView({ block: 'center' }));
         await shot(owner, testInfo, 'owner-day-report-en');
     } finally {
@@ -132,8 +135,8 @@ test('Hindi: both confirms in one language, "kg" for the weight', async ({ page,
     await showTab(page, 'billing');
     await page.click('#saleModeBtn');
     await retailLine(page, 260);
-    const rate = page.locator('.rate-check-dialog');
-    await expect(rate.locator('#rateCheckMessage')).toHaveText(/^(Wheat|गेहूं) 15 kg × ₹260\.00 = ₹3,900। आज के रेट ₹26\.00 से ₹390 होता।$/);
+    const rate = page.locator('.rate-check-sheet');
+    await expect(rate.locator('#rateCheckMessage')).toHaveText(/^(Wheat|गेहूं) 15 kg × ₹260 = ₹3,900। आज के रेट ₹26 से ₹390 होता।$/);
     await expect(rate.locator('[data-choice="fix"]')).toHaveText('रेट ठीक करें');
     await shot(page, testInfo, 'rate-check-hi');
     await rate.locator('[data-choice="fix"]').click();
@@ -142,7 +145,7 @@ test('Hindi: both confirms in one language, "kg" for the weight', async ({ page,
     await page.selectOption('#billItem', await wheat(page, '#billItem'));
     await page.fill('#billRate', '22');
     await page.fill('#newWeight', '485');
-    await page.click('#purchaseSection .quick-add-btn-inline');
+    await page.click('#purchaseSection [data-add-weight]');
     const bag = page.locator('.bag-check-dialog');
     await expect(bag.locator('#bagCheckMessage')).toHaveText('बोरी का वज़न 485 kg — आमतौर पर 100 kg से कम होता है। क्या 48.5 लिखना था?');
     await expect(bag.locator('[data-choice="confirm"]')).toHaveText('हाँ, 485 kg');

@@ -7,7 +7,7 @@
 
 import { AppState } from '../utils/state.js';
 import { backdatedCash, billDayRange } from '../utils/bill-date.js';
-import { parseAnyBillDate, toLocalISODate } from '../utils/dates.js';
+import { formatDate, parseAnyBillDate, toLocalISODate } from '../utils/dates.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { sessionForDate } from '../utils/cash-session.js';
 import { UIManager } from './ui-manager.js';
@@ -38,6 +38,7 @@ export function prepareBillDate(id, editingBill = null) {
         input.addEventListener('change', () => {
             if (input.value && input.value !== toLocalISODate(new Date())) input.dataset.picked = '1';
             else delete input.dataset.picked;
+            renderBillDateLine(id);
         });
     }
     if (editingBill) {
@@ -45,10 +46,50 @@ export function prepareBillDate(id, editingBill = null) {
         input.value = d ? toLocalISODate(d) : '';
         input.disabled = true;
         delete input.dataset.picked;
+        renderBillDateLine(id);
         return;
     }
     input.disabled = false;
     if (!input.dataset.picked || !input.value) input.value = range.max;
+    renderBillDateLine(id);
+}
+
+/** Only the owner gets "Change date" on the Billing forms; everyone else sees the day only. */
+export const canChangeBillDate = () => AppState.userRole === 'owner';
+
+/**
+ * The line under the bill (Billing only, `[data-date-line]`): "Today" or the bill's day, and
+ * "Change date" for the owner. The Date box stays folded until "Change date" is tapped.
+ * @param {string} id the date input's id
+ * @param {Date} [now]
+ */
+export function renderBillDateLine(id, now = new Date()) {
+    const line = document.querySelector(`[data-date-line="${id}"]`);
+    const input = document.getElementById(id);
+    if (!line || !input) return;
+    const day = input.value || toLocalISODate(now);
+    const text = line.querySelector('.bill-date-text');
+    if (text) text.textContent = day === toLocalISODate(now) ? t('ui.billing.date_today') : formatDate(day, 'full');
+    const can = canChangeBillDate() && !input.disabled;
+    const open = can && input.dataset.open === '1';
+    const field = input.closest('.bill-date');
+    if (field) field.hidden = !open;
+    const change = line.querySelector('.bill-date-change');
+    if (change) change.hidden = !can || open;
+}
+
+/** "Change date": unfolds the Date box (owner only) and opens its picker where the browser allows. */
+export function revealBillDate(id) {
+    const input = document.getElementById(id);
+    if (!input || !canChangeBillDate() || input.disabled) return;
+    input.dataset.open = '1';
+    renderBillDateLine(id);
+    input.focus();
+    try {
+        input.showPicker?.();
+    } catch {
+        // No picker without a user gesture (or not supported): the box is open to type in
+    }
 }
 
 /**
@@ -85,6 +126,7 @@ export function resetBillDate(id) {
     if (!input) return;
     delete input.dataset.picked;
     delete input.dataset.locked;
+    delete input.dataset.open;
     input.value = '';
     prepareBillDate(id);
 }
@@ -118,5 +160,5 @@ export async function allowBackdatedCash(day, cash, pending = null) {
         console.warn('Bill: cash day not checked:', e?.code || e);
     }
     if (!closed) return true;
-    return UIManager.showModal(t('msg.billing.backdated_cash_closed_confirm'), t('msg.checks.check_before_saving'), true);
+    return UIManager.showModal(t('msg.billing.backdated_cash_closed_confirm'), t('msg.checks.check_before_saving'), true, { confirmLabel: t('ui.confirm.save_anyway') });
 }

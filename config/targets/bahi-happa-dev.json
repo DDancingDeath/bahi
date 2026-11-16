@@ -1,0 +1,25 @@
+{
+  "appName": "Bahi Dev",
+  "appNameHi": "Bahi Dev",
+  "androidPackage": "com.happa.dev",
+  "apkName": "bahi-dev",
+  "download": {
+    "apkDownloadUrl": "https://github.com/DDancingDeath/happa/releases/download/dev-latest/bahi-dev.apk",
+    "latestReleaseApi": "https://api.github.com/repos/DDancingDeath/happa/releases/tags/dev-latest",
+    "name": {
+      "en": "Bahi Dev (test app)",
+      "hi": "Bahi Dev (टेस्ट ऐप)"
+    }
+  },
+  "appCheck": {
+    "siteKey": "6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd"
+  },
+  "firebase": {
+    "projectId": "bahi-happa-dev",
+    "hostingSite": "bahi-happa-dev",
+    "redirectHostingSites": [],
+    "apiKey": "AIzaSyAhBZ9kVIEQDNZC_EGQrkR4iqbJo1ioz8U",
+    "messagingSenderId": "1049470936669",
+    "appId": "1:1049470936669:web:93f034380bf5abd0d48fb4"
+  }
+}

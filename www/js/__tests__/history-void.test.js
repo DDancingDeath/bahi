@@ -38,7 +38,7 @@ const bill = (id, extra = {}) => ({
 });
 const VOIDED = bill('P-void', { voided: true, voidReason: 'Entered twice', voidedByName: 'Ravi', voidedAt: NOW - 1000 });
 
-const rows = () => [...document.querySelectorAll('#historyList .history-item')].map(r => [r.querySelector('.bill-row__link').textContent.replace('#', ''), r.classList.contains('is-voided')]);
+const rows = () => [...document.querySelectorAll('#historyList [data-history-item]')].map(r => [r.querySelector('.bill-row__link').textContent.replace('#', ''), r.classList.contains('is-voided')]);
 const shown = (id) => document.getElementById(id).style.display !== 'none';
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
 
@@ -88,7 +88,7 @@ describe('voided bills in History (#75)', () => {
         chip.click();
         expect(rows()).toEqual([['P-void', true], ['P-1', false], ['P-2', false]]);
         expect(document.querySelector('.bill-group--voided .bill-group__title').textContent).toBe('Voided bills (not counted anywhere)');
-        const row = document.querySelector('.history-item.is-voided');
+        const row = document.querySelector('[data-history-item].is-voided');
         expect(row.querySelector('.voided-chip').textContent).toBe('Voided');
         expect(row.querySelector('.voided-reason').textContent).toBe('Entered twice');
         expect(document.getElementById('historyVoidedToggle').textContent).toBe('Hide voided bills (1)');
@@ -103,7 +103,7 @@ describe('voided bills in History (#75)', () => {
 
     test('the details of a voided bill: banner with reason, who and when; no Edit, Void, Reprint or Share; the owner may delete it for good', async () => {
         await HistoryManager.viewBill('id:P-void', 'purchase');
-        const banner = document.querySelector('.bill-voided-banner');
+        const banner = document.querySelector('.bill-voided-notice');
         expect(banner.textContent).toContain('Reason: Entered twice');
         expect(banner.textContent).toContain('Voided by Ravi');
         expect(['billEditBtn', 'billVoidBtn', 'billReprintBtn', 'billShareBtn', 'billDeleteBtn'].map(shown)).toEqual([false, false, false, false, true]);
@@ -149,9 +149,10 @@ describe('Void (#75)', () => {
     test('asks for a reason, voids, logs it and closes the details', async () => {
         AppState.userRole = 'staff';
         await HistoryManager.viewBill('id:P-1', 'purchase');
-        answerReason('  Entered twice ');
+        const ask = answerReason('  Entered twice ');
         await HistoryManager.confirmVoidBill();
         await flush();
+        expect(ask).toHaveBeenCalledWith(expect.stringContaining('reasonInput'), 'Void this bill?', true, { confirmLabel: 'Void bill', danger: true });
         // its audit entry goes in the void's own transaction (D-3)
         expect(FirebaseService.voidBill).toHaveBeenCalledWith('purchases', AppState.purchaseHistory[0], 'Entered twice',
             { audit: { action: 'VOID_BILL', details: expect.objectContaining({ billNumber: 'P-1', billType: 'purchase', amount: 500, reason: 'Entered twice' }) } });

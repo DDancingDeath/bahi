@@ -16,7 +16,8 @@ import { AppState } from '../utils/state.js';
 import { HistoryManager } from '../modules/history.js';
 import { WholesaleSalesManager } from '../modules/wholesale-sales.js';
 import { HISTORY_TAB_KEY, HISTORY_FILTER_KEY } from '../utils/history-filters.js';
-import { BILL_ROW_SLOTS } from '../ui/bill-row.js';
+import { BILL_ROW_SLOTS, byNameHtml, paymentChipsHtml } from '../ui/bill-row.js';
+import { setLang } from '../i18n/index.js';
 import { resolveRoute } from '../ui/navigation.js';
 import en from '../i18n/en.js';
 import hi from '../i18n/hi.js';
@@ -40,7 +41,7 @@ const opening = (id, timestamp, amount = 2500) => bill(id, timestamp, {
 const html = `
     <div id="history">
       <div class="history-type-filter">
-        <button class="filter-btn" data-type="purchase"></button><button class="filter-btn" data-type="sale"></button>
+        <button data-type="purchase"></button><button data-type="sale"></button>
       </div>
       <select id="historyDatePreset"><option value="all"></option><option value="today"></option>
         <option value="yesterday"></option><option value="week"></option><option value="month"></option>
@@ -107,7 +108,7 @@ describe('History tabs: Purchase | Sale (retail + wholesale)', () => {
     test('the whole row opens the bill (one call, not one per nested element)', () => {
         AppState.userRole = 'owner';
         HistoryManager.filterHistory('sale');
-        const row = document.querySelector('#historyList .bill-row');
+        const row = document.querySelector('#historyList [data-bill-row]');
         expect(row.getAttribute('role')).toBe('button');
         expect(row.getAttribute('data-onclick')).toMatch(/^history\.viewBill\('id:W1', 'wholesale'\)$/);
         expect(row.querySelectorAll('[data-onclick]')).toHaveLength(0);
@@ -131,7 +132,7 @@ describe('History tabs: Purchase | Sale (retail + wholesale)', () => {
 
     test('tab labels: Purchase | Sale in English, खरीद | बिक्री in Hindi', () => {
         const tpl = read('templates/history.html');
-        const keys = [...tpl.matchAll(/class="filter-btn[^"]*"[^>]*data-i18n="([^"]+)"/g)].map(m => m[1]);
+        const keys = [...tpl.matchAll(/data-type="(?:purchase|sale)"[^>]*>.*?data-i18n="([^"]+)"/g)].map(m => m[1]);
         expect(keys).toEqual(['ui.history.tab_purchase', 'ui.history.tab_sale']);
         expect(keys.map(k => en[k])).toEqual(['Purchase', 'Sale']);
         expect(keys.map(k => hi[k])).toEqual(['खरीद', 'बिक्री']);
@@ -185,10 +186,10 @@ describe('aligned bill row', () => {
 
     test('every row has the same slots in column order; chips have their own slot', () => {
         HistoryManager.toggleOpenings();
-        const rows = [...document.querySelectorAll('#historyList .history-item')];
+        const rows = [...document.querySelectorAll('#historyList [data-history-item]')];
         expect(rows.length).toBe(3);
         rows.forEach(row => {
-            expect(row.classList.contains('bill-row')).toBe(true);
+            expect(row.hasAttribute('data-bill-row')).toBe(true);
             expect(slots(row)).toEqual(['no', 'party', 'amount', 'date', 'items', 'chips']);
         });
         const old = rows.find(r => r.classList.contains('is-opening'));
@@ -197,15 +198,26 @@ describe('aligned bill row', () => {
         expect(old.querySelector('.bill-row__amount').textContent).toBe('₹2,500');
     });
 
+    test('the Due tag is ink, amber after 30 days and red after 90', () => {
+        const DAY = 86400000;
+        const tone = (days) => {
+            const el = document.createElement('div');
+            el.innerHTML = paymentChipsHtml({ id: 'x', timestamp: Date.now() - days * DAY, payment: { total: 100, cash: 40, online: 0, due: 60 } });
+            const due = el.querySelector('.payment-due');
+            return ['warn', 'neg'].find(c => due.classList.contains(c)) || 'ink';
+        };
+        expect([tone(2), tone(45), tone(120)]).toEqual(['ink', 'warn', 'neg']);
+    });
+
     test('Wholesale › History uses the same row component and lists only wholesale bills', () => {
         WholesaleSalesManager.renderSalesHistory();
         expect(wholesaleNos()).toEqual(['W1', 'W2']);
-        const row = document.querySelector('#salesHistoryList .history-item');
-        expect(row.classList.contains('bill-row')).toBe(true);
+        const row = document.querySelector('#salesHistoryList [data-history-item]');
+        expect(row.hasAttribute('data-bill-row')).toBe(true);
         expect(slots(row)).toEqual(['no', 'party', 'amount', 'date', 'items', 'chips']);
         expect(row.getAttribute('data-type')).toBe('wholesale');
         // Recent list under the entry form uses it too
-        expect(document.querySelectorAll('#salesRecentList .bill-row')).toHaveLength(2);
+        expect(document.querySelectorAll('#salesRecentList [data-bill-row]')).toHaveLength(2);
         for (const mod of ['js/modules/history.js', 'js/modules/wholesale-sales.js']) {
             expect(read(mod)).toMatch(/import \{[^}]*buildBillRow[^}]*\} from '\.\.\/ui\/bill-row\.js'/);
         }
@@ -235,7 +247,7 @@ describe('aligned bill row', () => {
         expect(rule(css, '.bill-table__no')).toMatch(/white-space:\s*nowrap/);
 
         const desktop = read('css/desktop.css');
-        const grid = desktop.match(/\.history-item\.bill-row\s*\{([^}]*)\}/)[1];
+        const grid = desktop.match(/\[data-history-item]\[data-bill-row]\s*\{([^}]*)\}/)[1];
         const cols = grid.match(/grid-template-columns:\s*([^;]+);/)[1].trim().split(/\s+(?![^(]*\))/);
         expect(cols).toHaveLength(6);
         expect(desktop).not.toMatch(/bill-row__no[^{]*\{[^}]*white-space:\s*(normal|pre-wrap)/);
@@ -279,5 +291,16 @@ describe('Wholesale › History respects the role\'s History "days back" limit',
         AppState.userRole = 'owner';
         WholesaleSalesManager.renderSalesHistory();
         expect(wholesaleNos()).toEqual(['W1', 'W2']);
+    });
+});
+
+describe('"By {name}" on bill rows', () => {
+    afterEach(() => setLang('en'));
+
+    test('the name is escaped, wrapped in <strong> unless asked not to, and placed where the language puts it', () => {
+        expect(byNameHtml('<b>Ram</b> $&')).toBe('By <strong>&lt;b&gt;Ram&lt;/b&gt; $&amp;</strong>');
+        expect(byNameHtml('Ram', false)).toBe('By Ram');
+        setLang('hi');
+        expect(byNameHtml('Ram')).toBe('<strong>Ram</strong> द्वारा');
     });
 });

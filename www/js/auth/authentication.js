@@ -6,6 +6,7 @@ import { Helpers } from '../utils/helpers.js';
 import { t } from '../i18n/index.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { canOpenPage, hiddenPermissionClasses } from '../utils/role-access.js';
+import { shopRoleOf, rentRoleOf } from '../utils/settings-sections.js';
 import { userProfile, createProfileIfMissing } from '../firebase/repos/users.js';
 import { afterLoginFailure, isStaleBackoff, loginWaitMs, waitParts } from '../utils/login-backoff.js';
 import { safeSetItem } from '../utils/storage-full.js';
@@ -38,6 +39,7 @@ function loginWaitText(ms) {
 }
 
 const FORM_IDS = { login: 'loginForm', register: 'registerForm', reset: 'resetForm', googleLink: 'googleLinkForm' };
+const NOTICE_TONE = { error: 'neg', success: 'pos', info: 'info' };
 
 /**
  * Whether "Continue with Google" is offered here (docs/google-sign-in.md): 'native' in the
@@ -154,8 +156,8 @@ const AuthManager = {
             UIManager.showToast(text, 4000);
             return;
         }
-        el.classList.remove('error', 'success', 'info');
-        el.classList.add(kind);
+        el.classList.remove('error', 'success', 'info', 'neg', 'pos');
+        el.classList.add(kind, NOTICE_TONE[kind] || 'neg');
         el.textContent = text;
     },
 
@@ -252,7 +254,7 @@ const AuthManager = {
 
     // Show/Hide authentication tabs
     showAuthTab(tab) {
-        const tabs = document.querySelectorAll('.auth-tab');
+        const tabs = document.querySelectorAll('[data-auth-tab]');
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
         
@@ -267,8 +269,9 @@ const AuthManager = {
         }
         
         // Remove active from all tabs and hide all forms
-        tabs.forEach((t, i) => {
-            t.classList.remove('active');
+        tabs.forEach((t) => {
+            t.classList.remove('on');
+            t.setAttribute('aria-selected', 'false');
         });
         loginForm.classList.add('hidden');
         registerForm.classList.add('hidden');
@@ -278,10 +281,12 @@ const AuthManager = {
         
         // Show selected tab
         if (tab === 'login') {
-            tabs[0].classList.add('active');
+            tabs[0].classList.add('on');
+            tabs[0].setAttribute('aria-selected', 'true');
             loginForm.classList.remove('hidden');
         } else if (tab === 'register') {
-            tabs[1].classList.add('active');
+            tabs[1].classList.add('on');
+            tabs[1].setAttribute('aria-selected', 'true');
             registerForm.classList.remove('hidden');
         }
         
@@ -290,7 +295,7 @@ const AuthManager = {
 
     // Initialize auth tab switching
     initAuthTabs() {
-        const tabs = document.querySelectorAll('.auth-tab');
+        const tabs = document.querySelectorAll('[data-auth-tab]');
         if (tabs.length === 0) {
             setTimeout(() => this.initAuthTabs(), 10);
             return;
@@ -651,7 +656,7 @@ const AuthManager = {
 
     // Handle logout
     async handleLogout() {
-        const confirmed = await UIManager.showModal(t('msg.auth.are_sure_want_logout'), t('msg.auth.confirm_logout'), true);
+        const confirmed = await UIManager.showModal(t('msg.auth.are_sure_want_logout'), t('msg.auth.confirm_logout'), true, { confirmLabel: t('ui.settings.logout') });
         
         if (!confirmed) return;
         
@@ -697,9 +702,18 @@ const AuthManager = {
         
         // Update username display in navigation
         const userNameDisplay = document.getElementById('currentUserName');
-        if (userNameDisplay) {
-            const roleBadge = isOwner ? ' 👑' : (isOwnerOrManager ? ' 🔑' : '');
-            userNameDisplay.textContent = (AppState.userName || 'User') + roleBadge;
+        if (userNameDisplay) userNameDisplay.textContent = AppState.userName || 'User';
+        const roleDisplay = document.getElementById('currentUserRole');
+        if (roleDisplay) {
+            // The shop role, else the Rentals role (a Rentals-only user); none: no label and no separator
+            const role = shopRoleOf(AppState.userRole) || rentRoleOf(AppState.userRole, AppState.rentRole);
+            if (role) {
+                roleDisplay.setAttribute('data-i18n', `ui.role.${role}`);
+                roleDisplay.textContent = t(`ui.role.${role}`);
+            } else {
+                roleDisplay.removeAttribute('data-i18n');
+                roleDisplay.textContent = '';
+            }
         }
         
         // Hide/show tabs based on role
@@ -721,32 +735,35 @@ const AuthManager = {
             const tabId = onclick?.match(/showTab\('([^']+)'/)?.[1];
             if (tabId) {
                 if (['money', 'insights', 'statements', 'wholesale-sales'].includes(tabId)) {
-                    item.style.display = mayOpen(tabId) ? '' : 'none';
+                    item.hidden = !mayOpen(tabId);
                 }
                 
                 // Anomalies (#187): owner/manager only until #84 decides otherwise
                 if (tabId === 'anomalies') {
-                    item.style.display = isOwnerOrManager ? '' : 'none';
+                    item.hidden = !isOwnerOrManager;
                 }
                 
                 // App health / Test in Production (#217): owner/manager only
                 if (tabId === 'health') {
-                    item.style.display = isOwnerOrManager ? '' : 'none';
+                    item.hidden = !isOwnerOrManager;
                 }
                 
                 // Diagnostics: owner; managers see only Number checks (#216)
                 if (tabId === 'diagnostics') {
-                    item.style.display = isOwnerOrManager ? '' : 'none';
+                    item.hidden = !isOwnerOrManager;
                 }
                 
-                if (tabId === 'admin' && !isOwner) {
-                    item.style.display = 'none';
-                } else if (tabId === 'admin' && isOwner) {
-                    item.style.display = '';
+                if (tabId === 'admin') {
+                    item.hidden = !isOwner;
+                }
+
+                // Workers / Salaries (#373) and Recurring bills (#437): owner only
+                if (tabId === 'workers' || tabId === 'recurring') {
+                    item.hidden = !isOwner;
                 }
                 
                 if (tabId === 'sales') {
-                    item.style.display = mayOpen('wholesale-sales') ? '' : 'none';
+                    item.hidden = !mayOpen('wholesale-sales');
                 }
             }
         });
@@ -762,7 +779,6 @@ const AuthManager = {
         deleteButtons.forEach(btn => {
             if (!isOwner) {
                 btn.disabled = true;
-                btn.style.opacity = '0.5';
                 btn.title = t('ui.auth.owner_only');
             }
         });
@@ -772,7 +788,6 @@ const AuthManager = {
         exportButtons.forEach(btn => {
             if (!isOwnerOrManager) {
                 btn.disabled = true;
-                btn.style.opacity = '0.5';
                 btn.title = t('ui.auth.manager_only_export');
             }
         });

@@ -322,7 +322,7 @@ describe('taps, caveats and checks', () => {
         document.querySelector('#moneyProfit [data-breakdown="sales"]').click();
         expect(open).toHaveBeenCalled();
         const w = O.metrics(data, OCT);
-        const total = document.querySelector('#financeBreakdownSheet .fin-sheet-total span').textContent;
+        const total = document.querySelector('#financeBreakdownSheet .fin-total span').textContent;
         const m = total.match(/^Total of (\d+) lines in (\d+) bills$/);
         expect(m).not.toBeNull();
         expect(Number(m[2])).toBe(w.M1_saleCount);
@@ -330,10 +330,14 @@ describe('taps, caveats and checks', () => {
         const options = [...document.querySelectorAll('#financeBreakdownSheet [data-action="group"] option')].map(o => o.textContent);
         expect(options.length).toBeGreaterThan(1);
         options.forEach(text => expect(text).not.toMatch(/ui\.finance\./));
-        FinanceBreakdownSheet.close();
+        const sheet = document.getElementById('financeBreakdownSheet');
+        expect(sheet.matches('.app-scrim.page-sheet.active')).toBe(true);
+        expect(document.activeElement.dataset.action).toBe('close');
+        document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(sheet.classList.contains('active')).toBe(false);
         // Gross profit = sales lines and their COGS rows: never "lines in bills" (each line would count twice)
         document.querySelector('#moneyProfit [data-breakdown="gross"]').click();
-        expect(document.querySelector('#financeBreakdownSheet .fin-sheet-total span').textContent).toMatch(/^Total of \d+ entries$/);
+        expect(document.querySelector('#financeBreakdownSheet .fin-total span').textContent).toMatch(/^Total of \d+ entries$/);
         FinanceBreakdownSheet.close();
     });
 
@@ -1051,7 +1055,7 @@ describe('Money › Worth shared accounts (#74, settings/accounts)', () => {
         MoneyManager.init('worth');
         await flush();
     };
-    const accountsRow = () => [...document.querySelectorAll('#moneyWorthTerms .ins-row')].find(el => el.querySelector('[data-input]'));
+    const accountsRow = () => [...document.querySelectorAll('#moneyWorthTerms .ins-line')].find(el => el.querySelector('[data-input]'));
     afterEach(() => localStorage.removeItem('financeCustomAccounts'));
 
     test('until the shared accounts load, their term and net worth say "—"; then the shared values count', async () => {

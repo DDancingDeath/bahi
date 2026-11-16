@@ -8,7 +8,7 @@ import { t } from '../i18n/index.js';
 import { Helpers } from '../utils/helpers.js';
 import { UIManager } from './ui-manager.js';
 import { Usage } from '../services/usage.js';
-import { topUsage } from '../utils/usage-stats.js';
+import { topUsage, VOICE_MISS_PHRASE } from '../utils/usage-stats.js';
 import { todayLocalISO, localISODaysAgo } from '../utils/dates.js';
 
 export const PAGE_KEYS = {
@@ -16,7 +16,8 @@ export const PAGE_KEYS = {
     'wholesale-sales': 'ui.nav.sales', stock: 'ui.nav.stocks', items: 'ui.nav.rates', money: 'ui.nav.money',
     insights: 'ui.nav.insights', statements: 'ui.nav.statements', anomalies: 'ui.nav.anomalies', health: 'ui.nav.health',
     settings: 'ui.nav.settings', diagnostics: 'ui.nav.diagnostics', admin: 'ui.nav.admin', expenses: 'ui.nav.expenses',
-    'cash-management': 'ui.usage.page_cash', rentals: 'ui.usage.page_rentals', users: 'ui.usage.page_users', ask: 'ui.nav.ask'
+    'cash-management': 'ui.usage.page_cash', rentals: 'ui.usage.page_rentals', users: 'ui.usage.page_users', ask: 'ui.nav.ask',
+    workers: 'ui.nav.workers', recurring: 'ui.nav.recurring'
 };
 
 export const RANGE_DAYS = { today: 1, week: 7, month: 30 };
@@ -27,6 +28,7 @@ export function usageLabel(event) {
         const id = event.slice(5);
         return t('ui.usage.page_opened', { page: PAGE_KEYS[id] ? t(PAGE_KEYS[id]) : id });
     }
+    if (VOICE_MISS_PHRASE.test(event)) return t('ui.usage.voice_miss_phrase', { code: event.slice(11) });
     return t(`ui.usage.e_${event.replace(/\./g, '_')}`);
 }
 
@@ -44,7 +46,7 @@ export const UsageView = {
         if (!list) return;
         const bar = document.getElementById('usageRange');
         if (bar) {
-            bar.querySelectorAll('[data-range]').forEach(b => b.classList.toggle('active', b.dataset.range === this.range));
+            bar.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.range === this.range)));
         }
         let rows = [];
         try {
@@ -77,7 +79,7 @@ export const UsageView = {
     },
 
     async clear() {
-        const ok = await UIManager.showModal(t('msg.usage.clear_confirm'), t('ui.usage.clear'), true);
+        const ok = await UIManager.showModal(t('msg.usage.clear_confirm'), t('ui.usage.clear'), true, { confirmLabel: t('ui.usage.clear'), danger: true });
         if (!ok) return;
         try {
             await Usage.clear();

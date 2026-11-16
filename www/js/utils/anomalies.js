@@ -20,8 +20,8 @@
  */
 
 import { evaluateBill, evaluateCashCount, evaluateStockAdjustment, isEntryIssue, normalizeThresholds } from './bill-checks.js';
-import { activityBills, billTotal, isPersonalExpense, readLineItem, readPayment, round2, toMoney, formatKg, formatRate, formatRupees } from './money.js';
-import { parseAnyBillDate, toJsDate } from './dates.js';
+import { activityBills, billTotal, isPersonalExpense, readLineItem, readPayment, round2, toMoney, formatKg, formatRupees, screenKgText, screenRateText } from './money.js';
+import { formatTimeOfDay, parseAnyBillDate, toJsDate } from './dates.js';
 import { isNotCounted } from './cash-session.js';
 import { cleanText } from './due-reminder.js';
 import { firstStockTimes, stockKeyFor } from './stock-check.js';
@@ -146,6 +146,34 @@ export function istDayKey(ms) {
  */
 export function istHour(ms) {
     return new Date(Number(ms) + IST_OFFSET_MS).getUTCHours();
+}
+
+/** Anomaly types whose text carries rates, stored with paise (₹2,400.00). */
+const RATE_TEXT_TYPES = new Set(['rate-confirmed', 'rate-high', 'rate-low', 'below-cost', 'rate-round']);
+
+/**
+ * An anomaly's text for the screen; the stored text is kept as saved. A night entry's "Entered at 00:11" is
+ * rebuilt from `at` in the 12-hour IST time (DATE-TEXT `time`, "12:11 am"), rates lose a ".00"
+ * (MONEY-TEXT `rate`) and a negative weight takes the minus sign ("−25 kg"); other records are returned as they are.
+ * @param {*} a
+ * @returns {*}
+ */
+export function anomalyText(a) {
+    const at = Number(a?.at);
+    if (a?.type === 'night-entry' && Number.isFinite(at) && at > 0) {
+        const ist = new Date(at + IST_OFFSET_MS);
+        const wall = new Date(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate(), ist.getUTCHours(), ist.getUTCMinutes());
+        return {
+            en: `Entered at ${formatTimeOfDay(wall)} (outside shop hours)`,
+            hi: `${formatTimeOfDay(wall, { lang: 'hi' })} पर एंट्री (दुकान के समय के बाहर)`
+        };
+    }
+    const rates = RATE_TEXT_TYPES.has(a?.type);
+    const fix = (/** @type {*} */ s) => (s == null ? s : screenKgText(rates ? screenRateText(s) : s));
+    const en = fix(a?.en);
+    const hi = fix(a?.hi);
+    if (en === a?.en && hi === a?.hi) return a;
+    return { ...a, en, hi };
 }
 
 /**
@@ -417,12 +445,12 @@ function rateConfirmedLines(items) {
         const { name, qty, rate } = readLineItem(line);
         const todayRate = toMoney(line.rateCheck.todayRate) || 0;
         const { amount, todayAmount } = rateCheckFigures({ rate, qty, todayRate });
-        const head = `${name}: ${formatKg(qty)} kg × ${formatRate(rate)} = ${formatRupees(amount)}`;
+        const head = `${name}: ${formatKg(qty)} kg × ${formatRupees(rate, 'ratePaise')} = ${formatRupees(amount)}`;
         const today = todayRate > 0;
         return {
             name, by: String(line.rateCheck.by || ''), byName: String(line.rateCheck.byName || ''),
-            en: today ? `${head}; today's rate ${formatRate(todayRate)} would give ${formatRupees(todayAmount)}` : head,
-            hi: today ? `${head}; आज के रेट ${formatRate(todayRate)} से ${formatRupees(todayAmount)} होता` : head
+            en: today ? `${head}; today's rate ${formatRupees(todayRate, 'ratePaise')} would give ${formatRupees(todayAmount)}` : head,
+            hi: today ? `${head}; आज के रेट ${formatRupees(todayRate, 'ratePaise')} से ${formatRupees(todayAmount)} होता` : head
         };
     });
 }
@@ -545,8 +573,8 @@ export function detectAnomalies({ bills = {}, sessions = [], adjustments = [], a
                     const l = round[0];
                     add(makeAnomaly('rate-round', ref, {
                         at: ts, item: [...new Set(round.map(x => x.name))].join(', '),
-                        en: `${l.name}: round total ${inr(l.total)} with odd rate ${formatRate(l.rate)} — was the total typed in?`,
-                        hi: `${l.name}: गोल रकम ${inr(l.total)}, रेट ${formatRate(l.rate)} — क्या कुल रकम सीधे लिखी गई?`
+                        en: `${l.name}: round total ${formatRupees(l.total, 'exact')} with odd rate ${formatRupees(l.rate, 'ratePaise')} — was the total typed in?`,
+                        hi: `${l.name}: गोल रकम ${formatRupees(l.total, 'exact')}, रेट ${formatRupees(l.rate, 'ratePaise')} — क्या कुल रकम सीधे लिखी गई?`
                     }));
                 }
                 if (Number.isFinite(Number(bill.timestamp)) && isNight(istHour(ts), t)) {
@@ -588,8 +616,8 @@ export function detectAnomalies({ bills = {}, sessions = [], adjustments = [], a
                 add(makeAnomaly('due-written-off', ref, {
                     at: timeOf(last.at ?? last.date), amount,
                     userId: String(last.recordedById || ''), user: nameOf(last.recordedById, last.recordedBy),
-                    en: `${inr(amount)} due written off${reason ? ` — ${reason}` : ''}`,
-                    hi: `${inr(amount)} उधार माफ़${reason ? ` — ${reason}` : ''}`
+                    en: `${formatRupees(amount, 'exact')} due written off${reason ? ` — ${reason}` : ''}`,
+                    hi: `${formatRupees(amount, 'exact')} उधार माफ़${reason ? ` — ${reason}` : ''}`
                 }));
             }
         });
@@ -644,10 +672,10 @@ export function detectAnomalies({ bills = {}, sessions = [], adjustments = [], a
     };
     /** @type {Object<string, (no: string, amount: number, reason?: *) => {en: string, hi: string}>} */
     const AUDIT_TEXT = {
-        'bill-deleted': (no, amount) => ({ en: `Bill${no} deleted (${inr(amount)})`, hi: `बिल${no} मिटाया (${inr(amount)})` }),
-        'bill-voided': (no, amount, reason) => ({ en: `Bill${no} voided (${inr(amount)})${reasonText(reason)}`, hi: `बिल${no} रद्द किया (${inr(amount)})${reasonText(reason)}` }),
-        'expense-deleted': (no, amount) => ({ en: `Expense deleted (${inr(amount)})`, hi: `खर्च मिटाया (${inr(amount)})` }),
-        'expense-voided': (no, amount, reason) => ({ en: `Expense voided (${inr(amount)})${reasonText(reason)}`, hi: `खर्च रद्द किया (${inr(amount)})${reasonText(reason)}` })
+        'bill-deleted': (no, amount) => ({ en: `Bill${no} deleted (${formatRupees(amount, 'exact')})`, hi: `बिल${no} मिटाया (${formatRupees(amount, 'exact')})` }),
+        'bill-voided': (no, amount, reason) => ({ en: `Bill${no} voided (${formatRupees(amount, 'exact')})${reasonText(reason)}`, hi: `बिल${no} रद्द किया (${formatRupees(amount, 'exact')})${reasonText(reason)}` }),
+        'expense-deleted': (no, amount) => ({ en: `Expense deleted (${formatRupees(amount, 'exact')})`, hi: `खर्च मिटाया (${formatRupees(amount, 'exact')})` }),
+        'expense-voided': (no, amount, reason) => ({ en: `Expense voided (${formatRupees(amount, 'exact')})${reasonText(reason)}`, hi: `खर्च रद्द किया (${formatRupees(amount, 'exact')})${reasonText(reason)}` })
     };
     // #75: a void needs no approval, but one by anyone except an owner is flagged. Owners come from the
     // profiles (owner's scan) or the owners' list (else an audit entry's stored role).
@@ -956,7 +984,6 @@ export function summaryLine(list) {
     return t('ui.anom.summary_count', { total: s.total, high: s.bySeverity.high });
 }
 
-const inr = (/** @type {*} */ n) => formatRupees(n, { exact: true });
 
 /**
  * WhatsApp text of the day report, in the app language (also the printed image lines).
@@ -975,15 +1002,15 @@ export function buildDayReportText({ dayKey, today = [], totals = null, shopName
     if (shop) lines.push(shop);
     if (totals) {
         lines.push('');
-        lines.push(tn('ui.anom.report_sales', Number(totals.saleCount) || 0, { amount: inr(totals.sales) }));
-        lines.push(tn('ui.anom.report_purchases', Number(totals.purchaseCount) || 0, { amount: inr(totals.purchases) }));
-        lines.push(t('ui.anom.report_expenses', { amount: inr(totals.expenses) }));
+        lines.push(tn('ui.anom.report_sales', Number(totals.saleCount) || 0, { amount: formatRupees(totals.sales, 'exact') }));
+        lines.push(tn('ui.anom.report_purchases', Number(totals.purchaseCount) || 0, { amount: formatRupees(totals.purchases, 'exact') }));
+        lines.push(t('ui.anom.report_expenses', { amount: formatRupees(totals.expenses, 'exact') }));
         if (totals.labourToPay) {
-            lines.push(tn('ui.anom.report_labour_deducted', Number(totals.labourDeductedBills) || 0, { amount: inr(totals.labourDeducted) }));
-            lines.push(labourCalcText(totals.labourToPay, 'ui.anom.report_labour_to_pay', { amount: inr(totals.labourToPay.amount) }));
+            lines.push(tn('ui.anom.report_labour_deducted', Number(totals.labourDeductedBills) || 0, { amount: formatRupees(totals.labourDeducted, 'exact') }));
+            lines.push(labourCalcText(totals.labourToPay, 'ui.anom.report_labour_to_pay', { amount: formatRupees(totals.labourToPay.amount, 'exact') }));
         }
-        lines.push(t('ui.anom.report_money', { moneyIn: inr(totals.totalIn), moneyOut: inr(totals.totalOut) }));
-        lines.push(t('ui.anom.report_due', { received: inr(totals.dueReceived), paid: inr(totals.duePaid) }));
+        lines.push(t('ui.anom.report_money', { moneyIn: formatRupees(totals.totalIn, 'exact'), moneyOut: formatRupees(totals.totalOut, 'exact') }));
+        lines.push(t('ui.anom.report_due', { received: formatRupees(totals.dueReceived, 'exact'), paid: formatRupees(totals.duePaid, 'exact') }));
     }
     const s = summarizeAnomalies(today);
     lines.push('');

@@ -191,22 +191,26 @@ In order:
   while it is out of date. The joined files are not precached on their own.
 - **UI rules** (full guide: `docs/design-system.md`): **tokens only** (colour, type, radius, shadow, spacing come from
   `variables.css`; when none fits, add one there with light and dark values). **No theme-specific selectors in page CSS**:
-  no `[data-theme=…]`, `[data-mode=…]` or new `.dark-mode` rules outside `www/css/themes/<id>.css` and `variables.css` (a
-  token already switches with the theme and mode; the old `.dark-mode` rules go screen by screen). Text on a fill uses its
+  no `[data-theme=…]`, `[data-mode=…]` or `.dark-mode` rules outside `www/css/themes/<id>.css` and `variables.css` (a
+  token already switches with the theme and mode). Text on a fill uses its
   ink token (below). Use the component classes in `forms.css` / `surfaces.css` and keep old classes and every id as hooks.
   **Icons come from the sprite** (`<use href="#i-…">`, below); a script that draws one uses a shared `icon(name)` helper
   (`js/ui/icons.js`, added with the first such script, which also makes `icon-sprite.test.js` check its names) with a
   constant name. No emoji in navigation, titles or buttons.
   Print and receipts never read theme tokens.
 - **Colours come from design tokens** (`www/css/variables.css`: semantic `--bg`, `--surface`,
-  `--ink`, `--accent`, `--positive`…, component tokens, and the old names such as
-  `--primary-color` as aliases), so every theme and dark mode restyle them. A hard-coded colour
+  `--ink`, `--accent`, `--positive`…, component tokens; one name per token, no aliases),
+  so every theme and dark mode restyle them. A hard-coded colour
   (hex, `rgb()`, a colour name) in `www/css`, a template's `style=` / `<style>` or `www/js` fails
-  `tests/ci/colour-guard.test.js` (per-file baseline `tests/colour-baseline.json`, which may only
-  go down: `COLOUR_BASELINE=lower npx jest colour-guard`). Print and receipt output is exempt.
+  `tests/ci/colour-guard.test.js`. Print and receipt output is exempt.
+  Spacing, radius, shadow, z-index, `!important`, `#id` / `.dark-mode` selectors, inline styles, emoji,
+  Title Case `ui.*` labels and legacy component classes fail `tests/ci/ds-guard.test.js` the same way. All three guards
+  are strict: 0 outside `tests/ds-allowlist.json`, whose entries (metric, file, exact count, list, reason) are the
+  documented exceptions (canvas charts, print, share text, standalone output, off-scale values, …; docs/design-system.md §7).
+  A count that drops fails until you lower its entry: `DS_ALLOWLIST=lower npx jest -i ds-guard colour-guard type-guard`.
   Light / Dark / System and the visual theme are per device (`js/ui/theme.js` ThemeManager, keys
   `happa.theme` / `happa.appearance`); `<html>` carries `data-theme`, `data-appearance` and `data-mode`, and CSS keys on
-  `[data-mode="dark"]` (`body.dark-mode` mirrors it). The pre-paint `#themeBoot` reads the same keys; it is data-only, so a new
+  `[data-mode="dark"]` (there is no `body.dark-mode` class). The pre-paint `#themeBoot` reads the same keys; it is data-only, so a new
   theme never changes it or its CSP hash. A theme is a registry entry in `js/ui/themes.js` plus a tokens-only file
   `www/css/themes/<id>.css` (imported in `styles.css`, ≤1.5 KB gzip, colours only inside `@media screen` so print stays
   Modern light; `tests/ci/themes.test.js`), names in en+hi, and rows in `tests/e2e/themes.spec.js` (axe per theme × mode;
@@ -214,8 +218,8 @@ In order:
   dark themes have a light accent. The gallery preview (`ThemeManager.preview`) never saves; leaving Settings cancels it.
 - **Type comes from tokens too**: font sizes `--fs-caption|sm|body|lead|title|display|hero` and weights
   `--w-regular|label|strong` (400/600 only; labels go regular in Hindi, `--w-strong` is 500 on the Android app).
-  A new raw `font-size` / `font-weight` fails `tests/ci/type-guard.test.js` (baseline `tests/type-baseline.json`,
-  `TYPE_BASELINE=lower`). Off-scale sizes still raw are counted there; print CSS is exempt.
+  A new raw `font-size` / `font-weight` fails `tests/ci/type-guard.test.js` (strict outside `tests/ds-allowlist.json`,
+  metric `type`); print CSS is exempt.
 - **Icons are line icons, not emoji**: `<svg class="i" aria-hidden="true" focusable="false"><use href="#i-name"/></svg>`
   (`i-sm` 16, default 20, `i-lg` 24; `currentColor`). The symbols are the sprite at the top of
   `templates/navigation.html`; `tests/ci/icon-sprite.test.js` checks every `#i-*` exists and the sprite size.
@@ -283,7 +287,7 @@ In order:
   sign-in by `main.js`); its `screenshots` live in `www/screenshots/` (JPEG, not
   precached; retake them from the E2E seed data when the screens change, #151).
 - **Desktop layout (≥ 1024 px)**: `www/css/desktop.css` holds every desktop
-  rule inside `@media (min-width: 1024px)` (plus a `1440px` tier). The phone
+  rule inside `@media (min-width: 1024px)` (the sidebar is a 64 px icon rail at 1024–1279; the shell is in `docs/design-system.md` §3). The phone
   layout must not change unless an issue says so — put desktop-only CSS
   there, not in the per-page sheets. Keyboard shortcuts (desktop only) live
   in `js/utils/keyboard-shortcuts.js` (`resolveShortcut()` is pure and
@@ -377,7 +381,10 @@ In order:
   hashed pre-paint `#themeBoot`, see `docs/security.md`) and no `on<event>=` attributes. The Android app doesn't get
   these headers (see `docs/security.md`, "Android app").
 - `firebase` global is the compat-SDK style — modular SDK is intentionally
-  not used.
+  not used. The one exception is Firebase AI Logic for photo of weights (#374,
+  `docs/photo-weights.md`): it exists only as the modular `firebase/ai`, so
+  `js/firebase/photo-weights-ai.js` imports the vendored 13.2.0 modules on the first
+  photo and runs them as a second Firebase app with the same config (no Firestore).
 - Many functions are async but are called without `await` — that's a real
   bug, tracked (with an inventory) in #126. Save/delete/money paths must be
   awaited; intentional fire-and-forget writes (audit log, item-frequency,
@@ -471,7 +478,7 @@ section 7) before pushing; don't commit one-off probe scripts.
 4. All good: push tag `v<x.y.z>` on the same commit, after shop hours.
    The tag-driven Android release workflow (#92 / PR #173) builds and signs
    the APK (Happa key, `HAPPA_*` secrets, pinned to `HAPPA_CERT_SHA256`) and
-   publishes a GitHub Release with `happa.apk`. The APK's versionCode comes
+   publishes a GitHub Release with `bahi.apk` (plus a `happa.apk` copy, the name up to rc14). The APK's versionCode comes
    from the tag (`scripts/android-version-code.js`: 1.0.0-rc11 → 10000011,
    1.0.0 → 10000999), so each tag installs over the one before; its
    versionName is the tag without `v`. The `androidVersionCode` in step 1 only
@@ -512,6 +519,9 @@ in `.github/review-rules-examples/`.
   artifacts.
 - **`android-release.yml`** (PRs and pushes to `main` that touch the Android
   build; every `v*` tag): a debug APK build, or on a tag the signed release.
+  The APK is built for the Firebase project of `config/targets/<target>.json`
+  (default `bahi-happa`, swapped in by `happa-config.js target` in the runner
+  only); the committed `happa.config.json` stays the web deploy's `happa-bfc07`.
   The `main` build keeps the Gradle cache that tag runs restore (a tag run can
   only read caches from its own ref or `main`); Gradle itself is fetched with
   retries.
@@ -544,8 +554,8 @@ in `.github/review-rules-examples/`.
   A manual run on another branch, or with `simulate_slowdown` (gate self-test), leaves the trend alone. `BENCH_YEARS`, `BENCH_ACTIVITY`, `BENCH_RUNS` size a local run.
 - **Contrast (#68)**: `tests/e2e/a11y-contrast.spec.js` runs axe-core's WCAG AA
   `color-contrast` rule on the main pages (owner, en / hi, phone / desktop) and fails on
-  any finding. Text on a page card uses the theme variables (`--success-color`,
-  `--danger-color`, `--info-color`, `--text-secondary`), which also pass in dark mode;
+  any finding. Text on a page card uses the theme variables (`--positive`,
+  `--negative`, `--info`, `--ink-2`), which also pass in dark mode;
   text on a fixed light panel uses fixed colours that pass on it: green `#1c7430` /
   `#15803d` (`#166534` on the light green total rows), blue `#0058b8`, red `#b02a37` /
   `#b91c1c`, amber `#92400e`, brand `#5560d6`, grey `#4b5563` / `#666`.
@@ -729,7 +739,7 @@ reference only:
 `firestore.rules` in this repo is the source of truth for Firebase's
 deployed rules. **Editing these without updating Rules Playground tests
 can break every user immediately**. What each role may see and do is set by
-the owner in Settings → Roles & access (`settings/app.roleAccess`); the
+the owner in Settings › Team › Roles & access (`settings/app.roleAccess`); the
 permission list, defaults and which parts the rules enforce are in
 `docs/role-permissions.md`. Always:
 
@@ -784,7 +794,7 @@ own end-to-end test on the emulators: `npm run test:migration-e2e`
 changes `www/**`, the rules or the tool).
 
 **Bill edit window (#87, #84).** Everyone except the owner may edit or void a
-bill only for the role's `editDays` (Settings → Roles & access,
+bill only for the role's `editDays` (Settings › Team › Roles & access,
 `settings/app.roleAccess.<role>.editDays`, default **2**) after it was first
 saved (managers: edit any bill; others: their own; void: own bill only). The
 clock is the bill's `createdAt`, the server time written by `saveBill()` on

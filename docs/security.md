@@ -15,18 +15,19 @@ Every site sends these on every path (the first `"source": "**"` entry):
 | `X-Frame-Options` | `DENY` | No clickjacking: the app can't be put in a frame (old browsers) |
 | `Content-Security-Policy` | the enforced policy below, ending in `frame-ancestors 'none'` | The same for current browsers (the redirect-only sites send `default-src 'none'; frame-ancestors 'none'; base-uri 'none'`) |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Other sites see only `https://myhappa.web.app`, never a path |
-| `Permissions-Policy` | `camera=(), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), hid=()` | The web app uses none of these except the microphone, for its own pages only: voice billing (#81, `docs/voice-billing.md`) is off by default and asks for the microphone only when a user switches it on and taps 🎤 (the browser then asks once per site). Frames and other sites get no microphone. The redirect-only sites and the tenant link page keep `microphone=()`. Bluetooth is left alone: printing is native-only today, but a web printer would need it |
+| `Permissions-Policy` | `camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), hid=()` | The web app uses none of these except the microphone and the camera, for its own pages only: voice billing (#81, `docs/voice-billing.md`) is off by default and asks for the microphone only when a user switches it on and taps 🎤 (the browser then asks once per site). Photo of weights (#374, `docs/photo-weights.md`) takes the photo with `<input type="file" accept="image/*" capture="environment">`, which opens the phone's own camera app and is not a camera API this header governs (`camera` covers `getUserMedia`); `camera=(self)` only keeps a later in-page camera possible on the app's own pages. Frames and other sites get neither. The redirect-only sites and the tenant link page keep `camera=()` and `microphone=()`. Bluetooth is left alone: printing is native-only today, but a web printer would need it |
 
 - The tenant link page (`/r/**`, `/r.html`) keeps its stricter
   `Referrer-Policy: no-referrer` (its entries come after the `**` one, and the
   page also has `<meta name="referrer" content="no-referrer">`), so the link's
   token never leaks.
 - The tenant link page also sends `Permissions-Policy` with every feature off,
-  microphone included (its entries come after `**`, so they win there).
+  microphone and camera included (its entries come after `**`, so they win there).
+- **Privacy (photo of weights, #374):** the photo is made smaller on the phone (at most 1600 px, JPEG) and sent only to Firebase AI Logic (Gemini) to be read; it is never stored in Firestore, Storage or on the phone and is dropped when the check sheet closes. On the free Spark plan Google may use what is sent to improve its products (owner accepted, 15 Nov 2026: the sheets carry only weights); the Settings hint asks to photograph only the weights.
 - **Privacy (voice billing):** voice audio goes to the phone's speech service
   (Google on most phones; Chrome's on the web), which turns it into text. The app keeps
   no audio and no text. The spoken readback uses only an on-device voice (`localService`),
-  never a network one, so what was understood is not sent anywhere. The in-app notice is the Settings › Voice billing hint (en/hi).
+  never a network one, so what was understood is not sent anywhere. The in-app notice is the Settings › Billing tools › Voice billing hint (en/hi).
 - The redirect-only sites (`happaapp`, `happa-bfc07`) get the same headers from
   `scripts/happa-config.js` (`REDIRECT_SECURITY_HEADERS`; `npm run apply:happa-config`
   writes them) with an enforced `default-src 'none'`, since they only answer 301s.
@@ -38,26 +39,32 @@ handlers and inline `<script>` blocks were removed; before that it was report-on
 
 ```
 default-src 'self';
-script-src 'self' 'sha256-bGBDdNhOK/y89nKIg642H4q2xAlmh4Gxg1mKtv2Tu+o=' https://apis.google.com https://cdn.sheetjs.com;
+script-src 'self' 'sha256-2f5RAqbDewBxXTVa1Tbp/okoq/j9aCBrpErcjx6JeBI=' https://apis.google.com https://cdn.sheetjs.com
+           https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/;
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob:;
 font-src 'self' data:;
 connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com
             https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com
+            https://content-firebaseappcheck.googleapis.com https://firebasevertexai.googleapis.com
             https://apis.google.com https://www.google.com https://api.github.com;
-worker-src 'self'; manifest-src 'self'; frame-src 'self' https://happa-bfc07.firebaseapp.com;
+worker-src 'self'; manifest-src 'self';
+frame-src 'self' https://happa-bfc07.firebaseapp.com https://www.google.com/recaptcha/;
 object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 ```
 
 | Source | Used by |
 |---|---|
 | `'self'` | the app, templates, `changelog.json`, the vendored Firebase SDK, the service worker, `/download`, `/r/`, and the small classic scripts in `www/js/boot/` that used to be inline (install-prompt capture and SW registration in `index.html`, `/download`'s language and release notes) |
-| `'sha256-bGBD…'` (script) | the one inline script, `#themeBoot` at the top of `index.html`'s `<body>`: it applies the saved theme and appearance (Light / Dark / System) before first paint (#102). It is data-only: it reads `happa.theme`, `happa.appearance`, `happa.themeKind`, `happa.bar.light|dark`, the old `darkMode` and `aadhat.itemNamesFollowLang` (present on every install from before the theme engine, which keeps Light) from localStorage and sets `data-theme` / `data-appearance` / `data-mode` on `<html>`, `body.dark-mode` and the `theme-color` meta (only a `#rrggbb` value), so adding a theme changes neither the script nor its hash (`js/ui/theme.js` keeps it live afterwards). An external file can't promise this on a cold load (the browser may paint the body while the file downloads). Keep it on one line (so the hash doesn't depend on line endings); after any edit put its new hash in `firebase.json` (`security-headers.test.js` prints it) |
+| `'sha256-2f5R…'` (script) | the one inline script, `#themeBoot` at the top of `index.html`'s `<body>`: it applies the saved theme and appearance (Light / Dark / System) before first paint (#102). It is data-only: it reads `happa.theme`, `happa.appearance`, `happa.themeKind`, `happa.bar.light|dark`, `happa.themeFallback` (a saved theme this version could not show: then the kind and bar colour cached for it are ignored), the old `darkMode` and `aadhat.itemNamesFollowLang` (present on every install from before the theme engine, which keeps Light) from localStorage and sets `data-theme` / `data-appearance` / `data-mode` on `<html>` and the `theme-color` meta (only a `#rrggbb` value), so adding a theme changes neither the script nor its hash (`js/ui/theme.js` keeps it live afterwards). An external file can't promise this on a cold load (the browser may paint the body while the file downloads). Keep it on one line (so the hash doesn't depend on line endings); after any edit put its new hash in `firebase.json` (`security-headers.test.js` prints it) |
 | `https://cdn.sheetjs.com` (script) | Excel export (`ensureXLSX()`, pinned with SRI) |
 | `firestore.googleapis.com` | Firestore SDK and the tenant page's single REST read |
 | `identitytoolkit.googleapis.com`, `securetoken.googleapis.com` | Firebase Auth sign-in and token refresh |
 | `apis.google.com` (script, connect), `www.google.com` (connect), `happa-bfc07.firebaseapp.com` and `'self'` (frame) | Firebase Auth (compat) on **phones** (and Safari) loads Google's `gapi` loader at start-up and frames `<authDomain>/__/auth/iframe` (its popup/redirect helper), even when the person signs in with email + password. Found by the E2E phone runs. These scripts can't carry SRI; dropping them needs Auth without the popup/redirect resolver (modular SDK), a separate change. `'self'`: with Google sign-in on, the helper is the site's own `/__/auth/` ([google-sign-in.md](google-sign-in.md)) |
-| `firebaseinstallations.googleapis.com` | not called today; listed for the Firebase SDKs that use it (App Check, see below) |
+| `firebaseinstallations.googleapis.com` | not called today; listed for the Firebase SDKs that use it |
+| `content-firebaseappcheck.googleapis.com` (connect) | App Check token exchange (monitor mode, only with a site key; see "App Check" below) |
+| `firebasevertexai.googleapis.com` (connect) | Firebase AI Logic (Gemini Developer API): photo of weights (#374), only when the owner has switched it on and someone takes a photo. The SDK is vendored (`vendor/firebase/13.2.0/`, `'self'`); no Gemini key is in the app |
+| `www.google.com/recaptcha/`, `www.gstatic.com/recaptcha/` (script), `www.google.com/recaptcha/` (frame) | reCAPTCHA Enterprise for App Check: `enterprise.js`, its versioned `recaptcha__*.js` and the invisible widget's frame. Path-limited (`/recaptcha/` only), not the whole Google origins; nothing loads from there without a site key |
 | `api.github.com` | the "Update available" check |
 | `data:` / `blob:` images | receipts and bill images drawn on a canvas, the inline favicon, downloads |
 | `'unsafe-inline'` (style) | ~800 `style=` attributes in 33 files and the `<style>` blocks in templates / `download.html` / the print window. Inline styles can't run code; moving them all to classes is a separate, larger change |
@@ -66,8 +73,8 @@ Not listed, on purpose:
 
 - **No `'unsafe-inline'` / `'unsafe-eval'` in `script-src`**: every other `<script>` in `www/`
   has a `src`, and no `on<event>=` attribute is left.
-- **No `www.gstatic.com`**: the Firebase SDK is self-hosted (`www/vendor/firebase/`), so
-  nothing is loaded from gstatic. App Check / reCAPTCHA would add it (see below).
+- **No `www.gstatic.com` origin**: the Firebase SDK is self-hosted (`www/vendor/firebase/`), so
+  nothing but App Check's reCAPTCHA (path `/recaptcha/` only) is loaded from gstatic.
 - **No `firebasestorage.googleapis.com`**: the app doesn't use Cloud Storage (no Storage
   SDK; `storageBucket` is only part of the standard web config).
 - **No report-only twin.** With no report collector (below), a stricter report-only policy
@@ -201,7 +208,7 @@ static templates).
 
 - The Firebase SDK is self-hosted (`www/vendor/firebase/10.7.1/`, byte-identical
   to gstatic) and loaded with `integrity="sha384-…"`; `load-perf.test.js`
-  checks the hashes.
+  checks the hashes (`app-check.test.js` the lazily loaded App Check file's).
 - The only CDN script, SheetJS, is loaded on demand with a pinned version,
   `integrity` and `crossorigin="anonymous"` (`www/js/utils/lazy-scripts.js`).
 - Everything else the app's own code loads is same-origin, so no further SRI
@@ -209,42 +216,101 @@ static templates).
   itself injects Google's `gapi` loader from `apis.google.com` (versioned URLs,
   no SRI possible); see the CSP table.
 
-## App Check: assessment (not enabled)
+## App Check: monitor mode (off until a site key is set)
 
 App Check makes Firestore and Auth accept requests only from the real app, so the
-public web config can't be used from scripts (signup spam, quota burn).
+public web config can't be used from scripts (signup spam, quota burn). The code is
+in place in **monitor** mode: tokens are sent and counted, nothing is refused.
 
-| | Web (myhappa.web.app, PWA) | Android APK (Capacitor) |
-|---|---|---|
-| Provider | reCAPTCHA Enterprise (score based, invisible) | Play Integrity |
-| Free quota | 10,000 assessments / month (per Cloud org); more needs a billing account (10k–100k: $8 flat; then $1 per 1,000) | 10,000 checks / day (standard) |
-| Calls | one per App Check token; the token lives 1 h by default, can be set up to 7 days | one per token, same |
-| Setup | reCAPTCHA Enterprise key for `myhappa.web.app` (+ preview hosts), vendor `firebase-app-check-compat.js` 10.7.1 with SRI, `firebase.appCheck().activate(...)` in `firebaseConfig.js` | The APK runs the **web** SDK in a WebView, which can't call Play Integrity: needs a native plugin (e.g. `@capacitor-firebase/app-check`) feeding a custom provider, and the app's SHA-256 (`HAPPA_CERT_SHA256`) registered |
+**How it works.**
 
-Things that make it more than a switch:
+- `happa.config.json` → `"appCheck": { "siteKey": "" }`. Empty (today) = App Check
+  is off: no SDK, no reCAPTCHA, no network call. `npm run apply:happa-config` writes the
+  key into `www/firebaseConfig.js` (`appCheckSiteKey` → `window.APP_CHECK_SITE_KEY`);
+  `check:happa-config` refuses a key that isn't a plain `[A-Za-z0-9_-]` string. A
+  reCAPTCHA site key is public (it ships in every page), so it belongs in the config, not
+  in secrets.
+- `www/js/services/app-check.js` (`startAppCheck()`): with a key and online, it first
+  loads reCAPTCHA Enterprise (`https://www.google.com/recaptcha/enterprise.js?render=explicit`, through
+  `loadScriptOnce`, which rejects on a load error) and waits up to 5 s for
+  `grecaptcha.enterprise.ready`. Only then does it load the self-hosted
+  `vendor/firebase/10.7.1/firebase-app-check-compat.js` (same version as the other SDK
+  files, byte-identical to gstatic/npm, SRI-pinned; not precached, not installed by the
+  service worker (`RUNTIME_ONLY` in `scripts/check-sw-assets.js`), cached by its fetch
+  handler on first use; not a `<script>` in `index.html`) and call
+  `firebase.appCheck().activate(new ReCaptchaEnterpriseProvider(siteKey), true)` (token
+  auto-refresh on). The SDK then reuses `self.grecaptcha.enterprise` instead of adding its own
+  `enterprise.js` tag.
+  **Why the order matters:** the SDK's own reCAPTCHA loader has no error path. If
+  `enterprise.js` never loads (offline, a blocker, google.com blocked), its "initialized" promise
+  never settles, every `getToken()` waits forever, and Firestore and Auth wait on it, so
+  sync and sign-in would stall until a reload. So it is never activated unless reCAPTCHA
+  is proven working. Offline, a load error or a timeout: nothing is activated, a warning
+  is logged, and it tries again on the next `online` event or the next trigger below.
+- **When**: off the critical path. `main.js` starts it when the phone is idle **after**
+  the first screen is shown (signed in), or after the login screen is shown (signed out,
+  so the sign-in request already carries a token). Before that, nothing changes, so the
+  first screen does no extra work at all. Cost after it: reCAPTCHA Enterprise (`enterprise.js` + its
+  script and an invisible frame from Google), one ~23 KB same-origin script, then one
+  token exchange per token lifetime (default 1 h; cached in IndexedDB across starts).
+  The widget is rendered into a hidden `div` (and `render=explicit` stops reCAPTCHA from
+  rendering its own), so no reCAPTCHA badge shows.
+- **Provider**: reCAPTCHA **Enterprise** (a score-based website key, invisible) on the web. App Check stopped
+  accepting new reCAPTCHA v3 set-ups in Nov 2026. The key lives in the same Google Cloud project as
+  the Firebase app that uses it, so each project has its own key. The **debug
+  provider** (`FIREBASE_APPCHECK_DEBUG_TOKEN = true`, the SDK then logs a debug token to
+  register in the console) only in a browser on `localhost` / `127.0.0.1` (the emulators,
+  `?emulator=1`, run there), never in production and never in the APK (which is also
+  `https://localhost`, told apart by `Capacitor.isNativePlatform()`). E2E has no key, so it
+  never loads App Check.
+- **CSP**: see the table above (token API in `connect-src`; reCAPTCHA's `/recaptcha/`
+  paths in `script-src` and `frame-src`). `security-headers.test.js` checks they stay
+  path-limited.
+- Monitor coverage: requests made before activation (the first Firestore listen stream
+  of a signed-in start, until it reconnects) go without a token and count as
+  unverified. That is the price of keeping it off the first screen; read the metrics
+  with it in mind.
 
-1. **Tenant link page `/r/`** reads Firestore over REST with no SDK. With
-   Firestore enforcement on, it would stop working unless it gets an App Check
-   token (reCAPTCHA on that page, against its "tiny, no SDK" design) or the
-   read moves behind something that has one.
-2. **Old APKs** (no App Check) are refused the moment Firestore is enforced; wait
-   until the APK with App Check is the one people run (update banner, `/download`).
-3. **CSP**: add `https://content-firebaseappcheck.googleapis.com` (connect),
-   `https://www.google.com` and `https://www.gstatic.com` (script, frame) for
-   reCAPTCHA.
-4. **Tests**: emulators don't check App Check; use the debug provider only on
-   localhost / `?emulator=1`, never in production.
+**Android APK.** The APK runs this same web code in its WebView, so in monitor mode it
+uses the same reCAPTCHA Enterprise provider; no native dependency is added. The WebView's origin
+is `https://localhost`, so its requests verify only if `localhost` is in the reCAPTCHA
+key's domains (adding it lets anyone's localhost get tokens too; leave it out while
+monitoring and expect the APK to show as unverified). **Follow-up before any enforcement
+that covers the APK:** a Play Integrity provider through a native Capacitor plugin (e.g.
+`@capacitor-firebase/app-check`) feeding a `CustomProvider`, with the app's SHA-256
+(`HAPPA_CERT_SHA256`) registered in the console; its own PR, tested on a device.
 
-**Recommendation.** Do it as its own issue, in this order:
-(1) owner: register the web app with reCAPTCHA Enterprise and the Android app
-with Play Integrity in the Firebase console (owner action, free within the
-quotas above at this shop's size; set the token TTL to ~12 h so a phone uses
-about 2 assessments a day); (2) ship the SDK (web + native plugin) in
-**monitor** mode (unenforced); (3) decide the tenant page path; (4) enforce Auth,
-then Firestore, only when the App Check metrics show > 95% verified requests
-for two weeks. Until then the Firestore rules remain the only data protection,
-so rules stay the priority.
+**Status (15 Nov 2026).** Firebase AI Logic enforces App Check, so photo of weights needs a token
+(`PHOTO_APP_CHECK_REQUIRED`, docs/photo-weights.md). `bahi-happa-dev`: key
+`6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd` (domains bahi-happa-dev.web.app, bahi-happa.web.app,
+localhost; the APK's WebView is `https://localhost`) registered as the Enterprise provider of its web
+app, AI Logic (`firebaseml.googleapis.com`) ENFORCED, Firestore and Auth unenforced (monitor). It is
+set only in the local bahi-happa-dev config branch and in `config/targets/bahi-happa-dev.json` (the "Bahi
+Dev" test APK). `bahi-happa` (prod, and the APK target) and
+`happa-bfc07` have no key yet: prod gets its own key in project "Bahi", then
+`config/targets/bahi-happa.json` gets `appCheck.siteKey` for rc15.
 
+**Firestore stays NOT enforced.** Enforcing App Check on Firestore would break the
+tenant link page `/r/`: it reads Firestore over REST with no SDK (its "tiny, no SDK"
+design), so it has no App Check token. It would also refuse every old APK at once.
+
+**Plan.**
+
+1. Owner (console, not code): create a reCAPTCHA Enterprise score key in the project's Google Cloud
+   project for its site (plus the preview hosts if wanted), register the web app with the reCAPTCHA
+   Enterprise provider in Firebase App Check (token TTL ~12 h so a phone needs about 2 assessments a day), and
+   leave every product **unenforced**. Then put the site key in `happa.config.json`,
+   run `npm run apply:happa-config`, and ship it (cache bump as usual).
+2. **Monitor for 2 weeks**: App Check › APIs shows verified / unverified / outdated
+   requests per product.
+3. Then **enforce on AI Logic and Auth only**, when their verified share is > 95%
+   (and after the Play Integrity follow-up if the APK's share matters). Firestore stays
+   unenforced until `/r/` has a path that carries a token (or moves behind something
+   that has one) and old APKs are gone.
+
+Until then the Firestore rules remain the only data protection, so rules stay the
+priority. Rollback: set `siteKey` back to `""` (apply + ship); while nothing is enforced,
+turning it off changes nothing for users.
 ## Audit log and error reports (#85, #116)
 
 - **Audit log** (`auditLogs`, owner reads in Settings and Diagnostics): every entry is
@@ -526,7 +592,8 @@ as they were before the rework; see the table above).
 
 - in `canReadProfile()`: Own profile (pending/rejected users too, at login); only the owner reads everyone (Admin, Roles & access). Managers read names and roles from settings/team instead (#87); members never read others (#57).
 - in `canCreateProfile()`: Self-registration only, always as a pending staff member, with the fields registration writes (repos/users.js createProfileIfMissing). A removed or rejected person keeps their profile, so they can't come back as pending (#84).
-- `ownerProfileGuardOk()`: An owner can't change their own role/status, nor demote or remove another owner (two owners removing each other at once would leave none).
+- `profileRoleChangeOk()` (was `ownerProfileGuardOk()`): Only an owner changes a role or status. Becoming or stopping being an active owner (role `owner`, not pending / rejected / disabled) must change `settings/team.ownerUids` in the same batch: a promotion adds the person (already approved: a pending person is approved first), a demotion or removal takes them out, and only while the list had at least 2 owners and named them. So there is always one owner left: two owners demoting each other at once both write the team doc, so the second batch sees one owner and fails. A write never leaves role `owner` on a pending, rejected or disabled profile (so no uncounted owner). An owner's only change to their own profile's role is stepping down to manager or member (same rule, so only with another listed owner); never their own status.
+- `teamOwnersOk()`, `ownerAfter()` (settings/team): `ownerUids` changes by one uid per write: an added uid must be an active owner after the write (their profile in the same batch counts), a removed one must not be, the list never becomes empty and has no repeats (at most 20). Dropping the whole field is allowed (an old app's full rewrite of the directory): with no list nobody can be demoted until owners are listed again. The app lists every active owner when an owner signs in (`ensureSelfListedOwner`), when the owner's phone rebuilds the directory and right before a demotion. The first owner of a new project is still made by hand (docs/role-permissions.md, "Owners").
 - `savedRangesOk()`: Saved period ranges (#140): "a|b;a|b", at most 10 pairs of the app's period presets.
 - `canUpdateProfile()`: Users change only their own name (Settings › account) and their saved period ranges (#140; the list of their phones is deviceLog, #124); never while removed or rejected.
 
@@ -624,6 +691,17 @@ Bills: only an owner deletes them, and only once voided (#75, OD-14: everyone el
 - `reminderNextDateOk()`: REM-6 bound: the next copy is due at most one period (+1 day of slack) after the later of its reminder's due date and today (India); a monthly period counts as 31 days.
 - `validReminderNext()`: The next copy of a repeating reminder, created in the batch that marks it done.
 - `reminderEditOk()`: Owner / manager edit an open reminder: title, date (a changed one in the create range), party, repeat.
+
+#### Worker pay (#373): workers/{id}
+
+- `wpOk()`: { name (1-60), startMonth 'YYYY-MM', active, pays [1-24 steps {from 'YYYY-MM', amount int 0 … 1 crore}; the first from = startMonth], entries [≤ 3,000], updatedAt = server time }. Owner only: read, create, update, delete (prod and `dev_`). Created with no entries. An update keeps the entries, adds exactly one at the end with every earlier one unchanged (the app's arrayUnion; two phones never overwrite each other), or removes exactly one (the rest unchanged: every remaining entry was already there and none is doubled, `hasAll` + `toSet().size()`). The first and the newest pay step and the newest entry are shape-checked (the rules cannot loop; the others were checked when they were added).
+- `wpEntryOk()`: { id (1-40), month 'YYYY-MM' (the month's pay it counts towards), date 'YYYY-MM-DD', amount int 1 … 1 crore, kind 'pay' | 'advance', mode 'cash' | 'online', note? (≤ 120) }.
+- `keptEntriesOk()`: shared by worker pay and recurring bills: entries [≤ 3,000]; created with none; an update keeps them, adds exactly one at the end with every earlier one unchanged (arrayUnion), or removes exactly one (`hasAll` + `toSet().size()`); updatedAt = server time.
+
+#### Recurring bills (#437): recurringBills/{id}
+
+- `rbOk()`: { name (1-60), cadence int 1 | 2 | 3 | 6 | 12 (months between bills), dueDay int 1-28, startMonth 'YYYY-MM', expected int 0 … 1 crore (0 = no usual amount), active, endMonth? '' or 'YYYY-MM' (last bill when stopped), note? (≤ 120, a note or account / consumer number), entries, updatedAt = server time }. Owner only: read, create, update, delete (prod and `dev_`). cadence and startMonth cannot change once there are entries (the periods of every entry would move). Entries as `keptEntriesOk()`: a bill amount is an entry too, so it is append-only like a payment (a correction is a newer bill entry for the same period; the newest counts). The first and the newest entry are shape-checked (the rules cannot loop; the others were checked when they were added). The app removes only payments; the rules allow removing any one entry, exactly as stored.
+- `rbEntryOk()`: { id (1-40), kind 'bill' | 'pay', period 'YYYY-MM' (the bill it is for), date 'YYYY-MM-DD', amount int ≤ 1 crore (a bill ≥ 0, a payment ≥ 1), mode 'cash' | 'online' (payments only; a bill has none), note? (≤ 120) }.
 
 #### rate trends (#65): per-item-year rate stats + backfill status
 

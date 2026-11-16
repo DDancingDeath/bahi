@@ -2,7 +2,8 @@
  * Manual reminders on Today (#86): checks before saving, grouping (REM-5),
  * who sees and does what on Today, and the writes the taps make.
  */
-import { checkReminder, groupReminders, daysUntil, nextDueDate, repeatDayFor } from '../utils/manual-reminders.js';
+import { checkReminder, groupReminders, daysUntil, nextDueDate, repeatDayFor, reminderAt } from '../utils/manual-reminders.js';
+import { todayLocalISO } from '../utils/dates.js';
 import { ManualReminders } from '../ui/manual-reminders.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { UIManager } from '../ui/ui-manager.js';
@@ -13,10 +14,10 @@ const TODAY = '2026-11-15';
 
 describe('checkReminder', () => {
     test.each([
-        [{ title: '  Collect  from Ramesh ', dueDate: TODAY, party: ' Ramesh ' }, { ok: true, value: { title: 'Collect from Ramesh', dueDate: TODAY, party: 'Ramesh', repeat: null, repeatDay: null } }],
-        [{ title: 'Rent', dueDate: '2026-11-30', repeat: 'monthly' }, { ok: true, value: { title: 'Rent', dueDate: '2026-11-30', party: '', repeat: 'monthly', repeatDay: 30 } }],
-        [{ title: 'Cash', dueDate: TODAY, repeat: 'daily' }, { ok: true, value: { title: 'Cash', dueDate: TODAY, party: '', repeat: 'daily', repeatDay: null } }],
-        [{ title: 'a', dueDate: TODAY, repeat: 'yearly' }, { ok: true, value: { title: 'a', dueDate: TODAY, party: '', repeat: null, repeatDay: null } }],
+        [{ title: '  Collect  from Ramesh ', dueDate: TODAY, party: ' Ramesh ' }, { ok: true, value: { title: 'Collect from Ramesh', dueDate: TODAY, dueTime: null, party: 'Ramesh', repeat: null, repeatDay: null } }],
+        [{ title: 'Rent', dueDate: '2026-11-30', repeat: 'monthly' }, { ok: true, value: { title: 'Rent', dueDate: '2026-11-30', dueTime: null, party: '', repeat: 'monthly', repeatDay: 30 } }],
+        [{ title: 'Cash', dueDate: TODAY, repeat: 'daily' }, { ok: true, value: { title: 'Cash', dueDate: TODAY, dueTime: null, party: '', repeat: 'daily', repeatDay: null } }],
+        [{ title: 'a', dueDate: TODAY, repeat: 'yearly' }, { ok: true, value: { title: 'a', dueDate: TODAY, dueTime: null, party: '', repeat: null, repeatDay: null } }],
         [{ title: '', dueDate: TODAY }, { ok: false, error: 'msg.reminders.title_needed' }],
         [{ title: 'x'.repeat(121), dueDate: TODAY }, { ok: false, error: 'msg.reminders.title_long' }],
         [{ title: 'a', dueDate: '2026-11-14' }, { ok: false, error: 'msg.reminders.date_past' }],
@@ -31,6 +32,15 @@ describe('checkReminder', () => {
         expect(checkReminder({ title: 'Rent', dueDate: '2027-02-28', repeat: 'monthly' }, '2027-02-01', keep).value.repeatDay).toBe(31);
         expect(checkReminder({ title: 'Rent', dueDate: '2027-02-27', repeat: 'monthly' }, '2027-02-01', keep).value.repeatDay).toBe(27);
         expect(checkReminder({ title: 'Rent', dueDate: '2027-02-28', repeat: 'weekly' }, '2027-02-01', keep).value.repeatDay).toBeNull();
+    });
+
+    test('time: optional 24 h HH:MM; anything else is refused; 9:00 am without one', () => {
+        expect(checkReminder({ title: 'a', dueDate: TODAY, dueTime: '07:05' }, TODAY).value.dueTime).toBe('07:05');
+        expect(checkReminder({ title: 'a', dueDate: TODAY, dueTime: '' }, TODAY).value.dueTime).toBeNull();
+        ['24:00', '9:30', '16:3', 'noon'].forEach(dueTime => expect(checkReminder({ title: 'a', dueDate: TODAY, dueTime }, TODAY)).toEqual({ ok: false, error: 'msg.reminders.time_bad' }));
+        expect(reminderAt('2026-11-15', '16:30')).toEqual(new Date(2026, 10, 15, 16, 30));
+        expect(reminderAt('2026-11-15', null)).toEqual(new Date(2026, 10, 15, 9, 0));
+        expect(reminderAt('bad', '10:00')).toBeNull();
     });
 
     test('an edit may keep a date that has passed; a changed date is checked as new', () => {
@@ -92,25 +102,61 @@ describe('Today: manual reminders', () => {
         AppState.userName = 'Owner';
     });
 
-    test('everyone sees due ones and Done; only owner/manager get Cancel and Add; text escaped', () => {
+    test('everyone sees due ones and Done; only owner/manager get Cancel and the + in the card head; text escaped', () => {
         ManualReminders.list = LIST;
+        Object.assign(AppState, { retailSalesHistory: [], purchaseHistory: [], salesHistory: [] });
+        document.body.innerHTML = '<div id="todayReminders"></div>';
         AppState.userRole = 'staff';
         const member = ManualReminders.html();
         expect(member).toContain('&lt;b&gt;Pay&lt;/b&gt; Gupta');
         expect(member).toContain('reminderDone(');
         expect(member).not.toContain('reminderCancel(');
-        expect(member).not.toContain('reminderForm(true)');
+        DayManager.renderReminders();
+        expect(document.querySelector('.today-reminders-add')).toBeNull();
         AppState.userRole = 'manager';
         expect(ManualReminders.html()).toContain('reminderCancel(');
-        expect(ManualReminders.html()).toContain('reminderForm(true)');
+        DayManager.renderReminders();
+        const add = document.querySelector('.disclosure-head > .today-reminders-add');
+        expect(add.getAttribute('data-onclick')).toBe('day.reminderForm(true)');
+        expect(add.getAttribute('aria-label')).toBe('Add reminder');
     });
 
-    test('members with nothing due see no block; owners see the Add button', () => {
+    test('an empty To do takes no room; with nothing to remind, owners get only a small Add link', () => {
         ManualReminders.list = [];
+        Object.assign(AppState, { retailSalesHistory: [], purchaseHistory: [], salesHistory: [] });
+        document.body.innerHTML = '<div id="todayReminders"></div>';
         AppState.userRole = 'staff';
         expect(ManualReminders.html()).toBe('');
+        DayManager.renderReminders();
+        expect(document.getElementById('todayReminders').hidden).toBe(true);
         AppState.userRole = 'owner';
-        expect(ManualReminders.html()).toContain('reminderForm(true)');
+        expect(ManualReminders.html()).toBe('');
+        localStorage.setItem('happa.restoreDrill', JSON.stringify({ uid: AppState.currentUser?.uid || '', at: Date.now(), exportedAt: null, docs: 1 }));
+        DayManager.renderReminders();
+        const host = document.getElementById('todayReminders');
+        expect(host.hidden).toBe(false);
+        expect(host.querySelector('.disclosure')).toBeNull();
+        expect(host.querySelector('.today-reminders-link').getAttribute('data-onclick')).toBe('day.reminderForm(true)');
+        localStorage.removeItem('happa.restoreDrill');
+    });
+
+    test('Add opens the closed card on the form and remembers it open', () => {
+        AppState.userRole = 'owner';
+        ManualReminders.list = LIST;
+        jest.spyOn(FirebaseService, 'listenOpenReminders').mockImplementation(() => () => {});
+        Object.assign(AppState, { retailSalesHistory: [], purchaseHistory: [], salesHistory: [] });
+        document.body.innerHTML = '<div id="todayReminders"></div>';
+        localStorage.removeItem('happa.open.today-reminders');
+        ManualReminders.onChange = () => DayManager.renderReminders();
+        DayManager.renderReminders();
+        expect(document.getElementById('todayRemindersBody').hidden).toBe(true);
+        ManualReminders.form(true);
+        expect(document.getElementById('todayRemindersBody').hidden).toBe(false);
+        expect(document.getElementById('todayRemindersToggle').getAttribute('aria-expanded')).toBe('true');
+        expect(document.querySelector('#todayRemindersBody #reminderTitle')).not.toBeNull();
+        expect(localStorage.getItem('happa.open.today-reminders')).toBe('1');
+        ManualReminders.form(false);
+        localStorage.removeItem('happa.open.today-reminders');
     });
 
     test('save checks first, then writes as the signed-in person', async () => {
@@ -126,6 +172,34 @@ describe('Today: manual reminders', () => {
         expect(await ManualReminders.save()).toBe(true);
         expect(create).toHaveBeenCalledWith(expect.objectContaining({ title: 'Call Ramesh', party: '' }), { uid: 'u1', name: 'Owner' });
         expect(ManualReminders.formOpen).toBe(false);
+    });
+
+    test('time (optional): saved as HH:MM, empty means none, shown on the row; Change fills it back', async () => {
+        AppState.userRole = 'owner';
+        const create = jest.spyOn(FirebaseService, 'createReminder').mockResolvedValue('new1');
+        jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
+        ManualReminders.formOpen = true;
+        document.body.innerHTML = ManualReminders.formHtml();
+        const time = document.getElementById('reminderTime');
+        expect(time.type).toBe('time');
+        expect(time.value).toBe('');
+        document.getElementById('reminderTitle').value = 'Call Ramesh';
+        expect(await ManualReminders.save()).toBe(true);
+        expect(create.mock.calls[0][0].dueTime).toBeNull();
+        ManualReminders.formOpen = true;
+        document.body.innerHTML = ManualReminders.formHtml();
+        document.getElementById('reminderTitle').value = 'Call Ramesh';
+        document.getElementById('reminderTime').value = '16:30';
+        expect(await ManualReminders.save()).toBe(true);
+        expect(create.mock.calls[1][0].dueTime).toBe('16:30');
+        const day = todayLocalISO();
+        ManualReminders.list = [{ id: 't1', title: 'Call', dueDate: day, dueTime: '16:30', status: 'open' }];
+        const row = ManualReminders.whenText({ days: 0, dueDate: day, dueTime: '16:30' });
+        expect(row).toMatch(/^Today 4:30\s?pm$/i);
+        expect(ManualReminders.edit('t1')).toBe(true);
+        document.body.innerHTML = ManualReminders.html();
+        expect(document.getElementById('reminderTime').value).toBe('16:30');
+        ManualReminders.form(false);
     });
 
     test('members cannot save or cancel; Done writes for them', async () => {
@@ -227,7 +301,7 @@ describe('Today: changing and repeating reminders (#86)', () => {
         document.getElementById('reminderRepeat').value = '';
         expect(await ManualReminders.save()).toBe(true);
         expect(create).not.toHaveBeenCalled();
-        expect(update).toHaveBeenCalledWith('r1', { title: 'Pay Gupta in full', dueDate: '2000-01-01', party: 'Gupta', repeat: null, repeatDay: null }, { uid: 'u1', name: 'Owner' });
+        expect(update).toHaveBeenCalledWith('r1', { title: 'Pay Gupta in full', dueDate: '2000-01-01', dueTime: null, party: 'Gupta', repeat: null, repeatDay: null }, { uid: 'u1', name: 'Owner' });
         expect(ManualReminders.formOpen).toBe(false);
         expect(ManualReminders.editId).toBeNull();
     });
@@ -249,16 +323,16 @@ describe('Today: changing and repeating reminders (#86)', () => {
         const due = today();
         ManualReminders.list = [
             { id: 'w', title: 'Collect', dueDate: due, party: 'Ram', repeat: 'weekly', status: 'open' },
-            { id: 'm', title: 'Rent', dueDate: due, repeat: 'monthly', repeatDay: 31, status: 'open' },
+            { id: 'm', title: 'Rent', dueDate: due, dueTime: '18:00', repeat: 'monthly', repeatDay: 31, status: 'open' },
             { id: 'o', title: 'Once', dueDate: due, status: 'open' }
         ];
         const ack = jest.spyOn(FirebaseService, 'ackReminder').mockResolvedValue('n1');
         expect(await ManualReminders.markReminderDone('w')).toBe(true);
         expect(ack).toHaveBeenLastCalledWith('w', { uid: 'u1', name: 'Owner' },
-            { title: 'Collect', dueDate: nextDueDate(due, 'weekly', due), party: 'Ram', repeat: 'weekly', repeatDay: null });
+            { title: 'Collect', dueDate: nextDueDate(due, 'weekly', due), dueTime: null, party: 'Ram', repeat: 'weekly', repeatDay: null });
         expect(UIManager.showToast.mock.calls[0][0]).toMatch(/^Done\. The next one is on /);
         await ManualReminders.markReminderDone('m');
-        expect(ack.mock.calls[1][2]).toMatchObject({ repeat: 'monthly', repeatDay: 31, dueDate: nextDueDate(due, 'monthly', due, 31) });
+        expect(ack.mock.calls[1][2]).toMatchObject({ repeat: 'monthly', repeatDay: 31, dueTime: '18:00', dueDate: nextDueDate(due, 'monthly', due, 31) });
         await ManualReminders.markReminderDone('o');
         expect(ack.mock.calls[2][2]).toBeNull();
     });

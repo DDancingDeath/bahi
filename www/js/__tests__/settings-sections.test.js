@@ -1,20 +1,21 @@
 /**
- * Settings sections: Common for everyone; Aadhat (internal 'shop') and Rentals
- * only for their owner/manager, picked by the business switcher with a toggle
- * to the other one; old routes still open the right place; the business is
- * called Aadhat / आढ़त on screen.
+ * Settings groups: a short main list for everyone; Aadhat (internal 'shop') and
+ * Rentals only for their owner/manager, Team only for the owner; each group is a
+ * sub-page whose Back (and the back gesture) returns to the list; old routes and
+ * deep links still land on the right group; the business is called Aadhat / आढ़त.
  */
 jest.mock('../ui/ui-manager.js', () => ({ UIManager: { showToast: jest.fn(), hapticFeedback: jest.fn(), showModal: jest.fn() } }));
 
 const fs = require('fs');
 const path = require('path');
-import { settingsView, shopRoleOf, rentRoleOf } from '../utils/settings-sections.js';
+import { settingsView, shopRoleOf, rentRoleOf, groupOf, shownGroup, SETTINGS_GROUPS } from '../utils/settings-sections.js';
 import { SettingsManager } from '../modules/settings.js';
 import { BusinessSwitcher } from '../ui/business-switcher.js';
 import { NavigationManager, resolveRoute } from '../ui/navigation.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { AppState } from '../utils/state.js';
 import { AuditService } from '../services/audit.js';
+import { ThemeManager } from '../ui/theme.js';
 import { t, setLang, resetLangForTests, applyTranslations } from '../i18n/index.js';
 
 const TEMPLATES = path.join(__dirname, '..', '..', 'templates');
@@ -29,27 +30,26 @@ describe('settingsView (pure)', () => {
         expect(rentRoleOf('manager', 'owner')).toBeNull();
     });
 
+    const visible = (p) => SETTINGS_GROUPS.filter(g => settingsView(p)[g].visible);
     test.each([
-        // userRole, rentRole, business, active, other
-        ['owner', null, 'shop', 'shop', 'rentals'],
-        ['owner', null, 'rentals', 'rentals', 'shop'],
-        ['manager', null, 'shop', 'shop', null],
-        ['manager', 'member', 'rentals', null, 'shop'],
-        ['staff', null, 'shop', null, null],
-        ['staff', 'member', 'rentals', null, null],
-        ['staff', 'manager', 'shop', null, 'rentals'],
-        ['staff', 'manager', 'rentals', 'rentals', null],
-        ['none', 'manager', 'rentals', 'rentals', null],
-        ['manager', 'manager', 'shop', 'shop', 'rentals']
-    ])('%s / rent %s on %s -> %s (toggle %s)', (userRole, rentRole, business, active, other) => {
-        const v = settingsView({ userRole, rentRole, business });
-        expect(v.active).toBe(active);
-        expect(v.other).toBe(other);
+        ['staff', null, undefined, ['appearance', 'printing', 'billing', 'help']],
+        ['staff', 'member', undefined, ['appearance', 'printing', 'billing', 'help']],
+        ['staff', 'manager', undefined, ['appearance', 'printing', 'billing', 'rentals', 'help']],
+        ['manager', null, undefined, ['appearance', 'printing', 'billing', 'shop', 'help']],
+        ['manager', null, { manager: { shopSettings: true } }, ['appearance', 'printing', 'billing', 'shop', 'help']],
+        ['manager', 'manager', undefined, ['appearance', 'printing', 'billing', 'shop', 'rentals', 'help']],
+        ['owner', null, undefined, ['appearance', 'printing', 'billing', 'shop', 'rentals', 'team', 'help']],
+        ['none', 'manager', undefined, ['appearance', 'printing', 'billing', 'rentals', 'help']]
+    ])('%s / rent %s / access %j sees %j', (userRole, rentRole, roleAccess, groups) => {
+        expect(visible({ userRole, rentRole, roleAccess })).toEqual(groups);
     });
 
-    test('a chosen section wins only when the user may see it', () => {
-        expect(settingsView({ userRole: 'owner', business: 'shop', choice: 'rentals' }).active).toBe('rentals');
-        expect(settingsView({ userRole: 'manager', business: 'shop', choice: 'rentals' }).active).toBe('shop');
+    test('routes: groups, old sections, and groups the role may not see', () => {
+        expect(['appearance', 'roles', 'shop', 'common', null, 'x'].map(groupOf)).toEqual(['appearance', 'team', 'shop', null, null, null]);
+        const staff = settingsView({ userRole: 'staff' });
+        expect(['team', 'roles', 'shop', 'rentals', 'billing'].map(s => shownGroup(s, staff))).toEqual([null, null, null, null, 'billing']);
+        expect(shownGroup('roles', settingsView({ userRole: 'owner' }))).toBe('team');
+        expect(shownGroup('team', settingsView({ userRole: 'manager', roleAccess: { manager: { shopSettings: true } } }))).toBeNull();
     });
 
     test('editing: owner always; manager in Aadhat only when Roles & access allows; rentals manager edits Rentals', () => {
@@ -59,6 +59,7 @@ describe('settingsView (pure)', () => {
         expect(settingsView({ userRole: 'staff', roleAccess: { staff: { shopSettings: true } } }).shop.editable).toBe(false);
         expect(settingsView({ userRole: 'staff', rentRole: 'manager' }).rentals.editable).toBe(true);
         expect(settingsView({ userRole: 'staff', rentRole: 'member' }).rentals.visible).toBe(false);
+        expect(settingsView({ userRole: 'manager', roleAccess: { manager: { shopSettings: true } } }).team.visible).toBe(false);
     });
 });
 
@@ -67,7 +68,7 @@ describe('Settings page sections (jsdom)', () => {
     beforeEach(() => {
         document.body.innerHTML = html('settings.html');
         localStorage.clear();
-        SettingsManager.sectionChoice = null;
+        SettingsManager.group = null;
         AppState.settings = { laborRate: 6, heavyWeightThreshold: 30, shopName: 'Gupta Aadhat', upiId: 'gupta@upi' };
         AppState.printerSettings = { enabled: false };
         AppState.currentUser = { uid: 'u1', email: 'u@x' };
@@ -86,27 +87,57 @@ describe('Settings page sections (jsdom)', () => {
         if (roleAccess) AppState.settings.roleAccess = roleAccess;
     };
 
-    test('member: only Common (language, account, printer, notifications, install, about)', () => {
+    const rows = () => [...document.querySelectorAll('[data-settings-open]')].filter(r => !r.hidden).map(r => r.getAttribute('data-settings-open'));
+    const open = () => [...document.querySelectorAll('[data-settings-group]')].filter(g => !g.hidden).map(g => g.getAttribute('data-settings-group'));
+
+    test('the main list: language, name and Log out on top, then one row per group the role may open', () => {
         as('staff');
         SettingsManager.open();
-        expect(shown('settingsCommon')).toBe(true);
-        expect(shown('settingsShop')).toBe(false);
-        expect(shown('settingsRentals')).toBe(false);
-        expect(shown('settingsBizBar')).toBe(false);
-        ['languageSettingsCard', 'accountCard', 'notifSettingsCard', 'installAppCard'].forEach(id => {
-            expect(document.getElementById(id).closest('#settingsCommon')).not.toBeNull();
-        });
-        expect(document.getElementById('settingBluetoothEnabled').closest('#settingsCommon')).not.toBeNull();
+        expect(shown('settingsHome')).toBe(true);
+        expect(open()).toEqual([]);
+        ['languageSettingsCard', 'accountCard'].forEach(id => expect(document.getElementById(id).closest('#settingsHome')).not.toBeNull());
+        expect(document.querySelector('[data-onclick="auth.logout()"]').closest('#settingsHome')).not.toBeNull();
         expect(document.getElementById('settingUserName').value).toBe('Asha');
+        expect(rows()).toEqual(['appearance', 'printing', 'billing', 'help']);
         expect(BusinessSwitcher.loadSettings).not.toHaveBeenCalled();
+        as('owner');
+        SettingsManager.renderSections();
+        expect(rows()).toEqual(['appearance', 'printing', 'billing', 'shop', 'rentals', 'team', 'help']);
     });
 
-    test('Aadhat-only manager never sees Rentals; view-only without the Roles & access switch', () => {
+    test('every setting lives in its group', () => {
+        const inGroup = (id) => document.getElementById(id).closest('[data-settings-group]')?.getAttribute('data-settings-group');
+        expect(['settingSwipeTabs', 'themeGallery', 'settingShowHindi'].map(inGroup)).toEqual(['appearance', 'appearance', 'appearance']);
+        expect(['settingBluetoothEnabled', 'bluetoothDevicesList', 'receiptSettingsCard'].map(inGroup)).toEqual(['printing', 'printing', 'printing']);
+        expect(['voiceBillingCard', 'settingVoiceBeep', 'photoWeightsCard'].map(inGroup)).toEqual(['billing', 'billing', 'billing']);
+        expect(['businessDetailsCard', 'upiCard', 'labourSettingsCard', 'billChecksCard', 'billNumbersCard', 'openingStockCard'].map(inGroup)).toEqual(Array(6).fill('shop'));
+        expect(['roleAccessGrid', 'rolePeopleList'].map(inGroup)).toEqual(['team', 'team']);
+        expect(['installAppCard', 'appVersionText', 'usageCard', 'notifSettingsCard', 'crashReportsCard'].map(inGroup)).toEqual(Array(5).fill('help'));
+        expect(inGroup('settingsRentalsBody')).toBe('rentals');
+    });
+
+    test('member: a deep link to Team or Aadhat shows the list, never the group', () => {
+        as('staff');
+        const replace = jest.spyOn(NavigationManager, 'replaceRoute').mockImplementation(() => {});
+        ['team', 'roles', 'shop', 'rentals'].forEach(section => {
+            SettingsManager.open(section);
+            expect(open()).toEqual([]);
+            expect(shown('settingsHome')).toBe(true);
+        });
+        expect(replace).toHaveBeenCalledWith('settings');
+        expect(SettingsManager.openGroup('team')).toBeNull();
+        expect(open()).toEqual([]);
+        SettingsManager.open('billing');
+        expect(open()).toEqual(['billing']);
+        expect(document.getElementById('settingPhotoWeights').disabled).toBe(true);
+    });
+
+    test('Aadhat-only manager: Aadhat view-only without the Roles & access switch; no Rentals or Team', () => {
         as('manager');
-        SettingsManager.open();
-        expect(shown('settingsShop')).toBe(true);
-        expect(shown('settingsRentals')).toBe(false);
-        expect(shown('settingsBizToggle')).toBe(false);
+        SettingsManager.open('shop');
+        expect(open()).toEqual(['shop']);
+        expect(shown('settingsHome')).toBe(false);
+        expect(rows()).toEqual(['appearance', 'printing', 'billing', 'shop', 'help']);
         expect(document.getElementById('settingBusinessName').disabled).toBe(true);
         expect(document.getElementById('settingLaborRate').disabled).toBe(true);
         expect(document.getElementById('settingCheck_cashOkRs').disabled).toBe(true);
@@ -123,41 +154,52 @@ describe('Settings page sections (jsdom)', () => {
         expect(document.getElementById('settingBusinessName').value).toBe('Gupta Aadhat');
         expect(document.getElementById('settingLaborRate').disabled).toBe(false);
         expect(shown('settingsShopViewOnly')).toBe(false);
+        expect(rows()).not.toContain('team');
     });
 
-    test('owner on Aadhat: Aadhat section plus a toggle; Rentals loads only when toggled', async () => {
+    test('owner: Rentals loads only when its group opens, and empties when it closes', async () => {
         as('owner');
         SettingsManager.open();
-        expect(shown('settingsShop')).toBe(true);
-        expect(document.getElementById('settingsBizTitle').textContent).toBe('Aadhat settings');
-        expect(document.getElementById('settingsBizToggle').textContent).toBe('View Rentals settings');
         expect(BusinessSwitcher.loadSettings).not.toHaveBeenCalled();
-        SettingsManager.showOther();
+        jest.spyOn(NavigationManager, 'noteRoute').mockImplementation(() => {});
+        expect(SettingsManager.openGroup('rentals')).toBe('rentals');
+        expect(NavigationManager.noteRoute).toHaveBeenCalledWith('settings-rentals');
         await new Promise(r => setTimeout(r));
-        expect(shown('settingsShop')).toBe(false);
-        expect(shown('settingsRentals')).toBe(true);
+        expect(open()).toEqual(['rentals']);
         expect(mount).toHaveBeenCalledWith(document.getElementById('settingsRentalsBody'), { editable: true });
-        expect(document.getElementById('settingsBizToggle').textContent).toBe('View Aadhat settings');
+        SettingsManager.showGroup(null);
+        expect(document.getElementById('rentMounted')).toBeNull();
+        SettingsManager.open('roles');
+        expect(open()).toEqual(['team']);
     });
 
-    test('Rentals is the current business: Rentals section first', async () => {
-        BusinessSwitcher.current.mockReturnValue('rentals');
+    test('rentals manager (Aadhat member) opens Rentals; a rentals member does not', async () => {
         as('staff', 'manager');
-        SettingsManager.open();
+        SettingsManager.open('rentals');
         await new Promise(r => setTimeout(r));
-        expect(shown('settingsRentals')).toBe(true);
-        expect(shown('settingsShop')).toBe(false);
-        expect(shown('settingsBizToggle')).toBe(false);
+        expect(open()).toEqual(['rentals']);
         expect(document.getElementById('rentMounted')).not.toBeNull();
+        as('staff', 'member');
+        jest.spyOn(NavigationManager, 'replaceRoute').mockImplementation(() => {});
+        SettingsManager.open('rentals');
+        expect(open()).toEqual([]);
     });
 
-    test('rentals member sees only Common, even on Rentals', () => {
-        BusinessSwitcher.current.mockReturnValue('rentals');
-        as('staff', 'member');
-        SettingsManager.open();
-        expect(shown('settingsRentals')).toBe(false);
-        expect(shown('settingsShop')).toBe(false);
-        expect(BusinessSwitcher.loadSettings).not.toHaveBeenCalled();
+    test('Back returns to the list and focuses the row it came from; leaving Appearance ends a theme preview', () => {
+        as('owner');
+        SettingsManager.open('appearance');
+        const cancel = jest.spyOn(ThemeManager, 'cancelPreview');
+        ThemeManager.previewing = 'nordic';
+        jest.spyOn(NavigationManager, 'noteRoute').mockImplementation(() => {});
+        document.getElementById('settingsAppearanceTitle').focus();
+        SettingsManager.back();
+        expect(open()).toEqual([]);
+        expect(shown('settingsHome')).toBe(true);
+        expect(cancel).toHaveBeenCalled();
+        expect(NavigationManager.noteRoute).toHaveBeenCalledWith('settings');
+        expect(document.activeElement).toBe(document.querySelector('[data-settings-open="appearance"]'));
+        SettingsManager.openGroup('help');
+        expect(document.activeElement).toBe(document.getElementById('settingsHelpTitle'));
     });
 
     test('saving the business name writes settings/app and is used on bills', async () => {
@@ -185,7 +227,7 @@ describe('Settings page sections (jsdom)', () => {
 
     test('bill checks are edited in Settings (moved from Admin › Configure)', async () => {
         as('owner');
-        SettingsManager.open();
+        SettingsManager.open('shop');
         const save = jest.spyOn(FirebaseService, 'saveSharedCheckThresholds').mockResolvedValue();
         document.getElementById('settingCheck_cashOkRs').value = '75';
         expect(await SettingsManager.saveCheckThresholds()).toBe(true);
@@ -201,7 +243,7 @@ describe('Settings page sections (jsdom)', () => {
     });
 });
 
-describe('old routes still work', () => {
+describe('routes and deep links land on their group', () => {
     beforeEach(() => {
         document.body.innerHTML = '<div id="settings" class="tab"></div><div id="admin" class="tab"></div><nav class="nav-menu"><a data-onclick="nav.showTab(\'settings\', event)"></a></nav>';
         window.app = { settings: { load: jest.fn() } };
@@ -212,12 +254,17 @@ describe('old routes still work', () => {
 
     test.each([
         ['settings', 'settings', null],
-        ['settings-common', 'settings', 'common'],
+        ['settings-common', 'settings', null],
+        ['settings-appearance', 'settings', 'appearance'],
+        ['settings-printing', 'settings', 'printing'],
+        ['settings-billing', 'settings', 'billing'],
         ['settings-shop', 'settings', 'shop'],
         ['settings-aadhat', 'settings', 'shop'],
         ['admin-configure', 'settings', 'shop'],
         ['settings-rentals', 'settings', 'rentals'],
-        ['settings-roles', 'settings', 'roles']
+        ['settings-team', 'settings', 'team'],
+        ['settings-roles', 'settings', 'team'],
+        ['settings-help', 'settings', 'help']
     ])('%s opens %s (%s)', (route, tab, section) => {
         expect(resolveRoute(route)).toMatchObject({ tab, section });
         NavigationManager.showTabFromNav(route);
@@ -225,6 +272,59 @@ describe('old routes still work', () => {
         expect(document.getElementById('settings').classList.contains('active')).toBe(true);
         expect(window.app.settings.load).toHaveBeenCalledWith(section);
         expect(document.querySelector('.nav-menu a').classList.contains('active')).toBe(true);
+    });
+});
+
+describe('back gesture: a group returns to the Settings list', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="settings" class="tab"></div><div id="admin" class="tab"></div><div id="billing" class="tab"></div>';
+        window.app = { settings: { load: jest.fn() } };
+        AppState.userRole = 'owner';
+        NavigationManager.currentTab = null;
+        history.replaceState(null, '');
+        jest.useFakeTimers();
+    });
+    afterEach(() => { jest.useRealTimers(); delete window.app; });
+
+    test('a group opened from the list: one entry; back shows the list', () => {
+        NavigationManager.showTab('settings');
+        const start = history.length;
+        NavigationManager.noteRoute('settings-printing');
+        expect(history.state.happaTab).toBe('settings-printing');
+        expect(history.length).toBe(start + 1);
+        NavigationManager.handlePopState({ state: { happaTab: 'settings' } });
+        jest.runOnlyPendingTimers();
+        expect(NavigationManager.currentTab).toBe('settings');
+        expect(window.app.settings.load).toHaveBeenLastCalledWith(null);
+    });
+
+    test('a deep link from another page puts the list beneath the group', () => {
+        NavigationManager.showTab('admin');
+        const start = history.length;
+        NavigationManager.showTabFromNav('admin-configure');
+        expect(history.state.happaTab).toBe('settings-shop');
+        expect(history.length).toBe(start + 2);
+        NavigationManager.showTabFromNav('settings-roles');
+        expect(history.state.happaTab).toBe('settings-team');
+        expect(history.length).toBe(start + 4);
+    });
+
+    test('Android back from a group goes back in history (to the list), not home', () => {
+        NavigationManager.showTab('settings');
+        NavigationManager.noteRoute('settings-help');
+        const back = jest.spyOn(history, 'back').mockImplementation(() => {});
+        const exitApp = jest.fn();
+        NavigationManager.handleBackButton({ exitApp });
+        expect(back).toHaveBeenCalled();
+        expect(exitApp).not.toHaveBeenCalled();
+    });
+
+    test('the group\'s Back button uses history when the group has its entry', () => {
+        NavigationManager.showTab('settings');
+        NavigationManager.noteRoute('settings-billing');
+        const back = jest.spyOn(history, 'back').mockImplementation(() => {});
+        SettingsManager.back();
+        expect(back).toHaveBeenCalled();
     });
 });
 

@@ -33,7 +33,16 @@ export const DATA_FRESHNESS_CHANGED = 'data:freshness';
 /** A bill's print status on this phone changed (utils/print-status.js, #132); payload: its key. */
 export const PRINT_STATUS_CHANGED = 'printStatus:changed';
 
+/** The Bluetooth printer's state was redrawn (services/printer.js updateStatus): connected, connecting, saved… */
+export const PRINTER_CHANGED = 'printer:changed';
+
 export const REMINDERS_CHANGED = 'reminders:changed';
+
+/** Today's To do reminders (ui/manual-reminders.js) changed: listened, saved, done or the form redrawn. */
+export const TODOS_CHANGED = 'todos:changed';
+
+/** Billing's purchase or retail bill was saved or cleared (purchase.js, retail-sale.js); payload `'purchase'|'sale'`. */
+export const BILL_CLEARED = 'bill:cleared';
 
 /** An error toast was shown (ui-manager.js); payload `{ message, ref }`. Telemetry logs it under `ref`. */
 export const TOAST_ERROR = 'toast:error';

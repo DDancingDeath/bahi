@@ -122,7 +122,7 @@ describe('B. BILL-DUE: Wholesale › Outstanding = Outstanding / Money', () => {
         document.body.innerHTML = '<div id="salesOutstandingList"></div>';
         WholesaleSalesManager.outstandingParty = null;
         WholesaleSalesManager.renderSalesOutstanding();
-        const rows = Object.fromEntries([...document.querySelectorAll('#salesOutstandingList .history-item')].map(row => {
+        const rows = Object.fromEntries([...document.querySelectorAll('#salesOutstandingList [data-history-item]')].map(row => {
             const id = row.querySelector('input[id^="payment_"]').id.slice('payment_'.length);
             return [id, Number(row.querySelector('.history-header').textContent.match(/₹([\d,.]+)/)[1].replace(/,/g, ''))];
         }));
@@ -132,7 +132,7 @@ describe('B. BILL-DUE: Wholesale › Outstanding = Outstanding / Money', () => {
     test('the legacy bill shows what was received on it', () => {
         document.body.innerHTML = '<div id="salesOutstandingList"></div>';
         WholesaleSalesManager.renderSalesOutstanding();
-        const text = document.getElementById('payment_w1').closest('.history-item').textContent.replace(/\s+/g, ' ');
+        const text = document.getElementById('payment_w1').closest('[data-history-item]').textContent.replace(/\s+/g, ' ');
         expect(text).toMatch(/₹1,000.*₹700.*₹300/);
     });
     test('openDue (the phone\'s dues query) uses the same rule', () => {
@@ -144,14 +144,14 @@ describe('B. BILL-DUE: Wholesale › Outstanding = Outstanding / Money', () => {
         for (const filter of ['sale', 'wholesale']) {
             document.body.innerHTML = '<div id="due"><div id="dueAging"></div><div id="dueList"></div></div>';
             OutstandingManager.filterDue(filter);
-            const rows = Object.fromEntries([...document.querySelectorAll('#dueList .history-item')].map(row => {
+            const rows = Object.fromEntries([...document.querySelectorAll('#dueList [data-history-item]')].map(row => {
                 const id = row.querySelector('input[id^="duePayment_"]').id.slice('duePayment_'.length);
-                return [id, Number(row.querySelector('.history-header').textContent.match(/Due: ₹([\d,.]+)/)[1].replace(/,/g, ''))];
+                return [id, Number(row.querySelector('.history-header').textContent.match(/Due:? ₹([\d,.]+)/)[1].replace(/,/g, ''))];
             }));
             expect(rows).toEqual({ w1: due.w1, 'opening-wholesale-x': due['opening-wholesale-x'] });
             expect(Number(document.querySelector('#dueAging .aging-total').textContent.replace(/[^\d.]/g, ''))).toBe(outstandingTotals(data).receivable.total);
             // the old-app record keeps its chip and ages from its own date
-            const old = document.getElementById('duePayment_opening-wholesale-x').closest('.history-item');
+            const old = document.getElementById('duePayment_opening-wholesale-x').closest('[data-history-item]');
             expect(old.querySelector('.old-app-chip')).not.toBeNull();
             expect(old.querySelector('.aging-age').textContent).toMatch(/284 days/);
         }
@@ -257,8 +257,8 @@ describe('H. H-TOTAL: History › Sale lists retail + wholesale; its ₹ total =
             total: 999, items: [], voided: true, payment: { cash: 999, online: 0, due: 0 } }
     ];
     const SEPT = [new Date(2026, 8, 1).getTime(), new Date(2026, 9, 1).getTime()];
-    const html = `<div id="history"><div class="history-type-filter"><button class="filter-btn" data-type="purchase"></button>
-        <button class="filter-btn" data-type="sale"></button></div><select id="historyDatePreset"><option value="all"></option>
+    const html = `<div id="history"><div class="history-type-filter"><button data-type="purchase"></button>
+        <button data-type="sale"></button></div><select id="historyDatePreset"><option value="all"></option>
         <option value="custom"></option></select><div id="historyCustomRange" hidden><input id="historyFromDate"><input id="historyToDate"></div>
         <div id="historyRangeLabel" hidden></div><input id="historySearch" value=""><div id="historyList"></div></div>`;
     const label = () => document.getElementById('historyRangeLabel').textContent;

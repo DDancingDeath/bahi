@@ -51,12 +51,12 @@ const STEPS = [
     { name: 'Rates', route: 'rates', page: 'items', roles: A },
     { name: 'History › Purchase', route: 'history', page: 'history', act: "window.app.history.filterHistory('purchase')", roles: A, expect: '#history .filter-purchase.active' },
     { name: 'History › Sale', route: 'history', page: 'history', act: "window.app.history.filterHistory('sale')", roles: A, expect: '#history .filter-sale.active' },
-    { name: 'Stocks › Current', route: 'stock', page: 'stock', roles: A, expect: '#currentStockSection' },
-    { name: 'Stocks › Not selling', route: 'stock', page: 'stock', act: "window.app.stock.filterTab('dead')", roles: OM, expect: '#deadStockSection' },
-    { name: 'Stocks › Adjustment', route: 'stock', page: 'stock', act: "window.app.stock.filterTab('adjustment')", roles: OM, expect: '#stockAdjustmentSection' },
-    { name: 'Stocks › Opening stock', route: null, page: 'stock', act: 'window.app.settings.openOpeningStock()', roles: OM, timers: 150, expect: '#stockAdjustmentSection' },
+    { name: 'Stock › Current', route: 'stock', page: 'stock', roles: A, expect: '#currentStockSection' },
+    { name: 'Stock › Not selling', route: 'stock', page: 'stock', act: "window.app.stock.filterTab('dead')", roles: OM, expect: '#deadStockSection' },
+    { name: 'Stock › Adjustment', route: 'stock', page: 'stock', act: "window.app.stock.filterTab('adjustment')", roles: OM, expect: '#stockAdjustmentSection' },
+    { name: 'Stock › Opening stock', route: null, page: 'stock', act: 'window.app.settings.openOpeningStock()', roles: OM, timers: 150, expect: '#stockAdjustmentSection' },
     // Members may not open Not selling or Adjustment (stock.js filterStockTab): the Current screen stays.
-    { name: 'Stocks › Not selling and Adjustment stay closed', route: 'stock', page: 'stock', act: "(window.app.stock.filterTab('dead'), window.app.stock.filterTab('adjustment'))", roles: M, expect: '#currentStockSection', hidden: ['#deadStockSection', '#stockAdjustmentSection', '#deadStockTabBtn'] },
+    { name: 'Stock › Not selling and Adjustment stay closed', route: 'stock', page: 'stock', act: "(window.app.stock.filterTab('dead'), window.app.stock.filterTab('adjustment'))", roles: M, expect: '#currentStockSection', hidden: ['#deadStockSection', '#stockAdjustmentSection', '#deadStockTabBtn'] },
     { name: 'Outstanding › Purchase', route: 'due', page: 'due', roles: A, expect: '#due .filter-purchase.active' },
     { name: 'Outstanding › Sale', route: 'due', page: 'due', act: "window.app.outstanding.filterDue('sale', { target: document.querySelector('#due .filter-sale') })", roles: A, expect: '#due .filter-sale.active' },
     { name: 'Money › Profit', route: 'money-profit', page: 'money', roles: OM, expect: '#moneyProfit' },
@@ -83,17 +83,25 @@ const STEPS = [
     { name: 'Anomalies › List', route: 'anomalies', page: 'anomalies', roles: OM, expect: '#anomalyListView' },
     { name: 'Anomalies › Patterns', route: 'anomalies', page: 'anomalies', act: "window.app.anomalies.showView('patterns')", roles: OM, expect: '#anomalyTabPatterns.active' },
     { name: 'App health', route: 'health', page: 'health', roles: OM },
+    { name: 'Workers', route: 'workers', page: 'workers', roles: O, expect: '#workersBody .wp-metrics' },
+    { name: 'Recurring bills', route: 'recurring', page: 'recurring', roles: O, expect: '#recurringBody .rb-metrics' },
     { name: 'Admin › Users', route: 'admin', page: 'admin', act: "window.app.admin.showTab('users')", roles: O, expect: '#adminActiveUsers' },
     { name: 'Admin › Data', route: 'admin', page: 'admin', act: "window.app.admin.showTab('data')", roles: O, expect: '#adminContainer .danger-zone' },
     { name: 'Diagnostics › Number checks', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('numbers')", roles: OM, expect: '#diagnosticsContainer .diag-numchecks-intro' },
     { name: 'Diagnostics › Errors', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('errors')", roles: O, expect: '#diagTypeFilter' },
     { name: 'Diagnostics › Audit', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('audit')", roles: O, expect: '#auditFilterAction' },
-    { name: 'Settings › Common', route: 'settings-common', page: 'settings', roles: A, expect: '#settingsCommon' },
+    { name: 'Settings', route: 'settings-common', page: 'settings', roles: A, expect: '#settingsGroups [data-settings-open="help"]', hidden: ['#settingsAppearance'] },
+    { name: 'Settings › Appearance', route: 'settings-appearance', page: 'settings', roles: A, expect: '#themeGallery', hidden: ['#settingsHome'] },
+    { name: 'Settings › Printing & receipts', route: 'settings-printing', page: 'settings', roles: A, expect: '#receiptSettingsCard' },
+    { name: 'Settings › Billing tools', route: 'settings-billing', page: 'settings', roles: A, expect: '#photoWeightsCard' },
+    { name: 'Settings › Help & about', route: 'settings-help', page: 'settings', roles: A, expect: '#usageCard' },
     { name: 'Settings › Aadhat', route: 'settings-shop', page: 'settings', roles: OM, expect: '#settingsShop' },
+    { name: 'Settings › Aadhat stays closed', route: 'settings-shop', page: 'settings', roles: ['staff'], expect: '#settingsHome', hidden: ['#settingsShop', '#settingsGroups [data-settings-open="shop"]', '#settingsGroups [data-settings-open="team"]'] },
     { name: 'Settings › Rentals', route: 'settings-rentals', page: 'settings', roles: OM, expect: '#settingsRentals' },
-    { name: 'Settings › Roles & access', route: 'settings-roles', page: 'settings', roles: O, expect: '#roleAccessCard' },
+    { name: 'Settings › Team', route: 'settings-roles', page: 'settings', roles: O, expect: '#roleAccessCard' },
+    { name: 'Settings › Team stays closed', route: 'settings-team', page: 'settings', roles: ['manager', 'staff'], expect: '#settingsHome', hidden: ['#settingsTeam'] },
     { name: 'Rentals › This month (Simple)', route: null, page: 'rentals', act: "window.app.rentals.open('rent').then(() => window.app.rentals.setMode('simple'))", roles: A, expect: '#rentals [data-rent-mode="simple"].active' },
-    { name: 'Rentals › Rent (property-wise)', route: null, page: 'rentals', act: "window.app.rentals.open('rent').then(() => window.app.rentals.setView('properties'))", roles: A, expect: `#rentalsBody .rent-viewswitch .filter-btn.active[data-onclick*="'properties'"]` },
+    { name: 'Rentals › Rent (property-wise)', route: null, page: 'rentals', act: "window.app.rentals.open('rent').then(() => window.app.rentals.setView('properties'))", roles: A, expect: `#rentalsBody .rent-viewswitch [aria-pressed="true"][data-onclick*="'properties'"]` },
     { name: 'Rentals › Rent (unit-wise)', route: null, page: 'rentals', act: "window.app.rentals.setView('units')", roles: A, expect: '#rentUnitList' },
     { name: 'Rentals › Tenants', route: null, page: 'rentals', act: "window.app.rentals.page('tenants')", roles: A, expect: '#rentals [data-rent-page="tenants"].active' },
     { name: 'Rentals › Properties', route: null, page: 'rentals', act: "window.app.rentals.page('properties')", roles: A, expect: '#rentals [data-rent-page="properties"].active' },
@@ -101,29 +109,29 @@ const STEPS = [
     { name: 'Rentals › Access', route: null, page: 'settings', act: "window.app.rentals.page('access')", roles: O, timers: NAV_TIMER_MS, expect: '#roleAccessCard' },
     { name: 'Back to Aadhat', route: null, page: null, act: "window.app.business.set('shop')", roles: A, wait: 600 },
     { name: 'Notifications', route: null, page: null, act: 'window.app.notifications.open()', roles: A, overlay: '#notifPanel', close: 'window.app.notifications.close()' },
-    { name: "What's new", route: null, page: null, act: 'window.app.updates.showWhatsNew()', roles: A, overlay: '#whatsNewSheet', close: "document.querySelector('#whatsNewSheet .app-sheet-close')?.click()" }
+    { name: "What's new", route: null, page: null, act: 'window.app.updates.showWhatsNew()', roles: A, overlay: '#whatsNewSheet', close: "document.querySelector('#whatsNewSheet [data-dismiss]')?.click()" }
 ];
 
 // What a route shows once showTabFromNav's own first render (setTimeout NAV_TIMER_MS) has run: the page's default sub-tab.
 // A step's act runs only after this, so that first render cannot undo it.
 const ROUTE_READY = {
-    day: '#day .sub-tab.active',
+    day: '#day .day-tabs [aria-selected="true"]',
     billing: '#purchaseSection',
     'wholesale-sales': '#salesEntrySection',
-    history: '#history .history-type-filter .filter-btn.active',
+    history: '#history .history-type-filter .active',
     stock: '#currentStockSection',
     due: '#due .filter-purchase.active',
-    anomalies: '#anomalies .sub-tab.active',
-    admin: '#adminTabsContainer .filter-btn.active',
-    diagnostics: '#diagnosticsTabsContainer .filter-btn.active'
+    anomalies: '#anomalies .anom-tabs [aria-selected="true"]',
+    admin: '#adminTabsContainer [aria-selected="true"]',
+    diagnostics: '#diagnosticsTabsContainer [aria-selected="true"]'
 };
 
 // Pages each role may not open: showTab must land somewhere else.
 const BLOCKED = {
-    manager: [['admin', 'admin']],
+    manager: [['admin', 'admin'], ['workers', 'workers'], ['recurring', 'recurring']],
     staff: [['wholesale-sales', 'wholesale-sales'], ['wholesale-history', 'wholesale-sales'], ['money', 'money'], ['money-cash', 'money'],
         ['insights', 'insights'], ['insights-seasons', 'insights'], ['insights-trends', 'insights'], ['rate-trends', 'insights'],
-        ['statements', 'statements'], ['anomalies', 'anomalies'], ['health', 'health'], ['admin', 'admin'], ['diagnostics', 'diagnostics']]
+        ['statements', 'statements'], ['anomalies', 'anomalies'], ['health', 'health'], ['admin', 'admin'], ['diagnostics', 'diagnostics'], ['workers', 'workers'], ['recurring', 'recurring']]
 };
 
 // Old page ids (owner): where each one lands now.
@@ -227,7 +235,7 @@ for (const role of A) {
                     for (const sel of s.hidden || []) await expect(page.locator(sel), `${s.name} keeps ${sel} hidden`).toBeHidden();
                     if (s.overlay) await expect(page.locator(s.overlay)).toBeVisible();
                     if (!(await settle(page, s.settle))) all.stuck.push(s.name);
-                    const roots = s.overlay ? [s.overlay] : ['.tab.active', '#modalOverlay.active', '.app-sheet-backdrop'];
+                    const roots = s.overlay ? [s.overlay] : ['.tab.active', '#modalOverlay.active', '.app-scrim.page-sheet.active'];
                     record(all, s.name, await page.evaluate(screenFindings, { lang, roots }));
                     if (s.close) {
                         await page.evaluate(s.close);

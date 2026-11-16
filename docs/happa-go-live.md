@@ -78,8 +78,9 @@ runs fail instead of deploying. After rebasing on `main` they preview to happa.
 | `firebase.redirectHostingSites` | ✅ `["happaapp", "happa-bfc07"]` (301 to myhappa, no app files) |
 | `androidPackage` | ✅ `com.happa` (owner confirmed; it can never change after phones install v1.0.0) |
 | `appName` / `appNameHi` | ✅ `happa`: all lowercase wherever it is shown, the same in English and Hindi |
-| `apkName` | ✅ `happa` → `happa.apk` / `happa-vX.Y.Z.apk`, release "happa vX.Y.Z" |
+| `apkName` | ✅ `bahi` → `bahi.apk` / `bahi-vX.Y.Z.apk`, release "bahi vX.Y.Z" (from rc15; up to rc14 `happa`, and every release keeps a `happa.apk` copy) |
 | `ownerConfirmed` | ✅ `true` |
+| `appCheck.siteKey` | empty = App Check off. A reCAPTCHA Enterprise (score) site key from the same project turns it on in monitor mode (AI Logic enforces it) ([security.md](security.md), "App Check") |
 
 All values are filled and `npm run check:happa-config` passes. The commands below are
 only needed if a value changes again. `apply` also moves `MainActivity.java` to the
@@ -254,7 +255,7 @@ person). Details: the #232 README,
    (each must be in the final backup). Go through the **KEEP RENTALS ACCESS
    although…** list with the owner: a `rentRole` there may be a copy of the old
    app's from the rehearsal for someone the old app has since removed; remove it
-   in Happa (Settings › Roles & access) if so. Note the **LOSE RENTALS ACCESS at
+   in Happa (Settings › Team › Roles & access) if so. Note the **LOSE RENTALS ACCESS at
    apply** list too, and re-grant those people in Happa after `apply` if the
    owner wants them. Only then run it
    with `--yes`, and run `apply` straight after it. A rerun before Happa is in
@@ -335,7 +336,7 @@ install it, then set `minClientVersion: 5` on `settings/app`.
 
 ## 12. Install on the phones
 
-On each phone, open `https://myhappa.web.app/download`, download `happa.apk`
+On each phone, open `https://myhappa.web.app/download`, download `bahi.apk`
 and install it. It installs **next to** the old app; nothing is replaced. Sign in.
 Accounts and roles work as the migration README describes. Any user it did not
 carry over registers again, and the owner approves them in Admin.
@@ -357,12 +358,12 @@ Run workflow) to confirm they read the new project.
 
 Written by `npm run apply:happa-config` from `happa.config.json`:
 
-- `.firebaserc` (default project), `firebase.json` (`hosting.site`)
+- `.firebaserc` (default project), `firebase.json` (`hosting.site`, the CSP's `frame-src`)
 - `capacitor.config.json` (`appId`, `appName`)
 - `android/app/build.gradle` (`applicationId` and `namespace`), and `MainActivity.java` is moved to `android/app/src/main/java/com/happa/`
 - `android/app/src/main/res/values/strings.xml` (`app_name`, `title_activity_main`, `package_name`, `custom_url_scheme`)
 - `www/manifest.webmanifest` (`name`, `short_name`)
-- `www/firebaseConfig.js` (the `<happa-config>` block)
+- `www/firebaseConfig.js` (the `<happa-config>` block, App Check site key included)
 - `www/js/config/app-identity.js` (name, site, download/APK/release URLs). It is used by the update banner, share text, What's new, password-reset link, reports and notifications
 - `www/index.html` (`<title>`), `www/js/i18n/en.js` + `hi.js` (`ui.app.name`, used by the login screen, side menu and About)
 - `www/download.html` (`data-happa*` markers), `www/img/download-qr.svg`

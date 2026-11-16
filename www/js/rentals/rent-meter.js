@@ -7,8 +7,9 @@
 
 import { UIManager } from '../ui/ui-manager.js';
 import { t, getLang } from '../i18n/index.js';
-import { formatINR } from '../utils/due-reminder.js';
-import { sumMoney } from '../utils/money.js';
+import { moneyInText } from '../ui/components.js';
+import { icon } from '../ui/icons.js';
+import { sumMoney, formatRupees } from '../utils/money.js';
 import { AuditService } from '../services/audit.js';
 import * as store from './rent-store.js';
 import { meterBill, monthLabel } from './rent-math.js';
@@ -33,12 +34,15 @@ function pendingRows(c, d, defs) {
     }).filter(Boolean);
 }
 
-const num = (c, id, value, locked, label) => `<label class="rent-label">${c.esc(t(label))}<input id="${id}" type="number" inputmode="decimal" min="0" step="0.01" value="${c.esc(value)}"${locked ? ' readonly' : ''} data-oninput="rentals.meterPreview()"></label>`;
+const num = (c, id, value, locked, label, rupee = false) => {
+    const input = `<input class="input" id="${id}" type="number" inputmode="decimal" min="0" step="0.01" value="${c.esc(value)}"${locked ? ' readonly' : ''} data-oninput="rentals.meterPreview()">`;
+    return `<label class="field rent-label">${c.esc(t(label))}${rupee ? `<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>${input}</span>` : input}</label>`;
+};
 
 function rowHtml(c, r, i) {
-    const rate = num(c, `rentMR${i}`, r.rate, r.rateLocked, 'ui.rent.meter_rate');
-    return `<div class="rent-list-row" data-meter-row="${i}">
-        <div class="rent-name">${c.esc([r.place, r.name].filter(Boolean).join(' · '))}</div>
+    const rate = num(c, `rentMR${i}`, r.rate, r.rateLocked, 'ui.rent.meter_rate', true);
+    return `<div class="row rent-entry" data-meter-row="${i}">
+        <div class="row-title">${c.esc([r.place, r.name].filter(Boolean).join(' · '))}</div>
         ${r.prevLocked ? `<div class="rent-sub">${c.esc(t('ui.rent.meter_prev_value', { value: r.prev }))}</div><input id="rentMP${i}" type="hidden" value="${c.esc(r.prev)}">`
         : num(c, `rentMP${i}`, r.prev, false, 'ui.rent.meter_prev')}
         ${num(c, `rentMC${i}`, '', false, 'ui.rent.meter_curr')}
@@ -64,7 +68,7 @@ export function preview() {
         if (!out) return;
         try {
             const b = billOf(i);
-            out.textContent = b ? t('ui.rent.meter_preview', { units: b.units, rate: b.rate, amount: formatINR(b.amount) }) : '';
+            out.textContent = b ? t('ui.rent.meter_preview', { units: b.units, rate: b.rate, amount: formatRupees(b.amount) }) : '';
             out.classList.remove('rent-field-error');
         } catch (_) {
             out.textContent = t('msg.rent.bad_reading');
@@ -100,9 +104,9 @@ export async function showMeters(c) {
     const defs = await c.defaults();
     rows = pendingRows(c, store.snapshot(), defs);
     if (!rows.length) return UIManager.showToast(t('msg.rent.meter_none_left'), 'info');
-    const ok = await c.dialog(`<h3>⚡ ${c.esc(t('ui.rent.meter_readings'))} · ${c.esc(monthLabel(c.state.month, getLang()))}</h3>
+    const ok = await c.dialog(`<h3>${c.esc(t('ui.rent.meter_readings'))} · ${c.esc(monthLabel(c.state.month, getLang()))}</h3>
         <p class="rent-help">${c.esc(t('ui.rent.meter_bulk_help'))}</p>
-        <div class="rent-list">${rows.map((r, i) => rowHtml(c, r, i)).join('')}</div>`, { check });
+        <div class="panel">${rows.map((r, i) => rowHtml(c, r, i)).join('')}</div>`, { check });
     if (!ok) return;
     const filled = rows.map((r, i) => ({ r, bill: billOf(i) })).filter(x => x.bill);
     const results = [];
@@ -121,10 +125,10 @@ export async function showMeters(c) {
     const saved = results.filter(x => !x.error);
     const total = sumMoney(saved, x => x.bill.amount);
     if (saved.length === results.length) {
-        UIManager.showToast(t('msg.rent.meters_saved', { n: saved.length, amount: formatINR(total) }), 'success');
+        UIManager.showToast(t('msg.rent.meters_saved', { n: saved.length, amount: formatRupees(total) }), 'success');
         return;
     }
     UIManager.showToast(t('msg.rent.meters_partly', { saved: saved.length, failed: results.length - saved.length }), 'error');
-    await c.dialog(`<h3>⚡ ${c.esc(t('ui.rent.meter_readings'))}</h3>
-        <ul class="rent-months">${results.map(x => `<li>${x.error ? '✗' : '✓'} ${c.esc(x.r.place)}: ${c.esc(x.error ? t(x.error) : formatINR(x.bill.amount))}</li>`).join('')}</ul>`, { info: true });
+    await c.dialog(`<h3>${c.esc(t('ui.rent.meter_readings'))}</h3>
+        <ul class="rent-results">${results.map(x => `<li class="${x.error ? 'tone-neg' : 'tone-pos'}" data-meter-result="${x.error ? 'error' : 'saved'}">${x.error ? icon('x', 'i-sm') : icon('check', 'i-sm')} ${x.error ? `${c.esc(x.r.place)}: ${c.esc(t(x.error))}` : moneyInText(`${x.r.place}: ${formatRupees(x.bill.amount)}`, x.bill.amount)}</li>`).join('')}</ul>`, { info: true });
 }

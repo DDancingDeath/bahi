@@ -15,6 +15,7 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { t } from '../i18n/index.js';
 import { authErrorMessage } from '../auth/authentication.js';
 import { AuditService } from './audit.js';
+import { removalCheck, activeOwnerIds } from '../utils/owner-roles.js';
 
 export const DISABLED_STATUS = 'disabled';
 export const REJECTED_STATUS = 'rejected';
@@ -53,7 +54,8 @@ export const UserAdmin = {
         const confirmed = await UIManager.showModal(
             t('msg.common.send_password_reset_email', { email }),
             t('msg.common.reset_password'),
-            true
+            true,
+            { confirmLabel: t('ui.confirm.send_email') }
         );
         if (!confirmed) return false;
         try {
@@ -70,24 +72,45 @@ export const UserAdmin = {
         }
     },
 
-    /** @returns {Promise<boolean>} true when access was removed */
-    async removeUser(userId, userName) {
+    /**
+     * @param {string} userId
+     * @param {string} userName
+     * @param {Array<Object>} [users] the loaded profiles: removing an owner needs another active owner
+     * @returns {Promise<boolean>} true when access was removed
+     */
+    async removeUser(userId, userName, users = []) {
         if (!canManage(userId)) return false;
+        const target = (users || []).find(u => u && u.id === userId) || { id: userId };
+        const check = removalCheck({ actor: { id: AppState.currentUser?.uid, role: AppState.userRole }, target, users });
+        if (!check.ok) {
+            UIManager.showToast(t(check.reason === 'last_owner' ? 'msg.owners.last_owner' : 'msg.common.access_denied'), 'error');
+            return false;
+        }
         const confirmed = await UIManager.showModal(
-            t('msg.users.confirm_remove_user', { userName: userName || '' }),
+            check.owner ? t('msg.owners.confirm_remove_owner', { userName: userName || '' })
+                : t('msg.users.confirm_remove_user', { userName: userName || '' }),
             t('msg.common.delete_user'),
-            true
+            true,
+            { confirmLabel: t('ui.confirm.delete_user'), danger: true }
         );
         if (!confirmed) return false;
         try {
             UIManager.showLoading();
-            await FirebaseService.disableUserProfile(userId, AppState.currentUser?.uid || null);
+            if (check.owner) {
+                const listed = await FirebaseService.ensureOwnersListed(activeOwnerIds(users));
+                if (listed.filter(id => id !== userId).length < 1) throw Object.assign(new Error('last owner'), { code: 'last-owner' });
+            }
+            await FirebaseService.disableUserProfile(userId, AppState.currentUser?.uid || null, check.owner);
+            if (check.owner) {
+                logUserAction(AuditService.ACTIONS.CHANGE_USER_ROLE, { targetUserId: userId, targetName: userName || '', from: 'owner', to: 'removed' });
+            }
             logUserAction(AuditService.ACTIONS.REMOVE_USER, { targetUserId: userId, targetName: userName || '' });
             UIManager.showToast(t('msg.users.user_removed', { userName: userName || '' }));
             return true;
         } catch (error) {
             console.error('Error removing user:', error);
-            UIManager.showToast(t('msg.common.failed_delete_user', { message: error?.message || '' }), 'error');
+            UIManager.showToast(error?.code === 'last-owner' ? t('msg.owners.last_owner')
+                : t('msg.common.failed_delete_user', { message: error?.message || '' }), 'error');
             return false;
         } finally {
             UIManager.hideLoading();
@@ -100,7 +123,7 @@ export const UserAdmin = {
      */
     async rejectUser(userId, confirmKey = 'msg.admin.are_sure_want_reject_user') {
         if (!canManage(userId)) return false;
-        const confirmed = await UIManager.showModal(t(confirmKey), t('msg.admin.reject_user'), true);
+        const confirmed = await UIManager.showModal(t(confirmKey), t('msg.admin.reject_user'), true, { confirmLabel: t('ui.admin.reject'), danger: true });
         if (!confirmed) return false;
         try {
             UIManager.showLoading();
@@ -127,7 +150,8 @@ export const UserAdmin = {
         const confirmed = await UIManager.showModal(
             t('msg.users.confirm_restore_user', { userName: userName || '' }),
             t('ui.admin.restore'),
-            true
+            true,
+            { confirmLabel: t('ui.admin.restore') }
         );
         if (!confirmed) return false;
         try {

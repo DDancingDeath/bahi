@@ -12,6 +12,9 @@ import { isActiveBill } from '../utils/money.js';
 import { cleanReason, describeEdit, editCountOf, editHeading, REASON_MAX } from '../utils/bill-edits.js';
 import { formatDayTime } from '../utils/dates.js';
 import { accessFor, canDeleteBillWith, canEditBillWith, canVoidBillWith } from '../utils/role-access.js';
+import { billDateOf } from '../utils/history-filters.js';
+import { ageInDays, dueTone } from '../utils/aging.js';
+import { moneyHtml } from './components.js';
 import { UIManager } from './ui-manager.js';
 
 const L = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -26,10 +29,10 @@ export function voidedBannerHtml(bill) {
     const when = formatDayTime(bill.voidedAt);
     const by = bill.voidedByName || '';
     const line = by ? L('ui.void.by_line', { name: by, when: when || '—' }) : (when ? L('ui.void.when_line', { when }) : '');
-    return `<div class="bill-voided-banner" role="status">
+    return `<div class="notice bill-voided-notice" role="status">
         <span class="voided-chip">${L('ui.void.chip')}</span>
-        <div class="bill-voided-banner__reason">${L('ui.void.reason_line', { reason: bill.voidReason || '—' })}</div>
-        ${line ? `<div class="bill-voided-banner__by">${line}</div>` : ''}
+        <div class="bill-voided-notice__reason">${L('ui.void.reason_line', { reason: bill.voidReason || '—' })}</div>
+        ${line ? `<div class="bill-voided-notice__by">${line}</div>` : ''}
     </div>`;
 }
 
@@ -72,16 +75,17 @@ export function renderEditsList(list, edits) {
 
 /**
  * Asks for a required reason (void or edit). Too short or cancelled: null.
- * @param {{titleKey: string, explainKey?: string, labelKey: string}} keys
+ * @param {{titleKey: string, explainKey?: string, labelKey: string, confirmKey?: string, danger?: boolean}} keys
+ *   confirmKey: the confirm button's verb ("Void bill"); danger: a destructive confirm
  * @returns {Promise<?string>}
  */
-export async function askReason({ titleKey, explainKey, labelKey }) {
-    const html = `<div class="reason-dialog">
-        ${explainKey ? `<p class="reason-dialog__explain">${L(explainKey)}</p>` : ''}
-        <label class="reason-dialog__label" for="reasonInput">${L(labelKey)}</label>
-        <textarea id="reasonInput" class="reason-dialog__input" rows="2" maxlength="${REASON_MAX}"></textarea>
-    </div>`;
-    const ok = await UIManager.showModalWithHtml(html, t(titleKey), true);
+export async function askReason({ titleKey, explainKey, labelKey, confirmKey, danger = false }) {
+    const html = `${explainKey ? `<p>${L(explainKey)}</p>` : ''}
+        <div class="field">
+            <label for="reasonInput">${L(labelKey)}</label>
+            <textarea id="reasonInput" class="input" rows="2" maxlength="${REASON_MAX}"></textarea>
+        </div>`;
+    const ok = await UIManager.showModalWithHtml(html, t(titleKey), true, { confirmLabel: confirmKey ? t(confirmKey) : '', danger });
     if (!ok) return null;
     const reason = cleanReason(document.getElementById('reasonInput')?.value);
     if (!reason) {
@@ -89,6 +93,35 @@ export async function askReason({ titleKey, explainKey, labelKey }) {
         return null;
     }
     return reason;
+}
+
+/**
+ * A payment amount in the bill details: in ink; a due older than 30 / 90 days is a toned tag (dueTone, as History's Due tag).
+ * @param {Object} bill
+ * @param {number} amount
+ * @param {boolean} [due]
+ * @returns {string} HTML
+ */
+export function payAmountHtml(bill, amount, due = false) {
+    const date = due ? billDateOf(bill) : null;
+    const tone = due ? dueTone(date ? ageInDays(date) : null, amount) : '';
+    return tone ? `<span class="tag ${Helpers.escapeHtml(tone)}">${moneyHtml(amount)}</span>` : `<span class="row-amt">${moneyHtml(amount)}</span>`;
+}
+
+/**
+ * The bill details title, "Bill #P…", with the party under it.
+ * @param {*} billNumber
+ * @param {*} party
+ */
+export function setBillDetailsTitle(billNumber, party) {
+    const title = document.getElementById('billDetailsTitle');
+    const sub = document.getElementById('billDetailsParty');
+    if (title) title.textContent = t('ui.outstanding.bill_no', { billNumber: String(billNumber ?? '') });
+    if (sub) {
+        const name = String(party ?? '').trim();
+        sub.textContent = name;
+        sub.hidden = !name;
+    }
 }
 
 /**
@@ -104,6 +137,7 @@ export function setBillActions(bill, who, { editable = true } = {}) {
         const el = document.getElementById(id);
         if (!el) return;
         el.style.display = on ? '' : 'none';
+        el.hidden = !on;
         if (locked === null) return;
         // Edit / Void: a locked button is greyed with "🔒 Edit window closed"; a tap only explains the window
         el.classList.toggle('bill-action-locked', on && locked);

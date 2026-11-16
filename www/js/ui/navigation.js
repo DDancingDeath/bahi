@@ -4,13 +4,13 @@ import { UIManager } from './ui-manager.js';
 import { AppState } from '../utils/state.js';
 import { canOpenTab, canOpenPage, canOpenSection, roleMayOpenTab, SECTION_TABS } from '../utils/role-access.js';
 import { t } from '../i18n/index.js';
-import { closeTopDialog } from '../utils/keyboard-shortcuts.js';
+import { closeTopDialog, trapFocus } from '../utils/keyboard-shortcuts.js';
 import { TemplateLoader } from '../utils/template-loader.js';
+
+export { trapFocus };
 
 /** Below the desktop width the side menu is a modal bottom sheet (redesign 4.1). */
 const isSheet = () => typeof window === 'undefined' || !window.matchMedia || !window.matchMedia('(min-width: 1024px)').matches;
-
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const shown = (el) => !!el && el.isConnected && el.getClientRects().length > 0;
 
@@ -24,24 +24,11 @@ function focusOpener(prev) {
     target?.focus?.({ preventScroll: true });
 }
 
-/** Keeps Tab / Shift+Tab inside `box` (its visible focusable elements). */
-export function trapFocus(e, box) {
-    if (!box) return;
-    const items = [...box.querySelectorAll(FOCUSABLE)].filter(el => el.getClientRects().length > 0);
-    if (!items.length) return;
-    const first = items[0];
-    const last = items[items.length - 1];
-    const at = document.activeElement;
-    if (e.shiftKey ? (at === first || !box.contains(at)) : (at === last || !box.contains(at))) {
-        e.preventDefault();
-        (e.shiftKey ? last : first).focus();
-    }
-}
-
 // Routes: every id that showTab() accepts besides plain page ids (the .tab element id).
 //   tab     page element to show            section  sub-view handed to the page (see showTabFromNav)
 //   needs   extra TAB_ROLES/TAB_PERMISSIONS id   id   canonical id kept in history (aliases / old ids)
 //   nav     side-nav link to highlight (default: tab)
+//   parent  route a sub-page's Back returns to (history gets it beneath the sub-page)
 // To add a page's sub-routes, add one group below (one group per page)
 // and open the section for that page in showTabFromNav.
 const ROUTES = Object.freeze({
@@ -65,13 +52,18 @@ const ROUTES = Object.freeze({
     'wholesale-history': { tab: 'wholesale-sales', section: 'history', nav: 'wholesale-sales' },
     'wholesale-outstanding': { tab: 'wholesale-sales', section: 'outstanding', nav: 'wholesale-sales' },
 
-    // Settings sections (Common, Aadhat = internal 'shop', Rentals, Roles & access).
-    // Old ids: settings-aadhat, admin-configure (Admin › Configure moved to Settings › Aadhat).
-    'settings-common': { tab: 'settings', section: 'common' },
-    'settings-shop': { tab: 'settings', section: 'shop' },
+    // Settings groups (sub-pages of the Settings list; parent: Back returns there). Aadhat = internal 'shop'.
+    // Old ids: settings-common (the list), settings-roles (Team), settings-aadhat and admin-configure (Aadhat).
+    'settings-appearance': { tab: 'settings', section: 'appearance', parent: 'settings' },
+    'settings-printing': { tab: 'settings', section: 'printing', parent: 'settings' },
+    'settings-billing': { tab: 'settings', section: 'billing', parent: 'settings' },
+    'settings-shop': { tab: 'settings', section: 'shop', parent: 'settings' },
+    'settings-rentals': { tab: 'settings', section: 'rentals', parent: 'settings' },
+    'settings-team': { tab: 'settings', section: 'team', parent: 'settings' },
+    'settings-help': { tab: 'settings', section: 'help', parent: 'settings' },
+    'settings-common': { tab: 'settings', id: 'settings' },
+    'settings-roles': { tab: 'settings', section: 'team', id: 'settings-team' },
     'settings-aadhat': { tab: 'settings', section: 'shop', id: 'settings-shop' },
-    'settings-rentals': { tab: 'settings', section: 'rentals' },
-    'settings-roles': { tab: 'settings', section: 'roles' },
     'admin-configure': { tab: 'settings', section: 'shop', id: 'settings-shop' },
 
     // Ask (#88) replaced the unused Chat page.
@@ -119,21 +111,6 @@ function roleMayOpenRoute(route) {
 }
 
 const NavigationManager = {
-    // Reset filter buttons to default state for a given tab
-    resetFilterButtons(tabId) {
-        const tabElement = document.getElementById(tabId);
-        if (!tabElement) return;
-        
-        const buttons = tabElement.querySelectorAll('.filter-btn');
-        buttons.forEach((btn, index) => {
-            if (index === 0) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    },
-    
     isMenuOpen() {
         const sideNav = document.querySelector('.side-nav');
         return !!sideNav && sideNav.classList.contains('active');
@@ -141,7 +118,7 @@ const NavigationManager = {
 
     setMenuOpen(open) {
         const sideNav = document.querySelector('.side-nav');
-        const overlay = document.querySelector('.overlay');
+        const overlay = document.querySelector('.nav-scrim');
         const wasOpen = this.isMenuOpen();
         if (sideNav) sideNav.classList.toggle('active', open);
         if (overlay) overlay.classList.toggle('active', open);
@@ -153,7 +130,7 @@ const NavigationManager = {
             sideNav.setAttribute('role', 'dialog');
             sideNav.setAttribute('aria-modal', 'true');
             sideNav.setAttribute('aria-label', t('ui.nav.menu'));
-            sideNav.querySelector('.close-btn')?.focus({ preventScroll: true });
+            sideNav.querySelector('.nav-close')?.focus({ preventScroll: true });
         } else {
             sideNav.removeAttribute('role');
             sideNav.removeAttribute('aria-modal');
@@ -182,7 +159,7 @@ const NavigationManager = {
     // Close the drawer on overlay tap, Esc, or a left swipe on the drawer.
     // Safe to call more than once; listeners are only attached once.
     initMenuDismiss() {
-        const overlay = document.querySelector('.overlay');
+        const overlay = document.querySelector('.nav-scrim');
         if (overlay && !overlay.dataset.dismissBound) {
             overlay.dataset.dismissBound = '1';
             overlay.addEventListener('click', (e) => {
@@ -267,7 +244,7 @@ const NavigationManager = {
         
         // Show tab (use tabId directly, not tabId + 'Tab')
         this.showTab(tabId, undefined, opts);
-        UIManager.hapticFeedback('light');
+        if (!opts.quiet) UIManager.hapticFeedback('light');
         
         // Opening Billing from the menu / bottom bar starts on Purchase at once (D-5)
         if (tabId === 'billing' && typeof window.app?.billing?.startFromNav === 'function') {
@@ -286,20 +263,17 @@ const NavigationManager = {
         
         // Render outstanding when Due tab is shown
         if (tabId === 'due' && window.app?.outstanding) {
-            this.resetFilterButtons('due');
-            setTimeout(() => window.app.outstanding.filterDue('purchase', { target: document.querySelector('#due .filter-btn') }), 100);
+            setTimeout(() => window.app.outstanding.filterDue('purchase'), 100);
         }
         
         // Wholesale page: Sales (entry) tab, or History for 'wholesale-history'
         if (route.tab === 'wholesale-sales' && window.app?.wholesaleSales) {
             const view = route.section || 'sales';
-            this.resetFilterButtons('wholesale-sales');
-            setTimeout(() => window.app.wholesaleSales.filterTab(view, { target: document.querySelector(`#wholesale-sales .filter-btn[data-view="${view}"]`) || document.querySelector('#wholesale-sales .filter-btn') }), 100);
+            setTimeout(() => window.app.wholesaleSales.filterTab(view), 100);
         }
         
         // Render stock when Stock tab is shown
         if (tabId === 'stock' && window.app?.stock) {
-            this.resetFilterButtons('stock');
             setTimeout(() => window.app.stock.filterTab('current'), 100);
         }
         
@@ -335,14 +309,12 @@ const NavigationManager = {
         
         // Initialize Day page when Day tab is shown
         if (tabId === 'day' && window.app?.day) {
-            this.resetFilterButtons('day');
             setTimeout(() => window.app.day.init(), 100);
         }
         
         // Initialize cash management when Cash Management tab is shown
         if (tabId === 'cash-management' && window.app?.cashManagement) {
             window.app.day?.returnCashBody?.();
-            this.resetFilterButtons('cash-management');
             setTimeout(() => window.app.cashManagement.init(), 100);
         }
         
@@ -365,6 +337,16 @@ const NavigationManager = {
         // Initialize admin when Admin tab is shown (owner only)
         if (tabId === 'admin' && window.app?.admin) {
             setTimeout(() => window.app.admin.init(), 100);
+        }
+
+        // Workers / Salaries (#373, owner): its code loads on first open, and it reads on every open
+        if (tabId === 'workers' && window.app?.workers) {
+            setTimeout(() => window.app.workers.init(), 100);
+        }
+
+        // Recurring bills (#437, owner): its code loads on first open, and it reads on every open
+        if (tabId === 'recurring' && window.app?.recurring) {
+            setTimeout(() => window.app.recurring.init(), 100);
         }
     },
 
@@ -414,10 +396,40 @@ const NavigationManager = {
         }
         
         // Lets data listeners refresh views that changed while this tab was hidden
-        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: route.tab } }));
+        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: route.tab, section: route.section || null } }));
     },
 
     currentTab: null,
+
+    /** The role's start page (utils/start-page.js); Back leaves the app from it. */
+    homeTab: 'billing',
+
+    /** A page id or route the app has (a lazy page counts before it is loaded); Rentals opens only through its switch. */
+    isKnownRoute(routeId) {
+        const route = resolveRoute(routeId);
+        if (route.tab === 'rentals') return false;
+        const el = document.getElementById(route.tab);
+        return (!!el && el.classList.contains('tab')) || TemplateLoader.pageMissing(route.tab);
+    },
+
+    /** The route opens for this role without a refusal. */
+    canOpenRoute(routeId) {
+        return this.isKnownRoute(routeId) && !refusal(resolveRoute(routeId));
+    },
+
+    /** The route this browser tab showed before a reload (history.state survives a reload, not a new launch). */
+    restoredRoute() {
+        return (typeof history !== 'undefined' && history.state?.happaTab) || null;
+    },
+
+    /** Sign-out: the next sign-in opens the role's start page, not the last page. */
+    forgetRoute() {
+        this.currentTab = null;
+        if (typeof history === 'undefined' || !history.replaceState || !history.state?.happaTab) return;
+        const rest = { ...history.state };
+        delete rest.happaTab;
+        history.replaceState(rest, '');
+    },
 
     /** Counts navigations, so a page that finishes loading late doesn't override a newer one. */
     navSeq: 0,
@@ -444,14 +456,31 @@ const NavigationManager = {
         this.recordTab(resolveRoute(routeId).id);
     },
 
-    // One history entry per tab change, so the phone's back button returns to the previous tab
+    // One history entry per tab change, so the phone's back button returns to the previous tab;
+    // a sub-page (ROUTES parent) opened from elsewhere gets its parent beneath it, so Back shows the parent first
     recordTab(tabId, opts = {}) {
         const prev = this.currentTab;
         this.currentTab = tabId;
         if (opts.fromHistory || typeof history === 'undefined' || !history.replaceState) return;
-        const state = { ...(history.state || {}), happaTab: tabId };
-        if (!history.state || !history.state.happaTab) history.replaceState(state, '');
-        else if (prev !== tabId) history.pushState(state, '');
+        const parent = ROUTES[tabId]?.parent;
+        const entry = (id) => ({ ...(history.state || {}), happaTab: id });
+        if (!history.state || !history.state.happaTab) {
+            if (parent) {
+                history.replaceState(entry(parent), '');
+                history.pushState(entry(tabId), '');
+            } else history.replaceState(entry(tabId), '');
+        } else if (prev !== tabId && !(prev === null && history.state.happaTab === tabId)) {
+            if (parent && prev !== parent) history.pushState(entry(parent), '');
+            history.pushState(entry(tabId), '');
+        }
+    },
+
+    // The open page's route changed without a new history entry (e.g. a group the role may not open shows its list)
+    replaceRoute(routeId) {
+        const id = resolveRoute(routeId).id;
+        this.currentTab = id;
+        if (typeof history === 'undefined' || !history.replaceState) return;
+        history.replaceState({ ...(history.state || {}), happaTab: id }, '');
     },
 
     // Closes the menu, the notifications panel or the top dialog; true when something was open
@@ -470,7 +499,7 @@ const NavigationManager = {
             if (this.currentTab) history.pushState({ ...(history.state || {}), happaTab: this.currentTab }, '');
             return;
         }
-        const tab = e?.state?.happaTab || HOME_TAB;
+        const tab = e?.state?.happaTab || this.homeTab;
         if (tab === this.currentTab) return;
         this.showTabFromNav(tab, null, { fromHistory: true });
     },
@@ -478,9 +507,9 @@ const NavigationManager = {
     // Android back button (APK): close what is open, else go back a tab, and leave the app only from home
     handleBackButton(appPlugin) {
         if (this.closeOverlay()) return;
-        if (this.currentTab && this.currentTab !== HOME_TAB) {
+        if (this.currentTab && this.currentTab !== this.homeTab) {
             if (history.state?.happaTab && history.length > 1) history.back();
-            else this.showTabFromNav(HOME_TAB, null);
+            else this.showTabFromNav(this.homeTab, null);
             return;
         }
         appPlugin?.exitApp?.();
@@ -496,8 +525,6 @@ const NavigationManager = {
         }
     }
 };
-
-const HOME_TAB = 'billing';
 
 // Export NavigationManager
 export { NavigationManager, resolveRoute };

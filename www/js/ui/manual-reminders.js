@@ -12,13 +12,18 @@ import { Helpers } from '../utils/helpers.js';
 import { UIManager } from './ui-manager.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { t, tn, getLang } from '../i18n/index.js';
-import { formatDay, todayLocalISO } from '../utils/dates.js';
+import { formatDay, formatTimeOfDay, todayLocalISO } from '../utils/dates.js';
+import { emit, TODOS_CHANGED } from '../utils/events.js';
+import { icon } from './icons.js';
+import { setDisclosureOpen } from './disclosure.js';
 import {
-    checkReminder, groupReminders, nextDueDate, isReminderRepeat, REMINDER_REPEATS, REMINDER_LISTEN_LIMIT, REMINDER_TITLE_MAX, REMINDER_PARTY_MAX
+    checkReminder, groupReminders, nextDueDate, isReminderRepeat, reminderAt, REMINDER_TIME_RE, REMINDER_REPEATS, REMINDER_LISTEN_LIMIT, REMINDER_TITLE_MAX, REMINDER_PARTY_MAX
 } from '../utils/manual-reminders.js';
 
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
-const FORM_IDS = ['reminderTitle', 'reminderDate', 'reminderParty', 'reminderRepeat'];
+/** Today's Reminders card (ui/disclosure.js): opening the form opens the card. */
+export const TODAY_REMINDERS_KEY = 'today-reminders';
+const FORM_IDS = ['reminderTitle', 'reminderDate', 'reminderTime', 'reminderParty', 'reminderRepeat'];
 const CSS_ESCAPE = (s) => (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(s) : String(s).replace(/[^\w-]/g, '\\$&'));
 /** A write the server hasn't confirmed in this time stays queued on the phone (Firestore sends it when online). */
 const WRITE_WAIT_MS = 10000;
@@ -85,23 +90,25 @@ export const ManualReminders = {
 
     changed() {
         try { this.onChange?.(); } catch (e) { console.error('Reminders: redraw failed:', e); }
+        emit(TODOS_CHANGED);
     },
 
     whenText(r) {
-        if (r.days === 0) return t('ui.reminders.today');
+        const time = REMINDER_TIME_RE.test(String(r.dueTime || '')) ? ` ${formatTimeOfDay(reminderAt(r.dueDate, r.dueTime), { lang: getLang() })}` : '';
+        if (r.days === 0) return t('ui.reminders.today') + time;
         if (r.days < 0) return tn('ui.reminders.late', -r.days);
-        return t('ui.reminders.on_day', { day: formatDay(r.dueDate, { lang: getLang(), year: false }) });
+        return t('ui.reminders.on_day', { day: formatDay(r.dueDate, { lang: getLang(), year: false }) }) + time;
     },
 
     rowHtml(r, manage) {
-        return `<li class="today-reminder-item" data-reminder-id="${esc(r.id)}">`
+        return `<li class="reminder-line" data-reminder-id="${esc(r.id)}">`
             + `<span class="today-reminder-title">${esc(r.title)}</span>`
             + (r.party ? ` <span class="today-reminder-party-name">· ${esc(r.party)}</span>` : '')
             + ` <span class="today-reminder-days${r.days < 0 ? ' late' : ''}">${esc(this.whenText(r))}</span>`
             + (isReminderRepeat(r.repeat) ? ` <span class="today-reminder-repeat">${esc(t(`ui.reminders.repeat_${r.repeat}`))}</span>` : '')
-            + `<span class="today-reminder-actions"><button type="button" class="filter-btn" data-reminder-done data-onclick="day.reminderDone('${Helpers.escapeJsAttr(r.id)}')">${esc(t('ui.reminders.done'))}</button>`
-            + (manage ? `<button type="button" class="filter-btn" data-onclick="day.reminderEdit('${Helpers.escapeJsAttr(r.id)}')">${esc(t('ui.reminders.edit'))}</button>`
-                + `<button type="button" class="filter-btn" data-onclick="day.reminderCancel('${Helpers.escapeJsAttr(r.id)}')">${esc(t('ui.reminders.cancel'))}</button>` : '')
+            + `<span class="today-reminder-actions"><button type="button" class="btn btn-sm" data-reminder-done data-onclick="day.reminderDone('${Helpers.escapeJsAttr(r.id)}')">${esc(t('ui.reminders.done'))}</button>`
+            + (manage ? `<button type="button" class="btn btn-sm" data-onclick="day.reminderEdit('${Helpers.escapeJsAttr(r.id)}')">${esc(t('ui.reminders.edit'))}</button>`
+                + `<button type="button" class="btn btn-sm" data-onclick="day.reminderCancel('${Helpers.escapeJsAttr(r.id)}')">${esc(t('ui.reminders.cancel'))}</button>` : '')
             + '</span></li>';
     },
 
@@ -117,7 +124,7 @@ export const ManualReminders = {
         if (!this.formOpen || !el('reminderTitle')) return;
         const focused = typeof document !== 'undefined' ? document.activeElement : null;
         this.draft = {
-            title: el('reminderTitle').value, dueDate: el('reminderDate')?.value || '', party: el('reminderParty')?.value || '',
+            title: el('reminderTitle').value, dueDate: el('reminderDate')?.value || '', dueTime: el('reminderTime')?.value || '', party: el('reminderParty')?.value || '',
             repeat: el('reminderRepeat')?.value || '',
             focus: FORM_IDS.includes(focused?.id) ? focused.id : null, caret: focused?.selectionStart ?? null
         };
@@ -149,9 +156,10 @@ export const ManualReminders = {
         return `<div class="today-reminder-form"${this.editId ? ` data-reminder-edit="${esc(this.editId)}"` : ''}>`
             + `<input type="text" id="reminderTitle" maxlength="${REMINDER_TITLE_MAX}" value="${esc(d.title || '')}" placeholder="${esc(t('ui.reminders.title_ph'))}" aria-label="${esc(t('ui.reminders.title_label'))}">`
             + `<input type="date" id="reminderDate" min="${esc(min)}" value="${esc(d.dueDate || today)}" aria-label="${esc(t('ui.reminders.date_label'))}">`
+            + `<input type="time" id="reminderTime" value="${esc(d.dueTime || '')}" aria-label="${esc(t('ui.reminders.time_label'))}" title="${esc(t('ui.reminders.time_hint'))}">`
             + `<input type="text" id="reminderParty" maxlength="${REMINDER_PARTY_MAX}" value="${esc(d.party || '')}" placeholder="${esc(t('ui.reminders.party_ph'))}" aria-label="${esc(t('ui.reminders.party_label'))}">`
             + `<select id="reminderRepeat" aria-label="${esc(t('ui.reminders.repeat_label'))}">${options}</select>`
-            + `<div class="today-reminder-form-buttons"><button type="button" class="btn btn-primary" data-reminder-save data-onclick="day.reminderSave()">${esc(t(this.editId ? 'ui.reminders.save_changes' : 'ui.reminders.save'))}</button>`
+            + `<div class="today-reminder-form-actions"><button type="button" class="btn btn-primary" data-reminder-save data-onclick="day.reminderSave()">${esc(t(this.editId ? 'ui.reminders.save_changes' : 'ui.reminders.save'))}</button>`
             + `<button type="button" class="btn btn-secondary" data-onclick="day.reminderForm(false)">${esc(t('ui.reminders.close'))}</button></div></div>`;
     },
 
@@ -164,16 +172,22 @@ export const ManualReminders = {
         this.captureDraft();
         const g = groupReminders(this.list, todayIso);
         const rows = [...g.due, ...g.soon];
-        if (!rows.length && !manage) return '';
-        return '<div class="today-reminder" data-reminder="manual">'
+        if (!rows.length && !this.formOpen) return '';
+        return `<div class="today-reminder" data-reminder="manual"><span class="lead-icon">${icon('check')}</span><div class="today-reminder-body">`
             + `<div class="today-reminder-head"><strong>${esc(t('ui.reminders.title'))}</strong>`
             + (g.due.length ? ` ${esc(t('ui.reminders.due_count', { count: g.due.length }))}` : '') + '</div>'
             + (rows.length ? `<ul>${rows.map(r => this.rowHtml(r, manage)).join('')}</ul>` : `<div class="today-reminder-more">${esc(t('ui.reminders.none'))}</div>`)
             + (g.later ? `<div class="today-reminder-more">${esc(t('ui.reminders.later', { count: g.later }))}</div>` : '')
             + (this.list.length >= REMINDER_LISTEN_LIMIT ? `<div class="today-reminder-more">${esc(t('ui.reminders.limit', { count: REMINDER_LISTEN_LIMIT }))}</div>` : '')
-            + (manage ? (this.formOpen ? this.formHtml()
-                : `<button type="button" class="filter-btn" data-onclick="day.reminderForm(true)">${esc(t('ui.reminders.add'))}</button>`) : '')
-            + '</div>';
+            + (manage && this.formOpen ? this.formHtml() : '')
+            + '</div></div>';
+    },
+
+    /** For the closed Reminders card: how many are due or coming up, and whether one is late. */
+    summary(todayIso = todayLocalISO()) {
+        const g = groupReminders(this.list, todayIso);
+        const rows = [...g.due, ...g.soon];
+        return { count: rows.length, late: rows.some(r => r.days < 0) };
     },
 
     by() {
@@ -185,6 +199,7 @@ export const ManualReminders = {
         this.editId = null;
         this.draft = null;
         this.freshForm = true;
+        if (this.formOpen) setDisclosureOpen(TODAY_REMINDERS_KEY, true);
         this.changed();
         if (this.formOpen) setTimeout(() => document.getElementById('reminderTitle')?.focus(), 0);
     },
@@ -195,7 +210,7 @@ export const ManualReminders = {
         if (!r || !this.canManage()) return false;
         this.formOpen = true;
         this.editId = id;
-        this.draft = { title: r.title || '', dueDate: r.dueDate || '', party: r.party || '', repeat: isReminderRepeat(r.repeat) ? r.repeat : '' };
+        this.draft = { title: r.title || '', dueDate: r.dueDate || '', dueTime: r.dueTime || '', party: r.party || '', repeat: isReminderRepeat(r.repeat) ? r.repeat : '' };
         this.freshForm = true;
         this.changed();
         setTimeout(() => document.getElementById('reminderTitle')?.focus(), 0);
@@ -220,7 +235,7 @@ export const ManualReminders = {
             this.form(false);
             return false;
         }
-        const input = { title: value('reminderTitle'), dueDate: value('reminderDate'), party: value('reminderParty'), repeat: value('reminderRepeat') };
+        const input = { title: value('reminderTitle'), dueDate: value('reminderDate'), dueTime: value('reminderTime'), party: value('reminderParty'), repeat: value('reminderRepeat') };
         const check = checkReminder(input, todayLocalISO(), editing ? { keepDueDate: editing.dueDate, keepRepeatDay: editing.repeatDay ?? null } : {});
         if (!check.ok) { UIManager.showToast(t(check.error)); return false; }
         if (this.offline()) return false;
@@ -268,7 +283,7 @@ export const ManualReminders = {
     async markReminderDone(id) {
         const r = this.list.find(x => x.id === id);
         const dueDate = r && isReminderRepeat(r.repeat) ? nextDueDate(r.dueDate, r.repeat, todayLocalISO(), r.repeatDay ?? null) : null;
-        const next = dueDate ? { title: r.title, dueDate, party: r.party || '', repeat: r.repeat, repeatDay: r.repeatDay ?? null } : null;
+        const next = dueDate ? { title: r.title, dueDate, dueTime: r.dueTime || null, party: r.party || '', repeat: r.repeat, repeatDay: r.repeatDay ?? null } : null;
         const ok = await this.closeReminder(id, () => FirebaseService.ackReminder(id, this.by(), next));
         if (ok && next) UIManager.showToast(t('msg.reminders.next_on', { day: formatDay(dueDate, { lang: getLang(), year: false }) }));
         return ok;

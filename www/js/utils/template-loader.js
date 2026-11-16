@@ -25,7 +25,9 @@ export const PAGE_TEMPLATES = [
     'cash-management',
     'ask',
     'diagnostics',
-    'admin'
+    'admin',
+    'workers',
+    'recurring'
 ];
 
 /**

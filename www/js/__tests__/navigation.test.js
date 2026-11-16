@@ -23,7 +23,7 @@ describe('back button returns to the previous tab (F17)', () => {
                 <a href="#" data-onclick="nav.showTab('stock', event)">Stock</a>
                 <a href="#" data-onclick="nav.showTab('history', event)">History</a>
             </nav></div>
-            <div class="overlay" id="overlay"></div>
+            <div class="scrim nav-scrim" id="overlay"></div>
             <div class="tab" id="billing"></div><div class="tab" id="stock"></div><div class="tab" id="history"></div>`;
         NavigationManager.currentTab = null;
         history.replaceState(null, '');
@@ -95,5 +95,86 @@ describe('back button returns to the previous tab (F17)', () => {
         NavigationManager.initBackNavigation();
         expect(addListener).toHaveBeenCalledWith('backButton', expect.any(Function));
         delete window.Capacitor;
+    });
+
+    test('owner home is Today: Back from Billing goes back, Back on Today leaves', () => {
+        const back = jest.spyOn(history, 'back').mockImplementation(() => {});
+        const app = { exitApp: jest.fn() };
+        document.body.insertAdjacentHTML('beforeend', '<div class="tab" id="day"></div>');
+        NavigationManager.homeTab = 'day';
+        try {
+            NavigationManager.showTab('day');
+            NavigationManager.showTabFromNav('billing');
+            NavigationManager.handleBackButton(app);
+            expect(back).toHaveBeenCalledTimes(1);
+            NavigationManager.handlePopState({ state: {} });
+            expect(activeTab()).toBe('day');
+            NavigationManager.handleBackButton(app);
+            expect(app.exitApp).toHaveBeenCalledTimes(1);
+        } finally {
+            NavigationManager.homeTab = 'billing';
+            back.mockRestore();
+        }
+    });
+
+    test('a reload showing the same page adds no history entry; sign-out forgets the page', () => {
+        history.replaceState({ happaTab: 'history', other: 1 }, '');
+        const len = history.length;
+        expect(NavigationManager.restoredRoute()).toBe('history');
+        NavigationManager.showTab('history');
+        expect(history.length).toBe(len);
+        NavigationManager.forgetRoute();
+        expect(NavigationManager.currentTab).toBeNull();
+        expect(history.state).toEqual({ other: 1 });
+        expect(NavigationManager.restoredRoute()).toBeNull();
+    });
+
+    test('canOpenRoute: known pages the role may open; not unknown ids, Rentals or refused pages', () => {
+        document.body.insertAdjacentHTML('beforeend', '<div class="tab" id="admin"></div><div id="main"></div><div class="tab" id="rentals"></div>');
+        expect(NavigationManager.canOpenRoute('history')).toBe(true);
+        expect(NavigationManager.canOpenRoute('admin')).toBe(true);
+        expect(NavigationManager.isKnownRoute('main')).toBe(false);
+        expect(NavigationManager.isKnownRoute('nope')).toBe(false);
+        expect(NavigationManager.isKnownRoute('rentals')).toBe(false);
+        AppState.userRole = 'staff';
+        expect(NavigationManager.canOpenRoute('admin')).toBe(false);
+        expect(NavigationManager.canOpenRoute('billing')).toBe(true);
+    });
+});
+
+describe('Android Back closes the Item dialog in Hindi (not the page under it)', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const { setLang, t } = require('../i18n/index.js');
+    afterEach(() => { setLang('en'); jest.restoreAllMocks(); document.body.innerHTML = ''; });
+
+    test('popstate with the Item dialog open clicks its Cancel and keeps the tab', async () => {
+        const { AppState } = await import('../utils/state.js');
+        AppState.userRole = 'owner';
+        setLang('hi');
+        jest.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}]);
+        const modals = fs.readFileSync(path.join(__dirname, '..', '..', 'templates', 'modals.html'), 'utf8');
+        document.body.innerHTML = `
+            <div class="side-nav" id="sideNav"><nav class="nav-menu">
+                <a href="#" data-onclick="nav.showTab('billing', event)">Billing</a>
+                <a href="#" data-onclick="nav.showTab('stock', event)">Stock</a>
+            </nav></div>
+            <div class="scrim nav-scrim" id="overlay"></div>
+            <div class="tab" id="billing"></div><div class="tab" id="stock"></div>${modals}`;
+        NavigationManager.currentTab = null;
+        history.replaceState(null, '');
+        NavigationManager.showTab('billing');
+        NavigationManager.showTabFromNav('stock');
+        const overlay = document.getElementById('itemEditOverlay');
+        overlay.classList.add('active');
+        const cancel = overlay.querySelector('[data-onclick="items.closeItemModal()"]');
+        cancel.textContent = t('ui.modals.cancel');
+        const closed = jest.fn(() => { overlay.classList.remove('active'); });
+        cancel.addEventListener('click', closed);
+
+        NavigationManager.handlePopState({ state: { happaTab: 'billing' } });
+        expect(closed).toHaveBeenCalledTimes(1);
+        expect(document.querySelector('.tab.active')?.id).toBe('stock');
+        expect(history.state.happaTab).toBe('stock');
     });
 });

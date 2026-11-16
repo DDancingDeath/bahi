@@ -26,6 +26,8 @@ import { attachScrollCue } from '../ui/scroll-cue.js';
 import { CHANGED_ELSEWHERE, isOffline, writeErrorKey } from '../utils/write-conflict.js';
 import { suggestHindiName, suggestEnglishName, autofillValue } from '../utils/item-name-autofill.js';
 import { formatRate, formatKg } from '../utils/money.js';
+import { icon } from '../ui/icons.js';
+import { moneyHtml, emptyState } from '../ui/components.js';
 
 /**
  * Items Manager - Manages inventory items and rates
@@ -34,6 +36,21 @@ import { formatRate, formatKg } from '../utils/money.js';
 import { safeSetItem } from '../utils/storage-full.js';
 
 const SORT_KEY = 'happa.itemsSort';
+
+/** A rate as a money figure; its text is exactly formatRate(rate). */
+const rateHtml = (rate) => {
+    const html = moneyHtml(rate, 'rate');
+    return html === '—' ? Helpers.escapeHtml(formatRate(rate)) : html;
+};
+
+/**
+ * Add a just-saved item to AppState.items unless the live listener already put it there
+ * (its snapshot can arrive before saveItem resolves, which listed the item twice).
+ * @param {*} item
+ */
+const addSavedItem = (item) => {
+    if (!item?.id || !AppState.items.some(i => i && i.id === item.id)) AppState.items.push(item);
+};
 
 const ItemsManager = {
     /**
@@ -127,73 +144,71 @@ const ItemsManager = {
             
             const id = `'${Helpers.escapeJsAttr(item.id)}'`;
             const itemCard = document.createElement('div');
-            itemCard.className = 'item-card';
+            itemCard.className = 'panel panel-pad rates-card';
             
             // Build purchase rates HTML
             const purchaseRatesHTML = item.rates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <input type="number" class="rate-input purchase" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitRate(${id}, ${rateIndex})"
-                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
-                    <button class="delete-rate" data-onclick="items.deleteRate(${id}, ${rateIndex})">×</button>
+                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
+                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
             
             // Build sale rates HTML
             const saleRatesHTML = item.saleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <input type="number" class="rate-input sale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateSaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitSaleRate(${id}, ${rateIndex})"
-                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
-                    <button class="delete-rate" data-onclick="items.deleteSaleRate(${id}, ${rateIndex})">×</button>
+                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
+                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteSaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
             
             // Build wholesale rates HTML
             const wholesaleRatesHTML = item.wholesaleRates.map((rate, rateIndex) => `
                 <div class="rate-group">
-                    <input type="number" class="rate-input wholesale" 
+                    <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
                            value="${Helpers.escapeHtml(rate)}" 
                            data-oninput="items.updateWholesaleRate(${id}, ${rateIndex}, this.value)"
                            data-onchange="items.commitWholesaleRate(${id}, ${rateIndex})"
-                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
-                    <button class="delete-rate" data-onclick="items.deleteWholesaleRate(${id}, ${rateIndex})">×</button>
+                           placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
+                    <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteWholesaleRate(${id}, ${rateIndex})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                 </div>
             `).join('');
             
             itemCard.innerHTML = `
-                <div class="item-header">
-                    <input type="text" class="item-name-input" 
+                <div class="rates-card-head">
+                    <input type="text" class="input" 
                            value="${Helpers.escapeHtml(item.name)}" 
                            data-oninput="items.updateName(${id}, this.value)"
+                           aria-label="${Helpers.escapeHtml(t('ui.items.name_placeholder'))}"
                            placeholder="${Helpers.escapeHtml(t('ui.items.name_placeholder'))}">
-                    <button class="delete-item-btn" data-onclick="items.archiveItem(${id})">${Helpers.escapeHtml(t('ui.items.archive_item'))}</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-onclick="items.archiveItem(${id})">${Helpers.escapeHtml(t('ui.items.archive_item'))}</button>
                 </div>
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 13px; font-weight: 600; color: #666; margin-bottom: 4px; display: block;">${Helpers.escapeHtml(t('ui.items.hindi_name_label'))}</label>
-                    <input type="text" 
+                <label class="field">
+                    <span>${Helpers.escapeHtml(t('ui.items.hindi_name_label'))}</span>
+                    <input type="text" class="input" 
                            value="${Helpers.escapeHtml(item.hindiName || '')}" 
                            data-oninput="items.updateHindiName(${id}, this.value)"
-                           placeholder="${Helpers.escapeHtml(t('ui.items.hindi_name_placeholder'))}"
-                           style="width: 100%; padding: 10px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 15px;">
+                           placeholder="${Helpers.escapeHtml(t('ui.items.hindi_name_placeholder'))}">
+                </label>
+                <div class="field">
+                    <span class="rates-head"><span class="mode-dot" aria-hidden="true"></span>${Helpers.escapeHtml(t('ui.items.purchase_rates_kg'))}</span>
+                    <div class="rates-container">${purchaseRatesHTML}<button type="button" class="btn btn-tonal btn-icon" data-onclick="items.addRate(${id})" aria-label="${Helpers.escapeHtml(t('ui.items.add_item'))}">${icon('plus')}</button></div>
                 </div>
-                <div class="item-row">
-                    <div style="margin-bottom: 8px;">
-                        <label style="font-size: 14px; font-weight: 600; color: #0058b8; margin-bottom: 8px; display: block;">${Helpers.escapeHtml(t('ui.items.purchase_rates_kg'))}</label>
-                        <div class="rates-container">${purchaseRatesHTML}<button class="add-rate-plus purchase" data-onclick="items.addRate(${id})">+</button></div>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <label style="font-size: 14px; font-weight: 600; color: #ff6b6b; margin-bottom: 8px; display: block;">${Helpers.escapeHtml(t('ui.items.wholesale_rates_kg'))}</label>
-                        <div class="rates-container">${wholesaleRatesHTML}<button class="add-rate-plus wholesale" data-onclick="items.addWholesaleRate(${id})">+</button></div>
-                    </div>
-                    <div>
-                        <label style="font-size: 14px; font-weight: 600; color: #1c7430; margin-bottom: 8px; display: block;">${Helpers.escapeHtml(t('ui.items.retail_rates_kg'))}</label>
-                        <div class="rates-container">${saleRatesHTML}<button class="add-rate-plus sale" data-onclick="items.addSaleRate(${id})">+</button></div>
-                    </div>
+                <div class="field">
+                    <span class="rates-head"><span class="mode-dot wholesale" aria-hidden="true"></span>${Helpers.escapeHtml(t('ui.items.wholesale_rates_kg'))}</span>
+                    <div class="rates-container">${wholesaleRatesHTML}<button type="button" class="btn btn-tonal btn-icon" data-onclick="items.addWholesaleRate(${id})" aria-label="${Helpers.escapeHtml(t('ui.items.add_item'))}">${icon('plus')}</button></div>
+                </div>
+                <div class="field">
+                    <span class="rates-head"><span class="mode-dot sale" aria-hidden="true"></span>${Helpers.escapeHtml(t('ui.items.retail_rates_kg'))}</span>
+                    <div class="rates-container">${saleRatesHTML}<button type="button" class="btn btn-tonal btn-icon" data-onclick="items.addSaleRate(${id})" aria-label="${Helpers.escapeHtml(t('ui.items.add_item'))}">${icon('plus')}</button></div>
                 </div>
             `;
             
@@ -217,7 +232,7 @@ const ItemsManager = {
         
         await UIManager.withLoading(async () => {
             const savedItem = await FirebaseService.saveItem(newItem);
-            AppState.items.push(savedItem);
+            addSavedItem(savedItem);
             this.renderItems();
             AuditService.note(AuditService.ACTIONS.CREATE_ITEM, { itemId: savedItem.id || null, source: 'row' });
         });
@@ -442,7 +457,7 @@ const ItemsManager = {
         const { quantity } = adjustItemStock(AppState.stock?.[id]);
         const message = [t('msg.items.archive', { itemName }), quantity > 0 ? t('msg.items.archive_stock', { kg: formatKg(quantity) }) : '']
             .filter(Boolean).join(' ');
-        const confirmed = await UIManager.showModal(message, t('ui.items.archive_item'), true);
+        const confirmed = await UIManager.showModal(message, t('ui.items.archive_item'), true, { confirmLabel: t('ui.items.archive_item') });
         if (!confirmed) return false;
         if (!this.requireItem(id)) return false;
         return this.setArchived(id, true);
@@ -550,14 +565,14 @@ const ItemsManager = {
         const errorList = plan.errors.slice(0, 20).map(er => `<li>${e(t('ui.items.import_row', { row: er.rowNumber }))}: ${e(er.reason)}</li>`).join('');
         const more = plan.errors.length > 20 ? `<li>… ${e(t('ui.items.import_more', { count: plan.errors.length - 20 }))}</li>` : '';
         return `
-            <div style="text-align:left">
-                <div>✏️ ${e(t('ui.items.import_update'))}: <strong>${e(plan.updates.length)}</strong></div>
-                <div>➕ ${e(t('ui.items.import_new'))}: <strong>${e(plan.adds.length)}</strong></div>
-                <div>✔️ ${e(t('ui.items.import_unchanged'))}: <strong>${e(plan.unchanged.length)}</strong></div>
-                <div>⚠️ ${e(t('ui.items.import_errors'))}: <strong>${e(plan.errors.length)}</strong></div>
+            <div class="rates-dlg">
+                <div class="rates-dlg-line">${icon('refresh', 'i-sm')}<span>${e(t('ui.items.import_update'))}: <strong>${e(plan.updates.length)}</strong></span></div>
+                <div class="rates-dlg-line">${icon('plus', 'i-sm')}<span>${e(t('ui.items.import_new'))}: <strong>${e(plan.adds.length)}</strong></span></div>
+                <div class="rates-dlg-line">${icon('check', 'i-sm')}<span>${e(t('ui.items.import_unchanged'))}: <strong>${e(plan.unchanged.length)}</strong></span></div>
+                <div class="rates-dlg-line">${icon('triangle', 'i-sm')}<span>${e(t('ui.items.import_errors'))}: <strong>${e(plan.errors.length)}</strong></span></div>
                 ${plan.skipped ? `<div>${e(t('ui.items.import_skipped'))}: ${e(plan.skipped)}</div>` : ''}
-                ${errorList ? `<ul style="margin:8px 0 0 16px; color:#b91c1c; font-size:13px">${errorList}${more}</ul>` : ''}
-                <p style="margin-top:10px; font-size:13px; color:#555">${e(t('ui.items.import_kept_note'))}</p>
+                ${errorList ? `<ul class="rates-dlg-list tone-neg">${errorList}${more}</ul>` : ''}
+                <p class="rates-dlg-note">${e(t('ui.items.import_kept_note'))}</p>
             </div>`;
     },
 
@@ -714,50 +729,30 @@ const ItemsManager = {
             }
             
             const archivedChip = isArchivedItem(item)
-                ? ` <span class="item-archived-chip">${Helpers.escapeHtml(t('ui.items.archived_chip'))}</span>` : '';
+                ? ` <span class="tag item-archived-chip">${Helpers.escapeHtml(t('ui.items.archived_chip'))}</span>` : '';
             const row = document.createElement('tr');
-            row.style.borderBottom = '1px solid #e5e7eb';
-            row.style.cursor = isStaff ? 'default' : 'pointer';
-            row.style.transition = 'background 0.2s, box-shadow 0.2s';
             
             if (!isStaff) {
-                row.onmouseenter = () => {
-                    row.style.background = '#f9fafb';
-                    row.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-                };
-                row.onmouseleave = () => {
-                    row.style.background = 'white';
-                    row.style.boxShadow = 'none';
-                };
+                row.className = 'is-clickable';
                 row.onclick = () => this.openEditModal(item.id);
             }
             
             // Staff view: show item name, purchase rates, and retail sale rates
             // Non-staff view: show item name, purchase rates, sale rates, wholesale rates
-            if (isStaff) {
-                row.innerHTML = `
-                    <td style="padding: 16px; font-weight: 600; color: #1f2937; font-size: 15px; border-right: 1px solid #f3f4f6;">
+            row.innerHTML = `
+                    <td class="rates-name">
                         ${Helpers.escapeHtml(displayName || item.name || '-')}${archivedChip}
                     </td>
-                    <td data-perm="purchaseRates" style="padding: 16px; color: #0058b8; font-size: 14px; font-weight: 600; border-right: 1px solid #f3f4f6;">${Helpers.escapeHtml(purchaseRates)}</td>
-                    <td style="padding: 16px; color: #1c7430; font-size: 14px; font-weight: 600;">${Helpers.escapeHtml(saleRates)}</td>
+                    <td data-perm="purchaseRates" class="rates-figs">${Helpers.escapeHtml(purchaseRates)}</td>
+                    <td class="rates-figs">${Helpers.escapeHtml(saleRates)}</td>${isStaff ? '' : `
+                    <td class="wholesale-column rates-figs">${Helpers.escapeHtml(wholesaleRates)}</td>`}
                 `;
-            } else {
-                row.innerHTML = `
-                    <td style="padding: 16px; font-weight: 600; color: #1f2937; font-size: 15px; border-right: 1px solid #f3f4f6;">
-                        ${Helpers.escapeHtml(displayName || item.name || '-')}${archivedChip}
-                    </td>
-                    <td data-perm="purchaseRates" style="padding: 16px; color: #0058b8; font-size: 14px; font-weight: 600; border-right: 1px solid #f3f4f6;">${Helpers.escapeHtml(purchaseRates)}</td>
-                    <td style="padding: 16px; color: #1c7430; font-size: 14px; font-weight: 600; border-right: 1px solid #f3f4f6;">${Helpers.escapeHtml(saleRates)}</td>
-                    <td class="wholesale-column" style="padding: 16px; color: #9333ea; font-size: 14px; font-weight: 600;">${Helpers.escapeHtml(wholesaleRates)}</td>
-                `;
-            }
             tbody.appendChild(row);
         });
         
         if (sortedItems.length === 0) {
             const colspan = isStaff ? '3' : '4';
-            tbody.innerHTML = `<tr><td colspan="${colspan}" style="padding: 24px; text-align: center; color: #666;">${Helpers.escapeHtml(t('ui.stock.no_items_found'))}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${colspan}">${emptyState({ icon: 'search', title: t('ui.stock.no_items_found') })}</td></tr>`;
         }
         attachScrollCue(document.getElementById('itemsTableScroll'));
     },
@@ -818,12 +813,13 @@ const ItemsManager = {
         document.getElementById('itemModalHindiName').value = '';
         document.getElementById('itemModalContactPerson').value = '';
         document.getElementById('itemModalArchiveBtn').style.display = 'none';
+        this.setModalTitle('ui.items.dialog_add_title');
         this.resetNameFill(null);
         this.editStartSnapshot = null;
         this.resetModalHistory(false);
         
         this.renderModalRates();
-        document.getElementById('itemEditOverlay').style.display = 'flex';
+        UIManager.openSheet(document.getElementById('itemEditOverlay'));
     },
     
     // Open modal to edit existing item
@@ -835,6 +831,7 @@ const ItemsManager = {
         document.getElementById('itemModalName').value = item.name || '';
         document.getElementById('itemModalHindiName').value = item.hindiName || '';
         document.getElementById('itemModalContactPerson').value = item.contactPerson || '';
+        this.setModalTitle('ui.items.dialog_edit_title');
         this.resetNameFill(item);
         const archiveBtn = document.getElementById('itemModalArchiveBtn');
         archiveBtn.style.display = canArchiveItem(AppState.userRole) ? 'block' : 'none';
@@ -852,7 +849,18 @@ const ItemsManager = {
         this.resetModalHistory(this.canUseHistory());
         
         this.renderModalRates();
-        document.getElementById('itemEditOverlay').style.display = 'flex';
+        UIManager.openSheet(document.getElementById('itemEditOverlay'));
+    },
+
+    /**
+     * Item dialog title: "Add rate" or "Edit rate"; kept through a language change.
+     * @param {string} key
+     */
+    setModalTitle(key) {
+        const title = document.getElementById('itemModalTitle');
+        if (!title) return;
+        title.setAttribute('data-i18n', key);
+        title.textContent = t(key);
     },
 
     /**
@@ -861,7 +869,7 @@ const ItemsManager = {
      */
     resetModalHistory(visible) {
         const section = document.getElementById('itemModalHistorySection');
-        if (section) section.style.display = visible ? 'block' : 'none';
+        if (section) section.hidden = !visible;
         const list = document.getElementById('itemModalHistoryList');
         if (list) list.innerHTML = '';
         const btn = document.getElementById('itemModalHistoryBtn');
@@ -876,7 +884,7 @@ const ItemsManager = {
         const id = this.currentEditingItemId;
         const list = document.getElementById('itemModalHistoryList');
         if (!id || !list || !this.canUseHistory()) return;
-        list.innerHTML = `<p style="color:#666; font-size:13px;">${Helpers.escapeHtml(t('ui.rate_history.loading'))}</p>`;
+        list.innerHTML = `<p class="rates-dlg-note">${Helpers.escapeHtml(t('ui.rate_history.loading'))}</p>`;
         try {
             const entries = await FirebaseService.loadRateHistory(id);
             if (this.currentEditingItemId !== id) return;
@@ -885,7 +893,7 @@ const ItemsManager = {
             list.innerHTML = this.historyListHtml(entries);
         } catch (error) {
             console.error('Error loading rate history:', error);
-            list.innerHTML = `<p style="color:#b91c1c; font-size:13px;">${Helpers.escapeHtml(t('ui.rate_history.load_failed'))}</p>`;
+            list.innerHTML = `<p class="rates-dlg-note tone-neg">${Helpers.escapeHtml(t('ui.rate_history.load_failed'))}</p>`;
         }
     },
 
@@ -897,7 +905,7 @@ const ItemsManager = {
     historyListHtml(entries) {
         const e = (v) => Helpers.escapeHtml(v);
         if (!entries || entries.length === 0) {
-            return `<p style="color:#666; font-size:13px;">${e(t('ui.rate_history.no_changes'))}</p>`;
+            return `<p class="rates-dlg-note">${e(t('ui.rate_history.no_changes'))}</p>`;
         }
         return entries.map(h => {
             const flags = Array.isArray(h.flags) ? h.flags : [];
@@ -906,10 +914,10 @@ const ItemsManager = {
                 flags.includes('quick-repeat') ? t('ui.rate_history.flag_repeat') : ''
             ].filter(Boolean).join(' · ');
             return `
-                <div class="rate-history-row" style="padding:8px 0; border-bottom:1px solid #f1f1f1; font-size:13px;">
+                <div class="rate-history-row">
                     <div><strong>${e(fieldLabel(h.field))}</strong>: ${e(formatHistoryValue(h.field, h.old))} → ${e(formatHistoryValue(h.field, h.new))}</div>
-                    <div style="color:#666;">${e(formatDateTimeIN(h.at))}${h.by ? ` • ${e(h.by)}` : ''}</div>
-                    ${flagText ? `<div style="color:#b45309;">${e(flagText)}</div>` : ''}
+                    <div class="tone-muted">${e(formatDateTimeIN(h.at))}${h.by ? ` • ${e(h.by)}` : ''}</div>
+                    ${flagText ? `<div class="tone-warn">${e(flagText)}</div>` : ''}
                 </div>`;
         }).join('');
     },
@@ -927,16 +935,16 @@ const ItemsManager = {
         const e = (v) => Helpers.escapeHtml(v);
         const parts = [];
         if (rename.length) {
-            parts.push(`<p><strong>${e(t('ui.rate_history.rename'))}</strong></p><ul style="margin:4px 0 8px 16px">${rename.map(c =>
+            parts.push(`<p><strong>${e(t('ui.rate_history.rename'))}</strong></p><ul class="rates-dlg-list">${rename.map(c =>
                 `<li>${e(c.old)} → ${e(c.new || '—')}</li>`).join('')}</ul>
-                <p style="font-size:13px; color:#555">${e(t('ui.rate_history.rename_note'))}</p>`);
+                <p class="rates-dlg-note">${e(t('ui.rate_history.rename_note'))}</p>`);
         }
         if (outOfBand.length) {
-            parts.push(`<p><strong>${e(t('ui.rate_history.big_change', { factor: RATE_SANITY_FACTOR }))}</strong></p><ul style="margin:4px 0 8px 16px">${outOfBand.map(c =>
-                `<li>${e(fieldLabel(c.field))}: ${formatRate(c.old)} → ${formatRate(c.new)}</li>`).join('')}</ul>
-                <p style="font-size:13px; color:#555">${e(t('ui.rate_history.check_rate'))}</p>`);
+            parts.push(`<p><strong>${e(t('ui.rate_history.big_change', { factor: RATE_SANITY_FACTOR }))}</strong></p><ul class="rates-dlg-list">${outOfBand.map(c =>
+                `<li>${e(fieldLabel(c.field))}: ${rateHtml(c.old)} → ${rateHtml(c.new)}</li>`).join('')}</ul>
+                <p class="rates-dlg-note">${e(t('ui.rate_history.check_rate'))}</p>`);
         }
-        return UIManager.showModalWithHtml(`<div style="text-align:left">${parts.join('')}</div>`, t('msg.items.confirm_changes'), true);
+        return UIManager.showModalWithHtml(`<div class="rates-dlg">${parts.join('')}</div>`, t('msg.items.confirm_changes'), true);
     },
     
     // Render rates in modal
@@ -945,11 +953,11 @@ const ItemsManager = {
         const purchaseContainer = document.getElementById('itemModalPurchaseRates');
         purchaseContainer.innerHTML = this.modalRates.purchase.map((rate, idx) => `
             <div class="rate-group">
-                <input type="number" class="rate-input purchase" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input purchase" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('purchase', ${idx}, this.value)"
-                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
-                <button class="delete-rate" data-onclick="items.deleteModalRate('purchase', ${idx})">×</button>
+                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
+                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('purchase', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
         
@@ -957,11 +965,11 @@ const ItemsManager = {
         const wholesaleContainer = document.getElementById('itemModalWholesaleRates');
         wholesaleContainer.innerHTML = this.modalRates.wholesale.map((rate, idx) => `
             <div class="rate-group">
-                <input type="number" class="rate-input wholesale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input wholesale" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('wholesale', ${idx}, this.value)"
-                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
-                <button class="delete-rate" data-onclick="items.deleteModalRate('wholesale', ${idx})">×</button>
+                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
+                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('wholesale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
         
@@ -969,11 +977,11 @@ const ItemsManager = {
         const saleContainer = document.getElementById('itemModalSaleRates');
         saleContainer.innerHTML = this.modalRates.sale.map((rate, idx) => `
             <div class="rate-group">
-                <input type="number" class="rate-input sale" 
+                <span class="rate-unit" aria-hidden="true">₹</span><input type="number" class="rate-input sale" 
                        value="${Helpers.escapeHtml(rate)}" 
                        data-oninput="items.updateModalRate('sale', ${idx}, this.value)"
-                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}">
-                <button class="delete-rate" data-onclick="items.deleteModalRate('sale', ${idx})">×</button>
+                       placeholder="${Helpers.escapeHtml(t('ui.common.rate'))}"><span class="rate-unit" aria-hidden="true">/kg</span>
+                <button type="button" class="btn btn-ghost btn-icon" data-onclick="items.deleteModalRate('sale', ${idx})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
             </div>
         `).join('');
     },
@@ -1064,7 +1072,7 @@ const ItemsManager = {
             } else {
                 // Add new item
                 const savedItem = await FirebaseService.saveItem(itemData);
-                AppState.items.push(savedItem);
+                addSavedItem(savedItem);
                 this.recordHistory(savedItem, changes, 'modal');
                 AuditService.note(AuditService.ACTIONS.CREATE_ITEM, { itemId: savedItem.id || null, itemName: savedItem.name || '', source: 'modal' });
                 UIManager.showToast(t('msg.items.item_added'));
@@ -1128,7 +1136,7 @@ const ItemsManager = {
     
     // Close item modal
     closeItemModal() {
-        document.getElementById('itemEditOverlay').style.display = 'none';
+        UIManager.closeSheet(document.getElementById('itemEditOverlay'));
         this.currentEditingItemId = null;
         this.editStartSnapshot = null;
         this.modalRates = { purchase: [], wholesale: [], sale: [] };

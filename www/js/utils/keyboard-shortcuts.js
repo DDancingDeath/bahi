@@ -3,8 +3,10 @@
 // resolveShortcut() is pure (key event + context -> action) so it can be unit-tested;
 // installKeyboardShortcuts() wires it to the DOM.
 
-import { t } from '../i18n/index.js';
+import { t, LANG_CHANGE_EVENT } from '../i18n/index.js';
+import { icon } from '../ui/icons.js';
 import { pickLang } from '../i18n/localize.js';
+import { buildSheet, openSheet, closeSheet } from '../ui/ui-manager.js';
 
 export const DESKTOP_QUERY = '(min-width: 1024px)';
 
@@ -16,7 +18,7 @@ export const TAB_SHORTCUTS = [
     { tabId: 'expenses', en: 'Expenses', hi: 'खर्च' },
     { tabId: 'rates', en: 'Rates', hi: 'रेट' },
     { tabId: 'history', en: 'History', hi: 'इतिहास' },
-    { tabId: 'stock', en: 'Stocks', hi: 'स्टॉक' },
+    { tabId: 'stock', en: 'Stock', hi: 'स्टॉक' },
     { tabId: 'due', en: 'Outstanding', hi: 'बकाया' },
     { tabId: 'money', en: 'Money', hi: 'हिसाब' }
 ];
@@ -25,7 +27,7 @@ export const TAB_SHORTCUTS = [
 const BILL_BUTTONS = {
     purchase: { save: '#saveBillBtn', print: '#printBillBtn' },
     sale: { save: '#saveSaleBtn', print: '#printSaleBtn' },
-    wholesale: { save: '#salesEntrySection .save-sale-btn', print: '#salesEntrySection .print-sale-btn' }
+    wholesale: { save: '#saveWholesaleBtn', print: '#printWholesaleBtn' }
 };
 
 /**
@@ -113,28 +115,58 @@ function isShown(el) {
 
 /** Topmost open dialog: { closer: () => void | null } or null when none is open. */
 function findOpenModal() {
-    const alertOverlay = document.getElementById('modalOverlay');
-    if (alertOverlay && alertOverlay.classList.contains('active')) {
-        const cancel = document.getElementById('modalCancel');
-        const ok = document.getElementById('modalConfirm');
-        if (cancel && isShown(cancel)) return { closer: () => cancel.click() };
-        // Alert-only dialog: Esc acknowledges it. Custom modals (no stock buttons) are left alone.
-        if (ok && isShown(ok)) return { closer: () => ok.click() };
-        return { closer: null };
-    }
+    const sheets = openSheets();
+    const top = sheets.filter(el => !el.classList.contains('page-sheet')).pop();
+    if (top) return sheetCloser(top);
     // Popups built in JS (Users role change, Expense delete, ...) are full-screen fixed
     // children of <body> with no shared class; appended last, they sit on top.
     const generic = [...document.body.children].filter(isBodyOverlay);
-    const top = generic[generic.length - 1] ||
-        [...document.querySelectorAll('.bill-details-overlay, .modal')].filter(isShown).pop();
-    if (top) {
-        const btn = findCloseControl(top);
-        if (btn) return { closer: () => btn.click() };
-        // Backdrop-click-to-dismiss popups: simulate a click on the backdrop itself.
-        if (typeof /** @type {HTMLElement} */ (top).onclick === 'function') return { closer: () => /** @type {HTMLElement} */ (top).click() };
-        return { closer: null };
+    const legacy = generic[generic.length - 1];
+    if (legacy) return legacyCloser(legacy);
+    const page = sheets.pop();
+    if (page) return sheetCloser(page);
+    const other = [...document.querySelectorAll('.modal, .sheet[aria-modal="true"]:not(.app-dialog)')].filter(isShown).pop();
+    return other ? legacyCloser(other) : null;
+}
+
+/**
+ * Open dialogs and sheets of the shared controller (ui-manager.js openSheet), the top one last:
+ * page sheets (.page-sheet) under dialogs, then in the order they opened.
+ * @returns {HTMLElement[]}
+ */
+function openSheets() {
+    const rank = (/** @type {HTMLElement} */ el) => (el.classList.contains('page-sheet') ? 0 : 1e12) + Number(el.dataset.sheetOpen || 0);
+    return /** @type {HTMLElement[]} */ ([...document.querySelectorAll('.app-scrim.active')]).sort((a, b) => rank(a) - rank(b));
+}
+
+/**
+ * @param {HTMLElement} overlay
+ * @returns {{closer: ?(() => void)}}
+ */
+function sheetCloser(overlay) {
+    if (overlay.id === 'modalOverlay') {
+        const cancel = document.getElementById('modalCancel');
+        const ok = document.getElementById('modalConfirm');
+        if (cancel && isShown(cancel)) return { closer: () => cancel.click() };
+        // Alert-only dialog: Esc acknowledges it. A custom modal closes only through its own [data-dismiss] button.
+        if (ok && isShown(ok)) return { closer: () => ok.click() };
+        const own = /** @type {HTMLElement|null} */ (overlay.querySelector('#modalFooter [data-dismiss]:not([hidden])'));
+        return { closer: own && isShown(own) ? () => own.click() : null };
     }
-    return null;
+    const own = /** @type {HTMLElement|null} */ (overlay.querySelector('[data-dismiss]:not([hidden])'));
+    return { closer: own ? () => own.click() : null };
+}
+
+/**
+ * @param {Element} top
+ * @returns {{closer: ?(() => void)}}
+ */
+function legacyCloser(top) {
+    const btn = findCloseControl(top);
+    if (btn) return { closer: () => btn.click() };
+    // Backdrop-click-to-dismiss popups: simulate a click on the backdrop itself.
+    if (typeof /** @type {HTMLElement} */ (top).onclick === 'function') return { closer: () => /** @type {HTMLElement} */ (top).click() };
+    return { closer: null };
 }
 
 /** Closes the topmost open dialog; true when one was closed. */
@@ -145,6 +177,27 @@ export function closeTopDialog() {
     return true;
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Keeps Tab / Shift+Tab inside `box` (its visible focusable elements): the More sheet, the Rentals sheet and the app dialog.
+ * @param {KeyboardEvent} e
+ * @param {?Element} box
+ */
+export function trapFocus(e, box) {
+    if (!box) return;
+    const items = /** @type {HTMLElement[]} */ ([...box.querySelectorAll(FOCUSABLE)]).filter(el => el.getClientRects().length > 0);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const at = document.activeElement;
+    const outside = !at || at === box || !box.contains(at);
+    if (e.shiftKey ? (at === first || outside) : (at === last || outside)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+    }
+}
+
 const NON_DIALOG_IDS = new Set(['appContent', 'toast', 'loadingOverlay', 'overlay', 'modalOverlay', HELP_ID]);
 
 /**
@@ -152,14 +205,14 @@ const NON_DIALOG_IDS = new Set(['appContent', 'toast', 'loadingOverlay', 'overla
  * @returns {boolean}
  */
 function isBodyOverlay(el) {
-    if (NON_DIALOG_IDS.has(el.id) || !isShown(el)) return false;
+    if (NON_DIALOG_IDS.has(el.id) || el.classList.contains('app-scrim') || !isShown(el)) return false;
     if (getComputedStyle(el).position !== 'fixed') return false;
     const r = el.getBoundingClientRect();
     return r.width >= window.innerWidth * 0.9 && r.height >= window.innerHeight * 0.9;
 }
 
-const CLOSE_SELECTOR = '.bill-details-close, .bill-action-btn.btn-close, .modal-close, [data-dismiss]';
-const CLOSE_TEXT = /^(cancel|close|✕|×|रद्द|बंद)/i;
+const CLOSE_SELECTOR = '.modal-close, [data-dismiss]';
+const CLOSE_TEXT = /^(cancel|close|✕|×|रद्द|रहने|बंद)/i;
 
 /**
  * The control that dismisses a dialog without side effects: a known close button,
@@ -198,34 +251,37 @@ function buildContext(target) {
 
 function closeHelp() {
     const el = document.getElementById(HELP_ID);
-    if (el) el.remove();
+    if (!el) return;
+    closeSheet(el);
+    el.remove();
 }
 
 function openHelp() {
     if (document.getElementById(HELP_ID)) return;
     const esc = (/** @type {*} */ s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const row = (/** @type {string} */ keys, /** @type {string} */ label) => `<tr><td>${keys}</td><td>${esc(label)}</td></tr>`;
-    const tabRows = TAB_SHORTCUTS.map((tab, i) => row(`<kbd>Alt</kbd> + <kbd>${i + 1}</kbd>`, pickLang(tab))).join('');
-    const overlay = document.createElement('div');
+    const tabRows = TAB_SHORTCUTS.map((tab, i) => row(`<kbd class="kbd">Alt</kbd> + <kbd class="kbd">${i + 1}</kbd>`, pickLang(tab))).join('');
+    const { overlay, box, body, footer } = buildSheet({ labelId: 'kbdHelpTitle', title: t('ui.kbd.title') });
     overlay.id = HELP_ID;
-    overlay.className = 'kbd-help-overlay';
-    overlay.innerHTML = `
-        <div class="kbd-help" role="dialog" aria-modal="true" aria-labelledby="kbdHelpTitle">
-            <h3 id="kbdHelpTitle">${esc(t('ui.kbd.title'))}</h3>
+    box.classList.add('dialog-wide', 'kbd-help');
+    body.innerHTML = `
             <table><tbody>
                 ${tabRows}
-                ${row('<kbd>Ctrl</kbd> + <kbd>S</kbd>', t('ui.kbd.save_bill'))}
-                ${row('<kbd>Ctrl</kbd> + <kbd>P</kbd>', t('ui.kbd.save_print_bill'))}
-                ${row('<kbd>/</kbd>', t('ui.kbd.search_page'))}
-                ${row('<kbd>Esc</kbd>', t('ui.kbd.close_dialog'))}
-                ${row('<kbd>?</kbd>', t('ui.kbd.toggle_help'))}
-            </tbody></table>
-            <button type="button" class="kbd-help-close">${esc(t('ui.kbd.close'))}</button>
-        </div>`;
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay || /** @type {Element} */ (e.target).classList.contains('kbd-help-close')) closeHelp();
-    });
+                ${row('<kbd class="kbd">Ctrl</kbd> + <kbd class="kbd">S</kbd>', t('ui.kbd.save_bill'))}
+                ${row('<kbd class="kbd">Ctrl</kbd> + <kbd class="kbd">P</kbd>', t('ui.kbd.save_print_bill'))}
+                ${row('<kbd class="kbd">/</kbd>', t('ui.kbd.search_page'))}
+                ${row('<kbd class="kbd">Esc</kbd>', t('ui.kbd.close_dialog'))}
+                ${row('<kbd class="kbd">?</kbd>', t('ui.kbd.toggle_help'))}
+            </tbody></table>`;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn btn-primary';
+    close.dataset.dismiss = '';
+    close.textContent = t('ui.kbd.close');
+    close.addEventListener('click', closeHelp);
+    footer.appendChild(close);
     document.body.appendChild(overlay);
+    openSheet(overlay, { focus: close });
 }
 
 /**
@@ -279,16 +335,47 @@ function perform(action, ctx) {
     }
 }
 
+const RAIL_QUERY = '(min-width: 1024px) and (max-width: 1279.98px)';
+
+/**
+ * Alt+N hint on the sidebar link of each shortcut page, and in the icon rail the link's name as its tooltip.
+ * @param {Element} nav
+ */
+function decorateSidebar(nav) {
+    const rail = window.matchMedia(RAIL_QUERY).matches;
+    TAB_SHORTCUTS.forEach((tab, i) => {
+        const link = nav.querySelector(`.nav-menu a[data-onclick*="showTab('${tab.tabId}'"]`);
+        if (!link || link.querySelector('.nav-kbd')) return;
+        link.setAttribute('aria-keyshortcuts', `Alt+${i + 1}`);
+        const kbd = document.createElement('kbd');
+        kbd.className = 'kbd nav-kbd';
+        kbd.setAttribute('aria-hidden', 'true');
+        kbd.lang = 'zxx';
+        kbd.textContent = `Alt ${i + 1}`;
+        link.appendChild(kbd);
+    });
+    nav.querySelectorAll('.nav-menu a, .desktop-shortcuts-link').forEach((/** @type {Element} */ link) => {
+        const label = link.querySelector('[data-i18n]')?.textContent.trim();
+        const keys = link.getAttribute('aria-keyshortcuts');
+        if (rail && label) link.setAttribute('title', keys ? `${label} (${keys})` : label);
+        else link.removeAttribute('title');
+    });
+}
+
 function addSidebarLink() {
     const nav = document.getElementById('sideNav');
-    if (!nav || nav.querySelector('.desktop-shortcuts-link')) return !!nav;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'desktop-shortcuts-link';
-    btn.setAttribute('data-i18n', 'ui.kbd.sidebar_link');
-    btn.textContent = t('ui.kbd.sidebar_link');
-    btn.addEventListener('click', openHelp);
-    nav.appendChild(btn);
+    if (!nav) return false;
+    if (!nav.querySelector('.desktop-shortcuts-link')) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'desktop-shortcuts-link';
+        btn.setAttribute('aria-keyshortcuts', '?');
+        btn.innerHTML = `<span class="nav-icon">${icon('keyboard')}</span><span data-i18n="ui.kbd.sidebar_link"></span><kbd class="kbd nav-kbd" aria-hidden="true">?</kbd>`;
+        /** @type {HTMLElement} */ (btn.querySelector('[data-i18n]')).textContent = t('ui.kbd.sidebar_link');
+        btn.addEventListener('click', openHelp);
+        (nav.querySelector('.nav-menu-footer') || nav).appendChild(btn);
+    }
+    decorateSidebar(nav);
     return true;
 }
 
@@ -303,6 +390,10 @@ export function installKeyboardShortcuts() {
         const action = resolveShortcut(e, ctx);
         if (action && perform(action, ctx)) e.preventDefault();
     });
+
+    const redecorate = () => { const nav = document.getElementById('sideNav'); if (nav) decorateSidebar(nav); };
+    window.matchMedia(RAIL_QUERY).addEventListener?.('change', redecorate);
+    window.addEventListener(LANG_CHANGE_EVENT, redecorate);
 
     if (!addSidebarLink()) {
         const obs = new MutationObserver(() => { if (addSidebarLink()) obs.disconnect(); });

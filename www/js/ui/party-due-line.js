@@ -44,14 +44,15 @@ export function renderPartyDue(kind, inputId, draft) {
         el.addEventListener('click', () => {
             if (el.dataset.party) window.app?.outstanding?.showParty?.(kind, el.dataset.party);
         });
-        const row = input.closest('.form-row') || input;
+        const row = input.closest('.bill-form-field, .field-float') || input;
         row.insertAdjacentElement('afterend', el);
     }
     el.hidden = false;
-    el.dataset.party = String(name).trim();
+    el.dataset.party = due.matchedName || String(name).trim();
     // Amber once the oldest bill is past 30 days (same buckets as Outstanding)
     el.classList.toggle('party-due-old', due.bucket > 0);
-    el.textContent = `${kind === 'purchase' ? '📤' : '📥'} ${partyDueText(due, kind)}`;
+    const text = partyDueText(due, kind);
+    el.textContent = `${kind === 'purchase' ? '📤' : '📥'} ${due.matchedName ? t('ui.billing.party_due_under_name', { name: due.matchedName, text }) : text}`;
     // Shown by CSS while the dues come from the phone's cache only (#59: html[data-updating])
     const mark = document.createElement('span');
     mark.className = 'updating-mark';

@@ -1,25 +1,24 @@
 /**
  * @fileoverview Finance card breakdown sheet (#215): tap a dashboard card to
  * see the formula (each term opens its own breakdown) and the records behind
- * the number, grouped / sorted / searchable, 50 rows at a time. Phone: bottom
- * sheet; desktop (desktop.css): side panel. Uses only data already loaded.
+ * the number, grouped / sorted / searchable, 50 rows at a time. An app dialog
+ * (ui-manager.js openSheet): a bottom sheet on a phone. Uses only data already loaded.
  * @module ui/finance-breakdown-sheet
  */
 
 import { Helpers } from '../utils/helpers.js';
 import { t, getLang, tn } from '../i18n/index.js';
+import { emptyState } from './components.js';
+import { icon } from './icons.js';
+import { openSheet, closeSheet } from './ui-manager.js';
 import {
     CARDS, buildBreakdown, searchRows, sortRows, groupRows, groupOptions, sumRows, billsOfLines, PAGE_SIZE
 } from '../utils/finance-breakdown.js';
-import { formatKg, formatRupees, formatAmount } from '../utils/money.js';
+import { formatKg, formatAmount, moneyText } from '../utils/money.js';
 
 const esc = (v) => Helpers.escapeHtml(String(v ?? ''));
 const SHEET_ID = 'financeBreakdownSheet';
 
-const rupees = (n, { paise = false } = {}) => {
-    if (n === null || n === undefined || !Number.isFinite(n)) return '—';
-    return formatRupees(n, { exact: paise, trueMinus: true });
-};
 const qtyText = (q) => formatKg(q);
 const dateText = (ms) => (ms == null ? '' : Helpers.formatDate(ms));
 
@@ -42,10 +41,10 @@ export function describeRow(r, showTerm = false) {
         if (r.rest) sub = t('ui.finance.bill_difference');
         else if (r.writeOff) sub = t('ui.finance.written_off');
         else if (r.labour) sub = t('ui.finance.labour_on_bill');
-        else if (r.term === 'uncosted') sub = t('ui.finance.uncosted_line', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, { decimals: 2 }) });
+        else if (r.term === 'uncosted') sub = t('ui.finance.uncosted_line', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
         else if (r.cash !== undefined) sub = t('ui.finance.cash_online', { cash: formatAmount(r.cash, { exact: true }), online: formatAmount(r.online, { exact: true }) });
-        else if (r.term === 'cogs') sub = t('ui.finance.line_avg_cost', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, { decimals: 2 }) });
-        else sub = t('ui.finance.line_rate', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, { decimals: 2 }) });
+        else if (r.term === 'cogs') sub = t('ui.finance.line_avg_cost', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
+        else sub = t('ui.finance.line_rate', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
     } else if (r.category !== undefined) {
         const cat = r.category === 'personal' ? t('ui.finance.personal_expenses')
             : r.category === 'business' ? t('ui.finance.business_expenses') : t('ui.finance.no_type');
@@ -62,7 +61,7 @@ export function describeRow(r, showTerm = false) {
         sub = t('ui.finance.gap_hint');
     } else {
         title = item;
-        sub = t('ui.finance.qty_avg_cost', { qty: qtyText(r.qty), rate: formatAmount(r.rate, { decimals: 2 }) });
+        sub = t('ui.finance.qty_avg_cost', { qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
     }
     if (showTerm && r.term) sub = `${t(CARDS[r.term]?.label || '')} · ${sub}`;
     return { title, sub };
@@ -73,7 +72,6 @@ export const FinanceBreakdownSheet = {
     summary: null,
     period: '',
     state: null,
-    onKey: null,
 
     /**
      * Opens the breakdown of a card.
@@ -85,14 +83,8 @@ export const FinanceBreakdownSheet = {
         this.period = periodLabel;
         this.stack = [];
         this.push(cardId);
-        if (!this.onKey) {
-            this.onKey = (e) => {
-                if (e.key === 'Escape' && this.root()?.classList.contains('active')
-                    && !document.getElementById('billDetailsOverlay')?.classList.contains('active')) this.close();
-            };
-            document.addEventListener('keydown', this.onKey);
-        }
-        this.root().querySelector('[data-action="close"]')?.focus();
+        const root = this.root();
+        if (this.stack.length) openSheet(root, { focus: root.querySelector('[data-action="close"]') });
     },
 
     push(cardId) {
@@ -109,7 +101,7 @@ export const FinanceBreakdownSheet = {
     },
 
     close() {
-        this.root()?.classList.remove('active');
+        closeSheet(this.root());
         this.stack = [];
         this.summary = null;
     },
@@ -119,9 +111,8 @@ export const FinanceBreakdownSheet = {
         if (!el) {
             el = document.createElement('div');
             el.id = SHEET_ID;
-            el.className = 'fin-sheet-overlay';
-            el.setAttribute('role', 'dialog');
-            el.setAttribute('aria-modal', 'true');
+            el.className = 'scrim app-scrim page-sheet';
+            el.innerHTML = '<div class="app-dialog dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="finSheetTitle" tabindex="-1"></div>';
             el.addEventListener('click', (e) => this.handleClick(e));
             el.addEventListener('keydown', (e) => {
                 if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-action]')) {
@@ -152,7 +143,6 @@ export const FinanceBreakdownSheet = {
 
     handleClick(e) {
         const root = this.root();
-        if (e.target === root) return this.close();
         const el = e.target.closest('[data-action]');
         if (!el || !root.contains(el)) return;
         const action = el.getAttribute('data-action');
@@ -184,33 +174,35 @@ export const FinanceBreakdownSheet = {
         if (!b) return this.close();
         const formula = b.formula ? b.formula.map((term, i) => {
             const op = i === 0 ? (term.sign < 0 ? '− ' : '') : (term.sign < 0 ? ' − ' : ' + ');
-            return `${op}<button type="button" class="fin-term" data-action="drill" data-card="${esc(term.cardId)}">${esc(t(term.label))} <strong>${esc(rupees(term.value))}</strong></button>`;
-        }).join('') + ` = <strong>${esc(rupees(b.value))}</strong>` : '';
+            return `${op}<button type="button" class="fin-term" data-action="drill" data-card="${esc(term.cardId)}">${esc(t(term.label))} <strong>${esc(moneyText(term.value, 'signed'))}</strong></button>`;
+        }).join('') + ` = <strong>${esc(moneyText(b.value, 'signed'))}</strong>` : '';
 
-        root.innerHTML = `
-            <div class="fin-sheet" role="document">
-                <div class="fin-sheet-header">
-                    ${this.stack.length > 1 ? `<button type="button" class="fin-sheet-btn" data-action="back" aria-label="${esc(t('ui.finance.back'))}">←</button>` : ''}
-                    <div class="fin-sheet-title">
-                        <h3>${esc(t(b.label))}</h3>
-                        <span>${esc(this.period)}</span>
+        const box = root.querySelector('.app-dialog');
+        box.innerHTML = `
+                <div class="grabber" aria-hidden="true"></div>
+                <div class="dialog-head">
+                    ${this.stack.length > 1 ? `<button type="button" class="btn btn-ghost btn-icon" data-action="back" aria-label="${esc(t('ui.finance.back'))}">${icon('chevL')}</button>` : ''}
+                    <div class="grow">
+                        <h3 class="dialog-title" id="finSheetTitle">${esc(t(b.label))}</h3>
+                        <span class="fin-period">${esc(this.period)}</span>
                     </div>
-                    <button type="button" class="fin-sheet-btn" data-action="close" aria-label="${esc(t('ui.common.close'))}">✕</button>
+                    <button type="button" class="btn btn-ghost btn-icon" data-action="close" data-dismiss aria-label="${esc(t('ui.common.close'))}">${icon('x')}</button>
                 </div>
-                <div class="fin-sheet-value">${esc(rupees(b.value))}</div>
-                ${formula ? `<div class="fin-sheet-formula">${formula}</div>` : ''}
-                ${b.notes.length ? `<div class="fin-sheet-notes">${b.notes.map(note => `<button type="button" class="fin-term fin-note" data-action="drill" data-card="${esc(note.cardId)}">${esc(t(note.label))} <strong>${esc(rupees(note.value))}</strong> · ${esc(t('ui.finance.not_included'))}</button>`).join('')}</div>` : ''}
-                <div class="fin-sheet-tools"></div>
-                <div class="fin-sheet-list"></div>
-                <div class="fin-sheet-total"></div>
-            </div>`;
-        root.classList.add('active');
+                <div class="dialog-body">
+                <div class="fin-value">${esc(moneyText(b.value, 'signed'))}</div>
+                ${formula ? `<div class="fin-formula">${formula}</div>` : ''}
+                ${b.notes.length ? `<div class="fin-notes">${b.notes.map(note => `<button type="button" class="fin-term fin-note" data-action="drill" data-card="${esc(note.cardId)}">${esc(t(note.label))} <strong>${esc(moneyText(note.value, 'signed'))}</strong> · ${esc(t('ui.finance.not_included'))}</button>`).join('')}</div>` : ''}
+                <div class="fin-tools"></div>
+                <div class="fin-list"></div>
+                </div>
+                <div class="fin-total"></div>`;
+        if (root.classList.contains('active')) box.focus({ preventScroll: true });
         this.renderTools(b);
         this.renderList();
     },
 
     renderTools(b) {
-        const tools = this.root().querySelector('.fin-sheet-tools');
+        const tools = this.root().querySelector('.fin-tools');
         if (!tools) return;
         if (!b.available || b.rows.length === 0) {
             tools.innerHTML = '';
@@ -237,36 +229,36 @@ export const FinanceBreakdownSheet = {
         const attrs = tappable
             ? ` data-action="bill" data-bill-id="${esc(r.billId)}" data-bill-type="${esc(r.billType)}" role="button" tabindex="0"`
             : '';
-        return `<div class="fin-row${tappable ? ' fin-row-tappable' : ''}"${attrs}>
-            <div class="fin-row-main">
-                <div class="fin-row-title">${esc(title)}</div>
-                ${sub ? `<div class="fin-row-sub">${esc(sub)}</div>` : ''}
+        return `<div class="fin-line${tappable ? ' fin-line-tap' : ''}"${attrs}>
+            <div class="fin-line-main">
+                <div class="fin-line-title">${esc(title)}</div>
+                ${sub ? `<div class="fin-line-sub">${esc(sub)}</div>` : ''}
             </div>
-            <div class="fin-row-amt ${r.amount < 0 ? 'amount-negative' : 'amount-positive'}">${esc(rupees(r.amount, { paise: true }))}</div>
+            <div class="fin-line-amt ${r.amount < 0 ? 'amount-negative' : 'amount-positive'}">${esc(moneyText(r.amount, { exact: true, trueMinus: true }))}</div>
         </div>`;
     },
 
     moreHtml(left) {
         return left > 0
-            ? `<button type="button" class="history-search-older-btn fin-more" data-action="more">${esc(t('ui.finance.show_more', { count: Math.min(left, PAGE_SIZE) }))}</button>`
+            ? `<button type="button" class="btn btn-tonal btn-sm fin-more" data-action="more">${esc(t('ui.finance.show_more', { count: Math.min(left, PAGE_SIZE) }))}</button>`
             : '';
     },
 
     renderList() {
         const root = this.root();
-        const list = root.querySelector('.fin-sheet-list');
-        const totalEl = root.querySelector('.fin-sheet-total');
+        const list = root.querySelector('.fin-list');
+        const totalEl = root.querySelector('.fin-total');
         if (!list || !totalEl) return;
         const b = this.current();
         if (!b.available) {
-            list.innerHTML = `<p class="empty-state">${esc(t('ui.finance.needs_full_history'))}</p>`;
+            list.innerHTML = emptyState({ icon: 'history', title: t('ui.finance.needs_full_history') });
             totalEl.innerHTML = '';
             return;
         }
         const rows = sortRows(searchRows(b.rows, this.state.query), this.state.sort);
         const showTerm = !!b.formula && this.stack[this.stack.length - 1] !== 'stockCheck';
         if (rows.length === 0) {
-            list.innerHTML = `<p class="empty-state">${esc(t(b.rows.length ? 'ui.finance.no_match' : 'ui.finance.no_rows'))}</p>`;
+            list.innerHTML = emptyState({ icon: 'list', title: t(b.rows.length ? 'ui.finance.no_match' : 'ui.finance.no_rows') });
         } else if (this.state.group === 'none') {
             list.innerHTML = rows.slice(0, this.state.shown).map(r => this.rowHtml(r, showTerm)).join('')
                 + this.moreHtml(rows.length - this.state.shown);
@@ -276,12 +268,12 @@ export const FinanceBreakdownSheet = {
                 const label = this.state.group === 'term' ? t(g.label) : (g.label || t(this.state.group === 'day' ? 'ui.finance.no_date' : 'ui.finance.no_name'));
                 const open = this.state.openGroup === g.key;
                 const body = open
-                    ? `<div class="fin-group-rows">${g.rows.slice(0, this.state.shown).map(r => this.rowHtml(r, showTerm)).join('')}${this.moreHtml(g.rows.length - this.state.shown)}</div>`
+                    ? `<div class="fin-group-lines">${g.rows.slice(0, this.state.shown).map(r => this.rowHtml(r, showTerm)).join('')}${this.moreHtml(g.rows.length - this.state.shown)}</div>`
                     : '';
                 return `<div class="fin-group">
                     <button type="button" class="fin-group-head" data-action="open-group" data-key="${esc(g.key)}" aria-expanded="${open}">
                         <span>${open ? '▾' : '▸'} ${esc(label)} <small>(${esc(tn('ui.finance.entries_count', g.count))})</small></span>
-                        <strong class="${g.subtotal < 0 ? 'amount-negative' : 'amount-positive'}">${esc(rupees(g.subtotal))}</strong>
+                        <strong class="${g.subtotal < 0 ? 'amount-negative' : 'amount-positive'}">${esc(moneyText(g.subtotal, 'signed'))}</strong>
                     </button>${body}
                 </div>`;
             }).join('');
@@ -292,7 +284,7 @@ export const FinanceBreakdownSheet = {
         if (bills === 1) countText = tn('ui.finance.total_lines_one_bill', rows.length);
         else if (bills !== null) countText = t('ui.finance.total_lines_bills', { count: rows.length, bills });
         totalEl.innerHTML = this.state.query.trim()
-            ? `<span>${esc(t('ui.finance.matching_total', { count: rows.length, total: rupees(b.total) }))}</span><strong>${esc(rupees(shownTotal))}</strong>`
-            : `<span>${esc(countText)}</span><strong>${esc(rupees(b.total))}</strong>`;
+            ? `<span>${esc(t('ui.finance.matching_total', { count: rows.length, total: moneyText(b.total, 'signed') }))}</span><strong>${esc(moneyText(shownTotal, 'signed'))}</strong>`
+            : `<span>${esc(countText)}</span><strong>${esc(moneyText(b.total, 'signed'))}</strong>`;
     }
 };

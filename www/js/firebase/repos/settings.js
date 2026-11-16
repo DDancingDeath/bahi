@@ -219,6 +219,21 @@ export const settingsMethods = {
     },
 
     /**
+     * Photo of weights (#374) on or off for every phone: settings/app.photoWeights { enabled }.
+     * Owner only (firestore.rules: managers may not write this field).
+     * @param {{enabled: boolean}} photoWeights
+     * @returns {Promise<void>}
+     */
+    async savePhotoWeightsSettings({ enabled }, opts) {
+        const fields = {
+            photoWeights: { enabled: enabled === true },
+            photoWeightsUpdatedAt: Date.now(),
+            photoWeightsUpdatedBy: AppState.currentUser?.uid || 'unknown'
+        };
+        await saveSettingsSection(this, fields, 'photoWeightsUpdatedAt', opts);
+    },
+
+    /**
      * Roles & access for every device (#84). settings/app is owner-only;
      * firestore.rules read roleAccess.<role>.editDays for bill edits.
      * @param {{manager: Object, staff: Object}} roleAccess - normalized (utils/role-access.js)

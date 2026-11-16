@@ -23,7 +23,7 @@ const bill = (id, timestamp, extra = {}) => ({ id, billNumber: id, timestamp, it
 const html = `
     <div id="history">
       <div class="history-type-filter">
-        <button class="filter-btn" data-type="purchase"></button><button class="filter-btn" data-type="sale"></button>
+        <button data-type="purchase"></button><button data-type="sale"></button>
       </div>
       <select id="historyDatePreset"><option value="all"></option><option value="today"></option>
         <option value="yesterday"></option><option value="week"></option><option value="month"></option>
@@ -34,7 +34,7 @@ const html = `
       <div id="wrap"><div id="historyList"></div></div>
     </div>`;
 
-const ids = () => [...document.querySelectorAll('#historyList .history-item .bill-row__link')]
+const ids = () => [...document.querySelectorAll('#historyList [data-history-item] .bill-row__link')]
     .map(s => s.textContent.replace('#', ''));
 
 describe('History filters (#160)', () => {
@@ -105,7 +105,7 @@ describe('History filters (#160)', () => {
 
         await Promise.resolve();
         expect(window.FirebaseService.ensureHistoryFrom).toHaveBeenCalledWith(from);
-        const notice = document.querySelector('.history-range-notice');
+        const notice = document.querySelector('.history-range-note');
         expect(notice.textContent).toContain('Loading older bills');
         expect(document.getElementById('historyList').classList.contains('history-range-loading')).toBe(true);
 
@@ -117,7 +117,7 @@ describe('History filters (#160)', () => {
         resolveLoad();
         await new Promise(r => setTimeout(r, 0));
         await new Promise(r => setTimeout(r, 0));
-        expect(document.querySelector('.history-range-notice')).toBeNull();
+        expect(document.querySelector('.history-range-note')).toBeNull();
         expect(document.getElementById('historyList').classList.contains('history-range-loading')).toBe(false);
     });
 });

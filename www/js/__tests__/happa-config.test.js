@@ -3,7 +3,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { loadConfig, forEnv, derive, configProblems, hostingProblems, plan, check, guard } = require('../../../scripts/happa-config.js');
+const { loadConfig, loadTarget, withTarget, derive, configProblems, hostingProblems, plan, check, guard } = require('../../../scripts/happa-config.js');
 
 const ROOT = path.join(__dirname, '..', '..', '..');
 
@@ -63,12 +63,12 @@ describe('happa.config.json', () => {
         expect(JSON.parse(files['firebase.json']).hosting.site).toBe('happa-shop');
         expect(files['www/firebaseConfig.js']).toContain('"authDomain": "happa-shop.firebaseapp.com"');
         expect(files['www/download.html']).toContain('href="https://happa-shop.web.app"');
-        expect(files['www/download.html']).toContain('releases/latest/download/happa.apk');
+        expect(files['www/download.html']).toContain('releases/latest/download/bahi.apk');
         expect(files['android/app/build.gradle']).toMatch(/applicationId "com\.happa"/);
         expect(files['android/app/build.gradle']).toMatch(/namespace "com\.happa"/);
         // A new project moves the CSP's Auth frame with it (Google sign-in, docs/google-sign-in.md)
         const appCsp = JSON.parse(files['firebase.json']).hosting.headers[0].headers.find((h) => h.key === 'Content-Security-Policy').value;
-        expect(appCsp).toContain("frame-src 'self' https://happa-shop.firebaseapp.com;");
+        expect(appCsp).toContain("frame-src 'self' https://happa-shop.firebaseapp.com https://www.google.com/recaptcha/;");
         expect(appCsp).not.toContain('happa-bfc07');
     });
 
@@ -90,6 +90,23 @@ describe('happa.config.json', () => {
         expect(configProblems(raw).join('\n')).toMatch(/googleSignIn must be/);
         raw.googleSignIn = { ios: true };
         expect(configProblems(raw).join('\n')).toMatch(/googleSignIn must be/);
+    });
+
+    test('App Check (#89) is off without a site key; appCheck.siteKey reaches firebaseConfig.js', () => {
+        const off = Object.fromEntries(plan(ROOT, filled()).map((p) => [p.file, p.wanted]));
+        expect(off['www/firebaseConfig.js']).toContain('const appCheckSiteKey = "";');
+        const raw = filled();
+        delete raw.appCheck;
+        expect(derive(raw).appCheckSiteKey).toBe('');
+        expect(configProblems(raw)).toEqual([]);
+        raw.appCheck = { siteKey: ' 6LcTestKey_-abc ' };
+        const on = Object.fromEntries(plan(ROOT, raw).map((p) => [p.file, p.wanted]));
+        expect(on['www/firebaseConfig.js']).toContain('const appCheckSiteKey = "6LcTestKey_-abc";');
+        expect(configProblems(raw)).toEqual([]);
+        raw.appCheck = { siteKey: '"; alert(1); "' };
+        expect(configProblems(raw).join('\n')).toMatch(/appCheck must be/);
+        raw.appCheck = { enforce: true };
+        expect(configProblems(raw).join('\n')).toMatch(/appCheck must be/);
     });
 
     test('only the app site serves www/; redirect sites only 301 every path to it', () => {
@@ -120,33 +137,6 @@ describe('happa.config.json', () => {
         expect(hostingProblems({ hosting: json.hosting[0] }, d).join('\n')).toMatch(/must be \[happa-app, happa-shop\]/);
 
         raw.firebase.redirectHostingSites = ['aadhat-management'];
-        expect(configProblems(raw).join('\n')).toMatch(/old app/);
-    });
-});
-
-describe('Bahi environments (#72)', () => {
-    test('.firebaserc keeps the live default and lists prod, dev and legacy aliases', () => {
-        const rc = JSON.parse(fs.readFileSync(path.join(ROOT, '.firebaserc'), 'utf8')).projects;
-        const raw = loadConfig(ROOT);
-        expect(rc).toEqual({ default: raw.firebase.projectId, prod: 'bahi-happa', dev: 'bahi-happa-dev', legacy: 'happa-bfc07' });
-    });
-
-    test('--env builds every identity file for that project without touching the committed config', () => {
-        for (const [env, id] of [['prod', 'bahi-happa'], ['dev', 'bahi-happa-dev']]) {
-            const files = Object.fromEntries(plan(ROOT, forEnv(loadConfig(ROOT), env)).map((p) => [p.file, p.wanted]));
-            expect(JSON.parse(files['.firebaserc']).projects.default).toBe(id);
-            expect(files['www/firebaseConfig.js']).toContain(`"projectId": "${id}"`);
-            expect(files['www/firebaseConfig.js']).not.toContain('happa-bfc07');
-            expect(files['firebase.json']).not.toMatch(/myhappa|happaapp|happa-bfc07/);
-        }
-        expect(() => forEnv(loadConfig(ROOT), 'staging')).toThrow(/no environments\.staging/);
-    });
-
-    test('only the dev environment may be a *-dev project', () => {
-        const raw = filled();
-        raw.environments.prod.projectId = 'bahi-happa-dev';
-        expect(configProblems(raw).join('\n')).toMatch(/environments\.prod.*-dev/);
-        raw.environments.prod.projectId = 'aadhat-management';
         expect(configProblems(raw).join('\n')).toMatch(/old app/);
     });
 });
@@ -197,15 +187,6 @@ describe('CI guard', () => {
         expect(guard(dir, { requireReady: true, saJson: sa('happa-shop') }).ok).toBe(false);
     });
 
-    test('--env refuses a dev project for prod and a prod project for dev', () => {
-        write('happa-shop-dev');
-        const raw = JSON.parse(fs.readFileSync(path.join(dir, 'happa.config.json'), 'utf8'));
-        raw.environments = { prod: raw.firebase, dev: { ...raw.firebase, projectId: 'happa-shop' } };
-        fs.writeFileSync(path.join(dir, 'happa.config.json'), JSON.stringify(raw));
-        expect(guard(dir, { env: 'prod', saJson: sa('happa-shop-dev') }).messages.join('\n')).toMatch(/only the dev environment/);
-        expect(guard(dir, { env: 'dev', saJson: sa('happa-shop') }).ok).toBe(false);
-    });
-
     test('missing service account: previews skip, deploys fail', () => {
         write('happa-shop');
         expect(guard(dir, {})).toMatchObject({ ok: true, ready: false });
@@ -217,5 +198,114 @@ describe('CI guard', () => {
         expect(derive(raw).downloadPageUrl).toBe('https://happa-shop.web.app/download');
         raw.firebase.hostingSite = 'happa-app';
         expect(derive(raw).siteUrl).toBe('https://happa-app.web.app');
+    });
+});
+
+describe('Android build target (config/targets)', () => {
+    const workflow = (name) => fs.readFileSync(path.join(ROOT, '.github', 'workflows', name), 'utf8');
+    const bahi = () => withTarget(loadConfig(ROOT), loadTarget('bahi-happa', ROOT));
+
+    test('the web deploy keeps happa-bfc07; only the APK build switches to bahi-happa', () => {
+        expect(derive(loadConfig(ROOT))).toMatchObject({ projectId: 'happa-bfc07', hostingSite: 'myhappa' });
+        expect(JSON.parse(fs.readFileSync(path.join(ROOT, '.firebaserc'), 'utf8')).projects.default).toBe('happa-bfc07');
+        for (const name of ['firebase-hosting-merge.yml', 'firebase-hosting-pull-request.yml', 'firestore-rules-deploy.yml']) {
+            expect({ name, target: /happa-config\.js target|config\/targets/.test(workflow(name)) }).toEqual({ name, target: false });
+        }
+        const android = workflow('android-release.yml');
+        expect(android).toContain("TARGET: ${{ inputs.target || 'bahi-happa' }}");
+        const at = (s) => android.indexOf(s);
+        expect(at('node scripts/happa-config.js target "$TARGET"')).toBeGreaterThan(at('run: npx jest --ci'));
+        expect(at('node scripts/happa-config.js target "$TARGET"')).toBeLessThan(at('node scripts/release-notes.js'));
+        expect(at('node scripts/happa-config.js target "$TARGET"')).toBeLessThan(at('run: npx cap sync android'));
+        // bahi.apk from rc15; the same file stays published as happa.apk for old links and bookmarks
+        expect(derive(loadConfig(ROOT)).apkDownloadUrl).toBe('https://github.com/DDancingDeath/happa/releases/latest/download/bahi.apk');
+        expect(android).toContain('cp android/app/build/outputs/apk/release/app-release.apk dist/happa.apk');
+        expect(android).toContain('files+=("dist/happa.apk")');
+    });
+
+    test('bahi-happa reaches every bundled file, with nothing left of happa-bfc07', () => {
+        const raw = bahi();
+        expect(configProblems(raw)).toEqual([]);
+        expect(derive(raw)).toMatchObject({
+            projectId: 'bahi-happa', siteUrl: 'https://bahi-happa.web.app', downloadPageUrl: 'https://bahi-happa.web.app/download',
+            androidPackage: 'com.happa', apkFile: 'bahi.apk', googleSignIn: loadConfig(ROOT).googleSignIn
+        });
+        expect(derive(raw).webConfig).not.toHaveProperty('measurementId');
+        const files = Object.fromEntries(plan(ROOT, raw).map((p) => [p.file, p.wanted]));
+        expect(files['www/firebaseConfig.js']).toContain('"projectId": "bahi-happa"');
+        expect(files['www/js/config/app-identity.js']).toContain('"siteUrl": "https://bahi-happa.web.app"');
+        expect(files['www/download.html']).toContain('>bahi-happa.web.app/download<');
+        for (const [file, text] of Object.entries(files)) {
+            expect({ file, old: /happa-bfc07|516108799937|myhappa|happaapp/.test(text) }).toEqual({ file, old: false });
+        }
+    });
+
+    test('a target may only swap the Firebase blocks, or give the app a whole side-by-side identity', () => {
+        const dir = fs.mkdtempSync(path.join(ROOT, '.happa-test-'));
+        try {
+            fs.mkdirSync(path.join(dir, 'config', 'targets'), { recursive: true });
+            fs.writeFileSync(path.join(dir, 'config', 'targets', 'x.json'), JSON.stringify({ firebase: { projectId: 'happa-x' }, ownerConfirmed: true }));
+            expect(() => loadTarget('x', dir)).toThrow(/ownerConfirmed/);
+            expect(() => loadTarget('../x', dir)).toThrow(/Bad target name/);
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
+        const base = loadConfig(ROOT);
+        const own = { firebase: { projectId: 'happa-x' }, appName: 'X', appNameHi: 'X', androidPackage: 'com.happa.x', apkName: 'x' };
+        expect(() => withTarget(base, own)).not.toThrow();
+        const { apkName: _drop, ...partial } = own;
+        expect(() => withTarget(base, partial)).toThrow(/apkName/);
+        expect(() => withTarget(base, { ...own, androidPackage: 'com.other' })).toThrow(/androidPackage/);
+        expect(() => withTarget(base, { ...own, androidPackage: 'com.happa' })).toThrow(/androidPackage/);
+        expect(() => withTarget(base, { ...own, apkName: base.apkName })).toThrow(/apkName/);
+    });
+
+    test('bahi-happa-dev is the side-by-side "Bahi Dev" app; the shop APK keeps com.happa', () => {
+        const dev = withTarget(loadConfig(ROOT), loadTarget('bahi-happa-dev', ROOT));
+        expect(configProblems(dev)).toEqual([]);
+        expect(derive(dev)).toMatchObject({
+            projectId: 'bahi-happa-dev', siteUrl: 'https://bahi-happa-dev.web.app', appName: 'Bahi Dev',
+            androidPackage: 'com.happa.dev', androidNamespace: 'com.happa', apkFile: 'bahi-dev.apk',
+            appCheckSiteKey: '6LdzmCEuAAAAAGQ_wwikq9EH6HaoI9pF62clXmXd',
+            apkDownloadUrl: 'https://github.com/DDancingDeath/happa/releases/download/dev-latest/bahi-dev.apk',
+            latestReleaseApi: 'https://api.github.com/repos/DDancingDeath/happa/releases/tags/dev-latest',
+            downloadName: { en: 'Bahi Dev (test app)', hi: 'Bahi Dev (टेस्ट ऐप)' }
+        });
+        const files = Object.fromEntries(plan(ROOT, dev).map((p) => [p.file, p.wanted]));
+        expect(files['www/download.html']).toContain('href="https://github.com/DDancingDeath/happa/releases/download/dev-latest/bahi-dev.apk"');
+        expect(files['www/download.html']).toContain('content="https://api.github.com/repos/DDancingDeath/happa/releases/tags/dev-latest"');
+        expect(files['www/download.html']).toContain('<span class="hi" data-happa="downloadNameHi">Bahi Dev (टेस्ट ऐप)</span>');
+        expect(files['android/app/build.gradle']).toMatch(/^\s*applicationId "com\.happa\.dev"$/m);
+        expect(files['android/app/build.gradle']).toMatch(/^\s*namespace "com\.happa"$/m);
+        expect(files['android/app/src/main/res/values/strings.xml']).toContain('<string name="app_name">Bahi Dev</string>');
+        expect(files['www/firebaseConfig.js']).toContain('"projectId": "bahi-happa-dev"');
+        for (const [file, text] of Object.entries(files)) {
+            expect({ file, other: /happa-bfc07|516108799937|myhappa|"bahi-happa"|6046579556/.test(text) }).toEqual({ file, other: false });
+        }
+
+        const prod = derive(bahi());
+        expect(prod).toMatchObject({ projectId: 'bahi-happa', appName: 'Bahi', androidPackage: 'com.happa', androidNamespace: 'com.happa', apkFile: 'bahi.apk' });
+        for (const d of [prod, derive(loadConfig(ROOT))]) {
+            expect(d).toMatchObject({
+                apkDownloadUrl: 'https://github.com/DDancingDeath/happa/releases/latest/download/bahi.apk',
+                latestReleaseApi: 'https://api.github.com/repos/DDancingDeath/happa/releases/latest',
+                downloadName: { en: 'Bahi', hi: 'Bahi' }
+            });
+        }
+        const bad = (download) => configProblems({ ...loadConfig(ROOT), download }).filter((e) => e.startsWith('download'));
+        expect(bad({ apkDownloadUrl: 'https://example.com/releases/download/dev-latest/bahi.apk' })).toHaveLength(1);
+        expect(bad({ apkDownloadUrl: 'https://github.com/DDancingDeath/happa/releases/download/dev-latest/other.apk' })).toHaveLength(1);
+        expect(bad({ latestReleaseApi: 'https://api.github.com/repos/someone/else/releases/latest' })).toHaveLength(1);
+        expect(bad({ name: { en: '<b>x</b>' } })).toHaveLength(1);
+        expect(plan(ROOT, bahi()).find((p) => p.file === 'android/app/build.gradle').wanted)
+            .toBe(fs.readFileSync(path.join(ROOT, 'android', 'app', 'build.gradle'), 'utf8').replace(/\r\n/g, '\n'));
+    });
+
+    test('the dev APK is a pre-release, never latest, with its own google-services.json', () => {
+        const android = workflow('android-release.yml');
+        expect(android).toContain('--prerelease --latest=false');
+        expect(android).toContain('gh release create dev-latest');
+        expect(android).toContain('GOOGLE_SERVICES_JSON="$GOOGLE_SERVICES_JSON_DEV"');
+        expect(android).toContain('--verify-tag --title "$title" --notes-file dist/release-notes.md --latest="$make_latest"');
     });
 });

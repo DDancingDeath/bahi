@@ -10,15 +10,17 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { AuditService } from '../services/audit.js';
 import { PrinterService } from '../services/printer.js';
 import { Helpers } from '../utils/helpers.js';
-import { KEPT_SERVER_PAYMENT_KEY, normalizeLabourSettings, paymentSplitMessage, formatRate, formatRupees, formatKg } from '../utils/money.js';
+import { KEPT_SERVER_PAYMENT_KEY, normalizeLabourSettings, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
 import {
     autoLabour, bagChecks, buildPaymentSplit, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
     paymentSplit, pendingLine, prefillPayment, restInDue, shownAmount, sumWeights, validatePaymentSplit
 } from '../utils/calc/billing.js';
-import { BillChecksUI, readTypedNumber } from '../ui/bill-highlight.js';
+import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
 import { t, tn } from '../i18n/index.js';
+import { icon } from '../ui/icons.js';
+import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
@@ -135,7 +137,7 @@ const PurchaseManager = {
                 ${weights.map((w, i) => `
                     <div class="weight-chip">
                         <span>${formatKg(w)}</span>
-                        <button class="weight-chip-remove" data-onclick="purchase.removeWeight(${i})">×</button>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>
@@ -152,6 +154,24 @@ const PurchaseManager = {
         this.renderWeights();
         if (this.billingManager) this.billingManager.triggerAutoSave();
         UIManager.hapticFeedback();
+    },
+
+    /**
+     * Photo of weights (#374): bag weights checked in the photo sheet, with the confirms of
+     * heavy ones, go into the chips as if typed one by one. Never adds a line or saves the bill.
+     * @param {number[]} list - weights > 0
+     * @param {Array<Object>} [records] - BF-BAGCHECK confirms for the heavy ones
+     * @returns {number} how many were added
+     */
+    addWeights(list, records = []) {
+        const kgs = (Array.isArray(list) ? list : []).filter(w => typeof w === 'number' && w > 0);
+        if (!kgs.length) return 0;
+        weights.push(...kgs);
+        weightChecks.push(...records);
+        this.renderWeights();
+        if (this.billingManager) this.billingManager.triggerAutoSave();
+        UIManager.hapticFeedback();
+        return kgs.length;
     },
 
     /**
@@ -188,9 +208,10 @@ const PurchaseManager = {
         }
         
         if (!rate || rate <= 0) {
-            UIManager.showToast(t('msg.common.enter_valid_rate'));
+            if (!showFieldError('billRate', t('msg.common.enter_valid_rate'))) UIManager.showToast(t('msg.common.enter_valid_rate'));
             return;
         }
+        clearFieldError('billRate');
         
         // If there's a weight typed in the input but not added, add it first
         const pendingWeight = parseFloat(weightInput?.value);
@@ -275,9 +296,11 @@ const PurchaseManager = {
         
         const totalPacketsInBillSpan = document.getElementById('totalPacketsInBill');
         const billTotalSpan = document.getElementById('billTotal');
+        const lines = document.getElementById('purchaseLines');
+        if (lines) lines.hidden = billItems.length === 0;
         
         if (billItems.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="bill-empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
             if (billTotalSpan) billTotalSpan.textContent = '0';
             if (totalPacketsInBillSpan) totalPacketsInBillSpan.textContent = '0';
             if (weightBreakdownSection) weightBreakdownSection.innerHTML = '';
@@ -322,7 +345,7 @@ const PurchaseManager = {
                     <td>${formatRate(item.rate)}</td>
                     <td>${formatKg(item.qty)} kg</td>
                     <td>${formatRupees(shownAmount(item.total))}</td>
-                    <td><button type="button" class="remove-bill-item" data-onclick="event.stopPropagation(); purchase.deleteBillItem(${index})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}" title="${Helpers.escapeHtml(t('ui.modals.delete'))}">×</button></td>
+                    <td><button type="button" class="btn btn-ghost btn-icon bill-line-remove" data-onclick="event.stopPropagation(); purchase.deleteBillItem(${index})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}" title="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x')}</button></td>
                 </tr>
             `;
         }).join('');
@@ -330,7 +353,7 @@ const PurchaseManager = {
         // Update totals
         const { billTotal, totalPackets } = this.computeTotals(0);
         
-        if (billTotalSpan) billTotalSpan.textContent = shownAmount(billTotal);
+        if (billTotalSpan) billTotalSpan.textContent = formatAmount(shownAmount(billTotal), 'exact');
         if (totalPacketsInBillSpan) totalPacketsInBillSpan.textContent = totalPackets;
         
         // Don't clear manually set flag when in edit mode
@@ -381,6 +404,7 @@ const PurchaseManager = {
             
             setTimeout(() => {
                 document.getElementById('billRate').value = item.rate;
+                clearFieldError('billRate');
             }, 50);
         }
         
@@ -418,7 +442,11 @@ const PurchaseManager = {
         const laborChargesInput = document.getElementById('manualLaborCharges');
         
         let laborCharges = 0;
-        if (autoLaborCheckbox?.checked) {
+        const labourOn = !!autoLaborCheckbox?.checked;
+        if (laborCalculationSpan) laborCalculationSpan.hidden = !labourOn;
+        const labourBox = laborChargesInput?.closest('.bill-money');
+        if (labourBox) labourBox.hidden = !labourOn;
+        if (labourOn) {
             // Shared rate for every device (#20); blank/invalid falls back to ₹6
             const suggested = autoLabour(AppState.settings, heavyPacketsCount);
             
@@ -428,8 +456,6 @@ const PurchaseManager = {
             
             if (laborChargesInput) {
                 laborChargesInput.disabled = false;
-                laborChargesInput.style.opacity = '1';
-                laborChargesInput.style.cursor = 'text';
             }
             if (laborCalculationSpan) {
                 laborCalculationSpan.textContent = suggested.working;
@@ -440,8 +466,6 @@ const PurchaseManager = {
             if (laborChargesInput) {
                 laborChargesInput.value = '0';
                 laborChargesInput.disabled = true;
-                laborChargesInput.style.opacity = '0.5';
-                laborChargesInput.style.cursor = 'not-allowed';
             }
             if (laborCalculationSpan) {
                 laborCalculationSpan.textContent = '';
@@ -449,7 +473,7 @@ const PurchaseManager = {
             laborCharges = 0;
         }
         
-        const payableShown = payableOnScreen(billTotal, laborCharges);
+        const payableShown = formatAmount(payableOnScreen(billTotal, laborCharges), 'exact');
         const grandTotalElement = document.getElementById('amountPayable');
         if (grandTotalElement) {
             grandTotalElement.textContent = payableShown;
@@ -469,7 +493,7 @@ const PurchaseManager = {
         
         const totalPaymentElement = document.getElementById('totalPayment');
         if (totalPaymentElement) {
-            totalPaymentElement.textContent = paidOnScreen(split);
+            totalPaymentElement.textContent = formatAmount(paidOnScreen(split), 'exact');
         }
         Helpers.showSplitRemaining('purchaseSplitRemaining', validatePaymentSplit(this.computeTotals().grandTotal, split));
         BillChecksUI.schedule('purchase');
@@ -735,6 +759,7 @@ const PurchaseManager = {
             // Clear bill
             pendingBill = null;
             billItems = [];
+            emit(BILL_CLEARED, 'purchase');
             editedLine = null;
             weights = [];
             weightChecks = [];
@@ -839,6 +864,8 @@ const PurchaseManager = {
         });
         
         resetBillDate('billDate');
+        clearFieldError('billRate');
+        this.billingManager?.syncNotes?.();
         this.updateTotals();
         this.billingManager?.focusFirstItem?.();
     },
@@ -849,6 +876,7 @@ const PurchaseManager = {
     clearBill() {
         pendingBill = null;
         billItems = [];
+        emit(BILL_CLEARED, 'purchase');
         editedLine = null;
         weights = [];
         weightChecks = [];
@@ -956,6 +984,12 @@ const PurchaseManager = {
      */
     setBillItems(items) {
         billItems = items || [];
+        emit(BILL_CLEARED, 'purchase');
+    },
+
+    /** A bill line taken back into the form to edit (#131: voice undo waits for it). */
+    isEditingLine() {
+        return !!editedLine;
     },
 
     /**

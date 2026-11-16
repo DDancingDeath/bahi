@@ -10,15 +10,17 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
-import { KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, formatRate, formatRupees, formatKg } from '../utils/money.js';
+import { KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
 import {
     bagChecks, buildPaymentSplit, computeLine, computeRetailTotals, editSplitFor, paidOnScreen, paymentSplit, pendingLine, prefillPayment, restInDue,
     shownAmount, sumWeights, validatePaymentSplit, weightsForEdit
 } from '../utils/calc/billing.js';
-import { BillChecksUI, readTypedNumber } from '../ui/bill-highlight.js';
+import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '../ui/rate-check.js';
 import { t, tn } from '../i18n/index.js';
+import { icon } from '../ui/icons.js';
+import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
@@ -133,7 +135,7 @@ const RetailSaleManager = {
                 ${saleWeights.map((w, i) => `
                     <div class="weight-chip">
                         <span>${formatKg(w)}</span>
-                        <button class="weight-chip-remove" data-onclick="retailSale.removeSaleWeight(${i})">×</button>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="retailSale.removeSaleWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>
@@ -186,9 +188,10 @@ const RetailSaleManager = {
         }
         
         if (!rate || rate <= 0) {
-            UIManager.showToast(t('msg.common.enter_valid_rate'));
+            if (!showFieldError('saleRate', t('msg.common.enter_valid_rate'))) UIManager.showToast(t('msg.common.enter_valid_rate'));
             return;
         }
+        clearFieldError('saleRate');
         
         let allWeights = [];
         
@@ -251,6 +254,7 @@ const RetailSaleManager = {
         
         itemSelect.selectedIndex = 0;
         rateInput.value = '';
+        clearFieldError('saleRate');
         if (weightInput) weightInput.value = '';
         
         itemSelect.focus();
@@ -274,9 +278,11 @@ const RetailSaleManager = {
         
         if (!tbody) return;
         this.billingManager?.renderBillNumber?.();
+        const lines = document.getElementById('saleLines');
+        if (lines) lines.hidden = saleItems.length === 0;
         
         if (saleItems.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="bill-empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="empty" data-i18n="msg.common.no_items_in_bill">${Helpers.escapeHtml(t('msg.common.no_items_in_bill'))}</td></tr>`;
             if (saleTotalSpan) saleTotalSpan.textContent = '0';
             if (totalSalePacketsSpan) totalSalePacketsSpan.textContent = '0';
             if (saleWeightBreakdownSection) saleWeightBreakdownSection.innerHTML = '';
@@ -321,14 +327,14 @@ const RetailSaleManager = {
                 <td>${formatRate(item.rate)}</td>
                 <td>${formatKg(item.qty)} kg</td>
                 <td>${formatRupees(shownAmount(item.total))}</td>
-                <td><button type="button" class="remove-sale-item" data-onclick="event.stopPropagation(); retailSale.removeSaleItem(${index})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}" title="${Helpers.escapeHtml(t('ui.modals.delete'))}">×</button></td>
+                <td><button type="button" class="btn btn-ghost btn-icon bill-line-remove" data-onclick="event.stopPropagation(); retailSale.removeSaleItem(${index})" aria-label="${Helpers.escapeHtml(t('ui.modals.delete'))}" title="${Helpers.escapeHtml(t('ui.modals.delete'))}">${icon('x')}</button></td>
             </tr>
         `).join('');
         
         // Update totals
         const { screenTotal, packetsShown } = computeRetailTotals(saleItems);
         
-        if (saleTotalSpan) saleTotalSpan.textContent = shownAmount(screenTotal);
+        if (saleTotalSpan) saleTotalSpan.textContent = formatAmount(shownAmount(screenTotal), 'exact');
         if (totalSalePacketsSpan) totalSalePacketsSpan.textContent = packetsShown;
         
         this.updateSaleTotals();
@@ -375,6 +381,7 @@ const RetailSaleManager = {
             
             setTimeout(() => {
                 document.getElementById('saleRate').value = item.rate;
+                clearFieldError('saleRate');
             }, 50);
         }
         
@@ -394,7 +401,7 @@ const RetailSaleManager = {
      * Update sale totals display
      */
     updateSaleTotals() {
-        const shown = shownAmount(computeRetailTotals(saleItems).screenTotal);
+        const shown = formatAmount(shownAmount(computeRetailTotals(saleItems).screenTotal), 'exact');
         
         const saleTotalEl = document.getElementById('saleTotal');
         const amountReceivableEl = document.getElementById('amountReceivable');
@@ -427,7 +434,7 @@ const RetailSaleManager = {
         const split = this.readPaymentSplit();
         
         const totalReceivedEl = document.getElementById('totalReceived');
-        if (totalReceivedEl) totalReceivedEl.textContent = paidOnScreen(split);
+        if (totalReceivedEl) totalReceivedEl.textContent = formatAmount(paidOnScreen(split), 'exact');
         Helpers.showSplitRemaining('saleSplitRemaining', validatePaymentSplit(computeRetailTotals(saleItems).total, split));
         BillChecksUI.schedule('retail');
     },
@@ -639,6 +646,7 @@ const RetailSaleManager = {
             // Clear sale
             pendingBill = null;
             saleItems = [];
+            emit(BILL_CLEARED, 'sale');
             editedLine = null;
             this.renderSalesBill();
             
@@ -746,6 +754,8 @@ const RetailSaleManager = {
         const totalReceivedEl = document.getElementById('totalReceived');
         if (totalReceivedEl) totalReceivedEl.textContent = '0';
         resetBillDate('saleDate');
+        clearFieldError('saleRate');
+        this.billingManager?.syncNotes?.();
         this.billingManager?.focusFirstItem?.();
     },
 
@@ -755,6 +765,7 @@ const RetailSaleManager = {
     clearSale() {
         pendingBill = null;
         saleItems = [];
+        emit(BILL_CLEARED, 'sale');
         editedLine = null;
         saleWeights = [];
         saleWeightChecks = [];
@@ -904,6 +915,12 @@ const RetailSaleManager = {
      */
     setSaleItems(items) {
         saleItems = items || [];
+        emit(BILL_CLEARED, 'sale');
+    },
+
+    /** A bill line taken back into the form to edit (#131: voice undo waits for it). */
+    isEditingLine() {
+        return !!editedLine;
     },
 
     /**

@@ -9,24 +9,25 @@
  */
 
 import { t, getLang } from '../i18n/index.js';
+import { emptyState } from '../ui/components.js';
 import { Helpers } from '../utils/helpers.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { openExternal } from '../utils/open-external.js';
 import { cleanText, whatsAppReminderUrl } from '../utils/due-reminder.js';
-import { formatRate, formatRupees } from '../utils/money.js';
+import { formatRupees } from '../utils/money.js';
 import { monthLabel, dateLabel, PAYMENT_MODES } from './rent-math.js';
 import { receiptReceived, paidEarlier } from './rent-math-ledger.js';
 import { typedPlace, UNIT_TYPES } from './rent-views.js';
 import * as store from './rent-store.js';
 import * as rs from './rent-receipt-store.js';
+import { formatDate } from '../utils/dates.js';
 
 const esc = (v) => Helpers.escapeHtml(v);
 const js = (v) => Helpers.escapeJsAttr(v);
 
 /** ₹ with paise when there are any (a receipt shows exact amounts). */
-export const inr = (n) => formatRupees(n, { exact: true });
 
 /** "Flat 2B, Gupta Bhawan" in `lang` (the type word is stored as an id). */
 export function receiptPlace(r, lang = getLang()) {
@@ -46,25 +47,25 @@ export function receiptRows(r, lang = getLang()) {
     const mode = PAYMENT_MODES.includes(r.mode) ? r.mode : 'cash';
     const rows = [
         [tr('ui.rcpt.months'), (r.months || []).map(m => monthLabel(m, lang)).join(', ')],
-        [tr('ui.rcpt.rent'), inr(r.rent)]
+        [tr('ui.rcpt.rent'), formatRupees(r.rent, 'exact')]
     ];
     if (e && typeof e === 'object') {
         rows.push(
             [tr('ui.rcpt.reading'), tr('ui.rcpt.reading_value', { prev: e.prev, curr: e.curr })],
-            [tr('ui.rcpt.units'), tr('ui.rcpt.units_value', { units: e.units, rate: formatRate(e.rate) })],
-            [tr('ui.rcpt.electricity'), inr(e.amount)]
+            [tr('ui.rcpt.units'), tr('ui.rcpt.units_value', { units: e.units, rate: formatRupees(e.rate, 'ratePaise') })],
+            [tr('ui.rcpt.electricity'), formatRupees(e.amount, 'exact')]
         );
     }
-    rows.push([tr('ui.rcpt.total'), inr(r.total), true]);
+    rows.push([tr('ui.rcpt.total'), formatRupees(r.total, 'exact'), true]);
     const earlier = paidEarlier(r);
-    if (earlier > 0) rows.push([tr('ui.rcpt.paid_earlier'), inr(earlier)]);
+    if (earlier > 0) rows.push([tr('ui.rcpt.paid_earlier'), formatRupees(earlier, 'exact')]);
     rows.push(
-        [tr('ui.rcpt.paid_now'), inr(r.paid), true]
+        [tr('ui.rcpt.paid_now'), formatRupees(r.paid, 'exact'), true]
     );
-    if (r.adv > 0) rows.push([tr('ui.rcpt.advance'), inr(r.adv)], [tr('ui.rcpt.received'), inr(receiptReceived(r)), true]);
+    if (r.adv > 0) rows.push([tr('ui.rcpt.advance'), formatRupees(r.adv, 'exact')], [tr('ui.rcpt.received'), formatRupees(receiptReceived(r), 'exact'), true]);
     rows.push([tr('ui.rcpt.mode'), tr(`ui.rcpt.mode_${mode}`)]);
     if (cleanText(r.ref)) rows.push([tr('ui.rcpt.ref'), cleanText(r.ref)]);
-    rows.push([tr('ui.rcpt.balance'), inr(r.balance), true]);
+    rows.push([tr('ui.rcpt.balance'), formatRupees(r.balance, 'exact'), true]);
     return rows;
 }
 
@@ -245,7 +246,7 @@ export function showReceipt(env, rcpt) {
     const lang = getLang();
     const h = headLines(r, lang);
     const rows = receiptRows(r, lang).map(([k, v, bold]) => `<div class="rent-rcpt-row${bold ? ' rent-rcpt-bold' : ''}"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
-    const act = (a, cls, label) => `<button type="button" class="rent-btn${cls}" data-onclick="rentals.receiptAction('${a}')">${esc(t(label))}</button>`;
+    const act = (a, cls, label) => `<button type="button" class="btn${cls}" data-onclick="rentals.receiptAction('${a}')">${esc(t(label))}</button>`;
     return env.dialog(`<h3>🧾 ${esc(h.title)}</h3>
         ${r.void ? `<p class="rent-rcpt-void">${esc(t('ui.rcpt.void_mark'))}${r.voidReason ? ` · ${esc(r.voidReason)}` : ''}</p>` : ''}
         <div class="rent-rcpt">
@@ -255,10 +256,10 @@ export function showReceipt(env, rcpt) {
             ${rows}
             <div class="rent-sub">${esc(h.by)}</div>
         </div>
-        <div class="rent-actions">${act('wa', ' rent-btn-primary', 'ui.rcpt.send_whatsapp')}</div>
+        <div class="rent-actions">${act('wa', ' btn-primary', 'ui.rcpt.send_whatsapp')}</div>
         <details class="rent-more"><summary>${esc(t('ui.rcpt.more'))}</summary><div class="rent-actions">
             ${act('print', '', 'ui.rcpt.print')}${act('image', '', 'ui.rcpt.image')}${act('pdf', '', 'ui.rcpt.pdf')}
-            ${env.canVoid && !r.void ? act('void', ' rent-btn-danger', 'ui.rcpt.void') : ''}
+            ${env.canVoid && !r.void ? act('void', ' btn-ghost tone-neg', 'ui.rcpt.void') : ''}
         </div></details>`, { info: true });
 }
 
@@ -275,18 +276,18 @@ export async function showHistory(env, tenantId) {
     }
     const lang = getLang();
     const rows = list.map(r => `<div class="rent-rcpt-item">
-            <div><div class="rent-name">${esc(r.no)}${r.void ? ` <span class="rent-badge rent-badge-late">${esc(t('ui.rcpt.void_mark'))}</span>` : ''}</div>
-                <div class="rent-sub">${esc(dateLabel(r.date))} · ${esc((r.months || []).map(m => monthLabel(m, lang)).join(', '))} · ${esc(inr(r.paid))}</div></div>
-            <button type="button" class="rent-btn rent-btn-small" data-onclick="rentals.receiptAction('open', '${js(r.id)}')">${esc(t('ui.rcpt.open'))}</button>
+            <div><div class="rent-name">${esc(r.no)}${r.void ? ` <span class="tag neg">${esc(t('ui.rcpt.void_mark'))}</span>` : ''}</div>
+                <div class="rent-sub">${esc(formatDate(r.date))} · ${esc((r.months || []).map(m => monthLabel(m, lang)).join(', '))} · ${esc(formatRupees(r.paid, 'exact'))}</div></div>
+            <button type="button" class="btn btn-sm" data-onclick="rentals.receiptAction('open', '${js(r.id)}')">${esc(t('ui.rcpt.open'))}</button>
         </div>`).join('');
     const unpaid = missing.map((x, i) => `<div class="rent-rcpt-item">
-            <div class="rent-sub">${esc(dateLabel(x.entry.date))} · ${esc(monthLabel(x.charge.month, lang))} · ${esc(inr(x.entry.amount))}</div>
-            <button type="button" class="rent-btn rent-btn-small rent-btn-primary" data-onclick="rentals.receiptAction('issue', '${i}')">${esc(t('ui.rcpt.issue'))}</button>
+            <div class="rent-sub">${esc(formatDate(x.entry.date))} · ${esc(monthLabel(x.charge.month, lang))} · ${esc(formatRupees(x.entry.amount, 'exact'))}</div>
+            <button type="button" class="btn btn-sm btn-tonal" data-onclick="rentals.receiptAction('issue', '${i}')">${esc(t('ui.rcpt.issue'))}</button>
         </div>`).join('');
     current = { env, r: null };
     return env.dialog(`<h3>🧾 ${esc(t('ui.rcpt.history_title', { name: cleanText(name) }))}</h3>
         ${unpaid ? `<p class="rent-label">${esc(t('ui.rcpt.without'))}</p>${unpaid}` : ''}
-        ${rows || `<p class="rent-empty">${esc(t('ui.rcpt.none'))}</p>`}
+        ${rows || emptyState({ icon: 'receipt', title: t('ui.rcpt.none') })}
         <p class="rent-help">${esc(t('ui.rcpt.history_note'))}</p>`, { info: true });
 }
 
@@ -307,10 +308,10 @@ async function issue(env, x) {
 async function voidReceipt(env, r) {
     const asked = env.dialog(`<h3>${esc(t('ui.rcpt.void_title', { no: r.no }))}</h3>
         <p class="rent-help">${esc(t('ui.rcpt.void_help'))}</p>
-        <label class="rent-label">${esc(t('ui.rcpt.void_reason'))}<input id="rentVoidReason" type="text" maxlength="200"></label>`);
+        <label class="field rent-label">${esc(t('ui.rcpt.void_reason'))}<input class="input" id="rentVoidReason" type="text" maxlength="200"></label>`);
     // Save stays off until there is a reason (the rules refuse a cancel without one).
     const input = document.getElementById('rentVoidReason');
-    const save = document.querySelector('#rentDialog .rent-dialog-actions .rent-btn-primary');
+    const save = document.getElementById('rentDialogSave');
     const sync = () => { if (save) save.disabled = !input?.value.trim(); };
     input?.addEventListener('input', sync);
     sync();

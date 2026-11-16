@@ -6,6 +6,8 @@
 
 jest.mock('../ui/ui-manager.js', () => ({
     UIManager: {
+        openSheet: jest.fn(),
+        closeSheet: jest.fn(),
         showToast: jest.fn(),
         showLoading: jest.fn(),
         hideLoading: jest.fn(),
@@ -51,11 +53,11 @@ const SAMPLES = [
 describe('notification text', () => {
     test('rate change shows item, rate type and old → new in English and Hindi', () => {
         const d = describeNotification(SAMPLES[0]);
-        expect(d.en).toBe('Gehu: Retail rate ₹40.00 → ₹45.00');
-        expect(d.hi).toBe('गेहूं: फुटकर रेट ₹40.00 → ₹45.00');
+        expect(d.en).toBe('Gehu: Retail rate ₹40 → ₹45');
+        expect(d.hi).toBe('गेहूं: फुटकर रेट ₹40 → ₹45');
         expect(d.who).toBe('Ramesh');
         expect(d.target).toEqual({ tab: 'items', itemId: null, query: 'Gehu' });
-        expect(describeNotification(SAMPLES[1]).en).toBe('Chana: Wholesale rate ₹50.00, ₹52.00 → ₹55.00');
+        expect(describeNotification(SAMPLES[1]).en).toBe('Chana: Wholesale rate ₹50, ₹52 → ₹55');
     });
 
     test('item edits, document edits and unknown types all get bilingual text', () => {
@@ -272,7 +274,7 @@ describe('Firestore paths (fake Firestore)', () => {
     describe('NotificationsManager', () => {
         beforeEach(() => {
             document.body.innerHTML = `
-                <button id="notifBell" style="display:none"><span id="notifBadge" hidden></span></button>
+                <button id="notifBell" hidden><span id="notifBadge" hidden></span></button>
                 <div id="notifBackdrop" hidden></div>
                 <div id="notifPanel" hidden><div id="notifList"></div><button id="notifMore" hidden></button></div>`;
             UIManager.showToast.mockClear();
@@ -286,10 +288,10 @@ describe('Firestore paths (fake Firestore)', () => {
             NotificationsManager.start('owner1');
             await fake.settle();
             expect(fake.listenerCount()).toBe(1);
-            expect(document.getElementById('notifBell').style.display).toBe('');
+            expect(document.getElementById('notifBell').hidden).toBe(false);
             NotificationsManager.stop();
             expect(fake.listenerCount()).toBe(0);
-            expect(document.getElementById('notifBell').style.display).toBe('none');
+            expect(document.getElementById('notifBell').hidden).toBe(true);
         });
 
         test('new notification → 5 s toast + badge, still unread; opening the inbox marks it read', async () => {
@@ -306,7 +308,7 @@ describe('Firestore paths (fake Firestore)', () => {
 
             expect(UIManager.showToast).toHaveBeenCalledTimes(1);
             const [msg, ms] = UIManager.showToast.mock.calls[0];
-            expect(msg).toContain('Gehu: Retail rate ₹40.00 → ₹45.00');
+            expect(msg).toContain('Gehu: Retail rate ₹40 → ₹45');
             expect(msg).not.toMatch(/[\u0900-\u097F]/); // one language: English by default (#143)
             expect(msg).toContain('Manager');
             expect(ms).toBe(5000);
@@ -317,7 +319,10 @@ describe('Firestore paths (fake Firestore)', () => {
             await NotificationsManager.openInbox();
             await fake.settle();
             expect(document.getElementById('notifPanel').hidden).toBe(false);
-            expect(document.querySelectorAll('#notifList .notif-row')).toHaveLength(2);
+            const items = document.querySelectorAll('#notifList button.row');
+            expect(items).toHaveLength(2);
+            expect([...items].map(r => r.querySelector('.lead-icon use').getAttribute('href'))).toEqual(['#i-tag', '#i-tag']);
+            expect(items[0].textContent).not.toMatch(/\p{Extended_Pictographic}/u);
             expect([...fake.raw('notifications').values()].filter(d => d.userId === 'owner1').every(d => d.read === true)).toBe(true);
             expect(document.getElementById('notifBadge').hidden).toBe(true);
         });
@@ -357,6 +362,7 @@ describe('Firestore paths (fake Firestore)', () => {
             const rows = document.querySelectorAll('#notifList [data-reminder]');
             expect([...rows].map(r => r.dataset.reminder)).toEqual(['rent', 'lease']);
             expect(rows[0].textContent).toContain('Rent due ₹12,000');
+            expect([...rows].map(r => r.querySelector('.lead-icon use').getAttribute('href'))).toEqual(['#i-home', '#i-file']);
             expect(rows[1].innerHTML).toContain('&lt;b&gt;Ravi');
             expect(rows[1].textContent).toContain('rent increase due: 5% → ₹10,500');
             expect(document.getElementById('notifBadge').hidden).toBe(true);

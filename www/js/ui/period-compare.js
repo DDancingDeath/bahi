@@ -18,7 +18,8 @@ import {
 } from '../utils/saved-ranges.js';
 import { saveOwnSavedRanges, updateOwnSavedRanges } from '../firebase/repos/users.js';
 import { AppState } from '../utils/state.js';
-import { formatRupees } from '../utils/money.js';
+import { icon } from './icons.js';
+import { formatRupees, moneyText } from '../utils/money.js';
 
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
 
@@ -118,7 +119,7 @@ function datesHtml(page, which, preset) {
         + `<input type="date" id="${id}From" max="${today}" value="${esc(r?.first || '')}" aria-label="${esc(t('ui.cmp.from'))}">`
         + `<span aria-hidden="true">–</span>`
         + `<input type="date" id="${id}To" max="${today}" value="${esc(r?.last || '')}" aria-label="${esc(t('ui.cmp.to'))}">`
-        + `<button type="button" class="btn btn-secondary" data-onclick="${page}.applyDates('${which}')">${esc(t('ui.cmp.show'))}</button></div>`;
+        + `<button type="button" class="btn btn-sm" data-onclick="${page}.applyDates('${which}')">${esc(t('ui.cmp.show'))}</button></div>`;
 }
 
 /**
@@ -148,10 +149,10 @@ export function compareBarHtml(page, { share = false } = {}) {
             + `<option value="">${esc(t('ui.cmp.saved'))}</option>`
             + saved.map(x => `<option value="${esc(x.id)}">${esc(savedLabel(x))}</option>`).join('') + '</select>' : '')
         + (isSaved
-            ? `<button type="button" class="btn btn-secondary" data-onclick="${page}.removeRange()">${esc(t('ui.cmp.remove'))}</button>`
-            : savable ? `<button type="button" class="btn btn-secondary" data-onclick="${page}.saveRange()">${esc(t('ui.cmp.save'))}</button>` : '')
-        + (share ? `<button type="button" class="btn btn-secondary" data-onclick="${page}.shareSummary()">${esc(t('ui.cmp.share'))}</button>`
-            + `<button type="button" class="btn btn-secondary" data-onclick="${page}.printSummary()">${esc(t('ui.cmp.print'))}</button>` : '')
+            ? `<button type="button" class="btn btn-sm" data-onclick="${page}.removeRange()">${icon('x', 'i-sm')}${esc(t('ui.cmp.remove'))}</button>`
+            : savable ? `<button type="button" class="btn btn-sm" data-onclick="${page}.saveRange()">${icon('plus', 'i-sm')}${esc(t('ui.cmp.save'))}</button>` : '')
+        + (share ? `<button type="button" class="btn btn-sm" data-onclick="${page}.shareSummary()">${icon('wa', 'i-sm')}${esc(t('ui.cmp.share'))}</button>`
+            + `<button type="button" class="btn btn-sm" data-onclick="${page}.printSummary()">${icon('printer', 'i-sm')}${esc(t('ui.cmp.print'))}</button>` : '')
         + '</div>'
         + (bValue === 'custom' ? datesHtml(page, 'b', compare) : '')
         + '</div>';
@@ -239,8 +240,6 @@ export function resetPeriodCompareForTests() {
 }
 
 const pctText = (c) => (!c ? '' : c.dir === 'same' ? '＝' : `${c.dir === 'up' ? '▲' : '▼'} ${Math.abs(c.pct)}%`);
-const rupees = (v) => (v === null ? '—' : formatRupees(v, { trueMinus: true }));
-const textRupees = (v) => (v === null ? '—' : formatRupees(v));
 const signed = (v) => (v === null ? '—' : `${v > 0 ? '+' : ''}${formatRupees(v, { trueMinus: true })}`);
 
 /**
@@ -252,9 +251,9 @@ export function compareTableHtml(rows, labels) {
     const head = `<thead><tr><th></th><th class="num">${esc(labels.a)}</th><th class="num">${esc(labels.b)}</th>`
         + `<th class="num">${esc(t('ui.cmp.change'))}</th><th class="num">%</th></tr></thead>`;
     const body = rows.map(r => `<tr data-cmp-row="${r.id}"${r.id === 'M6' ? ' data-perm="profit"' : ''}><td>${esc(t(ROW_KEYS[r.id]))}</td>`
-        + `<td class="num">${rupees(r.a)}</td><td class="num">${rupees(r.b)}</td><td class="num">${signed(r.diff)}</td>`
+        + `<td class="num">${moneyText(r.a, 'signed')}</td><td class="num">${moneyText(r.b, 'signed')}</td><td class="num">${signed(r.diff)}</td>`
         + `<td class="num ins-cmp-${r.c?.dir || 'none'}">${esc(pctText(r.c) || '—')}</td></tr>`).join('');
-    return `<table class="ins-table ins-ab-table">${head}<tbody>${body}</tbody></table>`;
+    return `<table class="table ins-cmp-table">${head}<tbody>${body}</tbody></table>`;
 }
 
 /**
@@ -270,8 +269,8 @@ export function summaryLines(rows, labels) {
     lines.push({ text: t('ui.cmp.summary_title', { period: labels.a }) });
     if (labels.b) lines.push({ text: t('ui.cmp.vs', { period: labels.b }) });
     rows.forEach(r => {
-        lines.push({ left: t(ROW_KEYS[r.id]), right: textRupees(r.a) });
-        if (labels.b) lines.push({ left: `  ${labels.b}`, right: r.c ? `${textRupees(r.b)}  ${pctText(r.c)}` : textRupees(r.b) });
+        lines.push({ left: t(ROW_KEYS[r.id]), right: moneyText(r.a, 'plain') });
+        if (labels.b) lines.push({ left: `  ${labels.b}`, right: r.c ? `${moneyText(r.b, 'plain')}  ${pctText(r.c)}` : moneyText(r.b, 'plain') });
     });
     return lines;
 }

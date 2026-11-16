@@ -16,7 +16,7 @@ describe('resolveShortcut', () => {
         expect(resolveShortcut(key('P', { metaKey: true }), { ...billing, billingMode: 'sale', typing: true }))
             .toEqual({ type: 'click', selector: '#printSaleBtn' });
         expect(resolveShortcut(key('s', { ctrlKey: true }), { activeTab: 'wholesale-sales', wholesaleEntryVisible: true }))
-            .toEqual({ type: 'click', selector: '#salesEntrySection .save-sale-btn' });
+            .toEqual({ type: 'click', selector: '#saveWholesaleBtn' });
     });
 
     test('Ctrl+S / Ctrl+P fall through where there is no bill, behind a dialog, on key repeat or AltGr', () => {
@@ -83,5 +83,80 @@ describe('Esc closes JS-built popups (#88)', () => {
         expect(cancel).toHaveBeenCalledTimes(1);
         expect(evt.defaultPrevented).toBe(true);
         expect(popup.isConnected).toBe(false);
+    });
+});
+describe('Esc closes dialogs in Hindi', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const { setLang, t } = require('../i18n/index.js');
+    afterEach(() => {
+        setLang('en');
+        document.body.innerHTML = '';
+        delete window.__aadhatShortcutsInstalled;
+        jest.restoreAllMocks();
+    });
+
+    test('a Hindi Cancel ("रहने दें") is found by its text', () => {
+        const root = document.createElement('div');
+        root.innerHTML = '<button>बदलें</button><button>रहने दें</button>';
+        expect(findCloseControl(root).textContent).toBe('रहने दें');
+    });
+
+    test('Escape closes the Item dialog in Hindi through its Cancel', () => {
+        setLang('hi');
+        jest.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}]);
+        window.matchMedia = () => ({ matches: true });
+        jest.isolateModules(() => { require('../utils/keyboard-shortcuts.js'); });
+        const html = fs.readFileSync(path.join(__dirname, '..', '..', 'templates', 'modals.html'), 'utf8');
+        document.body.innerHTML = `<div id="appContent"><div class="tab active" id="items"></div></div>${html}`;
+        const overlay = document.getElementById('itemEditOverlay');
+        overlay.classList.add('active');
+        const cancel = overlay.querySelector('[data-onclick="items.closeItemModal()"]');
+        cancel.textContent = t('ui.modals.cancel');
+        expect(cancel.textContent).toBe('रहने दें');
+        expect(findCloseControl(overlay)).toBe(cancel);
+        const closed = jest.fn();
+        cancel.addEventListener('click', closed);
+        const evt = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+        document.body.dispatchEvent(evt);
+        expect(closed).toHaveBeenCalledTimes(1);
+    });
+
+    test('Escape closes the Rentals form sheet through its Cancel', () => {
+        jest.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}]);
+        window.matchMedia = () => ({ matches: true });
+        jest.isolateModules(() => { require('../utils/keyboard-shortcuts.js'); });
+        const html = fs.readFileSync(path.join(__dirname, '..', '..', 'templates', 'rentals.html'), 'utf8');
+        document.body.innerHTML = `<div id="appContent">${html}</div>`;
+        document.getElementById('rentals').classList.add('active');
+        document.getElementById('rentDialog').hidden = false;
+        const cancel = document.getElementById('rentDialogCancel');
+        expect(findCloseControl(document.getElementById('rentDialog'))).toBe(cancel);
+        const closed = jest.fn();
+        cancel.addEventListener('click', closed);
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(closed).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('the shortcuts help (C5b)', () => {
+    afterEach(() => {
+        document.body.innerHTML = '';
+        delete window.__aadhatShortcutsInstalled;
+        jest.restoreAllMocks();
+    });
+
+    test('? opens it as an app dialog with Close focused; Esc closes it', () => {
+        jest.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}]);
+        window.matchMedia = () => ({ matches: true, addEventListener() {} });
+        jest.isolateModules(() => { require('../utils/keyboard-shortcuts.js'); });
+        document.body.innerHTML = '<div id="appContent"><div class="tab active" id="billing"></div></div>';
+        const key = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+        key('?');
+        const help = document.getElementById('kbdHelpOverlay');
+        expect(help.matches('.app-scrim.active')).toBe(true);
+        expect(document.activeElement).toBe(help.querySelector('[data-dismiss]'));
+        key('Escape');
+        expect(document.getElementById('kbdHelpOverlay')).toBeNull();
     });
 });

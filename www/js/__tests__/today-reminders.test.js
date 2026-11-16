@@ -7,6 +7,8 @@ import { DayManager } from '../modules/day.js';
 import { drillReminder, recordDrill } from '../utils/backup-verify.js';
 import { AppState } from '../utils/state.js';
 import { setLang } from '../i18n/index.js';
+import { toggleDisclosure } from '../ui/disclosure.js';
+import { savePayDue, payDueReminder, payDueStale, saveBillsDue, billsDueReminder, billsDueStale } from '../utils/pay-reminder.js';
 
 const TODAY = new Date(2026, 10, 15, 10, 0, 0);
 const daysAgo = (n) => `${String(new Date(2026, 10, 15 - n).getDate()).padStart(2, '0')}/${String(new Date(2026, 10, 15 - n).getMonth() + 1).padStart(2, '0')}/2026`;
@@ -64,7 +66,7 @@ describe('REM-2 rent due', () => {
     test('only for the same person and month, and only when something is due', () => {
         const s = memStore();
         saveRentReminder(s, { uid: 'u1', month: '2026-11', due: 12000, late: 2, dueUnits: 3, at: 5 });
-        expect(rentReminder(s, 'u1', '2026-11')).toEqual({ due: 12000, late: 2, dueUnits: 3, at: 5 });
+        expect(rentReminder(s, 'u1', '2026-11')).toEqual({ due: 12000, late: 2, dueUnits: 3, dueDays: [], at: 5 });
         expect(rentReminder(s, 'u2', '2026-11')).toBeNull();
         expect(rentReminder(s, 'u1', '2026-12')).toBeNull();
         saveRentReminder(s, { uid: 'u1', month: '2026-11', due: 0, late: 0, dueUnits: 0 });
@@ -81,8 +83,12 @@ describe('Rent page note (REM-2)', () => {
 
     test('kept for the current month with complete data only', () => {
         AppState.currentUser = { uid: 'u9' };
+        noteRent({ month, errors: new Set() }, [{ due: 5000, leaseId: 'L1' }, { due: 0, leaseId: 'L2' }, { due: 10, leaseId: 'L3' }, { due: 10, leaseId: 'L4' }],
+            [], [{ id: 'L1', dueDay: 10 }, { id: 'L2', dueDay: 1 }, { id: 'L3', dueDay: 5 }, { id: 'L4', dueDay: 10 }]);
+        expect(rentReminder(localStorage, 'u9', month).dueDays).toEqual([5, 10]);
+        localStorage.clear();
         noteRent({ month, errors: new Set() }, rows, []);
-        expect(rentReminder(localStorage, 'u9', month)).toEqual({ due: 7500.5, late: 1, dueUnits: 2, at: expect.any(Number) });
+        expect(rentReminder(localStorage, 'u9', month)).toEqual({ due: 7500.5, late: 1, dueUnits: 2, dueDays: [], at: expect.any(Number) });
         localStorage.clear();
         noteRent({ month, errors: new Set(['monthCharges']) }, rows, []);
         noteRent({ month, errors: new Set() }, rows, ['openCharges']);
@@ -172,9 +178,9 @@ describe('REM-3 backup check (#63)', () => {
         recordDrill(localStorage, { uid: 'u1', at: TODAY.getTime() - 29 * 86400000, exportedAt: null, docs: 5 });
         DayManager.renderReminders(TODAY);
         expect(card()).toBeNull();
-        // the owner's To do (REM-5, #86) stays, so the box is not hidden
-        expect(document.querySelectorAll('#todayReminders .today-reminder').length).toBe(1);
-        expect(document.querySelector('#todayReminders [data-reminder="manual"]')).not.toBeNull();
+        // an empty To do (REM-5, #86) takes no room: the owner only gets the small Add link
+        expect(document.querySelectorAll('#todayReminders .today-reminder').length).toBe(0);
+        expect(document.querySelector('#todayReminders .today-reminders-link')).not.toBeNull();
         recordDrill(localStorage, { uid: 'u1', at: TODAY.getTime() - 31 * 86400000, exportedAt: null, docs: 5 });
         DayManager.renderReminders(TODAY);
         expect(card().textContent).toContain('Last checked 31 days ago');
@@ -193,5 +199,187 @@ describe('REM-3 backup check (#63)', () => {
         localStorage.setItem('happa.restoreDrill', '{bad');
         expect(drillReminder(localStorage, 'u2', now).due).toBe(true);
         expect(recordDrill({ setItem() { throw new Error('full'); } }, { uid: 'u1', at: now })).toBe(false);
+    });
+});
+describe('WP-11 salaries due (#373)', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="todayReminders" hidden></div>';
+        AppState.currentUser = { uid: 'u1' };
+        AppState.settings = {};
+        AppState.retailSalesHistory = [];
+        AppState.salesHistory = [];
+        AppState.purchaseHistory = [];
+        localStorage.clear();
+    });
+    afterEach(() => { setLang('en'); AppState.userRole = null; });
+    const card = () => document.querySelector('[data-reminder="salaries"]');
+    const keep = (months, uid = 'u1', at = TODAY.getTime()) => savePayDue(localStorage, { uid, months, at });
+
+    test('the owner sees who is still to be paid this month and opens Workers / Salaries; nobody else does', () => {
+        AppState.userRole = 'owner';
+        DayManager.renderReminders(TODAY);
+        expect(card()).toBeNull();
+        keep({ '2026-11': { count: 2, due: 15000 }, '2026-12': { count: 3, due: 24000 } });
+        DayManager.renderReminders(TODAY);
+        expect(card().textContent).toContain('Salaries due ₹15,000');
+        expect(card().textContent).toContain('2 workers still to be paid');
+        expect(card().querySelector('button').getAttribute('data-onclick')).toBe("nav.showTab('workers')");
+        keep({ '2026-11': { count: 1, due: 6000 } });
+        DayManager.renderReminders(TODAY);
+        expect(card().textContent).toContain('1 worker still to be paid');
+        setLang('hi');
+        DayManager.renderReminders(TODAY);
+        expect(card().textContent).toContain('वेतन बाकी ₹6,000');
+        expect(card().textContent).toContain('1 कर्मचारी का वेतन देना बाकी');
+        for (const role of ['manager', 'staff']) {
+            AppState.userRole = role;
+            DayManager.renderReminders(TODAY);
+            expect(card()).toBeNull();
+        }
+    });
+
+    test('kept per owner and month; nothing due shows nothing; stale only when kept from an earlier day', () => {
+        const s = memStore();
+        expect(payDueStale(s, 'u1', TODAY)).toBe(false);
+        savePayDue(s, { uid: 'u1', months: { '2026-11': { count: 1, due: 500 }, '2026-12': { count: 0, due: 0 } }, at: TODAY.getTime() });
+        expect(payDueReminder(s, 'u1', '2026-11')).toEqual({ count: 1, due: 500, at: TODAY.getTime() });
+        expect(payDueReminder(s, 'u2', '2026-11')).toBeNull();
+        expect(payDueReminder(s, 'u1', '2026-12')).toBeNull();
+        expect(payDueReminder(s, 'u1', '2027-01')).toBeNull();
+        expect(payDueStale(s, 'u1', TODAY)).toBe(false);
+        expect(payDueStale(s, 'u2', TODAY)).toBe(false);
+        expect(payDueStale(s, 'u1', new Date(2026, 10, 16, 0, 1))).toBe(true);
+        expect(payDueReminder({ getItem: () => '{bad' }, 'u1', '2026-11')).toBeNull();
+        expect(payDueStale({ getItem: () => '{bad' }, 'u1')).toBe(false);
+    });
+});
+describe('RB-11 bills due (#437)', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="todayReminders" hidden></div>';
+        AppState.currentUser = { uid: 'u1' };
+        AppState.settings = {};
+        AppState.retailSalesHistory = [];
+        AppState.salesHistory = [];
+        AppState.purchaseHistory = [];
+        localStorage.clear();
+    });
+    afterEach(() => { setLang('en'); AppState.userRole = null; });
+    const card = () => document.querySelector('[data-reminder="bills"]');
+
+    test('the owner sees the bills due within 3 days or overdue and opens Recurring bills; nobody else does', () => {
+        AppState.userRole = 'owner';
+        DayManager.renderReminders(TODAY);
+        expect(card()).toBeNull();
+        saveBillsDue(localStorage, { uid: 'u1', days: { '2026-11-15': { count: 2, due: 1690, nobill: 1 }, '2026-11-16': { count: 0, due: 0, nobill: 0 } }, at: TODAY.getTime() });
+        DayManager.renderReminders(TODAY);
+        expect(card().textContent).toContain('Bills due: 2, ₹1,690');
+        expect(card().textContent).toContain('Amount not entered yet: 1');
+        expect(card().querySelector('button').getAttribute('data-onclick')).toBe("nav.showTab('recurring')");
+        setLang('hi');
+        DayManager.renderReminders(TODAY);
+        expect(card().textContent).toContain('बिल देने हैं: 2, ₹1,690');
+        DayManager.renderReminders(new Date(2026, 10, 16, 10));
+        expect(card()).toBeNull();
+        for (const role of ['manager', 'staff']) {
+            AppState.userRole = role;
+            DayManager.renderReminders(TODAY);
+            expect(card()).toBeNull();
+        }
+    });
+
+    test('kept per owner and day; stale only when kept from an earlier day', () => {
+        const s = memStore();
+        expect(billsDueStale(s, 'u1', TODAY)).toBe(false);
+        saveBillsDue(s, { uid: 'u1', days: { '2026-11-15': { count: 1, due: 500, nobill: 0 } }, at: TODAY.getTime() });
+        expect(billsDueReminder(s, 'u1', '2026-11-15')).toEqual({ count: 1, due: 500, nobill: 0, at: TODAY.getTime() });
+        expect(billsDueReminder(s, 'u2', '2026-11-15')).toBeNull();
+        expect(billsDueReminder(s, 'u1', '2026-11-16')).toBeNull();
+        expect(billsDueStale(s, 'u1', TODAY)).toBe(false);
+        expect(billsDueStale(s, 'u1', new Date(2026, 10, 16, 0, 1))).toBe(true);
+        expect(payDueStale(s, 'u1', new Date(2026, 10, 16, 0, 1))).toBe(false);
+        expect(billsDueReminder({ getItem: () => '{bad' }, 'u1', '2026-11-15')).toBeNull();
+    });
+});
+
+describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="todayReminders" hidden></div>';
+        AppState.currentUser = { uid: 'u1' };
+        AppState.settings = {};
+        AppState.userRole = 'owner';
+        AppState.retailSalesHistory = [bill('raja kumar', 100, 297), bill('suresh chacha', 150, 51)];
+        AppState.salesHistory = [];
+        AppState.purchaseHistory = [];
+        localStorage.clear();
+        saveRentReminder(localStorage, { uid: 'u1', month: '2026-11', due: 68000, late: 3, dueUnits: 3, at: TODAY.getTime() });
+    });
+    afterEach(() => { setLang('en'); AppState.userRole = null; AppState.retailSalesHistory = []; });
+    const toggle = () => document.getElementById('todayRemindersToggle');
+    const body = () => document.getElementById('todayRemindersBody');
+
+    test('closed by default: one row with a chip per reminder and the amber dot; the lists stay in the closed body', () => {
+        DayManager.renderReminders(TODAY);
+        expect(toggle().tagName).toBe('BUTTON');
+        expect(toggle().getAttribute('aria-expanded')).toBe('false');
+        expect(toggle().getAttribute('aria-controls')).toBe('todayRemindersBody');
+        expect(body().hidden).toBe(true);
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Udhaar ₹250·Rent ₹68,000·Backup');
+        expect(toggle().querySelector('[data-disclosure-alert]')).not.toBeNull();
+        expect(toggle().textContent).toContain('Something is overdue');
+        expect(toggle().textContent).not.toContain('raja kumar');
+        expect(body().querySelector('[data-reminder="collect"] button').getAttribute('data-onclick')).toBe("day.openDues('retail')");
+        expect(body().querySelector('[data-reminder="rent"] button').getAttribute('data-onclick')).toBe("rentals.open('rent', event)");
+        expect(body().querySelector('[data-reminder="backup"] button').getAttribute('data-onclick')).toBe('day.openBackupCheck()');
+        expect(body().querySelector('[data-reminder="manual"]')).toBeNull();
+    });
+
+    test('the dot only shows when something is overdue or late', () => {
+        AppState.retailSalesHistory = [];
+        saveRentReminder(localStorage, { uid: 'u1', month: '2026-11', due: 5000, late: 0, dueUnits: 1, at: TODAY.getTime() });
+        DayManager.renderReminders(TODAY);
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Rent ₹5,000·Backup');
+        expect(toggle().querySelector('[data-disclosure-alert]')).toBeNull();
+    });
+
+    test('a tap opens and closes it; the choice is kept on this device through redraws', () => {
+        DayManager.renderReminders(TODAY);
+        toggleDisclosure('today-reminders');
+        expect(toggle().getAttribute('aria-expanded')).toBe('true');
+        expect(body().hidden).toBe(false);
+        expect(localStorage.getItem('happa.open.today-reminders')).toBe('1');
+        DayManager.renderReminders(TODAY);
+        expect(toggle().getAttribute('aria-expanded')).toBe('true');
+        expect(body().hidden).toBe(false);
+        toggle().focus();
+        toggleDisclosure('today-reminders');
+        DayManager.renderReminders(TODAY);
+        expect(toggle().getAttribute('aria-expanded')).toBe('false');
+        expect(body().hidden).toBe(true);
+        expect(document.activeElement).toBe(toggle());
+    });
+
+    test('Hindi chips', () => {
+        setLang('hi');
+        DayManager.renderReminders(TODAY);
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('उधार ₹250·किराया ₹68,000·बैकअप');
+        expect(document.querySelector('.today-reminders-add').getAttribute('aria-label')).toBe('याद जोड़ें');
+    });
+
+    test('members with nothing to remind see nothing at all', () => {
+        AppState.userRole = 'staff';
+        AppState.retailSalesHistory = [];
+        DayManager.renderReminders(TODAY);
+        expect(document.getElementById('todayReminders').hidden).toBe(true);
+        expect(document.getElementById('todayReminders').innerHTML).toBe('');
+    });
+});
+
+describe('Today page order', () => {
+    test('the day\'s key figures come before Reminders and the Day report, which come before the rest', () => {
+        const fs = jest.requireActual('fs');
+        const path = jest.requireActual('path');
+        document.body.innerHTML = fs.readFileSync(path.resolve(__dirname, '../../templates/day.html'), 'utf8');
+        const all = [...document.querySelectorAll('#dayTodayContent .hero, #dayTodayContent .today-metrics, #todayReminders, #dayReportCard, #todayLabourCard')].map(e => e.id || e.className);
+        expect(all).toEqual(['hero', 'panel metrics today-metrics', 'todayReminders', 'dayReportCard', 'todayLabourCard']);
     });
 });

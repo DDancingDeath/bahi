@@ -203,11 +203,11 @@ describe('BF-BAGCHECK: one bag / packet above 100 kg', () => {
 
 // ---------- the dialog and the forms ----------
 
-const dialog = () => document.querySelector('.rate-check-dialog');
+const dialog = () => document.querySelector('.rate-check-sheet');
 async function answer(choice) {
     for (let i = 0; i < 50 && !dialog(); i++) await new Promise(r => setTimeout(r, 0));
     expect(dialog()).not.toBeNull();
-    const message = dialog().querySelector('.modal-body p').textContent;
+    const message = dialog().querySelector('.dialog-body p').textContent;
     dialog().querySelector(`[data-choice="${choice}"]`).click();
     return message;
 }
@@ -230,12 +230,43 @@ describe('the confirm dialog', () => {
         await settle();
         expect(document.activeElement.dataset.choice).toBe('fix');
         expect(dialog().querySelector('[data-choice="fix"]').textContent).toBe('Fix rate');
-        expect(dialog().querySelector('[data-choice="confirm"]').textContent).toBe('Yes, ₹260.00 is right');
+        expect(dialog().querySelector('[data-choice="confirm"]').textContent).toBe('Yes, ₹260 is right');
         expect(dialog().querySelector('[data-choice="fix"]').hasAttribute('data-dismiss')).toBe(true);
-        expect(await answer('fix')).toBe('Wheat 15 kg × ₹260.00 = ₹3,900. Today\'s rate ₹26.00 would give ₹390.');
+        expect(await answer('fix')).toBe('Wheat 15 kg × ₹260 = ₹3,900. Today\'s rate ₹26 would give ₹390.');
         expect(await result).toEqual({ ok: false, rateCheck: null });
         expect(document.activeElement.id).toBe('rate');
         expect(dialog()).toBeNull();
+    });
+
+    test('Esc / Back and a tap on the scrim answer "Fix rate"', async () => {
+        const { closeTopDialog } = await import('../utils/keyboard-shortcuts.js');
+        const escaped = checkLineRate({ kind: 'retail', item: ITEM, label: 'Wheat', rate: 260, qty: 15, rateInputId: 'rate' });
+        await settle();
+        expect(closeTopDialog()).toBe(true);
+        expect(await escaped).toEqual({ ok: false, rateCheck: null });
+        const tapped = checkLineRate({ kind: 'retail', item: ITEM, label: 'Wheat', rate: 260, qty: 15, rateInputId: 'rate' });
+        await settle();
+        dialog().dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        dialog().click();
+        expect(await tapped).toEqual({ ok: false, rateCheck: null });
+        expect(dialog()).toBeNull();
+    });
+
+    test('Esc on a narrow screen (no desktop shortcuts) answers "Fix rate"', async () => {
+        const original = window.matchMedia;
+        window.matchMedia = (q) => ({ matches: q.includes('max-width: 599'), media: q, addEventListener() {} });
+        try {
+            const asked = checkLineRate({ kind: 'retail', item: ITEM, label: 'Wheat', rate: 260, qty: 15, rateInputId: 'rate' });
+            await settle();
+            expect(dialog().querySelector('.app-dialog').classList.contains('sheet')).toBe(true);
+            const esc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+            document.activeElement.dispatchEvent(esc);
+            expect(esc.defaultPrevented).toBe(true);
+            expect(await asked).toEqual({ ok: false, rateCheck: null });
+            expect(dialog()).toBeNull();
+        } finally {
+            window.matchMedia = original;
+        }
     });
 
     test('"Yes, it is right" adds the line with who confirmed it', async () => {
@@ -259,7 +290,7 @@ describe('the confirm dialog', () => {
     test('Hindi: one language, "kg" for the weight', async () => {
         setLang('hi');
         const result = askRateCheck({ label: 'गेहूं', qty: 15, rate: 260, todayRate: 26, amount: 3900, todayAmount: 390 });
-        expect(await answer('fix')).toBe('गेहूं 15 kg × ₹260.00 = ₹3,900। आज के रेट ₹26.00 से ₹390 होता।');
+        expect(await answer('fix')).toBe('गेहूं 15 kg × ₹260 = ₹3,900। आज के रेट ₹26 से ₹390 होता।');
         expect(await result).toBe('fix');
     });
 });
@@ -323,7 +354,7 @@ describe('Add to bill on the three forms (OD-02)', () => {
         setVal('billRate', 240);
         setVal('newWeight', 15);
         const adding = PurchaseManager.addToBill();
-        expect(await answer('fix')).toBe('Wheat 15 kg × ₹240.00 = ₹3,600. Today\'s rate ₹24.00 would give ₹360.');
+        expect(await answer('fix')).toBe('Wheat 15 kg × ₹240 = ₹3,600. Today\'s rate ₹24 would give ₹360.');
         await adding;
         expect(PurchaseManager.getBillItems()).toEqual([]);
         expect(PurchaseManager.getWeights()).toEqual([15]);
@@ -341,7 +372,7 @@ describe('Add to bill on the three forms (OD-02)', () => {
         setVal('saleRate', 280);
         setVal('saleWeight', 15);
         const adding = RetailSaleManager.addToSalesBill();
-        expect(await answer('confirm')).toBe('Wheat 15 kg × ₹280.00 = ₹4,200. Today\'s rate ₹28.00 would give ₹420.');
+        expect(await answer('confirm')).toBe('Wheat 15 kg × ₹280 = ₹4,200. Today\'s rate ₹28 would give ₹420.');
         await adding;
         const [line] = RetailSaleManager.getSaleItems();
         expect(line).toMatchObject({ name: 'Wheat', rate: 280, qty: 15, total: 4200, rateCheck: { rate: 280, todayRate: 28, by: 'u2', byName: 'Staff One' } });
@@ -353,9 +384,29 @@ describe('Add to bill on the three forms (OD-02)', () => {
         setVal('sellRate', 5.4);
         setVal('sellQuantity', 10);
         const adding = WholesaleSalesManager.addToWholesaleBill();
-        expect(await answer('confirm')).toBe('Wheat 10 kg × ₹5.40 = ₹54. Today\'s rate ₹27.00 would give ₹270.');
+        expect(await answer('confirm')).toBe('Wheat 10 kg × ₹5.40 = ₹54. Today\'s rate ₹27 would give ₹270.');
         await adding;
         expect(WholesaleSalesManager.getItems()).toEqual([expect.objectContaining({ rate: 5.4, qty: 10, total: 54, rateCheck: expect.objectContaining({ rate: 5.4, todayRate: 27 }) })]);
+    });
+
+    test('purchase: the rate error shows under Rate, and taking a line back to edit removes it', async () => {
+        document.body.innerHTML = PURCHASE_DOM;
+        setVal('billItem', 1);
+        setVal('newWeight', 15);
+        await PurchaseManager.addToBill();
+        const rate = document.getElementById('billRate');
+        expect(document.getElementById('billRate-error').textContent).toBe('Please enter a valid rate');
+        expect(rate.getAttribute('aria-invalid')).toBe('true');
+        expect(UIManager.showToast).not.toHaveBeenCalledWith('Please enter a valid rate');
+
+        PurchaseManager.setWeights([]);
+        PurchaseManager.setBillItems([{ itemId: 'item-wheat', name: 'Wheat', rate: 24, qty: 15, total: 360, weights: [15] }]);
+        await PurchaseManager.editBillItem(0);
+        await new Promise(r => setTimeout(r, 60)); // editBillItem puts the rate back after 50 ms
+        expect(rate.value).toBe('24');
+        expect(document.getElementById('billRate-error')).toBeNull();
+        expect(rate.hasAttribute('aria-invalid')).toBe(false);
+        expect(rate.hasAttribute('aria-describedby')).toBe(false);
     });
 
     test('purchase bag: 485 kg asks; Fix weight keeps it in the box; confirmed it goes on the line', async () => {
@@ -442,7 +493,7 @@ describe('Add to bill on the three forms (OD-02)', () => {
         setVal('saleWeight', 485);
         const first = RetailSaleManager.addToSalesBill();
         expect(await answer('confirm')).toMatch(/^Packet weight 485 kg/);
-        expect(await answer('fix')).toMatch(/^Wheat 505 kg × ₹280\.00/);
+        expect(await answer('fix')).toMatch(/^Wheat 505 kg × ₹280/);
         await first;
         expect(RetailSaleManager.getSaleItems()).toEqual([]);
         setVal('saleRate', 28);

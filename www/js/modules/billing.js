@@ -13,23 +13,24 @@ import * as BillDrafts from '../firebase/repos/bill-drafts.js';
 import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
-import { billLabour, isActiveBill, readPayment, sumMoney } from '../utils/money.js';
+import { billLabour, isActiveBill, readPayment, sumMoney, formatRupees } from '../utils/money.js';
 import { buildPaymentSplit, computeRetailTotals, editKeepsMoney } from '../utils/calc/billing.js';
-import { BillChecksUI } from '../ui/bill-highlight.js';
+import { BillChecksUI, clearFieldError } from '../ui/bill-highlight.js';
 import { bindPartySuggest } from '../ui/party-suggest.js';
 import { findBillIndex } from '../utils/history-window.js';
 import { TIME_MS, AUTO_SAVE_DELAY } from '../utils/constants.js';
 import { PurchaseManager } from './purchase.js';
 import { RetailSaleManager } from './retail-sale.js';
 import { t } from '../i18n/index.js';
+import { emptyState } from '../ui/components.js';
 import { refusedForClock } from '../utils/clock-skew.js';
 import { isStorageFullError, saveFailedText, STORAGE_FULL_KEY, SAVED_ON_PHONE_KEY } from '../utils/storage-full.js';
 import { accessFor, canEditBillWith } from '../utils/role-access.js';
 import { billEditChanges, hasEditChanges } from '../utils/bill-edits.js';
 import { askReason } from '../ui/bill-status.js';
-import { prepareBillDate } from '../ui/bill-date-input.js';
+import { prepareBillDate, renderBillDateLine, revealBillDate } from '../ui/bill-date-input.js';
 import { autoSaveSummary, nextBillNumberHint, restoreFigures } from '../utils/calc/billing.js';
-import { formatDateTimeIN } from '../utils/dates.js';
+import { formatDateTimeIN, formatDate } from '../utils/dates.js';
 import { isArchivedItem } from '../utils/item-catalog.js';
 
 const EDIT_OFFLINE_KEY = 'msg.billing.edit_offline';
@@ -70,7 +71,7 @@ const editCheckContext = (bill) => ({
  */
 async function askEditReason(bill, updated) {
     if (!hasEditChanges(billEditChanges(bill, updated))) return '';
-    return askReason({ titleKey: 'ui.edits.reason_title', explainKey: 'ui.edits.reason_explain', labelKey: 'ui.edits.reason_label' });
+    return askReason({ titleKey: 'ui.edits.reason_title', explainKey: 'ui.edits.reason_explain', labelKey: 'ui.edits.reason_label', confirmKey: 'ui.common.save' });
 }
 
 // Per-bill "Print comments" toggle: carried through edit, drafts and autosave.
@@ -78,6 +79,26 @@ const readPrintComments = (id) => !!document.getElementById(id)?.checked;
 function setPrintComments(id, value) {
     const el = document.getElementById(id);
     if (el) el.checked = !!value;
+    syncBillNotes(id === 'salePrintComments' ? 'saleComments' : 'billComments');
+}
+
+const NOTE_INPUTS = ['billComments', 'saleComments'];
+
+/**
+ * Notes and "Print in bill" fold behind "Add note"; a bill that has a note (a draft, a restored
+ * or edited bill) shows them open.
+ * @param {string} inputId
+ * @param {boolean} [open] force open; otherwise open only when there is a note
+ */
+export function syncBillNotes(inputId, open = false) {
+    const input = document.getElementById(inputId);
+    const field = input?.closest('.bill-notes');
+    if (!field) return;
+    const hasNote = !!input.value.trim() || !!field.querySelector('input[type="checkbox"]')?.checked;
+    const shown = open || hasNote;
+    field.hidden = !shown;
+    const toggle = field.parentElement?.querySelector('.bill-note-toggle');
+    if (toggle) toggle.hidden = shown;
 }
 
 /** Waits for a bill edit transaction; gives up waiting after EDIT_TIMEOUT_MS. */
@@ -203,7 +224,7 @@ const BillingManager = {
     /**
      * Switch between purchase and sale modes
      * @param {'purchase'|'sale'} mode - The mode to switch to
-     * @param {Event} [event] - Optional click event for button styling
+     * @param {Event} [event] - The click, if any (the buttons follow the mode either way)
      */
     switchMode(mode, event) {
         const purchaseSection = document.getElementById('purchaseSection');
@@ -218,13 +239,15 @@ const BillingManager = {
             this.autoSaveToCloud().catch(e => console.warn('Auto-save failed:', e));
         }
         
-        // Update button states
-        if (event) {
-            purchaseBtn.classList.remove('active');
-            saleBtn.classList.remove('active');
-            // The tab for this mode (a delegated click's currentTarget is the document, #89)
-            (mode === 'sale' ? saleBtn : purchaseBtn).classList.add('active');
-        }
+        // The buttons follow the mode shown, whoever switched it (a draft passes no event)
+        const onBtn = mode === 'sale' ? saleBtn : purchaseBtn;
+        [purchaseBtn, saleBtn].forEach(btn => {
+            if (!btn) return;
+            btn.classList.toggle('active', btn === onBtn);
+            btn.setAttribute('aria-pressed', String(btn === onBtn));
+        });
+        clearFieldError('billRate');
+        clearFieldError('saleRate');
         
         if (mode === 'sale') {
             this.currentMode = 'sale';
@@ -240,7 +263,7 @@ const BillingManager = {
             if (currentRate) {
                 setTimeout(() => {
                     const saleRateInput = document.getElementById('saleRate');
-                    if (saleRateInput) saleRateInput.value = currentRate;
+                    if (saleRateInput) { saleRateInput.value = currentRate; clearFieldError('saleRate'); }
                 }, 50);
             }
             if (currentWeight) {
@@ -274,11 +297,28 @@ const BillingManager = {
         prepareBillDate('saleDate', editing && this.editingBillType === 'retail' ? editing : null);
     },
 
+    /** "Change date" (owner): unfolds the Date box. */
+    showDate(id) {
+        revealBillDate(id);
+    },
+
+    /** "Add note": unfolds Notes and "Print in bill". */
+    showNotes(inputId) {
+        syncBillNotes(inputId, true);
+        document.getElementById(inputId)?.focus();
+    },
+
+    /** Notes open when the bill has one, folded otherwise (after a draft, restore, edit or clear). */
+    syncNotes() {
+        NOTE_INPUTS.forEach(id => syncBillNotes(id));
+    },
+
     /**
      * The bill number line above Save (#117, BF-NO): the edited bill's number, the
      * number this bill already got on a failed save, or the likely next one.
      */
     renderBillNumber() {
+        this.renderEditNotice();
         const editingMode = this.editingBillIndex === undefined ? null
             : (this.editingBillType === 'retail' ? 'sale' : 'purchase');
         [['purchase', 'purchaseBillNo', PurchaseManager.getPendingBill(), 'P', AppState.purchaseHistory],
@@ -289,14 +329,28 @@ const BillingManager = {
             const known = editingMode === mode ? this.getEditingBill()?.billNumber : pending?.billNumber;
             if (editingMode === mode && !known) {
                 el.replaceChildren();
+                delete el.dataset.kind;
                 return;
             }
             const number = document.createElement('strong');
             number.lang = 'zxx';
             number.translate = false;
             number.textContent = known || nextBillNumberHint(prefix, bills);
+            el.dataset.kind = known ? 'known' : 'next';
             el.replaceChildren(document.createTextNode(`${t(known ? 'ui.billing.bill_no' : 'ui.billing.next_bill_no')} `), number);
         });
+    },
+
+    /** "Editing #P12" above the form while a saved bill is open in the editor, until it is saved. */
+    renderEditNotice() {
+        const notice = document.getElementById('billEditNotice');
+        if (!notice) return;
+        const editing = this.editingBillIndex !== undefined;
+        notice.hidden = !editing;
+        const text = document.getElementById('billEditNoticeText');
+        if (!editing || !text) return;
+        const number = this.getEditingBill()?.billNumber;
+        text.textContent = number ? t('ui.billing.editing_notice', { number }) : t('ui.billing.editing_notice_unnumbered');
     },
 
     /**
@@ -522,7 +576,7 @@ const BillingManager = {
     keepTypedRate(selectId, rateId, kept, typedRate) {
         const rateInput = document.getElementById(rateId);
         if (!rateInput || !typedRate || !kept?.itemId) return;
-        if (document.getElementById(selectId)?.selectedOptions?.[0]?.dataset.itemId === kept.itemId) rateInput.value = typedRate;
+        if (document.getElementById(selectId)?.selectedOptions?.[0]?.dataset.itemId === kept.itemId) { rateInput.value = typedRate; clearFieldError(rateId); }
     },
 
     /**
@@ -571,6 +625,7 @@ const BillingManager = {
         
         rateDatalist.innerHTML = '';
         rateInput.value = '';
+        clearFieldError(rateInput.id);
         rateInput.placeholder = t('ui.billing.select_enter_rate');
         
         if (itemIndex !== undefined && itemIndex !== '') {
@@ -597,6 +652,7 @@ const BillingManager = {
         
         rateDatalist.innerHTML = '';
         rateInput.value = '';
+        clearFieldError(rateInput.id);
         rateInput.placeholder = t('ui.billing.select_enter_rate');
         
         if (itemIndex !== undefined && itemIndex !== '') {
@@ -737,6 +793,15 @@ const BillingManager = {
         this.deleteAutoSave().catch(e => console.warn('Auto-save cleanup failed:', e));
     },
 
+    /** Clear from the ⋯ menu: asks first when the bill has lines or weights. */
+    async confirmClear() {
+        if (!this.editorEmpty(this.currentMode)) {
+            const ok = await UIManager.showModal(t('msg.billing.clear_confirm'), t('ui.billing.clear'), true, { confirmLabel: t('ui.billing.clear'), danger: true });
+            if (!ok) return;
+        }
+        this.clearBill();
+    },
+
     /**
      * Show drafts overlay
      * @async
@@ -748,8 +813,8 @@ const BillingManager = {
         try {
             const currentUser = firebase.auth().currentUser;
             if (!currentUser) {
-                content.innerHTML = `<p class="drafts-empty">${Helpers.escapeHtml(t('ui.billing.login_to_view_drafts'))}</p>`;
-                overlay.classList.add('active');
+                content.innerHTML = `<p class="empty">${Helpers.escapeHtml(t('ui.billing.login_to_view_drafts'))}</p>`;
+                UIManager.openSheet(overlay);
                 return;
             }
 
@@ -757,17 +822,17 @@ const BillingManager = {
                 .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
             if (drafts.length === 0) {
-                content.innerHTML = `<p class="drafts-empty">${Helpers.escapeHtml(t('ui.billing.no_saved_drafts'))}</p>`;
+                content.innerHTML = emptyState({ icon: 'file', title: t('ui.billing.no_saved_drafts') });
             } else {
                 content.innerHTML = drafts.map((draft) => `
-                    <div class="draft-card draft-card-${draft.mode === 'purchase' ? 'purchase' : 'sale'}">
-                        <div class="draft-card-head">
-                            <span class="draft-card-title">${Helpers.escapeHtml(t(draft.mode === 'purchase' ? 'ui.billing.purchase_draft' : 'ui.billing.sale_draft'))}</span>
-                            <span class="draft-card-meta">${Helpers.escapeHtml(t(draft.weights?.length > 0 ? 'ui.billing.draft_items_weights' : 'ui.billing.draft_items', { items: draft.items?.length || 0, weights: draft.weights?.length || 0 }))}</span>
+                    <div class="panel draft">
+                        <div class="draft-head">
+                            <span class="draft-title"><span class="mode-dot${draft.mode === 'purchase' ? '' : ' sale'}" aria-hidden="true"></span>${Helpers.escapeHtml(t(draft.mode === 'purchase' ? 'ui.billing.purchase_draft' : 'ui.billing.sale_draft'))}</span>
+                            <span class="draft-meta">${Helpers.escapeHtml(t(draft.weights?.length > 0 ? 'ui.billing.draft_items_weights' : 'ui.billing.draft_items', { items: draft.items?.length || 0, weights: draft.weights?.length || 0 }))}</span>
                         </div>
-                        <div class="draft-card-date">${Helpers.escapeHtml(draft.date)}</div>
-                        ${draft.customerName ? `<div class="draft-card-customer">${Helpers.escapeHtml(t('ui.common.customer'))} ${Helpers.escapeHtml(draft.customerName)}</div>` : ''}
-                        <div class="draft-card-actions">
+                        <div class="draft-date">${Helpers.escapeHtml(formatDate(draft.date, 'datetime') || draft.date)}</div>
+                        ${draft.customerName ? `<div class="draft-customer">${Helpers.escapeHtml(t('ui.common.customer'))} <strong>${Helpers.escapeHtml(draft.customerName)}</strong></div>` : ''}
+                        <div class="draft-actions">
                             <button type="button" class="btn btn-primary btn-sm" data-onclick="billing.loadDraft('${Helpers.escapeJsAttr(draft.id)}')">
                                 ${Helpers.escapeHtml(t('ui.billing.load'))}
                             </button>
@@ -779,11 +844,11 @@ const BillingManager = {
                 `).join('');
             }
 
-            overlay.classList.add('active');
+            UIManager.openSheet(overlay);
         } catch (error) {
             console.error('Failed to load drafts:', error);
-            content.innerHTML = `<p class="drafts-empty tone-neg">${Helpers.escapeHtml(t('ui.billing.failed_load_drafts'))}</p>`;
-            overlay.classList.add('active');
+            content.innerHTML = `<p class="empty tone-neg">${Helpers.escapeHtml(t('ui.billing.failed_load_drafts'))}</p>`;
+            UIManager.openSheet(overlay);
         }
     },
 
@@ -791,7 +856,7 @@ const BillingManager = {
      * Close drafts overlay
      */
     closeDrafts() {
-        document.getElementById('draftsOverlay').classList.remove('active');
+        UIManager.closeSheet(document.getElementById('draftsOverlay'));
     },
 
     /**
@@ -905,6 +970,13 @@ const BillingManager = {
             const countElement = document.getElementById('draftCount');
             if (countElement) {
                 countElement.textContent = count;
+            }
+            const draftsBtn = document.getElementById('draftsBtn');
+            if (draftsBtn) draftsBtn.hidden = !(count > 0);
+            const badge = document.getElementById('draftBadge');
+            if (badge) {
+                badge.textContent = String(count);
+                badge.hidden = !(count > 0);
             }
         } catch (error) {
             console.error('Failed to update draft count:', error);
@@ -1117,7 +1189,7 @@ const BillingManager = {
         text.textContent = t(mode === 'purchase' ? 'ui.billing.recover_purchase' : 'ui.billing.recover_sale', {
             when: formatDateTimeIN(data.lastSaved, undefined, t('msg.billing.recover_earlier')),
             lines,
-            total: Helpers.formatCurrency(total)
+            total: formatRupees(total)
         });
     },
 
@@ -1316,9 +1388,9 @@ const BillingManager = {
         const figures = restoreFigures(form, billType === 'retail' ? 'sale' : 'purchase', bill);
         const number = bill.billNumber || '—';
         const text = figures.saved === figures.unsaved
-            ? t('msg.billing.restore_already_saved', { number, total: Helpers.formatCurrency(figures.payable) })
+            ? t('msg.billing.restore_already_saved', { number, total: formatRupees(figures.payable) })
             : t('msg.billing.restore_already_saved_differs', {
-                number, saved: Helpers.formatCurrency(figures.saved), unsaved: Helpers.formatCurrency(figures.unsaved)
+                number, saved: formatRupees(figures.saved), unsaved: formatRupees(figures.unsaved)
             });
         return !!(await UIManager.showModal(text, t('ui.billing.already_saved_title'), true));
     },
@@ -1328,7 +1400,7 @@ const BillingManager = {
         if (!bill?.id) return;
         const { saved, unsaved } = restoreFigures(form, billType === 'retail' ? 'sale' : 'purchase', bill);
         const open = await UIManager.showModal(t('msg.billing.saved_on_other_phone', {
-            number: bill.billNumber || '—', saved: Helpers.formatCurrency(saved), unsaved: Helpers.formatCurrency(unsaved)
+            number: bill.billNumber || '—', saved: formatRupees(saved), unsaved: formatRupees(unsaved)
         }), t('ui.billing.already_saved_title'), true);
         if (open) this.openSavedBill({ bill, billType });
     },
@@ -1392,7 +1464,7 @@ const BillingManager = {
         if (target.base && FirebaseService.billVersion(bill) === target.base) return { bill, billType: target.billType };
         const { saved, unsaved } = restoreFigures(form, target.mode, bill);
         const apply = await UIManager.showModal(
-            t('msg.billing.restore_edit_changed', { saved: Helpers.formatCurrency(saved), unsaved: Helpers.formatCurrency(unsaved) }),
+            t('msg.billing.restore_edit_changed', { saved: formatRupees(saved), unsaved: formatRupees(unsaved) }),
             t('ui.billing.restore_changed_title'), true);
         return apply ? { bill, billType: target.billType } : false;
     },
@@ -1452,7 +1524,7 @@ const BillingManager = {
                 setTimeout(() => {
                     if (purchaseData.rate) {
                         const rateInput = document.getElementById('billRate');
-                        if (rateInput) rateInput.value = purchaseData.rate;
+                        if (rateInput) { rateInput.value = purchaseData.rate; clearFieldError('billRate'); }
                     }
                 }, 100);
                 
@@ -1489,7 +1561,7 @@ const BillingManager = {
                 setTimeout(() => {
                     if (saleData.rate) {
                         const saleRateInput = document.getElementById('saleRate');
-                        if (saleRateInput) saleRateInput.value = saleData.rate;
+                        if (saleRateInput) { saleRateInput.value = saleData.rate; clearFieldError('saleRate'); }
                     }
                 }, 100);
                 
@@ -1651,8 +1723,7 @@ const BillingManager = {
             this.switchMode(mode, { currentTarget: btn });
         }
 
-        const overlay = document.getElementById('billDetailsOverlay');
-        if (overlay) overlay.classList.remove('active');
+        UIManager.closeSheet(document.getElementById('billDetailsOverlay'));
 
         if (mode === 'purchase') {
             PurchaseManager.setBillItems(bill.items.map(item => ({ ...item })));
@@ -1685,7 +1756,6 @@ const BillingManager = {
             this.prepareBillDates();
             
             window.app.nav.showTab('billing');
-            UIManager.showToast(t('msg.billing.editing_bill_modify_save'));
         } else {
             RetailSaleManager.setSaleItems(bill.items.map(item => ({ ...item })));
             RetailSaleManager.setSaleWeights([]);
@@ -1719,7 +1789,6 @@ const BillingManager = {
             this.prepareBillDates();
             
             window.app.nav.showTab('billing');
-            UIManager.showToast(t('msg.billing.editing_sale_modify_save'));
         }
     },
 
@@ -2021,6 +2090,23 @@ if (typeof window !== 'undefined') {
     });
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') BillingManager.prepareBillDates();
+    });
+    window.addEventListener('aadhat:langchange', () => {
+        renderBillDateLine('billDate');
+        renderBillDateLine('saleDate');
+    });
+    // The ⋯ menu closes on a pick, a tap elsewhere or Esc
+    document.addEventListener('click', (event) => {
+        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
+            if (!menu.contains(event.target) || event.target.closest?.('.bill-menu-list .btn')) menu.open = false;
+        });
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
+            menu.open = false;
+            menu.querySelector('summary')?.focus();
+        });
     });
     // Name suggestions on the customer / supplier fields (#139 phase 1)
     bindPartySuggest();

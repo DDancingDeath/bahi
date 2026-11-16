@@ -1,24 +1,17 @@
 /* Controls (redesign 2.5a, DIRECTION 3.6): buttons, kbd, fields, select, checkbox and switch,
    segmented control, tabs, chips and tags. Layer 3: tokens only.
-   The older class names listed beside each new one are kept as hooks (JS, E2E) and share its look. */
+   Buttons are only .btn and its variants; a hook on a button is a data-* attribute. */
 
 /* ---------- Button: .btn + -primary / -secondary (default) / -tonal / -ghost / -danger, -sm, -icon ---------- */
-.btn,
-.save-btn,
-.print-btn,
-.draft-btn,
-.add-to-bill-btn,
-.quick-add-btn-inline,
-.split-rest-btn,
-.filter-btn {
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--sp-2);
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 var(--sp-4);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
+  border-radius: var(--r-control);
   background-color: var(--surface);
   color: var(--ink);
   font-family: inherit;
@@ -28,22 +21,18 @@
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast),
-    color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
 }
 
-.btn-primary,
-.save-btn,
-.add-to-bill-btn,
-.quick-add-btn-inline {
+.btn-primary {
   border-color: transparent;
   background-color: var(--btn-primary-bg);
   color: var(--btn-primary-ink);
   box-shadow: var(--btn-primary-shadow);
 }
 
-.btn-tonal,
-.print-btn {
+.btn-tonal {
   border-color: transparent;
   background-color: var(--accent-soft);
   color: var(--accent-text);
@@ -62,20 +51,22 @@
   color: var(--btn-danger-ink);
 }
 
-.btn-success {
-  border-color: var(--positive-line);
-  background-color: var(--positive-soft);
-  color: var(--positive);
-}
-
-.btn-sm,
-.split-rest-btn {
-  padding: 0 12px;
-  font-size: var(--fs-sm);
+/* A risky choice that is not the main action (Discard the line, Save anyway): danger ink and outline, no fill */
+.btn-danger-outline {
+  border-color: var(--negative);
+  background-color: transparent;
+  color: var(--negative);
 }
 
 .btn-sm {
-  min-height: 32px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-sm);
+}
+
+/* Tap targets (#68): every button, also .btn-sm and the Outstanding / Cash payment actions, is at least 44 px tall */
+[data-record-payment],
+[data-mark-cleared] {
+  min-height: 44px;
 }
 
 .btn-icon {
@@ -89,73 +80,47 @@
 }
 
 /* Hover is a veil over any variant's colour, so mode colours (purchase / sale / cash) keep theirs */
-.btn:hover:not(:disabled),
-.save-btn:hover:not(:disabled),
-.print-btn:hover:not(:disabled),
-.draft-btn:hover:not(:disabled),
-.add-to-bill-btn:hover:not(:disabled),
-.quick-add-btn-inline:hover:not(:disabled),
-.split-rest-btn:hover:not(:disabled),
-.filter-btn:hover:not(:disabled):not(.active) {
+.btn:hover:not(:disabled) {
   background-image: linear-gradient(var(--state-hover), var(--state-hover));
 }
 
-.btn:active:not(:disabled),
-.save-btn:active:not(:disabled),
-.print-btn:active:not(:disabled),
-.draft-btn:active:not(:disabled),
-.add-to-bill-btn:active:not(:disabled),
-.quick-add-btn-inline:active:not(:disabled),
-.split-rest-btn:active:not(:disabled),
-.filter-btn:active:not(:disabled) {
+.btn:active:not(:disabled) {
   transform: scale(0.98);
 }
 
-.btn:focus-visible,
-.save-btn:focus-visible,
-.print-btn:focus-visible,
-.draft-btn:focus-visible,
-.add-to-bill-btn:focus-visible,
-.quick-add-btn-inline:focus-visible,
-.split-rest-btn:focus-visible,
-.filter-btn:focus-visible,
-.sub-tab:focus-visible {
+.btn:focus-visible {
   outline: none;
   box-shadow: var(--focus);
 }
 
 .btn:disabled,
-.btn[aria-disabled="true"],
-.save-btn:disabled,
-.print-btn:disabled,
-.draft-btn:disabled,
-.add-to-bill-btn:disabled,
-.quick-add-btn-inline:disabled,
-.split-rest-btn:disabled,
-.filter-btn:disabled {
+.btn[aria-disabled="true"] {
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
 }
 
+[data-requires-owner]:disabled,
+[data-requires-manager]:disabled {
+  opacity: 0.5;
+}
+
+[data-locked]:disabled {
+  opacity: 0.6;
+}
+
 /* Busy: the double-tap lock (runExclusive) sets aria-busy while a save runs */
-.btn[aria-busy="true"],
-.save-btn[aria-busy="true"],
-.print-btn[aria-busy="true"],
-.add-to-bill-btn[aria-busy="true"] {
+.btn[aria-busy="true"] {
   cursor: progress;
 }
 
-.btn[aria-busy="true"]::after,
-.save-btn[aria-busy="true"]::after,
-.print-btn[aria-busy="true"]::after,
-.add-to-bill-btn[aria-busy="true"]::after {
+.btn[aria-busy="true"]::after {
   content: '';
   width: 14px;
   height: 14px;
   border: 2px solid currentColor;
   border-right-color: transparent;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   animation: btn-spin 0.8s linear infinite;
 }
 
@@ -164,10 +129,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn[aria-busy="true"]::after,
-  .save-btn[aria-busy="true"]::after,
-  .print-btn[aria-busy="true"]::after,
-  .add-to-bill-btn[aria-busy="true"]::after {
+  .btn[aria-busy="true"]::after {
     animation: none;
   }
 }
@@ -208,11 +170,19 @@ input[type="text"] {
   width: 100%;
   padding: 13px 15px;
   border: 1px solid var(--input-border);
-  border-radius: var(--radius);
+  border-radius: var(--r-control);
   background-color: var(--input-bg);
   color: var(--ink);
   font-size: var(--fs-body);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+
+/* Other text-like fields keep their own size but take the field colours in every theme and mode (no specificity: page rules win) */
+:where(textarea, input:not([type]), input[type="date"], input[type="month"], input[type="time"],
+  input[type="tel"], input[type="email"], input[type="password"], input[type="search"]) {
+  border-color: var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--ink);
 }
 
 .input:focus,
@@ -255,7 +225,7 @@ select:not([multiple]):not([size]) {
 .adorn > .adorn-post {
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 var(--sp-3);
   border: 1px solid var(--input-border);
   background: var(--surface-2);
   color: var(--ink-3);
@@ -264,12 +234,12 @@ select:not([multiple]):not([size]) {
 
 .adorn > .adorn-pre {
   border-right: none;
-  border-radius: var(--radius) 0 0 var(--radius);
+  border-radius: var(--r-control) 0 0 var(--r-control);
 }
 
 .adorn > .adorn-post {
   border-left: none;
-  border-radius: 0 var(--radius) var(--radius) 0;
+  border-radius: 0 var(--r-control) var(--r-control) 0;
 }
 
 .adorn > .adorn-pre + .input {
@@ -282,6 +252,61 @@ select:not([multiple]):not([size]) {
   border-bottom-right-radius: 0;
 }
 
+/* ---------- Floating-label field: .field-float > label[for] + control ----------
+   The label sits on the control's top border and stays there with or without a value (never a placeholder as
+   label). The control is an .input, an .adorn or a wrapper holding one. The label's lower half takes the field
+   colour to cut the border; its upper half is clear, so it works on any surface. Leave about --sp-3 above. */
+.field-float {
+  position: relative;
+  min-width: 0;
+}
+
+.field-float > label {
+  position: absolute;
+  top: 0;
+  left: var(--sp-2);
+  z-index: var(--z-base);
+  max-width: calc(100% - var(--sp-4));
+  margin: 0;
+  padding: 0 var(--sp-1);
+  overflow: hidden;
+  background: linear-gradient(transparent 50%, var(--input-bg) 50%);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  font-weight: var(--w-label);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transform: translateY(-50%);
+}
+
+.field-float > .input,
+.field-float > .adorn {
+  width: 100%;
+}
+
+.field-float:focus-within > label {
+  color: var(--accent-text);
+}
+
+/* ---------- Search field: .search-field > .i (decorative, aria-hidden) + .input with its own label ---------- */
+.search-field {
+  position: relative;
+}
+
+.search-field > .i {
+  position: absolute;
+  top: 50%;
+  left: var(--sp-3);
+  color: var(--ink-3);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-field > .input {
+  padding-left: var(--sp-10);
+}
+
 /* ---------- Checkbox and switch ---------- */
 input[type="checkbox"],
 input[type="radio"] {
@@ -289,7 +314,7 @@ input[type="radio"] {
 }
 
 input[type="checkbox"].switch,
-.labor-input-row .checkbox-label input[type="checkbox"] {
+.checkbox-label input[type="checkbox"].switch {
   -webkit-appearance: none;
   appearance: none;
   flex: none;
@@ -299,100 +324,80 @@ input[type="checkbox"].switch,
   border-radius: var(--r-full);
   background: radial-gradient(circle at 11px 50%, var(--surface) 8px, transparent 8.5px), var(--ink-3);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--dur-1) var(--ease);
 }
 
 input[type="checkbox"].switch:checked,
-.labor-input-row .checkbox-label input[type="checkbox"]:checked {
+.checkbox-label input[type="checkbox"].switch:checked {
   background: radial-gradient(circle at 25px 50%, var(--on-accent) 8px, transparent 8.5px), var(--accent);
 }
 
 input[type="checkbox"].switch:focus-visible,
-.labor-input-row .checkbox-label input[type="checkbox"]:focus-visible {
+.checkbox-label input[type="checkbox"].switch:focus-visible {
   outline: none;
   box-shadow: var(--focus);
 }
 
-/* ---------- Segmented control: .seg (old: .filter-buttons > .filter-btn) ---------- */
-.seg,
-.filter-buttons {
+/* ---------- Segmented control: .seg, aria-pressed (modes and filters) ---------- */
+.seg {
   display: flex;
   gap: 2px;
   padding: 3px;
-  border-radius: calc(var(--radius) + 2px);
+  border-radius: var(--r-md);
   background: var(--seg-track);
 }
 
-.seg > button,
-.filter-buttons .filter-btn {
+.seg > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
   flex: 1;
   min-width: 0;
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--sp-3);
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--r-control);
   background-color: transparent;
   box-shadow: none;
   color: var(--ink-2);
+  font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
+  cursor: pointer;
 }
 
 .seg > .on,
 .seg > [aria-pressed="true"],
-.seg > [aria-selected="true"],
-.filter-buttons .filter-btn.active {
+.seg > [aria-selected="true"] {
   background-color: var(--seg-on);
   color: var(--ink);
   box-shadow: var(--e1);
 }
 
-.seg > button:focus-visible,
-.filter-buttons .filter-btn:focus-visible {
+.seg > button:focus-visible {
   outline: none;
   box-shadow: var(--focus);
 }
 
-/* Mode dot: purchase / sale segments show the mode colour */
-.filter-buttons .filter-btn.active.filter-purchase::before,
-.filter-buttons .filter-btn.active.filter-sale::before,
-#purchaseModeBtn.active::before,
-#saleModeBtn.active::before {
-  content: '';
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mode-purchase);
-}
-
-.filter-buttons .filter-btn.active.filter-sale::before,
-#saleModeBtn.active::before {
-  background: var(--mode-sale);
-}
-
 /* These set display, which would otherwise beat the hidden attribute */
-:is(.btn, .save-btn, .print-btn, .draft-btn, .add-to-bill-btn, .quick-add-btn-inline, .split-rest-btn, .filter-btn)[hidden],
+.btn[hidden],
 .seg[hidden],
-.filter-buttons[hidden],
-.tabs[hidden],
-.sub-tabs[hidden] {
+.tabs[hidden] {
   display: none;
 }
 
-/* ---------- Tabs: .tabs (old: .sub-tabs > .sub-tab), underline with a 2 px ink indicator ---------- */
-.tabs,
-.sub-tabs {
+/* ---------- Tabs: .tabs, role=tablist / tab + aria-selected (page sections), underline with a 2 px ink indicator ---------- */
+.tabs {
   display: flex;
-  gap: 4px;
+  gap: var(--sp-1);
   border-bottom: 1px solid var(--line);
   background: none;
 }
 
-.tabs > button,
-.sub-tab {
+.tabs > button {
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--sp-3);
   margin-bottom: -1px;
   border: none;
   border-bottom: 2px solid transparent;
@@ -403,24 +408,21 @@ input[type="checkbox"].switch:focus-visible,
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition: color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
 
-.tabs > button:hover,
-.sub-tab:hover {
+.tabs > button:hover {
   color: var(--ink);
 }
 
 .tabs > .on,
-.tabs > [aria-selected="true"],
-.sub-tab.active {
+.tabs > [aria-selected="true"] {
   border-bottom-color: var(--ink);
   color: var(--ink);
 }
 
-/* ---------- Chips (old: .filter-buttons-secondary .filter-btn; a lone .filter-btn.active) and tags ---------- */
-.chip,
-.filter-buttons-secondary .filter-btn {
+/* ---------- Chips: .chip + aria-pressed (on/off), and tags ---------- */
+.chip {
   min-height: 32px;
   padding: 0 14px;
   border: 1px solid var(--line-strong);
@@ -431,14 +433,8 @@ input[type="checkbox"].switch:focus-visible,
   font-weight: var(--w-label);
 }
 
-.filter-buttons-secondary .filter-btn {
-  min-height: 44px;
-}
-
 .chip.on,
-.chip[aria-pressed="true"],
-.filter-buttons-secondary .filter-btn.active,
-.filter-btn.active {
+.chip[aria-pressed="true"] {
   border-color: var(--ink);
   background-color: var(--ink);
   color: var(--bg);
@@ -448,7 +444,7 @@ input[type="checkbox"].switch:focus-visible,
   display: inline-flex;
   align-items: center;
   min-height: 22px;
-  padding: 0 8px;
+  padding: 0 var(--sp-2);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   color: var(--ink-2);
@@ -460,3 +456,53 @@ input[type="checkbox"].switch:focus-visible,
 .tag.neg { background: var(--negative-soft); color: var(--negative); }
 .tag.warn { background: var(--warning-soft); color: var(--warning); }
 .tag.info { background: var(--info-soft); color: var(--info); }
+
+/* -------------------- UTILITIES -------------------- */
+button, a, input[type="checkbox"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* -------------------- ENHANCED TOUCH INTERACTIONS -------------------- */
+button, .btn, input[type="submit"], input[type="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+
+button:active, .btn:active {
+  transform: scale(0.98);
+}
+
+input, textarea, select {
+  -webkit-tap-highlight-color: transparent;
+  font-size: var(--fs-input); /* Prevents zoom on iOS */
+}
+
+/* Better focus states for accessibility */
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* With zoom allowed, iOS (only it matches this @supports) zooms into any field under 16 px when it is focused */
+@supports (-webkit-touch-callout: none) {
+  body input:not([type]),
+  body input[type="text"],
+  body input[type="number"],
+  body input[type="search"],
+  body input[type="tel"],
+  body input[type="email"],
+  body input[type="password"],
+  body input[type="date"],
+  body select,
+  body textarea {
+    font-size: var(--fs-input) !important;
+  }
+}

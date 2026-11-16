@@ -5,7 +5,7 @@
  */
 
 import { APP_VERSION } from '../version.js';
-import { UIManager } from '../ui/ui-manager.js';
+import { UIManager, buildSheet } from '../ui/ui-manager.js';
 import { openExternal } from '../utils/open-external.js';
 import { getLang, t, LANG_CHANGE_EVENT } from '../i18n/index.js';
 import {
@@ -95,25 +95,25 @@ export class AppUpdatesManager {
     }
 
     static renderWhatsNew(release) {
-        document.getElementById('whatsNewSheet')?.remove();
-        const backdrop = el('div', 'app-sheet-backdrop');
+        const open = document.getElementById('whatsNewSheet');
+        if (open) {
+            UIManager.closeSheet(open);
+            open.remove();
+        }
+        const { overlay: backdrop, box: sheet, title, body, footer } = buildSheet({ labelId: 'whatsNewTitle', title: '', className: 'page-sheet' });
         backdrop.id = 'whatsNewSheet';
-        const sheet = el('div', 'app-sheet');
-        sheet.setAttribute('role', 'dialog');
-        sheet.setAttribute('aria-modal', 'true');
-        sheet.setAttribute('aria-labelledby', 'whatsNewTitle');
 
         // Changelog text is only ever set via textContent (never innerHTML), so it cannot inject markup.
         // The sheet follows the app language (#143); it has no language switch of its own.
-        const title = el('h3', 'app-sheet-title');
-        title.id = 'whatsNewTitle';
-        const versionLine = el('div', 'app-sheet-version');
-        const fallbackNote = el('p', 'app-sheet-fallback');
+        const versionLine = el('p', 'tone-muted');
+        const fallbackNote = el('p', 'notice warn');
         fallbackNote.setAttribute('role', 'note');
-        const list = el('ul', 'app-sheet-notes');
-        const close = el('button', 'add-item-btn app-sheet-close');
+        const list = el('ul', 'whats-new-notes');
+        const close = el('button', 'btn btn-primary');
         close.type = 'button';
-        sheet.append(title, versionLine, fallbackNote, list, close);
+        close.dataset.dismiss = '';
+        body.append(versionLine, fallbackNote, list);
+        footer.appendChild(close);
 
         const render = (storedLang) => {
             const { lang, notesLang, notes, fellBack } = whatsNewContent(release, storedLang);
@@ -134,14 +134,13 @@ export class AppUpdatesManager {
         const dismiss = () => {
             store.set(KEYS.lastSeen, APP_VERSION);
             window.removeEventListener(LANG_CHANGE_EVENT, onLangChange);
+            UIManager.closeSheet(backdrop);
             backdrop.remove();
         };
         close.addEventListener('click', dismiss);
-        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) dismiss(); });
 
-        backdrop.appendChild(sheet);
         document.body.appendChild(backdrop);
-        close.focus();
+        UIManager.openSheet(backdrop, { focus: close });
     }
 
     /** Android only: offer a newer APK published on GitHub Releases. */
@@ -169,7 +168,7 @@ export class AppUpdatesManager {
 
     static renderUpdateBanner(version) {
         document.getElementById('appUpdateBanner')?.remove();
-        const banner = el('div', 'app-update-banner');
+        const banner = el('div', 'notice info solid app-update');
         banner.id = 'appUpdateBanner';
         banner.setAttribute('role', 'status');
 
@@ -177,14 +176,14 @@ export class AppUpdatesManager {
         text.appendChild(el('strong', '', t('ui.updates.available', { version })));
         banner.appendChild(text);
 
-        const actions = el('div', 'app-update-actions');
-        const download = el('button', 'app-update-download', t('ui.updates.download'));
+        const actions = el('div', 'notice-actions');
+        const download = el('button', 'btn btn-sm btn-primary', t('ui.updates.download'));
         download.type = 'button';
         download.addEventListener('click', () => this.openExternal(APK_DOWNLOAD_URL));
-        const howTo = el('a', 'app-update-howto', t('ui.updates.how_to_install'));
+        const howTo = el('a', 'btn btn-sm btn-ghost', t('ui.updates.how_to_install'));
         howTo.href = DOWNLOAD_PAGE_URL;
         howTo.addEventListener('click', (e) => { e.preventDefault(); this.openExternal(DOWNLOAD_PAGE_URL); });
-        const close = el('button', 'app-update-close', '✕');
+        const close = el('button', 'btn btn-sm btn-ghost btn-icon', '✕');
         close.type = 'button';
         close.setAttribute('aria-label', t('ui.updates.dismiss'));
         close.addEventListener('click', () => {
@@ -236,6 +235,9 @@ export class AppUpdatesManager {
         const versionText = document.getElementById('appVersionText');
         if (versionText) versionText.textContent = APP_VERSION;
         const nativeShareBtn = document.getElementById('shareAppNativeBtn');
-        if (nativeShareBtn) nativeShareBtn.style.display = this.canNativeShare() ? '' : 'none';
+        if (nativeShareBtn) {
+            nativeShareBtn.hidden = !this.canNativeShare();
+            nativeShareBtn.style.display = this.canNativeShare() ? '' : 'none';
+        }
     }
 }

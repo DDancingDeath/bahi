@@ -10,7 +10,7 @@
 
 import { AppState } from '../utils/state.js';
 import { billsForKind } from '../utils/party-due.js';
-import { closeParty, matchParties, partyEntries } from '../utils/party-match.js';
+import { closeParty, entriesFromNames, matchParties, partyEntries } from '../utils/party-match.js';
 import { partyNameKey } from '../utils/parties.js';
 import { formatRupees } from '../utils/money.js';
 import { t } from '../i18n/index.js';
@@ -97,7 +97,7 @@ function ensureList(kind, input) {
         const state = open.get(kind);
         if (li && state) choose(kind, state.items[Number(li.dataset.index)]);
     });
-    (input.closest('.bill-customer-box') || input.parentElement).appendChild(list);
+    (input.closest('.bill-party') || input.parentElement).appendChild(list);
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-autocomplete', 'list');
     input.setAttribute('aria-controls', list.id);
@@ -172,6 +172,29 @@ function fillName(kind, name) {
     }
 }
 
+/**
+ * The parties a form's name can be matched to (voice, #498): the bills' parties, then the names list.
+ * @param {'purchase'|'retail'} kind
+ * @returns {Array<*>}
+ */
+export function partyEntriesFor(kind) {
+    const extra = [...(document.getElementById(OPTIONS_OF[kind])?.options || [])].map(o => o.value).filter(Boolean);
+    const entries = entriesFor(kind, editingId.get(kind) ?? null);
+    const known = new Set(entries.map(e => e.key));
+    return [...entries, ...entriesFromNames(extra).filter(e => !known.has(e.key))];
+}
+
+/**
+ * Puts a name in a form's name field as if typed (the due line, checks and auto-save follow).
+ * @param {'purchase'|'retail'} kind
+ * @param {string} name
+ */
+export function fillPartyName(kind, name) {
+    fillName(kind, name);
+    closeSuggestions(kind);
+    hideNameHint(kind);
+}
+
 function choose(kind, entry) {
     if (!entry) return;
     fillName(kind, entry.name);
@@ -230,7 +253,7 @@ export function renderNameHint(kind, draft = undefined) {
         el.id = hintId(kind);
         el.className = 'party-name-hint';
         el.setAttribute('role', 'status');
-        (input.closest('.form-row') || input).insertAdjacentElement('afterend', el);
+        (input.closest('.bill-form-field, .field-float') || input).insertAdjacentElement('afterend', el);
     }
     const text = document.createElement('span');
     text.className = 'party-name-hint-text';

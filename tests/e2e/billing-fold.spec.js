@@ -1,23 +1,26 @@
 /**
  * Billing fits the screen (#104): on a laptop (1366×768, 1280×720) the bill total and
- * Save / Print are on screen without scrolling the page; on a small phone (360×640),
+ * Save / Print are on screen without scrolling the page; at 1280×800 the date line and Add note are too, uncovered (3.5);
+ * on a small phone (360×640),
  * scrolled to the bottom, they show whole, not under the bottom bar. Both bill modes,
  * with a line on the bill so the totals column has its real height. The page scrolls
- * inside the open tab (`.tab.active`), not the window. On the phone Save / Print sit in the
- * action bar above the bottom bar, with the payable beside them, and the last field still
+ * inside the open tab (`.tab.active`), not the window. On every width the action row is the bill's total, then
+ * Share, Save and Print on one line; on the phone it is a bar above the bottom bar, and the last field still
  * scrolls clear of it.
  */
-const { test, expect, login, showTab } = require('./support/app');
+const { test, expect, login, showTab, settle } = require('./support/app');
 
 const SIZES = [
     { name: 'laptop 1366×768', width: 1366, height: 768, fold: true },
     { name: 'laptop 1280×720', width: 1280, height: 720, fold: true },
+    // 1280×800: the date line and Add note fit between the totals and Save / Print too, none of them covered (3.5)
+    { name: 'laptop 1280×800', width: 1280, height: 800, fold: true, fields: true },
     { name: 'phone 360×640', width: 360, height: 640, fold: false }
 ];
 
 const MODES = {
-    purchase: { btn: '#purchaseModeBtn', item: '#billItem', rate: '#billRate', weight: '#newWeight', section: '#purchaseSection', totals: ['#billTotal', '#amountPayable'], actions: ['#saveBillBtn', '#printBillBtn'], last: '#billDate', bar: ['#barPayable', '#amountPayable'] },
-    sale: { btn: '#saleModeBtn', item: '#saleItem', rate: '#saleRate', weight: '#saleWeight', section: '#saleSection', totals: ['#saleTotal'], actions: ['#saveSaleBtn', '#printSaleBtn'], last: '#saleDate', bar: ['#barReceivable', '#amountReceivable'] }
+    purchase: { btn: '#purchaseModeBtn', item: '#billItem', rate: '#billRate', weight: '#newWeight', section: '#purchaseSection', totals: ['#billTotal', '#amountPayable'], actions: ['#saveBillBtn', '#printBillBtn'], fields: ['#billNoteToggle', '#billDateText'], last: '#billDateText', bar: ['#barPayable', '#amountPayable'] },
+    sale: { btn: '#saleModeBtn', item: '#saleItem', rate: '#saleRate', weight: '#saleWeight', section: '#saleSection', totals: ['#saleTotal'], actions: ['#saveSaleBtn', '#printSaleBtn'], fields: ['#saleNoteToggle', '#saleDateText'], last: '#saleDateText', bar: ['#barReceivable', '#amountReceivable'] }
 };
 
 /** Where an element is on screen, and whether it is the topmost thing at its centre. */
@@ -84,13 +87,13 @@ async function addLine(page, mode, rate = 30) {
     await page.selectOption(m.item, value);
     await page.fill(m.rate, String(rate));
     await page.fill(m.weight, '10');
-    await tap(page, `${m.section} .quick-add-btn-inline`);
-    await tap(page, `${m.section} .add-to-bill-btn`);
+    await tap(page, `${m.section} [data-add-weight]`);
+    await tap(page, `${m.section} [data-add-line]`);
     await expect(page.locator(m.totals[0])).not.toHaveText('0');
     // Nothing paid yet: the bill checks add their banner above the bill and a line under the
     // split (after a short debounce). Measure with them, the case #104 is about.
-    await expect(page.locator(`${m.section} > .bill-check-banner`)).toBeVisible();
-    await expect(page.locator(`${m.section} .bill-col-summary .bill-check-msg`).first()).toBeVisible();
+    await expect(page.locator(`${m.section} > .bill-check-notice`)).toBeVisible();
+    await expect(page.locator(`${m.section} .bill-side .bill-check-msg`).first()).toBeVisible();
 }
 
 for (const size of SIZES) {
@@ -100,11 +103,17 @@ for (const size of SIZES) {
         await page.setViewportSize({ width: size.width, height: size.height });
         await login(page, 'owner');
         await showTab(page, 'billing');
+        if (size.fields) {
+            // A bill an earlier test left unsaved offers Restore above the form; this size measures the form alone
+            await settle(page);
+            if (await page.locator('#autoSaveBanner').isVisible()) await page.click('#autoSaveBanner [data-onclick="billing.resolveRecovery(false)"]');
+            await expect(page.locator('#autoSaveBanner')).toBeHidden();
+        }
         for (const mode of Object.keys(MODES)) {
             await addLine(page, mode);
             await scrollTab(page, size.fold ? 'top' : 'end');
             const m = MODES[mode];
-            for (const sel of size.fold ? [...m.totals, ...m.actions] : m.actions) {
+            for (const sel of size.fold ? [...m.totals, ...m.actions, ...(size.fields ? m.fields : [])] : m.actions) {
                 const p = await place(page, sel);
                 const where = `${mode} ${sel} at ${size.name}: ${JSON.stringify(p)}`;
                 if (size.fold) expect(p.scrolled, `page not scrolled (${where})`).toBe(0);
@@ -113,14 +122,22 @@ for (const size of SIZES) {
                 expect(p.right, `not cut off on the right (${where})`).toBeLessThanOrEqual(p.vw);
                 expect(p.onTop, `nothing covers it (${where})`).toBe(true);
             }
-            if (!size.fold) {
-                // The bar repeats the card's figure, on screen and uncovered
-                const [bar, card] = m.bar;
-                const p = await place(page, bar);
-                expect(p.top >= 0 && p.bottom <= p.vh && p.onTop, `${bar} on screen (${JSON.stringify(p)})`).toBe(true);
-                await expect(page.locator(bar)).toHaveText(await page.locator(card).textContent());
-            }
-            // The fields between the totals and Save/Print (notes, date) can be reached by scrolling.
+            // Every width: the row starts with the bill's total, the same figure as the card, then Share, Save
+            // and Print on one line, Save and Print the same width
+            const [bar, card] = m.bar;
+            const p = await place(page, bar);
+            expect(p.top >= 0 && p.bottom <= p.vh && p.onTop, `${bar} on screen at ${size.name} (${JSON.stringify(p)})`).toBe(true);
+            await expect(page.locator(bar)).toHaveText(await page.locator(card).textContent());
+            const row = await page.$eval(`${m.section} .bill-actions`, (el) => [...el.children].map((c) => {
+                const r = c.getBoundingClientRect();
+                return { cls: c.className, mid: Math.round(r.top + r.height / 2), left: Math.round(r.left), width: Math.round(r.width) };
+            }));
+            expect(row[0].cls, `${mode} row starts with the total at ${size.name}`).toContain('bill-bar-total');
+            const mids = row.map((c) => c.mid);
+            expect(Math.max(...mids) - Math.min(...mids), `${mode} row on one line at ${size.name}: ${JSON.stringify(row)}`).toBeLessThanOrEqual(2);
+            expect(row.every((c, i) => i === 0 || c.left > row[i - 1].left), `${mode} row in order at ${size.name}`).toBe(true);
+            expect(Math.abs(row[2].width - row[3].width), `${mode} Save and Print equal at ${size.name}: ${JSON.stringify(row)}`).toBeLessThanOrEqual(1);
+            // The line between the totals and Save/Print (date, Add note) can be reached by scrolling.
             expect(await reachable(page, m.last), `${m.last} reachable by scrolling`).toBe(true);
             await scrollTab(page, 'top');
             await testInfo.attach(`billing-${mode}-${size.width}x${size.height}.png`, {
@@ -142,6 +159,9 @@ test('a long bill on a laptop: the totals and Save stay on screen all the way do
     const end = await page.evaluate(() => { const tab = document.querySelector('.tab.active'); return tab.scrollHeight - tab.clientHeight; });
     // Tabbing into the fields between the stuck totals and Save/Print shows them in the gap
     await page.evaluate((y) => document.querySelector('.tab.active').scrollTo({ top: y, behavior: 'instant' }), Math.round(end / 2));
+    // Unfolded (Add note; Change date, the owner's), the fields stay visible when focused
+    await page.click('#billNoteToggle');
+    await page.click('#billDateChange');
     for (const sel of ['#billComments', '#billDate']) {
         await page.focus(sel);
         await page.waitForTimeout(100);

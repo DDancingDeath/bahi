@@ -1,81 +1,98 @@
 <div id="billing" class="tab active">
+    <header class="page-head"><h2 data-i18n="ui.nav.billing">Billing</h2></header>
 
-        <div class="filter-buttons">
-            <button class="filter-btn active" id="purchaseModeBtn" data-onclick="billing.switchMode('purchase', event)" data-i18n="ui.common.purchase">Purchase</button>
-            <button class="filter-btn" id="saleModeBtn" data-onclick="billing.switchMode('sale', event)" data-i18n="ui.billing.sale">Retail sale</button>
+        <div class="bill-mode-row">
+        <div class="seg bill-mode" role="group">
+            <button type="button" class="active" id="purchaseModeBtn" aria-pressed="true" data-onclick="billing.switchMode('purchase', event)"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchase">Purchase</span></button>
+            <button type="button" id="saleModeBtn" aria-pressed="false" data-onclick="billing.switchMode('sale', event)"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.billing.sale">Retail sale</span></button>
         </div>
-        
-        <!-- Drafts -->
-        <div class="bill-toolbar">
-            <button type="button" data-onclick="billing.showDrafts()" class="draft-btn draft-open-btn">
-                <svg class="i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
-                <span data-i18n="ui.billing.drafts">Drafts</span>
-                <span class="bill-count" id="draftCount">0</span>
-            </button>
-            <button type="button" id="saveDraftBtn" data-onclick="billing.saveDraft()" class="draft-btn draft-save-btn" data-i18n="ui.billing.save_draft">Save draft</button>
-            <button type="button" data-onclick="billing.clearBill()" class="draft-btn draft-clear-btn" data-i18n="ui.billing.clear">Clear</button>
+            <details class="bill-menu" id="billMenu">
+                <summary class="btn btn-ghost btn-icon" title="More" aria-label="More" data-i18n-title="ui.billing.more" data-i18n-aria-label="ui.billing.more"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg><span class="bill-menu-badge" id="draftBadge" aria-hidden="true" hidden>0</span></summary>
+                <div class="panel bill-menu-list">
+                    <button type="button" id="draftsBtn" data-onclick="billing.showDrafts()" class="btn btn-ghost" hidden>
+                        <svg class="i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
+                        <span data-i18n="ui.billing.drafts">Drafts</span>
+                        <span class="bill-count" id="draftCount">0</span>
+                    </button>
+                    <button type="button" id="saveDraftBtn" data-onclick="billing.saveDraft()" class="btn btn-ghost" data-i18n="ui.billing.save_draft">Save draft</button>
+                    <button type="button" id="clearBillBtn" data-onclick="billing.confirmClear()" class="btn btn-ghost bill-clear" data-i18n="ui.billing.clear">Clear</button>
+                </div>
+            </details>
         </div>
 
-        <div id="autoSaveBanner" class="autosave-banner" role="status" hidden>
-            <span id="autoSaveBannerText"></span>
-            <div class="autosave-banner-actions">
-                <button type="button" class="autosave-restore" data-onclick="billing.resolveRecovery(true)" data-i18n="ui.billing.restore">Restore</button>
-                <button type="button" class="autosave-discard" data-onclick="billing.resolveRecovery(false)" data-i18n="ui.billing.discard">Discard</button>
+        <div id="autoSaveBanner" class="notice warn autosave-notice" role="status" hidden>
+            <span id="autoSaveBannerText" class="grow"></span>
+            <div class="notice-actions">
+                <button type="button" class="btn btn-sm btn-tonal" data-onclick="billing.resolveRecovery(true)" data-i18n="ui.billing.restore">Restore</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-onclick="billing.resolveRecovery(false)" data-i18n="ui.billing.discard">Discard</button>
             </div>
+        </div>
+
+        <div id="billEditNotice" class="notice info bill-edit-notice" role="status" hidden>
+            <svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg>
+            <span id="billEditNoticeText" class="grow"></span>
         </div>
 
         <!-- PURCHASE SECTION -->
         <div id="purchaseSection" style="display: block;">
-        <div class="bill-col-entry">
-        <div class="form-row field bill-customer">
-            <label for="customerName" data-i18n="ui.billing.customer_label">Customer</label>
-            <div class="bill-customer-box">
-                <input type="text" class="input" id="customerName" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_customer_name_optional"/>
-                <button type="button" class="contact-pick-btn" data-perm="contacts" data-onclick="billing.pickContact()" title="Pick Contact" aria-label="Pick Contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
+        <div class="bill-main">
+        <div class="field-float bill-customer">
+            <label for="customerName" data-i18n="ui.billing.supplier_label">Customer</label>
+            <div class="bill-party">
+                <input type="text" class="input" id="customerName" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_supplier_name_optional"/>
+                <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
+                <button type="button" class="btn btn-ghost btn-icon voice-name-mic" data-voice-mic id="voiceNamePurchase" hidden data-onclick="voice.name('purchase')" title="Say the name" aria-label="Say the customer's name" data-i18n-title="ui.voice.name_mic_title" data-i18n-aria-label="ui.voice.name_mic_supplier"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
             </div>
             <datalist id="customerOptions"></datalist>
         </div>
 
-        <h3 class="bill-section-title" data-i18n="ui.billing.new_line">New line</h3>
-        <div class="panel panel-pad bill-entry">
-            <button type="button" class="voice-mic-btn" id="voiceMicPurchase" hidden data-onclick="voice.start('purchase')" data-i18n="ui.voice.mic" data-i18n-title="ui.voice.mic_title" title="Say item, weight and rate">🎤 Speak the line</button>
-            <div class="form-row field">
-                <label for="billItem" data-i18n="ui.common.item_2">Item</label>
-                <select id="billItem" class="input" data-onchange="billing.loadRates()"></select>
-            </div>
-
-            <div class="bill-entry-grid">
-                <div class="form-row field">
+        <div class="panel panel-pad bill-line-form" role="group" aria-label="New line" data-i18n-aria-label="ui.billing.new_line">
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-item">
+                    <label for="billItem" data-i18n="ui.common.item_2">Item</label>
+                    <select id="billItem" class="input" data-onchange="billing.loadRates()"></select>
+                </div>
+                <div class="field-float bill-entry-rate">
                     <label for="billRate" data-i18n="ui.common.rate">Rate</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="billRate" list="rateOptions" step="any" placeholder="Pick or type" data-i18n-placeholder="ui.billing.select_enter_rate"/>
+                        <input type="number" class="input" inputmode="decimal" id="billRate" list="rateOptions" step="any" placeholder="Pick" data-i18n-placeholder="ui.billing.select_enter_rate"/>
                     </div>
                     <datalist id="rateOptions"></datalist>
                 </div>
-                <div class="form-row field">
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicPurchase" hidden data-voice-hold="purchase" data-onclick="voice.start('purchase')" title="Hold and speak: party, items, payment…" aria-label="Hold to speak the bill" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
+            </div>
+            <div class="voice-strip" hidden>
+                <p class="voice-transcript" id="voiceTranscriptPurchase" role="status" aria-live="polite"></p>
+                <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoPurchase" hidden data-onclick="voice.undo('purchase')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
+            </div>
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-weight">
                     <label for="newWeight" data-i18n="ui.billing.weight_label">Weight</label>
                     <div class="adorn">
-                        <input type="number" class="input" inputmode="decimal" id="newWeight" placeholder="Weight" data-onenter="event.preventDefault(); billing.addWeight(true)" data-i18n-placeholder="ui.billing.enter_weight"/>
+                        <input type="number" class="input" inputmode="decimal" id="newWeight" placeholder="0" data-onenter="event.preventDefault(); billing.addWeight(true)"/>
                         <span class="adorn-post" aria-hidden="true">kg</span>
                     </div>
                 </div>
-                <button type="button" class="quick-add-btn-inline" data-onclick="billing.addWeight()" data-i18n="ui.billing.add">Add</button>
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-photo-weights id="photoWeightsPurchase" hidden data-onclick="photoWeights.pick('purchase')" title="Take a photo of the weight sheet" aria-label="Photo of weights" data-i18n-title="ui.photo_weights.button_title" data-i18n-aria-label="ui.photo_weights.button"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-camera"/></svg></button>
+                <button type="button" class="btn" data-add-weight data-onclick="billing.addWeight()" data-i18n="ui.billing.add">Add</button>
             </div>
+            <input type="file" id="photoWeightsInput" accept="image/*" capture="environment" hidden data-onchange="photoWeights.picked(this)" data-i18n-aria-label="ui.photo_weights.button_title" aria-label="Take a photo of the weight sheet"/>
 
             <div id="weightsDisplay" class="weights-compact"></div>
 
-            <div class="bill-summary">
-                <span><span data-i18n="ui.billing.packets">Packets:</span> <strong id="totalPackets">0</strong></span>
-                <span><span data-i18n="ui.billing.total_colon">Total:</span> <strong><span id="totalWeights">0</span> kg</strong></span>
+            <div class="bill-line-sum">
+                <span><span data-i18n="ui.billing.packets">Packets</span> <strong id="totalPackets">0</strong></span>
+                <span><span data-i18n="ui.billing.total_colon">Total</span> <strong><span id="totalWeights">0</span> kg</strong></span>
             </div>
 
-            <button type="button" class="add-to-bill-btn" data-onclick="billing.addToBill()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.common.add_bill">Add to Bill</span></button>
+            <button type="button" class="btn btn-tonal btn-block" data-add-line data-onclick="billing.addToBill()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.common.add_bill">Add to bill</span></button>
         </div>
 
         <div id="weightBreakdownSection" class="bill-breakdown"></div>
 
-        <h3 class="bill-section-title" data-i18n="ui.common.bill_items">Bill Items</h3>
+        <div class="bill-on-bill" id="purchaseLines" hidden>
+        <h3 class="bill-section-title" data-i18n="ui.billing.on_this_bill">On this bill</h3>
         <table id="billTable">
             <thead>
                 <tr>
@@ -90,20 +107,21 @@
         </table>
 
         <div class="bill-items-foot">
-            <span data-i18n="ui.billing.total_packets">Total Packets:</span> <strong id="totalPacketsInBill">0</strong>
+            <span data-i18n="ui.billing.total_packets">Total packets</span> <strong id="totalPacketsInBill">0</strong>
+        </div>
         </div>
         </div>
 
-        <div class="bill-col-summary">
+        <div class="bill-side">
         <div class="bill-totals">
-            <div class="total-row">
+            <div class="total-line">
                 <span data-i18n="ui.billing.purchase_total_label">Purchase total</span>
-                <strong>₹ <span id="billTotal">0</span></strong>
+                <strong class="money"><span class="cur">₹</span><span id="billTotal">0</span></strong>
             </div>
 
-            <div class="labor-input-row">
+            <div class="bill-labour">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="autoLaborCharge" checked data-onchange="billing.updateTotals()">
+                    <input type="checkbox" class="switch" id="autoLaborCharge" checked data-onchange="billing.updateTotals()">
                     <span data-i18n="ui.billing.labour_label">Labour</span>
                 </label>
                 <span id="laborCalculation" class="bill-labour-calc">6 × 0</span>
@@ -116,139 +134,154 @@
                 </div>
             </div>
 
-            <div class="total-row grand-total">
+            <div class="total-line grand-total">
                 <span data-i18n="ui.billing.total_payable_label">Total payable</span>
-                <strong>₹ <span id="amountPayable">0</span></strong>
+                <strong class="money"><span class="cur">₹</span><span id="amountPayable">0</span></strong>
             </div>
 
             <div class="bill-pay-title" data-i18n="ui.billing.payment">Payment</div>
 
-            <div class="payment-row">
+            <div class="pay-line">
                 <label for="onlinePayment" id="onlinePaymentLabel" data-i18n="ui.billing.online_label">Online</label>
-                <input type="checkbox" id="onlineCheckbox" aria-describedby="onlinePaymentLabel" data-onchange="billing.fillPayableAmount('online')" title="Put the whole bill here" aria-label="Put the whole bill here" data-i18n-title="ui.billing.fill_all" data-i18n-aria-label="ui.billing.fill_all" />
+                <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="onlineCheckbox" aria-describedby="onlinePaymentLabel" data-onchange="billing.fillPayableAmount('online')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
                     <input type="number" class="input" inputmode="decimal" id="onlinePayment" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
-            <div class="payment-row">
+            <div class="pay-line">
                 <label for="cashPayment" id="cashPaymentLabel" data-i18n="ui.billing.cash_label">Cash</label>
-                <input type="checkbox" id="cashCheckbox" aria-describedby="cashPaymentLabel" data-onchange="billing.fillPayableAmount('cash')" title="Put the whole bill here" aria-label="Put the whole bill here" data-i18n-title="ui.billing.fill_all" data-i18n-aria-label="ui.billing.fill_all" />
+                <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="cashCheckbox" aria-describedby="cashPaymentLabel" data-onchange="billing.fillPayableAmount('cash')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
                     <input type="number" class="input" inputmode="decimal" id="cashPayment" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
-            <div class="payment-row payment-total">
+            <div class="pay-line payment-total">
                 <span data-i18n="ui.billing.total_paid_label">Total paid</span>
-                <strong>₹ <span id="totalPayment">0</span></strong>
+                <strong class="money"><span class="cur">₹</span><span id="totalPayment">0</span></strong>
             </div>
 
-            <div class="payment-row">
+            <div class="pay-line">
                 <label for="dueAmount" id="dueAmountLabel" data-i18n="ui.billing.due_label">Due</label>
-                <input type="checkbox" id="dueCheckbox" aria-describedby="dueAmountLabel" data-onchange="billing.fillPayableAmount('due')" title="Put the whole bill here" aria-label="Put the whole bill here" data-i18n-title="ui.billing.fill_all" data-i18n-aria-label="ui.billing.fill_all" />
+                <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="dueCheckbox" aria-describedby="dueAmountLabel" data-onchange="billing.fillPayableAmount('due')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
                     <input type="number" class="input" inputmode="decimal" id="dueAmount" data-oninput="billing.updatePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
-            <div class="payment-row split-remaining-row">
+            <div class="pay-line pay-rest" hidden>
                 <span data-i18n="ui.billing.not_split_label">Not split yet</span>
                 <strong id="purchaseSplitRemaining">₹0</strong>
-                <button type="button" class="split-rest-btn" data-onclick="billing.putRestInDue('purchase')" data-i18n="ui.common.rest_due">Rest → Due</button>
+                <button type="button" class="btn btn-tonal btn-sm" data-onclick="billing.putRestInDue('purchase')" data-i18n="ui.common.rest_due">Rest → due</button>
             </div>
         </div>
 
-        <div class="form-row field bill-notes">
+        <div class="bill-notes-date">
+        <div class="bill-extras">
+            <span class="bill-date-line" data-date-line="billDate">
+                <span class="bill-date-text" id="billDateText"></span>
+                <button type="button" class="btn btn-ghost btn-sm bill-date-change" id="billDateChange" hidden data-onclick="billing.showDate('billDate')" data-i18n="ui.billing.change_date">Change date</button>
+            </span>
+            <button type="button" class="btn btn-ghost btn-sm bill-note-toggle" id="billNoteToggle" data-onclick="billing.showNotes('billComments')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.billing.add_note">Add note</span></button>
+        </div>
+        <div class="bill-form-field field bill-notes" hidden>
             <label for="billComments" data-i18n="ui.billing.notes_label">Notes</label>
-            <input type="text" class="input" id="billComments" placeholder="GPay name, number etc. (Optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
+            <input type="text" class="input" id="billComments" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
             <label class="checkbox-label bill-note-print">
                 <input type="checkbox" id="billPrintComments" />
                 <span data-i18n="ui.billing.print_in_bill">Print in bill</span>
             </label>
         </div>
 
-        <div class="bill-debug-preview">
-            <img id="canvasDebugPreview" style="display: none;" alt="Receipt Preview">
-        </div>
-
-        <div class="form-row field">
+        <div class="bill-form-field field bill-date" hidden>
             <label for="billDate" data-i18n="ui.billing.date_label">Date</label>
             <input type="date" id="billDate" class="bill-date-input input" />
+        </div>
+        </div>
+
+        <div class="bill-debug-preview">
+            <img id="canvasDebugPreview" style="display: none;" alt="Receipt Preview">
         </div>
         <div class="bill-no-hint" id="purchaseBillNo"></div>
 
         <div class="bill-actions">
             <div class="bill-bar-total">
-                <span class="bill-bar-label" data-i18n="ui.billing.total_payable_label">Total payable</span>
-                <strong class="bill-bar-money">₹ <span id="barPayable">0</span></strong>
+                <span class="bill-bar-label" aria-hidden="true" data-i18n="ui.billing.bar_payable">Payable</span><span class="sr-only" data-i18n="ui.billing.total_payable_label">Total payable</span>
+                <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barPayable">0</span></strong>
             </div>
-            <button data-onclick="billing.shareWhatsApp()" class="share-draft-btn bill-icon-btn" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+            <button type="button" data-onclick="billing.shareWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                 <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
-                <span data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
+                <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
             </button>
-            <button class="print-btn print-purchase-btn bill-icon-btn" id="printBillBtn" data-onclick="billing.printBill()" data-kbd="Ctrl P">
+            <button type="button" class="btn btn-primary" id="saveBillBtn" data-onclick="billing.saveBill()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
+            <button type="button" class="btn bill-print" id="printBillBtn" data-onclick="billing.printBill()" data-kbd="Ctrl P">
                 <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
-                <span class="bill-btn-text" data-i18n="ui.common.print">Print</span>
+                <span class="bill-print-label" data-i18n="ui.common.print">Print</span>
             </button>
-            <button class="save-btn save-purchase-btn" id="saveBillBtn" data-onclick="billing.saveBill()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
         </div>
         </div>
         </div>
         <!-- END PURCHASE SECTION -->
 
         <!-- SALE SECTION -->
-        <div id="saleSection" style="display: none;">
-        <div class="bill-col-entry">
-        <div class="form-row field bill-customer">
+        <div id="saleSection" class="bill-sale" style="display: none;">
+        <div class="bill-main">
+        <div class="field-float bill-customer">
             <label for="saleCustomerName" data-i18n="ui.billing.customer_label">Customer</label>
-            <div class="bill-customer-box">
+            <div class="bill-party">
                 <input type="text" class="input" id="saleCustomerName" autocomplete="off" placeholder="Name (optional)" data-i18n-placeholder="ui.billing.enter_customer_name_optional"/>
-                <button type="button" class="contact-pick-btn" data-perm="contacts" data-onclick="billing.pickSaleContact()" title="Pick Contact" aria-label="Pick Contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
+                <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickSaleContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
+                <button type="button" class="btn btn-ghost btn-icon voice-name-mic" data-voice-mic id="voiceNameSale" hidden data-onclick="voice.name('sale')" title="Say the name" aria-label="Say the customer's name" data-i18n-title="ui.voice.name_mic_title" data-i18n-aria-label="ui.voice.name_mic_customer"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
             </div>
             <datalist id="saleCustomerOptions"></datalist>
         </div>
 
-        <h3 class="bill-section-title" data-i18n="ui.billing.new_line">New line</h3>
-        <div class="panel panel-pad bill-entry">
-            <button type="button" class="voice-mic-btn" id="voiceMicSale" hidden data-onclick="voice.start('sale')" data-i18n="ui.voice.mic" data-i18n-title="ui.voice.mic_title" title="Say item, weight and rate">🎤 Speak the line</button>
-            <div class="form-row field">
-                <label for="saleItem" data-i18n="ui.common.item_2">Item</label>
-                <select id="saleItem" class="input" data-onchange="billing.loadSaleRates()"></select>
-            </div>
-
-            <div class="bill-entry-grid">
-                <div class="form-row field">
+        <div class="panel panel-pad bill-line-form" role="group" aria-label="New line" data-i18n-aria-label="ui.billing.new_line">
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-item">
+                    <label for="saleItem" data-i18n="ui.common.item_2">Item</label>
+                    <select id="saleItem" class="input" data-onchange="billing.loadSaleRates()"></select>
+                </div>
+                <div class="field-float bill-entry-rate">
                     <label for="saleRate" data-i18n="ui.common.rate">Rate</label>
                     <div class="adorn">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="saleRate" list="saleRateOptions" step="any" placeholder="Pick or type" data-i18n-placeholder="ui.billing.select_enter_rate"/>
+                        <input type="number" class="input" inputmode="decimal" id="saleRate" list="saleRateOptions" step="any" placeholder="Pick" data-i18n-placeholder="ui.billing.select_enter_rate"/>
                     </div>
                     <datalist id="saleRateOptions"></datalist>
                 </div>
-                <div class="form-row field">
+                <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicSale" hidden data-voice-hold="sale" data-onclick="voice.start('sale')" title="Hold and speak: party, items, payment…" aria-label="Hold to speak the bill" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
+            </div>
+            <div class="voice-strip" hidden>
+                <p class="voice-transcript" id="voiceTranscriptSale" role="status" aria-live="polite"></p>
+                <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoSale" hidden data-onclick="voice.undo('sale')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
+            </div>
+            <div class="bill-entry-row">
+                <div class="field-float bill-entry-weight">
                     <label for="saleWeight" data-i18n="ui.billing.weight_label">Weight</label>
                     <div class="adorn">
-                        <input type="number" class="input" inputmode="decimal" id="saleWeight" placeholder="Weight" data-onenter="event.preventDefault(); billing.addSaleWeight()" data-i18n-placeholder="ui.billing.enter_weight"/>
+                        <input type="number" class="input" inputmode="decimal" id="saleWeight" placeholder="0" data-onenter="event.preventDefault(); billing.addSaleWeight()"/>
                         <span class="adorn-post" aria-hidden="true">kg</span>
                     </div>
                 </div>
-                <button type="button" class="quick-add-btn-inline" data-onclick="billing.addSaleWeight()" data-i18n="ui.billing.add">Add</button>
+                <button type="button" class="btn" data-add-weight data-onclick="billing.addSaleWeight()" data-i18n="ui.billing.add">Add</button>
             </div>
 
             <div id="saleWeightsDisplay" class="weights-compact"></div>
 
-            <div class="bill-summary">
-                <span><span data-i18n="ui.billing.packets">Packets:</span> <strong id="salePacketCount">0</strong></span>
-                <span><span data-i18n="ui.billing.total_colon">Total:</span> <strong><span id="saleRunningTotal">0</span> kg</strong></span>
+            <div class="bill-line-sum">
+                <span><span data-i18n="ui.billing.packets">Packets</span> <strong id="salePacketCount">0</strong></span>
+                <span><span data-i18n="ui.billing.total_colon">Total</span> <strong><span id="saleRunningTotal">0</span> kg</strong></span>
             </div>
 
-            <button type="button" class="add-to-bill-btn" data-onclick="billing.addToSalesBill()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.common.add_bill">Add to Bill</span></button>
+            <button type="button" class="btn btn-tonal btn-block" data-add-line data-onclick="billing.addToSalesBill()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.common.add_bill">Add to bill</span></button>
         </div>
 
-        <h3 class="bill-section-title" data-i18n="ui.common.bill_items">Bill Items</h3>
+        <div class="bill-on-bill" id="saleLines" hidden>
+        <h3 class="bill-section-title" data-i18n="ui.billing.on_this_bill">On this bill</h3>
         
         <!-- Weight Breakdown Section -->
         <div id="saleWeightBreakdownSection" class="bill-breakdown"></div>
@@ -267,91 +300,101 @@
         </table>
 
         <div class="bill-items-foot">
-            <span data-i18n="ui.billing.total_packets">Total Packets:</span> <strong id="totalSalePacketsInBill">0</strong>
+            <span data-i18n="ui.billing.total_packets">Total packets</span> <strong id="totalSalePacketsInBill">0</strong>
+        </div>
         </div>
         </div>
 
-        <div class="bill-col-summary">
+        <div class="bill-side">
         <div class="bill-totals">
-            <div class="total-row">
+            <div class="total-line">
                 <span data-i18n="ui.billing.sale_total_label">Sale total</span>
-                <strong>₹ <span id="saleTotal">0</span></strong>
+                <strong class="money"><span class="cur">₹</span><span id="saleTotal">0</span></strong>
             </div>
 
-            <div class="total-row grand-total">
+            <div class="total-line grand-total">
                 <span data-i18n="ui.billing.total_receivable_label">Total receivable</span>
-                <strong>₹ <span id="amountReceivable">0</span></strong>
+                <strong class="money"><span class="cur">₹</span><span id="amountReceivable">0</span></strong>
             </div>
 
             <div class="bill-pay-title" data-i18n="ui.billing.payment">Payment</div>
 
-            <div class="payment-row">
+            <div class="pay-line">
                 <label for="saleOnlinePayment" id="saleOnlinePaymentLabel" data-i18n="ui.billing.online_label">Online</label>
-                <input type="checkbox" id="saleOnlineCheckbox" aria-describedby="saleOnlinePaymentLabel" data-onchange="billing.fillReceivableAmount('online')" title="Put the whole bill here" aria-label="Put the whole bill here" data-i18n-title="ui.billing.fill_all" data-i18n-aria-label="ui.billing.fill_all" />
+                <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleOnlineCheckbox" aria-describedby="saleOnlinePaymentLabel" data-onchange="billing.fillReceivableAmount('online')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
                     <input type="number" class="input" inputmode="decimal" id="saleOnlinePayment" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
-            <div class="payment-row">
+            <div class="pay-line">
                 <label for="saleCashPayment" id="saleCashPaymentLabel" data-i18n="ui.billing.cash_label">Cash</label>
-                <input type="checkbox" id="saleCashCheckbox" aria-describedby="saleCashPaymentLabel" data-onchange="billing.fillReceivableAmount('cash')" title="Put the whole bill here" aria-label="Put the whole bill here" data-i18n-title="ui.billing.fill_all" data-i18n-aria-label="ui.billing.fill_all" />
+                <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleCashCheckbox" aria-describedby="saleCashPaymentLabel" data-onchange="billing.fillReceivableAmount('cash')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
                     <input type="number" class="input" inputmode="decimal" id="saleCashPayment" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
-            <div class="payment-row payment-total">
+            <div class="pay-line payment-total">
                 <span data-i18n="ui.billing.total_received_label">Total received</span>
-                <strong>₹ <span id="totalReceived">0</span></strong>
+                <strong class="money"><span class="cur">₹</span><span id="totalReceived">0</span></strong>
             </div>
 
-            <div class="payment-row">
+            <div class="pay-line">
                 <label for="saleDueAmount" id="saleDueAmountLabel" data-i18n="ui.billing.due_label">Due</label>
-                <input type="checkbox" id="saleDueCheckbox" aria-describedby="saleDueAmountLabel" data-onchange="billing.fillReceivableAmount('due')" title="Put the whole bill here" aria-label="Put the whole bill here" data-i18n-title="ui.billing.fill_all" data-i18n-aria-label="ui.billing.fill_all" />
+                <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="saleDueCheckbox" aria-describedby="saleDueAmountLabel" data-onchange="billing.fillReceivableAmount('due')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                 <div class="adorn bill-money">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
                     <input type="number" class="input" inputmode="decimal" id="saleDueAmount" data-oninput="billing.updateSalePaymentTotal()" placeholder="0" />
                 </div>
             </div>
 
-            <div class="payment-row split-remaining-row">
+            <div class="pay-line pay-rest" hidden>
                 <span data-i18n="ui.billing.not_split_label">Not split yet</span>
                 <strong id="saleSplitRemaining">₹0</strong>
-                <button type="button" class="split-rest-btn" data-onclick="billing.putRestInDue('sale')" data-i18n="ui.common.rest_due">Rest → Due</button>
+                <button type="button" class="btn btn-tonal btn-sm" data-onclick="billing.putRestInDue('sale')" data-i18n="ui.common.rest_due">Rest → due</button>
             </div>
         </div>
 
-        <div class="form-row field bill-notes">
+        <div class="bill-notes-date">
+        <div class="bill-extras">
+            <span class="bill-date-line" data-date-line="saleDate">
+                <span class="bill-date-text" id="saleDateText"></span>
+                <button type="button" class="btn btn-ghost btn-sm bill-date-change" id="saleDateChange" hidden data-onclick="billing.showDate('saleDate')" data-i18n="ui.billing.change_date">Change date</button>
+            </span>
+            <button type="button" class="btn btn-ghost btn-sm bill-note-toggle" id="saleNoteToggle" data-onclick="billing.showNotes('saleComments')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.billing.add_note">Add note</span></button>
+        </div>
+        <div class="bill-form-field field bill-notes" hidden>
             <label for="saleComments" data-i18n="ui.billing.notes_label">Notes</label>
-            <input type="text" class="input" id="saleComments" placeholder="GPay name, number etc. (Optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
+            <input type="text" class="input" id="saleComments" placeholder="GPay name, number etc. (optional)" data-i18n-placeholder="ui.billing.gpay_name_number_etc"/>
             <label class="checkbox-label bill-note-print">
                 <input type="checkbox" id="salePrintComments" />
                 <span data-i18n="ui.billing.print_in_bill">Print in bill</span>
             </label>
         </div>
 
-        <div class="form-row field">
+        <div class="bill-form-field field bill-date" hidden>
             <label for="saleDate" data-i18n="ui.billing.date_label">Date</label>
             <input type="date" id="saleDate" class="bill-date-input input" />
+        </div>
         </div>
         <div class="bill-no-hint" id="saleBillNo"></div>
 
         <div class="bill-actions">
             <div class="bill-bar-total">
-                <span class="bill-bar-label" data-i18n="ui.billing.total_receivable_label">Total receivable</span>
-                <strong class="bill-bar-money">₹ <span id="barReceivable">0</span></strong>
+                <span class="bill-bar-label" aria-hidden="true" data-i18n="ui.billing.bar_receivable">Receivable</span><span class="sr-only" data-i18n="ui.billing.total_receivable_label">Total receivable</span>
+                <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barReceivable">0</span></strong>
             </div>
-            <button data-onclick="billing.shareSaleWhatsApp()" class="share-draft-btn bill-icon-btn" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+            <button type="button" data-onclick="billing.shareSaleWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                 <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
-                <span data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
+                <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
             </button>
-            <button class="print-btn print-sale-btn bill-icon-btn" id="printSaleBtn" data-onclick="billing.printSale()" data-kbd="Ctrl P">
+            <button type="button" class="btn btn-primary" id="saveSaleBtn" data-onclick="billing.completeSale()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
+            <button type="button" class="btn bill-print" id="printSaleBtn" data-onclick="billing.printSale()" data-kbd="Ctrl P">
                 <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
-                <span class="bill-btn-text" data-i18n="ui.common.print">Print</span>
+                <span class="bill-print-label" data-i18n="ui.common.print">Print</span>
             </button>
-            <button class="save-btn save-sale-btn" id="saveSaleBtn" data-onclick="billing.completeSale()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
         </div>
         </div>
         </div>

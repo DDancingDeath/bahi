@@ -18,6 +18,10 @@ const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 // 01/10/2025 00:00 in India: the app reads a DD/MM/YYYY bill date as the phone's local time.
 const IST_OCT_1 = Date.UTC(2025, 8, 30, 18, 30);
+// "Now" for date-keyed test data, taken once per test by the runner, which never starts a test in the
+// last seconds of an IST day (so of a month or year either): the data and the rules' request.time agree.
+let testNow = Date.now();
+const istDayAt = (at, offset = 0) => new Date(at + 330 * MIN + offset * DAY).toISOString().slice(0, 10);
 
 // Expected PERMISSION_DENIED errors would otherwise flood the output.
 setLogLevel('silent');
@@ -1275,15 +1279,15 @@ function defineSuite(prefix) {
     t('owner can delete a user', () =>
         assertSucceeds(as('legacyOwner').collection(users).doc('rejected1').delete()));
 
-    // AadhatManagementApp#74: no self-removal, and two owners can't remove each other.
-    t('owner cannot change own role or status', async () => {
+    // AadhatManagementApp#74: no self-removal; multi-owner: settings/team.ownerUids keeps at least one owner.
+    t('owner cannot change own status, nor own role without the owner list', async () => {
         await assertFails(as('owner2').collection(users).doc('owner2').update({ role: 'manager' }));
         await assertFails(as('owner2').collection(users).doc('owner2').update({ status: 'disabled' }));
         await assertFails(as('legacyOwner').collection(users).doc('legacyOwner').update({ role: FieldValue.delete(), status: 'disabled' }));
         await assertSucceeds(as('owner2').collection(users).doc('owner2').update({ name: 'Renamed', lastLogin: new Date() }));
     });
 
-    t('owner cannot remove, demote or delete another owner', async () => {
+    t('owner cannot remove, demote or delete another owner without the owner list', async () => {
         await assertFails(as('legacyOwner').collection(users).doc('owner2').update({
             role: FieldValue.delete(), rentRole: FieldValue.delete(), status: 'disabled', disabledBy: 'legacyOwner'
         }));
@@ -1291,6 +1295,128 @@ function defineSuite(prefix) {
         await assertFails(as('owner2').collection(users).doc('legacyOwner').delete());
         await assertFails(as('legacyOwner').collection(users).doc('legacyOwner').delete());
         await assertSucceeds(as('owner2').collection(users).doc('legacyOwner').update({ name: 'Renamed' }));
+    });
+
+    // ---- owners (multi-owner): settings/team.ownerUids changes in the same batch as the role ----
+    const teamCol = () => `${prefix}settings`;
+    const listOwners = (uids) => env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(teamCol()).doc('team').set({ people: {}, ownerUids: uids }));
+    const expectOwners = async (want) => {
+        let got;
+        await env.withSecurityRulesDisabled(async ctx => { got = (await ctx.firestore().collection(teamCol()).doc('team').get()).data()?.ownerUids; });
+        if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`ownerUids: ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+    };
+    const ownerOnlyWrite = (uid) => as(uid).collection(teamCol()).doc('other').set({ a: 1 });
+    const roleBatch = (actor, uid, fields, change) => {
+        const db = as(actor);
+        const b = db.batch();
+        b.update(db.collection(users).doc(uid), fields);
+        if (change) b.set(db.collection(teamCol()).doc('team'), { ownerUids: change === 'add' ? FieldValue.arrayUnion(uid) : FieldValue.arrayRemove(uid) }, { merge: true });
+        return b.commit();
+    };
+
+    t('owners: an owner makes an approved person owner, with the owner list in the same batch', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(as('legacyOwner').collection(users).doc('manager1').update({ role: 'owner' }));
+        await assertSucceeds(roleBatch('legacyOwner', 'manager1', { role: 'owner' }, 'add'));
+        await expectOwners(['legacyOwner', 'owner2', 'manager1']);
+        await assertSucceeds(roleBatch('manager1', 'staff1', { role: 'owner' }, 'add'));
+        await assertSucceeds(ownerOnlyWrite('staff1'));
+    });
+
+    t('owners: the first owner list can be made by a promotion (no team doc yet)', async () => {
+        await assertSucceeds(roleBatch('legacyOwner', 'manager1', { role: 'owner' }, 'add'));
+        await expectOwners(['manager1']);
+    });
+
+    t('owners: a manager or member never grants owner, nor makes themselves owner, nor edits the list', async () => {
+        await listOwners(['legacyOwner']);
+        await assertFails(roleBatch('manager1', 'manager1', { role: 'owner' }, 'add'));
+        await assertFails(roleBatch('manager1', 'staff1', { role: 'owner' }, 'add'));
+        await assertFails(roleBatch('staff1', 'staff1', { role: 'owner' }, 'add'));
+        await assertFails(as('manager1').collection(users).doc('manager1').update({ role: 'owner' }));
+        await assertFails(as('manager1').collection(teamCol()).doc('team').set({ ownerUids: FieldValue.arrayUnion('manager1') }, { merge: true }));
+        await assertFails(as('manager1').collection(teamCol()).doc('team').set({ ownerUids: FieldValue.arrayRemove('legacyOwner') }, { merge: true }));
+        await assertFails(as('staff1').collection(teamCol()).doc('team').set({ ownerUids: [] }, { merge: true }));
+        await assertFails(asEmail('newbie', 'n@x.com').collection(users).doc('newbie').set({ name: 'N', email: 'n@x.com', role: 'owner', status: 'pending', createdAt: serverTimestamp() }));
+        await expectOwners(['legacyOwner']);
+    });
+
+    t('owners: a pending person is approved first, never made owner in one step', async () => {
+        await listOwners(['legacyOwner']);
+        await assertFails(roleBatch('legacyOwner', 'pending1', { role: 'owner', status: 'active' }, 'add'));
+        await assertFails(roleBatch('legacyOwner', 'rejected1', { role: 'owner', status: 'active' }, 'add'));
+        await assertSucceeds(as('legacyOwner').collection(users).doc('pending1').update({ role: 'manager', status: 'active' }));
+        await assertSucceeds(roleBatch('legacyOwner', 'pending1', { role: 'owner' }, 'add'));
+    });
+
+    t('owners: the last owner cannot be demoted, removed or step down', async () => {
+        await listOwners(['legacyOwner']);
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await listOwners(['owner2']);
+        await assertFails(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, 'remove'));
+        await assertFails(roleBatch('legacyOwner', 'owner2', { role: FieldValue.delete(), status: 'disabled' }, 'remove'));
+        await assertFails(as('legacyOwner').collection(users).doc('owner2').delete());
+        await expectOwners(['owner2']);
+    });
+
+    t('owners: an owner demotes or removes another owner while 2+ are listed', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(as('legacyOwner').collection(users).doc('owner2').update({ role: 'manager' }));
+        await assertFails(roleBatch('legacyOwner', 'owner2', { status: 'disabled' }, 'remove'));
+        await assertFails(as('legacyOwner').collection(users).doc('pending1').update({ role: 'owner' }));
+        await assertFails(as('legacyOwner').collection(users).doc('staff1').update({ role: 'owner', status: 'disabled' }));
+        await assertSucceeds(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, 'remove'));
+        await expectOwners(['legacyOwner']);
+        await assertFails(ownerOnlyWrite('owner2'));
+        await assertFails(roleBatch('owner2', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await listOwners(['legacyOwner', 'owner2']);
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(users).doc('owner2').update({ role: 'owner' }));
+        await assertSucceeds(roleBatch('owner2', 'legacyOwner', {
+            role: FieldValue.delete(), rentRole: FieldValue.delete(), status: 'disabled', disabledBy: 'owner2'
+        }, 'remove'));
+        await expectOwners(['owner2']);
+    });
+
+    t('owners: an owner steps down only while another owner is listed, and only to manager or member', async () => {
+        await listOwners(['legacyOwner', 'owner2']);
+        await assertFails(roleBatch('owner2', 'owner2', { role: 'none' }, 'remove'));
+        await assertFails(roleBatch('owner2', 'owner2', { role: 'manager', status: 'active' }, 'remove'));
+        await assertFails(roleBatch('owner2', 'owner2', { status: 'disabled' }, 'remove'));
+        await assertSucceeds(roleBatch('owner2', 'owner2', { role: 'manager' }, 'remove'));
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'staff' }, 'remove'));
+        await expectOwners(['legacyOwner']);
+    });
+
+    t('owners: the owner list stays consistent with the profiles', async () => {
+        await listOwners(['legacyOwner']);
+        const set = (actor, value) => as(actor).collection(teamCol()).doc('team').set({ ownerUids: value }, { merge: true });
+        // only active owners are added, one at a time; never a non-owner, never two at once, no repeats
+        await assertFails(set('legacyOwner', FieldValue.arrayUnion('manager1')));
+        await assertFails(set('legacyOwner', ['legacyOwner', 'owner2', 'owner2']));
+        await assertSucceeds(set('legacyOwner', FieldValue.arrayUnion('owner2')));
+        await assertFails(set('legacyOwner', ['legacyOwner', 'owner2', 'ghost']));
+        // a listed owner is not taken off without their demotion; the list never empties
+        await assertFails(set('legacyOwner', FieldValue.arrayRemove('owner2')));
+        await assertFails(set('legacyOwner', ['manager1', 'staff1']));
+        await assertFails(roleBatch('legacyOwner', 'owner2', { role: 'manager' }, null));
+        await assertFails(roleBatch('legacyOwner', 'manager1', { role: 'owner' }, null));
+        // a demotion must take that person off; a promotion must add them
+        const db = as('legacyOwner');
+        const swap = db.batch();
+        swap.update(db.collection(users).doc('owner2'), { role: 'manager' });
+        swap.set(db.collection(teamCol()).doc('team'), { ownerUids: FieldValue.arrayRemove('legacyOwner') }, { merge: true });
+        await assertFails(swap.commit());
+        await expectOwners(['legacyOwner', 'owner2']);
+        // a stale entry (no longer an owner) may be taken off on its own
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(users).doc('owner2').update({ role: 'manager' }));
+        await assertSucceeds(set('legacyOwner', FieldValue.arrayRemove('owner2')));
+        // the directory rewrite keeps the list; an old app's full rewrite drops it, and then nobody is demoted
+        await assertSucceeds(as('legacyOwner').collection(teamCol()).doc('team').set({ people: { a: { name: 'A', role: 'staff' } }, updatedAt: 1 }, { mergeFields: ['people', 'updatedAt'] }));
+        await expectOwners(['legacyOwner']);
+        await assertSucceeds(as('legacyOwner').collection(teamCol()).doc('team').set({ people: {}, updatedAt: 1 }));
+        await expectOwners(undefined);
+        await assertFails(roleBatch('legacyOwner', 'legacyOwner', { role: 'manager' }, 'remove'));
+        await assertSucceeds(set('legacyOwner', FieldValue.arrayUnion('legacyOwner')));
     });
 
     t('owner can still remove a non-owner (disabled profile)', () =>
@@ -2731,22 +2857,21 @@ function defineSuite(prefix) {
     const chosen = (on) => ({ personalExpenses: on, personalExpensesChosen: true });
     const personalOn = () => setPersonalAccess({ staff: chosen(true), manager: chosen(true) });
     /** The local (IST) day `offset` days from today, YYYY-MM-DD. */
-    const istDay = (offset = 0) => new Date(Date.now() + 330 * MIN + offset * DAY).toISOString().slice(0, 10);
+    const istDay = (offset = 0) => istDayAt(testNow, offset);
     /** An expense `date` on that day, as en-IN writes it ("5/1/2026, 10:00:00 am"). */
     const onDay = (day) => `${Number(day.slice(8, 10))}/${Number(day.slice(5, 7))}/${day.slice(0, 4)}, 10:00:00 am`;
-    const PDAY = istDay(0);
-    const pexp = (uid, extra = {}) => expense(uid, { category: 'personal', day: PDAY, date: onDay(PDAY), ...extra });
+    const pexp = (uid, extra = {}) => expense(uid, { category: 'personal', day: istDay(0), date: onDay(istDay(0)), ...extra });
     const dayKey = (id, amount) => ({ amounts: { [id]: amount === null ? FieldValue.delete() : amount }, last: id });
 
     t('personal expenses (#98): owner always; managers and members only once the owner turned their switch on', async () => {
         await seedBill(personal, 'p1', pexp('legacyOwner'));
-        await seedBill(personalDays, PDAY, { amounts: { p1: 50 }, last: 'p1' });
+        await seedBill(personalDays, istDay(0), { amounts: { p1: 50 }, last: 'p1' });
         // default off (no Roles & access saved yet)
         await assertSucceeds(as('legacyOwner').collection(personal).get());
         for (const uid of ['manager1', 'staff1', 'legacyStaff']) {
             await assertFails(as(uid).collection(personal).get());
             await assertFails(as(uid).collection(personal).doc('p1').get());
-            await assertSucceeds(as(uid).collection(personalDays).doc(PDAY).get());
+            await assertSucceeds(as(uid).collection(personalDays).doc(istDay(0)).get());
         }
         await assertFails(as('staff1').collection(personal).doc('p0').set(pexp('staff1')));
         // a true saved by an older app (every switch was saved, no mark) is the old default, not a choice
@@ -2765,14 +2890,14 @@ function defineSuite(prefix) {
         await assertSucceeds(as('manager1').collection(personal).get());
         await assertSucceeds(as('legacyOwner').collection(personal).get());
         // the day totals stay readable, so the cash count and Today still add them up
-        await assertSucceeds(as('staff1').collection(personalDays).doc(PDAY).get());
-        await assertFails(as('staff1').collection(personalDays).doc(PDAY).set(dayKey('p1', 50), { merge: true }));
+        await assertSucceeds(as('staff1').collection(personalDays).doc(istDay(0)).get());
+        await assertFails(as('staff1').collection(personalDays).doc(istDay(0)).set(dayKey('p1', 50), { merge: true }));
         await setPersonalAccess({ manager: chosen(false), staff: chosen(true) });
         await assertFails(as('manager1').collection(personal).get());
         await assertSucceeds(as('staff1').collection(personal).get());
         for (const uid of ['pending1', 'rejected1', 'noRole', 'rentOnly', 'ghost']) {
             await assertFails(as(uid).collection(personal).get());
-            await assertFails(as(uid).collection(personalDays).doc(PDAY).get());
+            await assertFails(as(uid).collection(personalDays).doc(istDay(0)).get());
         }
         await assertFails(anon().collection(personal).get());
     });
@@ -2809,7 +2934,7 @@ function defineSuite(prefix) {
     t('personal expenses (#98): a day doc key follows its expense, written in the same batch', async () => {
         await personalOn();
         const db = as('staff1');
-        const D = PDAY;
+        const D = istDay(0);
         const dayDoc = async () => {
             let data;
             await env.withSecurityRulesDisabled(async ctx => { data = (await ctx.firestore().collection(personalDays).doc(D).get()).data(); });
@@ -2916,10 +3041,28 @@ function defineSuite(prefix) {
         await assertFails(c.doc('w12').set(dated('staff1', 0, { date: onDay(istDay(-30)) })));
         await assertFails(c.doc('w13').set(dated('staff1', 0, { date: '2026-01-01' })));
         await assertFails(c.doc('w14').set(dated('staff1', 0, { date: 7 })));
-        const [y, m, d] = PDAY.split('-');
+        const [y, m, d] = istDay(0).split('-');
         await assertSucceeds(c.doc('w15').set(dated('staff1', 0, { date: `${d}/${m}/${y}, 9:05:00 am` })));
         // the owner: no window and no date check (repairs, restores)
         await assertSucceeds(as('legacyOwner').collection(expenses).doc('w16').set(dated('legacyOwner', -40, { date: onDay(istDay(-41)) })));
+    });
+
+    t('expenses (#98, #118): the IST day turns at 18:30 UTC; 11:59 pm and 12:00 am stay on their own day', async () => {
+        const at = (h, m) => Date.UTC(2026, 10, 9, h, m);
+        if (istDayAt(at(18, 29)) !== '2026-11-09' || istDayAt(at(18, 30)) !== '2026-11-10'
+            || istDayAt(at(18, 29), -1) !== '2026-11-08' || istDayAt(at(18, 30), -1) !== '2026-11-09') {
+            throw new Error('the test day key does not follow the rules (UTC + 5:30)');
+        }
+        await personalOn();
+        const [y, m, d] = istDay(0).split('-').map(Number);
+        const c = as('staff1').collection(expenses);
+        await assertSucceeds(c.doc('b1').set(dated('staff1', 0, { date: `${d}/${m}/${y}, 11:59:59 pm` })));
+        await assertSucceeds(c.doc('b2').set(dated('staff1', 0, { date: `${d}/${m}/${y}, 12:00:00 am` })));
+        await assertSucceeds(as('staff1').collection(personal).doc('b3')
+            .set(dated('staff1', 0, { category: 'personal', date: `${d}/${m}/${y}, 11:59:59 pm` })));
+        const prev = istDay(-1);
+        await assertFails(c.doc('b4').set(dated('staff1', 0, { date: onDay(prev).replace('10:00:00 am', '11:59:59 pm') })));
+        await assertFails(c.doc('b5').set(dated('staff1', -1, { date: `${d}/${m}/${y}, 12:00:00 am` })));
     });
 
     t('personal expenses (#118): the day doc flags exactly the expenses paid online', async () => {
@@ -3549,6 +3692,16 @@ function defineReadMatrix(prefix) {
         get: (db) => db.collection(c('rent_public')).doc('tok').get(), getAllowed: EVERYONE,
         list: (db) => db.collection(c('rent_public')).get(), listAllowed: []
     });
+    add('workers (worker pay, #373)', {
+        seed: [[`${c('workers')}/w1`, { name: 'Ramu', startMonth: '2026-01', active: true, pays: [{ from: '2026-01', amount: 9000 }], entries: [] }]],
+        get: (db) => db.collection(c('workers')).doc('w1').get(), getAllowed: OWNER,
+        list: (db) => db.collection(c('workers')).get(), listAllowed: OWNER
+    });
+    add('recurringBills (recurring bills, #437)', {
+        seed: [[`${c('recurringBills')}/b1`, { name: 'Electricity', cadence: 2, dueDay: 10, startMonth: '2026-01', expected: 0, active: true, entries: [] }]],
+        get: (db) => db.collection(c('recurringBills')).doc('b1').get(), getAllowed: OWNER,
+        list: (db) => db.collection(c('recurringBills')).get(), listAllowed: OWNER
+    });
     add('unknown collection', {
         seed: [[`${c('somethingElse')}/d1`, { a: 1 }]],
         get: (db) => db.collection(c('somethingElse')).doc('d1').get(), getAllowed: [],
@@ -3580,18 +3733,22 @@ defineReadMatrix('dev_');
 // ---- Rentals (#170): rent_* collections, roles per business (#149) ----
 // Months relative to "now" in IST, as the rules compute them.
 const istMonth = (offset = 0) => {
-    const d = new Date(Date.now() + 330 * MIN);
+    const d = new Date(testNow + 330 * MIN);
     const idx = d.getUTCFullYear() * 12 + d.getUTCMonth() + offset;
     return `${Math.floor(idx / 12)}-${String((idx % 12) + 1).padStart(2, '0')}`;
 };
 
 function defineRentSuite(prefix) {
-    const t = (name, fn) => test(`[${prefix || 'prod'} rentals] ${name}`, fn);
+    // This month, the ones before, today and the receipt year, from the test's own "now".
+    let CUR, PREV, PREV2, today, R_YEAR;
+    const t = (name, fn) => test(`[${prefix || 'prod'} rentals] ${name}`, () => {
+        [CUR, PREV, PREV2] = [istMonth(0), istMonth(-1), istMonth(-2)];
+        today = istDayAt(testNow);
+        R_YEAR = Number(today.slice(0, 4));
+        return fn();
+    });
     const c = (name) => `${prefix}${name}`;
     const RENT = ['rent_properties', 'rent_units', 'rent_tenants', 'rent_leases', 'rent_charges'].map(c);
-    const CUR = istMonth(0);
-    const PREV = istMonth(-1);
-    const PREV2 = istMonth(-2);
     const seed = (coll, id, data) => env.withSecurityRulesDisabled((ctx) => ctx.firestore().collection(c(coll)).doc(id).set(data));
     const meta = (uid) => ({ archived: false, createdAt: 1, createdBy: uid, updatedAt: 1, updatedBy: uid });
     const lease = (over = {}) => ({ unitId: 'U1', propertyId: 'P1', tenantId: 'T1', rent: 5000, dueDay: 10, startMonth: PREV, endMonth: null,
@@ -3946,7 +4103,6 @@ function defineRentSuite(prefix) {
     });
 
     // ---- Add unit with its tenant / move-in in one batch; start date; phone; electricity modes ----
-    const today = (() => { const d = new Date(Date.now() + 330 * MIN); return `${CUR}-${String(d.getUTCDate()).padStart(2, '0')}`; })();
     const moveInBatch = (uid, { newUnit = true, newTenant = true, phone = '9876543210', rent = 6000, chargeAmount = rent, firstRent = null,
         startDate = today, startMonth = startDate.slice(0, 7), withCharge = true, unitLease = 'LN', extraLease = {}, touch = false } = {}) => {
         const f = db(uid);
@@ -4034,7 +4190,7 @@ function defineRentSuite(prefix) {
     });
 
     // ---- Change of unit (tenant form, rent-store assignUnit): old lease ends, new one starts, one write ----
-    const istDate = (daysAgo) => new Date(Date.now() + 330 * MIN - daysAgo * DAY).toISOString().slice(0, 10);
+    const istDate = (daysAgo) => istDayAt(testNow, -daysAgo);
     // A move date a member may use (today or up to 2 days back, IST, as the rules' request.time) whose day of the
     // month is at least minDay, so the old unit keeps days in its move month (RENT-13). Early in a month that is a
     // day of the month before (its last day is the 28th or later). A move on the 1st ends the old lease with the
@@ -4386,7 +4542,6 @@ function defineRentSuite(prefix) {
     });
 
     // ---- Rent receipts (RENT-12): rent_receipts + rent_counters ----
-    const R_YEAR = new Date(Date.now() + 330 * MIN).getUTCFullYear();
     const rno = (seq) => `R-${R_YEAR}-${String(seq).padStart(4, '0')}`;
     const rctOn = (f, id) => f.collection(c('rent_receipts')).doc(id);
     const ctrOn = (f, year = R_YEAR) => f.collection(c('rent_counters')).doc(`receipts_${year}`);
@@ -4986,7 +5141,7 @@ function defineReminderSuite(prefix) {
     const reminders = `${prefix}reminders`;
     const t = (name, fn) => test(`[${prefix || 'prod'}] reminders: ${name}`, fn);
     // India's date `n` days from now, as the app writes dueDate.
-    const istDay = (n = 0) => new Date(Date.now() + 330 * MIN + n * DAY).toISOString().slice(0, 10);
+    const istDay = (n = 0) => istDayAt(testNow, n);
     const rem = (uid, extra = {}) => ({ title: 'Collect from Ramesh', dueDate: istDay(0), status: 'open', createdBy: uid, createdAt: serverTimestamp(), ...extra });
     const seed = (id, data) => env.withSecurityRulesDisabled((ctx) => ctx.firestore().collection(reminders).doc(id).set(data));
     const open = (extra = {}) => ({ title: 'Pay Gupta', dueDate: istDay(1), status: 'open', createdBy: 'manager1', createdAt: Timestamp.fromMillis(Date.now() - HOUR), ...extra });
@@ -5101,6 +5256,27 @@ function defineReminderSuite(prefix) {
         await assertFails(db.doc('g').set(rem('manager1', { repeatOf: 'x' })));
     });
 
+    t('time (#86): an optional HH:MM on create and edit, kept by the next copy', async () => {
+        const db = as('manager1').collection(reminders);
+        await assertSucceeds(db.doc('a').set(rem('manager1', { dueTime: '16:30' })));
+        await assertSucceeds(db.doc('b').set(rem('manager1', { dueTime: '00:00', repeat: 'weekly' })));
+        await assertFails(db.doc('c').set(rem('manager1', { dueTime: '24:00' })));
+        await assertFails(db.doc('d').set(rem('manager1', { dueTime: '9:30' })));
+        await assertFails(db.doc('e').set(rem('manager1', { dueTime: 930 })));
+        await assertSucceeds(db.doc('a').update(edit('manager1', { dueTime: '07:05' })));
+        await assertSucceeds(db.doc('a').update(edit('manager1', { dueTime: FieldValue.delete() })));
+        await assertFails(db.doc('a').update(edit('manager1', { dueTime: '7:05 pm' })));
+        const copy = (dueTime) => {
+            const s = as('staff1');
+            const b = s.batch();
+            b.update(s.collection(reminders).doc('b'), { status: 'done', doneBy: 'staff1', doneAt: serverTimestamp(), nextId: 'b2' });
+            b.set(s.collection(reminders).doc('b2'), { title: 'Collect from Ramesh', repeat: 'weekly', dueDate: istDay(7), dueTime, repeatOf: 'b', status: 'open', createdBy: 'staff1', createdAt: serverTimestamp() });
+            return b.commit();
+        };
+        await assertFails(copy('01:00'));
+        await assertSucceeds(copy('00:00'));
+    });
+
     t('repeat (#86): anyone who marks a repeating one done creates its next copy in the same batch, linked both ways', async () => {
         await seed('r1', open({ repeat: 'weekly', party: 'Gupta' }));
         const done = (uid, extra = {}) => ({ status: 'done', doneBy: uid, doneAt: serverTimestamp(), ...extra });
@@ -5175,6 +5351,185 @@ function defineReminderSuite(prefix) {
 defineReminderSuite('');
 defineReminderSuite('dev_');
 
+// ---- Worker pay (#373): owner only; entries are added one at a time (arrayUnion) or one removed ----
+function defineWorkerSuite(prefix) {
+    const workers = `${prefix}workers`;
+    const t = (name, fn) => test(`[${prefix || 'prod'}] worker pay: ${name}`, fn);
+    const worker = (extra = {}) => ({ name: 'Ramu', startMonth: '2026-01', active: true, pays: [{ from: '2026-01', amount: 9000 }], entries: [], updatedAt: serverTimestamp(), ...extra });
+    const entry = (extra = {}) => ({ id: 'e1', month: '2026-02', date: '2026-02-10', amount: 3000, kind: 'advance', mode: 'cash', ...extra });
+    const seed = (id, data) => env.withSecurityRulesDisabled((ctx) => ctx.firestore().collection(workers).doc(id).set({ ...data, updatedAt: Timestamp.now() }));
+    const doc = (uid, id = 'w1') => as(uid).collection(workers).doc(id);
+    const stamp = () => ({ updatedAt: serverTimestamp() });
+
+    t('only the owner creates, reads and deletes', async () => {
+        await assertFails(doc('manager1').set(worker()));
+        await assertFails(doc('staff1').set(worker()));
+        await assertFails(doc('rentManager').set(worker()));
+        await assertSucceeds(doc('legacyOwner').set(worker()));
+        await assertSucceeds(doc('owner2').get());
+        await assertFails(doc('manager1').get());
+        await assertFails(as('manager1').collection(workers).get());
+        await assertFails(doc('manager1').delete());
+        await assertSucceeds(doc('legacyOwner').delete());
+    });
+
+    t('create: the shape is checked', async () => {
+        const bad = [
+            { name: '' }, { name: 'x'.repeat(61) }, { startMonth: '2026-13' }, { active: 'yes' },
+            { pays: [] }, { pays: [{ from: '2026-02', amount: 9000 }] }, { pays: [{ from: '2026-01', amount: 90.5 }] },
+            { pays: [{ from: '2026-01', amount: -1 }] }, { pays: [{ from: '2026-01', amount: 9000, by: 'x' }] },
+            { entries: [entry()] }, { phone: '99' }, { updatedAt: Timestamp.fromMillis(Date.now() - MIN) }
+        ];
+        for (const [i, extra] of bad.entries()) await assertFails(doc('legacyOwner', `b${i}`).set(worker(extra)));
+        await assertSucceeds(doc('legacyOwner', 'ok').set(worker({ pays: [{ from: '2026-01', amount: 0 }] })));
+    });
+
+    t('an entry is added with arrayUnion; its shape is checked', async () => {
+        await seed('w1', worker());
+        const add = (e) => doc('legacyOwner').update({ entries: FieldValue.arrayUnion(e), ...stamp() });
+        for (const extra of [{ amount: 0 }, { amount: 99.5 }, { amount: 10000001 }, { kind: 'bonus' }, { mode: 'upi' },
+            { month: '2026-2' }, { date: '10/02/2026' }, { note: 'x'.repeat(121) }, { id: '' }, { by: 'x' }]) {
+            await assertFails(add(entry(extra)));
+        }
+        await assertSucceeds(add(entry({ note: 'Diwali advance' })));
+        await assertSucceeds(add(entry({ id: 'e2', kind: 'pay', mode: 'online', amount: 6000 })));
+        await assertFails(doc('manager1').update({ entries: FieldValue.arrayUnion(entry({ id: 'e3' })), ...stamp() }));
+        await assertFails(doc('legacyOwner').update({ entries: FieldValue.arrayUnion(entry({ id: 'e4' })) }));
+    });
+
+    t('entries never change in place; one at a time is removed; edits keep them', async () => {
+        await seed('w1', worker({ entries: [entry(), entry({ id: 'e2', amount: 6000 })] }));
+        await assertFails(doc('legacyOwner').update({ entries: [entry({ amount: 1 }), entry({ id: 'e2', amount: 6000 })], ...stamp() }));
+        await assertFails(doc('legacyOwner').update({ entries: [entry({ amount: 1 }), entry({ id: 'e2', amount: 6000 }), entry({ id: 'e3' })], ...stamp() }));
+        await assertFails(doc('legacyOwner').update({ entries: [], ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').update({ name: 'Ramu Kaka', pays: [{ from: '2026-01', amount: 9000 }, { from: '2026-04', amount: 10000 }], ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').update({ active: false, pays: [{ from: '2026-01', amount: 9000 }, { from: '2026-06', amount: 0 }], ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').update({ entries: FieldValue.arrayRemove(entry()), ...stamp() }));
+        await assertFails(doc('legacyOwner').update({ startMonth: '2026-03', ...stamp() }));
+    });
+
+    t('a removal drops exactly one entry and changes nothing else', async () => {
+        const [e1, e2, e3] = [entry(), entry({ id: 'e2', amount: 6000 }), entry({ id: 'e3', amount: 500, kind: 'pay' })];
+        await seed('w1', worker({ entries: [e1, e2, e3] }));
+        const set = (entries) => doc('legacyOwner').update({ entries, ...stamp() });
+        await assertFails(set([e1, { ...e2, amount: 1 }]));
+        await assertFails(set([e1, { ...e3, amount: 9000000 }]));
+        await assertFails(set([e1, { ...e2, extra: 'x' }]));
+        await assertFails(set([e1, e1]));
+        await assertSucceeds(set([e1, e3]));
+    });
+
+    t('pay steps: the first and the newest are shape-checked; at most 24', async () => {
+        await seed('w1', worker());
+        const pays = (p) => doc('legacyOwner').update({ pays: p, ...stamp() });
+        await assertFails(pays([{ from: '2026-01', amount: 9000, by: 'x' }, { from: '2026-04', amount: 10000 }]));
+        await assertFails(pays([{ from: '2026-01', amount: 9000.5 }, { from: '2026-04', amount: 10000 }]));
+        await assertFails(pays([{ from: '2026-01', amount: -1 }, { from: '2026-04', amount: 10000 }]));
+        const many = Array.from({ length: 25 }, (_, i) => ({ from: `${2026 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, '0')}`, amount: 9000 }));
+        await assertFails(pays(many));
+        await assertSucceeds(pays(many.slice(0, 24)));
+    });
+}
+defineWorkerSuite('');
+defineWorkerSuite('dev_');
+
+// ---- Recurring bills (#437): owner only; bill amounts and payments appended one at a time or one removed ----
+function defineRecurringBillSuite(prefix) {
+    const bills = `${prefix}recurringBills`;
+    const t = (name, fn) => test(`[${prefix || 'prod'}] recurring bills: ${name}`, fn);
+    const item = (extra = {}) => ({ name: 'Electricity', cadence: 2, dueDay: 10, startMonth: '2026-01', expected: 0, active: true, endMonth: '', note: 'CA 1234', entries: [], updatedAt: serverTimestamp(), ...extra });
+    const pay = (extra = {}) => ({ id: 'p1', kind: 'pay', period: '2026-01', date: '2026-01-08', amount: 500, mode: 'cash', ...extra });
+    const bill = (extra = {}) => ({ id: 'b1', kind: 'bill', period: '2026-01', date: '2026-01-02', amount: 1240, ...extra });
+    const seed = (id, data) => env.withSecurityRulesDisabled((ctx) => ctx.firestore().collection(bills).doc(id).set({ ...data, updatedAt: Timestamp.now() }));
+    const doc = (uid, id = 'r1') => as(uid).collection(bills).doc(id);
+    const stamp = () => ({ updatedAt: serverTimestamp() });
+
+    t('only the owner creates, reads, updates and deletes', async () => {
+        for (const uid of ['manager1', 'staff1', 'rentManager']) await assertFails(doc(uid).set(item()));
+        await assertSucceeds(doc('legacyOwner').set(item()));
+        await assertSucceeds(doc('owner2').get());
+        await assertFails(doc('manager1').get());
+        await assertFails(as('staff1').collection(bills).get());
+        await assertFails(doc('manager1').update({ name: 'Water', ...stamp() }));
+        await assertFails(doc('manager1').update({ entries: FieldValue.arrayUnion(pay()), ...stamp() }));
+        await assertFails(doc('manager1').delete());
+        await assertSucceeds(doc('legacyOwner').delete());
+    });
+
+    t('create: the shape is checked', async () => {
+        const bad = [
+            { name: '' }, { name: 'x'.repeat(61) }, { cadence: 4 }, { cadence: 2.5 }, { cadence: '2' }, { dueDay: 0 }, { dueDay: 29 },
+            { dueDay: 1.5 }, { startMonth: '2026-13' }, { expected: -1 }, { expected: 10.5 }, { expected: 10000001 },
+            { active: 'yes' }, { endMonth: '2026' }, { note: 'x'.repeat(121) }, { entries: [pay()] }, { phone: '99' },
+            { updatedAt: Timestamp.fromMillis(Date.now() - MIN) }
+        ];
+        for (const [i, extra] of bad.entries()) await assertFails(doc('legacyOwner', `b${i}`).set(item(extra)));
+        await assertSucceeds(doc('legacyOwner', 'ok').set(item({ cadence: 12, dueDay: 28, expected: 1200 })));
+        const { note, endMonth, ...bare } = item();
+        await assertSucceeds(doc('legacyOwner', 'bare').set(bare));
+    });
+
+    t('bill amounts and payments are added with arrayUnion; their shape is checked', async () => {
+        await seed('r1', item());
+        const add = (e) => doc('legacyOwner').update({ entries: FieldValue.arrayUnion(e), ...stamp() });
+        const noMode = (({ mode, ...r }) => r)(pay());
+        for (const e of [pay({ amount: 0 }), pay({ amount: 9.5 }), pay({ amount: 10000001 }), pay({ mode: 'upi' }), noMode,
+            pay({ kind: 'refund' }), pay({ period: '2026-1' }), pay({ date: '08/01/2026' }), pay({ note: 'x'.repeat(121) }), pay({ id: '' }), pay({ by: 'x' }),
+            bill({ amount: -1 }), bill({ mode: 'cash' }), bill({ amount: 1.5 })]) {
+            await assertFails(add(e));
+        }
+        await assertSucceeds(add(bill()));
+        await assertSucceeds(add(bill({ id: 'b2', amount: 0 })));
+        await assertSucceeds(add(pay({ note: 'Paytm' })));
+        await assertSucceeds(add(pay({ id: 'p2', mode: 'online', amount: 740 })));
+        await assertFails(doc('legacyOwner').update({ entries: FieldValue.arrayUnion(pay({ id: 'p3' })) }));
+    });
+
+    t('append keeps the history; the first and the newest entries are shape-checked', async () => {
+        const [b1, p1] = [bill(), pay()];
+        await seed('r1', item({ entries: [b1, p1] }));
+        const set = (entries) => doc('legacyOwner').update({ entries, ...stamp() });
+        await assertFails(set([{ ...b1, amount: 1 }, p1, pay({ id: 'p2' })]));
+        await assertFails(set([p1, b1, pay({ id: 'p2' })]));
+        await assertFails(set([b1, p1, pay({ id: 'p2', amount: -5 })]));
+        await assertSucceeds(set([b1, p1, bill({ id: 'b2', amount: 1300 })]));
+    });
+
+    t('a removal drops exactly one entry and changes nothing else; edits keep the entries', async () => {
+        const [b1, p1, p2] = [bill(), pay(), pay({ id: 'p2', amount: 740, mode: 'online' })];
+        await seed('r1', item({ entries: [b1, p1, p2] }));
+        const set = (entries) => doc('legacyOwner').update({ entries, ...stamp() });
+        await assertFails(set([b1, { ...p2, amount: 1 }]));
+        await assertFails(set([b1, { ...p2, extra: 'x' }]));
+        await assertFails(set([b1, b1]));
+        await assertFails(set([]));
+        await assertSucceeds(doc('legacyOwner').update({ name: 'Bijli', dueDay: 15, expected: 1200, ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').update({ active: false, endMonth: '2026-05', ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').update({ entries: FieldValue.arrayRemove(p1), ...stamp() }));
+        await assertFails(doc('legacyOwner').update({ cadence: 5, ...stamp() }));
+    });
+
+    t('the schedule (cadence, first month) is fixed once anything is recorded', async () => {
+        await seed('r1', item());
+        await assertSucceeds(doc('legacyOwner').update({ cadence: 1, startMonth: '2026-02', ...stamp() }));
+        await seed('r2', item({ entries: [bill()] }));
+        await assertFails(doc('legacyOwner', 'r2').update({ cadence: 1, ...stamp() }));
+        await assertFails(doc('legacyOwner', 'r2').update({ startMonth: '2026-02', ...stamp() }));
+        await assertFails(doc('legacyOwner', 'r2').set({ ...item({ entries: [bill()] }), cadence: 3 }));
+        await assertSucceeds(doc('legacyOwner', 'r2').update({ name: 'Bijli', dueDay: 5, ...stamp() }));
+        await assertSucceeds(doc('legacyOwner', 'r2').update({ entries: FieldValue.arrayUnion(pay()), ...stamp() }));
+    });
+
+    t('at most 3,000 entries', async () => {
+        const many = Array.from({ length: 3000 }, (_, i) => pay({ id: `p${i}` }));
+        await seed('r1', item({ entries: many }));
+        await assertFails(doc('legacyOwner').update({ entries: FieldValue.arrayUnion(pay({ id: 'over' })), ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').update({ entries: FieldValue.arrayRemove(many[0]), ...stamp() }));
+    });
+}
+defineRecurringBillSuite('');
+defineRecurringBillSuite('dev_');
+
 test('[cross-env] prod approval does not grant dev access and vice versa', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
         const db = ctx.firestore();
@@ -5199,6 +5554,9 @@ async function main() {
     // RULES_TEST_FILTER=<text> runs only the tests whose name contains it (local debugging).
     const only = process.env.RULES_TEST_FILTER || '';
     for (const { name, fn } of tests.filter(x => x.name.includes(only))) {
+        const toIstMidnight = DAY - ((Date.now() + 330 * MIN) % DAY);
+        if (toIstMidnight < 20 * 1000) await new Promise(r => setTimeout(r, toIstMidnight + 1000));
+        testNow = Date.now();
         await env.clearFirestore();
         await seedUsers('users');
         await seedUsers('dev_users');

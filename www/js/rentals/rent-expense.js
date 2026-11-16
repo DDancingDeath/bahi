@@ -10,19 +10,20 @@ import { UIManager } from '../ui/ui-manager.js';
 import { t, getLang } from '../i18n/index.js';
 import { Helpers } from '../utils/helpers.js';
 import { AuditService } from '../services/audit.js';
-import { todayLocalISO } from '../utils/dates.js';
-import { formatINR } from '../utils/due-reminder.js';
+import { todayLocalISO, formatDate } from '../utils/dates.js';
+import { moneyHtml, emptyState } from '../ui/components.js';
 import { entryAmount } from '../utils/calc/billing.js';
 import * as store from './rent-store.js';
 import * as es from './rent-expense-store.js';
-import { PAYMENT_MODES, expenseTotals, dateLabel, monthLabel } from './rent-math.js';
+import { PAYMENT_MODES, expenseTotals, monthLabel } from './rent-math.js';
 import { EXPENSE_CATEGORIES, expenseError } from './rent-math-ledger.js';
+import { formatRupees } from '../utils/money.js';
 
 const auditWarn = (e) => console.warn('Rentals audit entry not written:', e?.code || e);
 const fail = (key) => UIManager.showToast(t(key), 'error');
-const lbl = (c, key, field) => `<label class="rent-label">${c.esc(t(key))}${field}</label>`;
+const lbl = (c, key, field, rupee = false) => `<label class="field rent-label">${c.esc(t(key))}${rupee ? '<span class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>' : ''}${field}${rupee ? '</span>' : ''}</label>`;
 const opts = (c, list, cur, label) => list.map(v => `<option value="${c.esc(v)}"${v === cur ? ' selected' : ''}>${c.esc(label(v))}</option>`).join('');
-const act = (c, action, pid, key, cls = '', id = '') => `<button type="button" class="rent-btn${cls}" data-rent-exp data-onclick="rentals.expenseAction('${action}', '${c.js(pid)}', '${c.js(id)}')">${c.esc(t(key))}</button>`;
+const act = (c, action, pid, key, cls = '', id = '') => `<button type="button" class="btn${cls}" data-rent-exp data-onclick="rentals.expenseAction('${action}', '${c.js(pid)}', '${c.js(id)}')">${c.esc(t(key))}</button>`;
 
 function propertyOf(pid) {
     const d = store.snapshot();
@@ -41,15 +42,15 @@ export async function showExpenses(c, pid) {
     }
     const unitName = new Map(units.map(u => [u.id, u.label]));
     const lang = getLang();
-    const rows = list.map(e => `<li>${c.esc([dateLabel(e.date), t(`ui.rent.exp_cat_${e.category}`), e.unitId ? unitName.get(e.unitId) || t('ui.rent.exp_unit_removed') : t('ui.rent.exp_unit_all'), t(`ui.rent.mode_${e.mode}`)].filter(Boolean).join(' · '))}:
-        <strong>${c.esc(formatINR(e.amount))}</strong>${e.note ? ` · ${c.esc(e.note)}` : ''} <span class="rent-sub">${c.esc(e.byName || '')}</span>
-        ${c.isOwner ? `${act(c, 'edit', pid, 'ui.rent.edit', ' rent-btn-small', e.id)}${act(c, 'delete', pid, 'ui.rent.remove', ' rent-btn-small', e.id)}` : ''}</li>`).join('');
-    await c.dialog(`<h3>💸 ${c.esc(t('ui.rent.exp_title', { name: property.name }))}</h3>
-        <div class="rent-cards"><div class="rent-card"><div class="rent-card-label">${c.esc(t('ui.rent.exp_month'))} · ${c.esc(monthLabel(c.month, lang))}</div>
-            <div class="rent-card-value">${c.esc(formatINR(expenseTotals(store.snapshot().expenses, c.month).byProperty[pid] || 0))}</div></div></div>
+    const rows = list.map(e => `<li>${c.esc([formatDate(e.date), t(`ui.rent.exp_cat_${e.category}`), e.unitId ? unitName.get(e.unitId) || t('ui.rent.exp_unit_removed') : t('ui.rent.exp_unit_all'), t(`ui.rent.mode_${e.mode}`)].filter(Boolean).join(' · '))}:
+        <strong>${moneyHtml(e.amount)}</strong>${e.note ? ` · ${c.esc(e.note)}` : ''} <span class="rent-sub">${c.esc(e.byName || '')}</span>
+        ${c.isOwner ? `${act(c, 'edit', pid, 'ui.rent.edit', ' btn-sm', e.id)}${act(c, 'delete', pid, 'ui.rent.remove', ' btn-sm', e.id)}` : ''}</li>`).join('');
+    await c.dialog(`<h3>${c.esc(t('ui.rent.exp_title', { name: property.name }))}</h3>
+        <div class="panel metrics rent-metrics"><div class="metric"><div class="metric-label">${c.esc(t('ui.rent.exp_month'))} · ${c.esc(monthLabel(c.month, lang))}</div>
+            <div class="metric-value">${moneyHtml(expenseTotals(store.snapshot().expenses, c.month).byProperty[pid] || 0)}</div></div></div>
         <p class="rent-help">${c.esc(t('ui.rent.exp_help'))}</p>
-        <div class="rent-actions">${act(c, 'add', pid, 'ui.rent.exp_add', ' rent-btn-primary')}</div>
-        ${rows ? `<ul class="rent-months">${rows}</ul>` : `<p class="rent-empty">${c.esc(t('ui.rent.exp_none'))}</p>`}`, { info: true });
+        <div class="rent-actions">${act(c, 'add', pid, 'ui.rent.exp_add', ' btn-primary')}</div>
+        ${rows ? `<ul class="rent-months">${rows}</ul>` : emptyState({ icon: 'banknote', title: t('ui.rent.exp_none') })}`, { info: true });
 }
 
 /** Add (any rentals role), or the owner's edit / delete of expense `id`. */
@@ -65,19 +66,19 @@ export async function action(c, kind, pid, id) {
         if (!old) return fail('msg.rent.save_failed');
     }
     if (kind === 'delete') {
-        if (!await UIManager.showModal(t('msg.rent.confirm_remove'), t('ui.rent.remove'), true)) return;
+        if (!await UIManager.showModal(t('msg.rent.confirm_remove'), t('ui.rent.remove'), true, { confirmLabel: t('ui.confirm.remove'), danger: true })) return;
         return save(c, pid, () => es.deleteExpense(id), 'RENT_EXPENSE_DELETE', { id, amount: old.amount });
     }
     const v = old || { category: 'repairs', unitId: null, amount: '', date: todayLocalISO(), mode: 'cash', note: '' };
     // A unit removed since keeps the expense (shown as removed), so an edit doesn't move it to the whole property.
     const gone = v.unitId && !units.some(u => u.id === v.unitId) ? v.unitId : '';
-    const ok = await c.dialog(`<h3>💸 ${c.esc(t(old ? 'ui.rent.edit' : 'ui.rent.exp_add'))}: ${c.esc(property.name)}</h3>
-        ${lbl(c, 'ui.rent.exp_category', `<select id="rentExpCat">${opts(c, EXPENSE_CATEGORIES, v.category, k => t(`ui.rent.exp_cat_${k}`))}</select>`)}
-        ${lbl(c, 'ui.rent.exp_unit', `<select id="rentExpUnit"><option value="">${c.esc(t('ui.rent.exp_unit_all'))}</option>${gone ? `<option value="${c.esc(gone)}" selected>${c.esc(t('ui.rent.exp_unit_removed'))}</option>` : ''}${units.map(u => `<option value="${c.esc(u.id)}"${u.id === v.unitId ? ' selected' : ''}>${c.esc(u.label)}</option>`).join('')}</select>`)}
-        ${lbl(c, 'ui.rent.amount', `<input id="rentExpAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(v.amount)}">`)}
-        ${lbl(c, 'ui.rent.date', `<input id="rentExpDate" type="date" value="${c.esc(v.date)}">`)}
-        ${lbl(c, 'ui.rent.mode', `<select id="rentExpMode">${opts(c, PAYMENT_MODES, v.mode, m => t(`ui.rent.mode_${m}`))}</select>`)}
-        ${lbl(c, 'ui.rent.notes', `<input id="rentExpNote" type="text" maxlength="200" value="${c.esc(v.note || '')}">`)}
+    const ok = await c.dialog(`<h3>${c.esc(t(old ? 'ui.rent.edit' : 'ui.rent.exp_add'))}: ${c.esc(property.name)}</h3>
+        ${lbl(c, 'ui.rent.exp_category', `<select class="input" id="rentExpCat">${opts(c, EXPENSE_CATEGORIES, v.category, k => t(`ui.rent.exp_cat_${k}`))}</select>`)}
+        ${lbl(c, 'ui.rent.exp_unit', `<select class="input" id="rentExpUnit"><option value="">${c.esc(t('ui.rent.exp_unit_all'))}</option>${gone ? `<option value="${c.esc(gone)}" selected>${c.esc(t('ui.rent.exp_unit_removed'))}</option>` : ''}${units.map(u => `<option value="${c.esc(u.id)}"${u.id === v.unitId ? ' selected' : ''}>${c.esc(u.label)}</option>`).join('')}</select>`)}
+        ${lbl(c, 'ui.rent.amount', `<input class="input" id="rentExpAmount" type="number" inputmode="decimal" min="0" step="1" value="${c.esc(v.amount)}">`, true)}
+        ${lbl(c, 'ui.rent.date', `<input class="input" id="rentExpDate" type="date" value="${c.esc(v.date)}">`)}
+        ${lbl(c, 'ui.rent.mode', `<select class="input" id="rentExpMode">${opts(c, PAYMENT_MODES, v.mode, m => t(`ui.rent.mode_${m}`))}</select>`)}
+        ${lbl(c, 'ui.rent.notes', `<input class="input" id="rentExpNote" type="text" maxlength="200" value="${c.esc(v.note || '')}">`)}
         <p class="rent-help">${c.esc(t('ui.rent.exp_help'))}</p>`);
     if (!ok) return;
     const e = {
@@ -95,7 +96,7 @@ async function save(c, pid, fn, audit, details, amount = null) {
     await Helpers.runExclusive('rent-exp', '[data-rent-exp]', async () => {
         try {
             await fn();
-            UIManager.showToast(amount === null ? t('msg.rent.saved') : t('msg.rent.exp_saved', { amount: formatINR(amount) }), 'success');
+            UIManager.showToast(amount === null ? t('msg.rent.saved') : t('msg.rent.exp_saved', { amount: formatRupees(amount) }), 'success');
             AuditService.log(audit, details).catch(auditWarn);
             setTimeout(() => showExpenses(c, pid), 300);
         } catch (e) {

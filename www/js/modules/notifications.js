@@ -1,33 +1,39 @@
 /**
  * @fileoverview In-app notifications (#12): bell + unread badge, inbox panel,
- * toasts for new notifications and (optional, desktop web only) system
- * notifications while the app is open in the background. No server push:
- * on the free Spark plan nothing can reach a closed app.
+ * toasts for new notifications, and a phone notification for them while the app
+ * runs but is not in front (modules/phone-notify.js). No server push: on the
+ * free Spark plan nothing reaches a closed app.
  * @module modules/notifications
  */
 
 import { UIManager } from '../ui/ui-manager.js';
+import { icon } from '../ui/icons.js';
+import { emptyState } from '../ui/components.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { TelemetryService } from '../services/telemetry.js';
 import { Helpers } from '../utils/helpers.js';
 import { t, getLang } from '../i18n/index.js';
 import { pickLang } from '../i18n/localize.js';
-import { APP_IDENTITY } from '../config/app-identity.js';
 import { AppState } from '../utils/state.js';
 import { rentRoleOf } from '../utils/settings-sections.js';
 import { toLocalISODate, formatDayTime } from '../utils/dates.js';
-import { formatINR } from '../utils/due-reminder.js';
 import { on, REMINDERS_CHANGED } from '../utils/events.js';
 import { rentBellItems, bellSeen, markBellSeen, leaseReminderText } from '../utils/reminders.js';
 import {
     UNREAD_LIMIT, PAGE_SIZE, describeNotification, notificationText, formatWhen,
     badgeText, idsToMarkRead, prepareList, newArrivals, notificationTime, retentionCutoff
 } from '../utils/notification-format.js';
+import { formatRupees } from '../utils/money.js';
+import { PhoneNotify } from './phone-notify.js';
 
-const SYSTEM_PREF_KEY = 'aadhat.notifications.system';
 const CLEANUP_KEY = 'aadhat.notifications.cleanupAt';
 const CLEANUP_EVERY_MS = 24 * 60 * 60 * 1000;
 const TOAST_MS = 5000;
+
+/** Row icon by notification type (the toast keeps describeNotification's emoji). */
+const rowIcon = (type) => (type === 'rate_change' ? icon('tag')
+    : type === 'item_edit' ? icon('box')
+        : type === 'edit' ? icon('receipt') : icon('bell'));
 
 /** Message for a listener / query failure. */
 export function notificationErrorMessage(error) {
@@ -150,7 +156,7 @@ const NotificationsManager = {
             ? `${notificationText(latest)} (+${fresh.length - 1})`
             : notificationText(latest);
         UIManager.showToast(text, TOAST_MS);
-        this.showSystemNotification(fresh);
+        PhoneNotify.bell(fresh, uid);
         if (this.panelOpen) {
             this.panelItems = prepareList([...fresh, ...this.panelItems]);
             this.renderPanel();
@@ -178,7 +184,7 @@ const NotificationsManager = {
     setBellVisible(visible) {
         const bell = document.getElementById('notifBell');
         if (!bell) return;
-        bell.style.display = visible ? '' : 'none';
+        bell.hidden = !visible;
         if (!visible) bell.classList.remove('notif-error');
     },
 
@@ -330,19 +336,19 @@ const NotificationsManager = {
         const asOf = (at) => t('ui.today.reminder_as_of', { time: formatDayTime(at, { lang: getLang() }) });
         const rows = items.map(x => {
             const rent = x.kind === 'rent';
-            const title = rent ? `${t('ui.today.reminder_rent')} ${formatINR(x.rent.due)}`
+            const title = rent ? `${t('ui.today.reminder_rent')} ${formatRupees(x.rent.due)}`
                 : `${[x.lease.place, x.lease.tenant].filter(Boolean).join(' · ')}: ${leaseReminderText(x.lease)}`;
             const meta = rent ? `${t('ui.today.reminder_rent_units', { count: x.rent.dueUnits, late: x.rent.late })} · ${asOf(x.at)}` : asOf(x.at);
             return `
-                <button type="button" class="notif-row${this.rentNew.has(x.key) ? ' unread' : ''}" data-reminder="${e(x.kind)}" data-onclick="notifications.openReminder('${rent ? 'rent' : 'tenants'}')">
-                    <span class="notif-icon">${rent ? '🏠' : '📄'}</span>
-                    <span class="notif-body">
-                        <span class="notif-en">${e(title)}</span>
-                        <span class="notif-meta">${e(meta)}</span>
+                <button type="button" class="row notif-item${this.rentNew.has(x.key) ? ' unread' : ''}" data-reminder="${e(x.kind)}" data-onclick="notifications.openReminder('${rent ? 'rent' : 'tenants'}')">
+                    <span class="lead-icon">${rent ? icon('home') : icon('file')}</span>
+                    <span class="row-main">
+                        <span class="row-title">${e(title)}</span>
+                        <span class="row-meta">${e(meta)}</span>
                     </span>
                 </button>`;
         });
-        return rows.join('') + (more ? `<div class="notif-meta">${e(t('ui.today.reminder_more', { count: more }))}</div>` : '');
+        return rows.join('') + (more ? `<div class="row row-meta">${e(t('ui.today.reminder_more', { count: more }))}</div>` : '');
     },
 
     /** @private */
@@ -353,8 +359,8 @@ const NotificationsManager = {
         const rent = this.rentRowsHtml();
         if (!this.panelItems.length) {
             list.innerHTML = rent + (this.loading
-                ? `<div class="notif-empty">${Helpers.escapeHtml(t('ui.notif.loading'))}</div>`
-                : rent ? '' : `<div class="notif-empty">${Helpers.escapeHtml(t('ui.notif.none_yet'))}</div>`);
+                ? `<div class="empty">${Helpers.escapeHtml(t('ui.notif.loading'))}</div>`
+                : rent ? '' : emptyState({ icon: 'bell', title: t('ui.notif.none_yet') }));
         } else {
             list.innerHTML = rent + this.panelItems.map(n => {
                 const d = describeNotification(n);
@@ -362,11 +368,11 @@ const NotificationsManager = {
                 const unread = n.read !== true;
                 const who = d.who ? `${Helpers.escapeHtml(d.who)} · ` : '';
                 return `
-                <button type="button" class="notif-row${unread ? ' unread' : ''}" data-onclick="notifications.openNotification('${Helpers.escapeJsAttr(n.id)}')">
-                    <span class="notif-icon">${d.icon}</span>
-                    <span class="notif-body">
-                        <span class="notif-en">${Helpers.escapeHtml(pickLang(d))}</span>
-                        <span class="notif-meta">${who}<span title="${Helpers.escapeHtml(when.abs)}">${Helpers.escapeHtml(pickLang(when))}</span></span>
+                <button type="button" class="row notif-item${unread ? ' unread' : ''}" data-onclick="notifications.openNotification('${Helpers.escapeJsAttr(n.id)}')">
+                    <span class="lead-icon">${rowIcon(n.type)}</span>
+                    <span class="row-main">
+                        <span class="row-title">${Helpers.escapeHtml(pickLang(d))}</span>
+                        <span class="row-meta">${who}<span title="${Helpers.escapeHtml(when.abs)}">${Helpers.escapeHtml(pickLang(when))}</span></span>
                     </span>
                 </button>`;
             }).join('');
@@ -394,61 +400,9 @@ const NotificationsManager = {
             .catch(e => console.warn('Old notifications cleanup failed:', e?.code || e));
     },
 
-    // ---------- Optional desktop system notifications (no push) ----------
-
-    /** System notifications are possible here: web (not the Android app) with the Notification API. */
-    systemSupported() {
-        if (typeof window === 'undefined' || !('Notification' in window)) return false;
-        return !window.Capacitor?.isNativePlatform?.();
-    },
-
-    systemEnabled() {
-        try {
-            return this.systemSupported() && localStorage.getItem(SYSTEM_PREF_KEY) === '1' && window.Notification.permission === 'granted';
-        } catch (e) {
-            return false;
-        }
-    },
-
-    /** Settings checkbox handler. */
-    async toggleSystem(checked) {
-        if (!this.systemSupported()) return;
-        if (checked) {
-            let permission = window.Notification.permission;
-            if (permission === 'default') permission = await window.Notification.requestPermission();
-            if (permission !== 'granted') {
-                UIManager.showToast(t('msg.notifications.browser_blocked_notifications_allow_them'), TOAST_MS);
-                this.refreshSettings();
-                return;
-            }
-            localStorage.setItem(SYSTEM_PREF_KEY, '1');
-            UIManager.showToast(t('msg.notifications.desktop_notifications_on_while_app'));
-        } else {
-            localStorage.removeItem(SYSTEM_PREF_KEY);
-        }
-        this.refreshSettings();
-    },
-
-    /** Shows/hides the Settings card and syncs the checkbox. */
+    /** Settings › Help & about › Notifications (modules/phone-notify.js). */
     refreshSettings() {
-        const card = document.getElementById('notifSettingsCard');
-        if (!card) return;
-        card.style.display = this.systemSupported() ? '' : 'none';
-        const box = document.getElementById('settingSystemNotifications');
-        if (box) box.checked = this.systemEnabled();
-    },
-
-    /** @private Only when the tab is in the background and the user opted in. */
-    showSystemNotification(fresh) {
-        if (!this.systemEnabled() || typeof document === 'undefined' || !document.hidden) return;
-        try {
-            const d = describeNotification(fresh[0]);
-            const body = `${pickLang(d)}${d.who ? `\n— ${d.who}` : ''}`;
-            const note = new window.Notification(fresh.length > 1 ? `${APP_IDENTITY.appName}: ${fresh.length} new` : APP_IDENTITY.appName, { body, tag: 'aadhat-notifications' });
-            note.onclick = () => { window.focus(); this.openInbox().catch(e => console.warn('Opening notifications failed:', e)); note.close(); };
-        } catch (e) {
-            console.warn('System notification failed:', e);
-        }
+        PhoneNotify.renderSettings().catch(e => console.warn('Notification settings failed:', e));
     }
 };
 

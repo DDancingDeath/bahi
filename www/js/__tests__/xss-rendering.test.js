@@ -112,7 +112,7 @@ describe('history list escapes record values', () => {
         expect(list.textContent).toContain(`#${IMG}`);
         expect(list.textContent).toContain(`${NUM} packets`);
 
-        const span = list.querySelector('.bill-row[data-onclick]');
+        const span = list.querySelector('[data-bill-row][data-onclick]');
         const calls = runHandler(handlerAttr(span));
         expect(calls).toEqual([[`id:${QUOTE_ID}`, 'purchase']]);
     });
@@ -120,7 +120,7 @@ describe('history list escapes record values', () => {
     test('card view: a malicious stored type cannot break out of viewBill()', () => {
         AppState.purchaseHistory = [maliciousBill({ type: "purchase');window.__pwned=1;//" })];
         HistoryManager.renderHistory('purchase');
-        const span = document.querySelector('#historyList .bill-row[data-onclick]');
+        const span = document.querySelector('#historyList [data-bill-row][data-onclick]');
         // History normalises the type by collection (#160), so the stored value never reaches the handler.
         expect(runHandler(handlerAttr(span))).toEqual([[`id:${QUOTE_ID}`, 'purchase']]);
         expect(window.__pwned).toBeUndefined();
@@ -132,7 +132,7 @@ describe('history list escapes record values', () => {
         HistoryManager.renderHistory('purchase');
         const list = document.getElementById('historyList');
         assertNoInjection(list);
-        expect(list.textContent).toContain('× ₹0.00');
+        expect(list.textContent).toContain('× ₹0');
         const row = list.querySelector('tr[data-onclick]');
         expect(runHandler(handlerAttr(row))).toEqual([[`id:${QUOTE_ID}`, 'purchase']]);
     });
@@ -234,7 +234,7 @@ describe('cash management escapes session values', () => {
         CashManagementManager.renderHistoryFromCache();
         const list = document.getElementById('cashHistoryList');
         assertNoInjection(list);
-        expect(list.textContent).toContain('Opening: ₹0');
+        expect(list.textContent).toContain('Opening ₹0');
     });
 
     test('session details (signed out and in progress)', async () => {

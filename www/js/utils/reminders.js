@@ -11,11 +11,10 @@
 
 import { buildAging, chaseFirst } from './aging.js';
 import { AppState } from './state.js';
-import { round2 } from './money.js';
+import { round2, formatRupees } from './money.js';
 import { toLocalISODate, formatMonth } from './dates.js';
 import { emit, REMINDERS_CHANGED } from './events.js';
 import { t, getLang } from '../i18n/index.js';
-import { formatINR } from './due-reminder.js';
 
 /** Parties listed per reminder; the rest are counted. */
 export const REMINDER_LIMIT = 3;
@@ -49,11 +48,11 @@ export function overdueReminder(bills, { today = new Date(), limit = REMINDER_LI
 /**
  * Rentals keeps what its Rent page last showed for this month (RENT-9 totals).
  * @param {Storage} store
- * @param {{uid: string, month: string, due: number, late: number, dueUnits: number, at?: number}} s
+ * @param {{uid: string, month: string, due: number, late: number, dueUnits: number, dueDays?: Array<number>, at?: number}} s
  */
-export function saveRentReminder(store, { uid, month, due, late, dueUnits, at = Date.now() }) {
+export function saveRentReminder(store, { uid, month, due, late, dueUnits, dueDays = [], at = Date.now() }) {
     try {
-        store.setItem(RENT_KEY, JSON.stringify({ uid, month, due: Number(due) || 0, late: Number(late) || 0, dueUnits: Number(dueUnits) || 0, at }));
+        store.setItem(RENT_KEY, JSON.stringify({ uid, month, due: Number(due) || 0, late: Number(late) || 0, dueUnits: Number(dueUnits) || 0, dueDays: rentDueDays(dueDays), at }));
     } catch (_) { /* storage full: Today just shows no rent line */ }
     emit(REMINDERS_CHANGED);
 }
@@ -64,16 +63,25 @@ export function saveRentReminder(store, { uid, month, due, late, dueUnits, at = 
  * @param {Storage} store
  * @param {string} uid
  * @param {string} month 'YYYY-MM'
- * @returns {?{due: number, late: number, dueUnits: number, at: number}}
+ * @returns {?{due: number, late: number, dueUnits: number, dueDays: Array<number>, at: number}}
  */
 export function rentReminder(store, uid, month) {
     try {
         const s = JSON.parse(store.getItem(RENT_KEY) || 'null');
         if (!s || s.uid !== uid || s.month !== month || !(s.due > 0)) return null;
-        return { due: s.due, late: s.late, dueUnits: s.dueUnits, at: s.at };
+        return { due: s.due, late: s.late, dueUnits: s.dueUnits, dueDays: rentDueDays(s.dueDays), at: s.at };
     } catch (_) {
         return null;
     }
+}
+
+/**
+ * The days of the month (1–28) rent falls due, once each, in order.
+ * @param {*} days
+ * @returns {Array<number>}
+ */
+export function rentDueDays(days) {
+    return [...new Set((Array.isArray(days) ? days : []).map(Number).filter(d => Number.isInteger(d) && d >= 1 && d <= 28))].sort((a, b) => a - b);
 }
 
 /**
@@ -91,14 +99,17 @@ export function unitsWithDue(rows) {
  * @param {{month: string, errors?: Set<*>}} state Rentals page state
  * @param {Array<Rec>} rows RENT-10 rows
  * @param {Array<string>} [truncated] rent-store keys cut at their limit
+ * @param {Array<Rec>} [leases] the leases behind the rows (their due day, for phone notifications)
  */
-export function noteRent(state, rows, truncated = []) {
+export function noteRent(state, rows, truncated = [], leases = []) {
     try {
         if (state.errors?.size || truncated.length || state.month !== toLocalISODate(new Date()).slice(0, 7)) return;
         let due = 0;
         let late = 0;
         rows.forEach(r => { due += Number(r.due) || 0; if (r.late) late++; });
-        saveRentReminder(localStorage, { uid: /** @type {Rec} */ (AppState).currentUser?.uid, month: state.month, due: round2(due), late, dueUnits: unitsWithDue(rows) });
+        const dayOf = new Map((leases || []).map(l => [l.id, l.dueDay]));
+        const dueDays = rows.filter(r => r && r.due > 0 && r.leaseId).map(r => dayOf.get(r.leaseId));
+        saveRentReminder(localStorage, { uid: /** @type {Rec} */ (AppState).currentUser?.uid, month: state.month, due: round2(due), late, dueUnits: unitsWithDue(rows), dueDays });
     } catch (_) { /* never break the Rent page */ }
 }
 
@@ -139,7 +150,7 @@ export function leaseReminder(store, uid, month) {
 /** @param {Rec} x @returns {string} */
 export function leaseReminderText(x) {
     const mon = (/** @type {string} */ m) => formatMonth(`${m}-01`, { lang: getLang() });
-    if (x.kind === 'increase') return t('ui.today.lease_increase', { pct: x.pct, amount: formatINR(x.newRent) });
+    if (x.kind === 'increase') return t('ui.today.lease_increase', { pct: x.pct, amount: formatRupees(x.newRent) });
     return t(x.left < 0 ? 'ui.today.lease_ended' : x.left === 0 ? 'ui.today.lease_ends_now' : 'ui.today.lease_ends', { month: mon(x.end) })
         + (x.notice ? ` · ${t('ui.today.lease_notice', { month: mon(x.notice) })}` : '');
 }

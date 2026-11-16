@@ -9,12 +9,13 @@
 
 import { UIManager } from '../ui/ui-manager.js';
 import { t, getLang } from '../i18n/index.js';
-import { formatINR } from '../utils/due-reminder.js';
 import * as store from './rent-store.js';
 import { isShareToken, withLease, withMonth, PUBLIC_MONTHS } from './rent-public.js';
 import { vacantByProperty, typedPlace, moveTarget } from './rent-views.js';
-import { monthLabel, dateLabel, leaseDues, chargeId, isDate } from './rent-math.js';
+import { monthLabel, leaseDues, chargeId, isDate } from './rent-math.js';
 import { moveMonthRent, oldMonth, moveMonthSplit, changeUnitPlan, keptTerms, advanceLeft } from './rent-math-ledger.js';
+import { formatRupees } from '../utils/money.js';
+import { formatDate } from '../utils/dates.js';
 
 const el = (id) => document.getElementById(id);
 const toast = (key) => UIManager.showToast(t(key), 'error');
@@ -26,7 +27,7 @@ export function unitPickHtml(c, id, d, { current = '', none = true, attrs = '' }
         const now = u.id === current;
         return `<option value="${c.esc(u.id)}" data-rent="${c.esc(u.rent || 0)}"${now ? ' selected' : ''}>${c.esc(typedPlace(type ? c.typeWord(type) : '', u.label, ''))}${now ? ` ${c.esc(t('ui.rent.unit_now'))}` : ''}</option>`;
     }).join('')}</optgroup>`).join('');
-    return `<label class="rent-label">${c.esc(t('ui.rent.unit'))}<select id="${id}"${attrs}>${none ? `<option value="">${c.esc(t('ui.rent.unit_none'))}</option>` : ''}${groups}</select></label>`;
+    return `<label class="field rent-label">${c.esc(t('ui.rent.unit'))}<select class="input" id="${id}"${attrs}>${none ? `<option value="">${c.esc(t('ui.rent.unit_none'))}</option>` : ''}${groups}</select></label>`;
 }
 
 /** Tenants page, Add tenant: the picker in its box. */
@@ -36,12 +37,12 @@ export function fillPicker(c, boxId, id) {
 }
 
 const splitHtml = (c, mgr) => {
-    const input = (id) => `<input id="${id}" type="number" inputmode="decimal" min="0" step="1"${mgr ? '' : ' readonly'}>`;
+    const input = (id) => `<input class="input" id="${id}" type="number" inputmode="decimal" min="0" step="1"${mgr ? '' : ' readonly'}>`;
     return `<div class="rent-tenant-section">
         <label class="rent-check"><input id="rentSplitOn" type="checkbox" checked> ${c.esc(t('ui.rent.prorate_move'))}</label>
         <div id="rentSplitBox">
-            <label class="rent-label" id="rentSplitOldL"><span></span>${input('rentSplitOld')}</label>
-            <label class="rent-label" id="rentSplitNewL"><span></span>${input('rentSplitNew')}</label>
+            <label class="field rent-label" id="rentSplitOldL"><span></span>${input('rentSplitOld')}</label>
+            <label class="field rent-label" id="rentSplitNewL"><span></span>${input('rentSplitNew')}</label>
             <p class="rent-help" id="rentSplitHelp"></p>
         </div></div>`;
 };
@@ -54,8 +55,8 @@ function fillSplit(from, d) {
     const month = monthLabel(s.month, getLang());
     el('rentSplitBox').hidden = !el('rentSplitOn').checked;
     el('rentSplitOldL').hidden = s.old === null;
-    el('rentSplitOldL').firstChild.textContent = s.old === null ? '' : t('ui.rent.split_old', { month, date: dateLabel(s.oldEnd) });
-    el('rentSplitNewL').firstChild.textContent = t('ui.rent.split_new', { month, date: dateLabel(date) });
+    el('rentSplitOldL').firstChild.textContent = s.old === null ? '' : t('ui.rent.split_old', { month, date: formatDate(s.oldEnd) });
+    el('rentSplitNewL').firstChild.textContent = t('ui.rent.split_new', { month, date: formatDate(date) });
     el('rentSplitOld').value = s.old ?? '';
     el('rentSplitNew').value = s.next;
     el('rentSplitHelp').textContent = s.old === null ? t('ui.rent.split_first', { month }) : t('ui.rent.split_help');
@@ -103,15 +104,15 @@ async function changeDialog(c, { d, ix, from, unit, occ, defs, mgr, on, typed })
     const to = c.placeOf(ix, unit.id);
     const month = monthLabel(s.month, lang);
     const ask = t('msg.rent.change_unit_confirm', {
-        name: ix.tenants.get(from.tenantId)?.name || '', from: place, to, date: dateLabel(lease.startDate),
-        month: monthLabel(s.endMonth, lang), dues: formatINR(leaseDues(d.charges, from.id).total)
+        name: ix.tenants.get(from.tenantId)?.name || '', from: place, to, date: formatDate(lease.startDate),
+        month: monthLabel(s.endMonth, lang), dues: formatRupees(leaseDues(d.charges, from.id).total)
     }) + (s.endMonth !== s.month ? ''
         : ` ${!on ? t('msg.rent.change_unit_both', { month })
-            : paidOld?.kept ? t('msg.rent.change_unit_old_paid', { month, from: place, to, new: formatINR(lease.firstRent) })
-                : paidOld?.capped ? t('msg.rent.change_unit_old_capped', { month, from: place, old: formatINR(paidOld.amount), to, new: formatINR(lease.firstRent) })
-                    : t('msg.rent.change_unit_split', { month, from: place, old: formatINR(oldRent === 'auto' ? s.old : oldRent), to, new: formatINR(lease.firstRent) })}`)
+            : paidOld?.kept ? t('msg.rent.change_unit_old_paid', { month, from: place, to, new: formatRupees(lease.firstRent) })
+                : paidOld?.capped ? t('msg.rent.change_unit_old_capped', { month, from: place, old: formatRupees(paidOld.amount), to, new: formatRupees(lease.firstRent) })
+                    : t('msg.rent.change_unit_split', { month, from: place, old: formatRupees(oldRent === 'auto' ? s.old : oldRent), to, new: formatRupees(lease.firstRent) })}`)
         // RENT-16: an advance carried on the old lease pays the new unit's first month.
-        + (advanceLeft(d.charges, from.id, s.endMonth) > 0 ? ` ${t('msg.rent.change_unit_adv', { amount: formatINR(advanceLeft(d.charges, from.id, s.endMonth)) })}` : '');
+        + (advanceLeft(d.charges, from.id, s.endMonth) > 0 ? ` ${t('msg.rent.change_unit_adv', { amount: formatRupees(advanceLeft(d.charges, from.id, s.endMonth)) })}` : '');
     if (!await UIManager.showModal(ask, t('ui.rent.change_unit'), true)) return;
     return c.saveMoveIn({
         unit, newUnit: false, occ, defs, from,

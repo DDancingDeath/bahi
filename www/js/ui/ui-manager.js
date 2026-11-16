@@ -10,6 +10,7 @@
 import { AppState } from '../utils/state.js';
 import { t } from '../i18n/index.js';
 import { emit, TOAST_ERROR } from '../utils/events.js';
+import { closeTopDialog, trapFocus } from '../utils/keyboard-shortcuts.js';
 
 // #toast and #loadingOverlay are declared inside #appContent, which is hidden until login.
 // Move them to <body> so they are also visible on the login/register screen.
@@ -23,6 +24,210 @@ function attachToBody(el) {
 let toastTimer = null;
 let loadingShown = false;
 let loadingHolds = 0;
+
+/** Confirm button of #modalOverlay: "OK", or a verb (and danger) for this one dialog. */
+function setConfirmButton({ confirmLabel = '', danger = false } = {}) {
+    const btn = document.getElementById('modalConfirm');
+    if (!btn) return;
+    if (confirmLabel) {
+        btn.removeAttribute('data-i18n');
+        btn.textContent = confirmLabel;
+    } else {
+        btn.setAttribute('data-i18n', 'ui.modals.ok');
+        btn.textContent = t('ui.modals.ok');
+    }
+    btn.classList.toggle('btn-danger', !!danger);
+    btn.classList.toggle('btn-primary', !danger);
+}
+
+// -------------------- Dialogs and sheets: one controller --------------------
+// Every app dialog is a .scrim.app-scrim holding one .app-dialog: a .dialog from 600 px,
+// a bottom .sheet below. openSheet() takes focus and keeps Tab inside; Esc and Back (keyboard-shortcuts.js
+// closeTopDialog) and a tap on the scrim press the top one's [data-dismiss] (Cancel, or OK on an alert);
+// closeSheet() gives focus back to the opener. showModal, showModalWithHtml and showCustomModal are one of them.
+
+const SHEET_QUERY = '(max-width: 599.98px)';
+/** A second tap of a double-tap lands within this time; it must not answer the dialog it just opened. */
+const TAP_GUARD_MS = 350;
+/** @type {WeakMap<Element, {opener: ?Element, openedAt: number}>} */
+const sheetState = new WeakMap();
+let sheetSeq = 0;
+let fitBound = false;
+
+const narrowScreen = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(SHEET_QUERY).matches;
+
+function fitModalBox(box) {
+    if (!box) return;
+    const sheet = narrowScreen();
+    box.classList.toggle('sheet', sheet);
+    box.classList.toggle('dialog', !sheet);
+}
+
+const boxOf = (overlay) => overlay.querySelector('.app-dialog');
+
+function tooSoonTap(e, overlay) {
+    return !!e.isTrusted && e.pointerType === 'touch' && Date.now() - (sheetState.get(overlay)?.openedAt || 0) < TAP_GUARD_MS;
+}
+
+function bindSheet(overlay, box) {
+    if (overlay.dataset.controller) return;
+    overlay.dataset.controller = '1';
+    overlay.addEventListener('click', (e) => {
+        if (tooSoonTap(e, overlay)) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+    }, true);
+    // A press that starts in the dialog (selecting text in a field) and ends on the scrim is not a scrim tap
+    let pressOnScrim = null;
+    overlay.addEventListener('pointerdown', (e) => { pressOnScrim = e.target === overlay; });
+    overlay.addEventListener('click', (e) => {
+        const pressed = pressOnScrim;
+        pressOnScrim = null;
+        if (e.target === overlay && pressed !== false && overlay.classList.contains('active')) closeTopDialog();
+    });
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') trapFocus(e, box);
+    });
+    if (!fitBound && typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+        fitBound = true;
+        window.matchMedia(SHEET_QUERY).addEventListener?.('change', () => document.querySelectorAll('.app-scrim > .app-dialog').forEach(fitModalBox));
+    }
+}
+
+/**
+ * Esc at any width presses the top dialog's [data-dismiss]. Capture phase, so it runs before
+ * keyboard-shortcuts.js (which skips a handled key) and the key goes no further.
+ * @param {KeyboardEvent} e
+ */
+function onSheetKey(e) {
+    if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+    if (!document.querySelector('.app-scrim.active')) return;
+    if (!closeTopDialog()) return;
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+if (typeof document !== 'undefined' && !document.__happaSheetEsc) {
+    document.__happaSheetEsc = true;
+    document.addEventListener('keydown', onSheetKey, true);
+}
+
+/**
+ * Opens a dialog / sheet (an .app-scrim with one .app-dialog) on the shared controller.
+ * Opening it again while it is open keeps its opener (the content was replaced).
+ * @param {?HTMLElement} overlay
+ * @param {{focus?: ?HTMLElement}} [opts] focus: the control that takes focus (default: the box)
+ */
+export function openSheet(overlay, { focus = null } = {}) {
+    if (!overlay) return;
+    const box = boxOf(overlay);
+    const state = sheetState.get(overlay) || { opener: null, openedAt: 0 };
+    const active = document.activeElement;
+    const wasOpen = overlay.classList.contains('active');
+    if (!wasOpen && !(box && box.contains(active))) state.opener = active;
+    state.openedAt = Date.now();
+    sheetState.set(overlay, state);
+    if (box) {
+        bindSheet(overlay, box);
+        fitModalBox(box);
+    }
+    if (!wasOpen) overlay.style.setProperty('--sheet-layer', String(document.querySelectorAll('.app-scrim.active').length));
+    overlay.dataset.sheetOpen = String(++sheetSeq);
+    overlay.classList.add('active');
+    const target = focus || box;
+    if (target && typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
+        if (document.activeElement !== target && typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => {
+                if (overlay.classList.contains('active') && !overlay.contains(document.activeElement)) target.focus({ preventScroll: true });
+            });
+        }
+    }
+}
+
+/**
+ * Closes a dialog / sheet opened with openSheet and gives focus back to its opener.
+ * @param {?HTMLElement} overlay
+ */
+export function closeSheet(overlay) {
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    delete overlay.dataset.sheetOpen;
+    const state = sheetState.get(overlay);
+    const opener = state?.opener;
+    if (state) state.opener = null;
+    const at = document.activeElement;
+    if (at && at !== document.body && !overlay.contains(at)) return;
+    if (opener && opener !== document.body && opener.isConnected && typeof opener.focus === 'function') {
+        opener.focus({ preventScroll: true });
+    }
+    const now = document.activeElement;
+    if (now && overlay.contains(now) && typeof now.blur === 'function') now.blur();
+}
+
+/**
+ * Answers a dialog that is still open as dismissed (Cancel, OK for an alert, null for a custom
+ * modal), as Esc would, before another one takes its place: no caller waits forever.
+ */
+function dismissOpenModal(overlay) {
+    const previous = AppState.modalResolve;
+    if (!previous || !overlay.classList.contains('active')) return;
+    AppState.modalResolve = null;
+    const cancel = document.getElementById('modalCancel');
+    const hadCancel = !!cancel && !cancel.hidden && cancel.style.display !== 'none';
+    previous(previous.custom ? null : !hadCancel);
+}
+
+function openModal(overlay, resolve, { custom = false } = {}) {
+    if (custom) resolve.custom = true;
+    AppState.modalResolve = resolve;
+    openSheet(overlay);
+}
+
+/** The stock title, OK and Cancel back in place (showCustomModal hides them). */
+function resetModalParts() {
+    document.querySelectorAll('#modalFooter [data-custom]').forEach(b => b.remove());
+    const header = document.getElementById('modalHeader');
+    if (header) header.hidden = false;
+    const ok = document.getElementById('modalConfirm');
+    if (ok) ok.hidden = false;
+    const cancel = document.getElementById('modalCancel');
+    if (cancel) cancel.hidden = false;
+    document.getElementById('modalMessage')?.classList.remove('dialog-lines');
+}
+
+/**
+ * The scrim and box of a dialog built in JS (`.app-scrim > .app-dialog`), with a title, a body and the
+ * actions; open it with openSheet, close it with closeSheet, then remove it.
+ * @param {{role?: string, labelId: string, title: string, describedBy?: string, className?: string}} opts
+ * @returns {{overlay: HTMLDivElement, box: HTMLDivElement, title: HTMLHeadingElement, body: HTMLDivElement, footer: HTMLDivElement}}
+ */
+export function buildSheet({ role = 'dialog', labelId, title, describedBy = '', className = '' }) {
+    const overlay = document.createElement('div');
+    overlay.className = `scrim app-scrim${className ? ` ${className}` : ''}`;
+    const box = document.createElement('div');
+    box.className = 'app-dialog dialog';
+    box.setAttribute('role', role);
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-labelledby', labelId);
+    if (describedBy) box.setAttribute('aria-describedby', describedBy);
+    box.tabIndex = -1;
+    const grabber = document.createElement('div');
+    grabber.className = 'grabber';
+    grabber.setAttribute('aria-hidden', 'true');
+    const h = document.createElement('h3');
+    h.className = 'dialog-title';
+    h.id = labelId;
+    h.textContent = title;
+    const body = document.createElement('div');
+    body.className = 'dialog-body';
+    const footer = document.createElement('div');
+    footer.className = 'dialog-actions';
+    box.append(grabber, h, body, footer);
+    overlay.appendChild(box);
+    return { overlay, box, title: h, body, footer };
+}
 
 const TOAST_TYPES = ['success', 'error', 'warning', 'info'];
 const TOAST_TYPE_DURATIONS = { error: 5000, warning: 4000, info: 3000, success: 2000 };
@@ -186,29 +391,58 @@ const UIManager = {
      * @param {string} message - The message to display
      * @param {string} [title='Alert'] - The modal title
      * @param {boolean} [showCancel=false] - Whether to show cancel button
-     * @returns {Promise<boolean>} Resolves with user's choice (true for OK, false for Cancel)
+     * @param {{confirmLabel?: string, danger?: boolean}} [opts] - A verb for the confirm button; danger styles it destructive
+     * @returns {Promise<boolean>} Resolves with user's choice (true for OK, false for Cancel, Esc, Back or a scrim tap)
      */
-    showModal(message, title = t('ui.modals.alert'), showCancel = false) {
+    showModal(message, title = t('ui.modals.alert'), showCancel = false, opts = {}) {
+        return this.openStockModal((el) => {
+            el.textContent = message;
+            el.classList.toggle('dialog-lines', String(message).includes('\n'));
+        }, title, showCancel, opts);
+    },
+
+    /**
+     * Shows a modal with HTML content. For trusted internal use only.
+     * WARNING: Only use for trusted content. Consider DOMPurify for user-generated content.
+     * @param {string} htmlMessage - The HTML message to display
+     * @param {string} [title='Alert'] - The modal title
+     * @param {boolean} [showCancel=false] - Whether to show cancel button
+     * @param {{confirmLabel?: string, danger?: boolean}} [opts] - A verb for the confirm button; danger styles it destructive
+     * @returns {Promise<boolean>} Resolves with user's choice
+     */
+    showModalWithHtml(htmlMessage, title = t('ui.modals.alert'), showCancel = false, opts = {}) {
+        return this.openStockModal((el) => { el.innerHTML = htmlMessage; }, title, showCancel, opts);
+    },
+
+    /**
+     * The dialog with its own title, message, Cancel and confirm (showModal, showModalWithHtml).
+     * @param {(el: HTMLElement) => void} fill - writes the message
+     * @returns {Promise<boolean>}
+     */
+    openStockModal(fill, title, showCancel, opts) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('modalOverlay');
             const modalTitle = document.getElementById('modalTitle');
             const modalMessage = document.getElementById('modalMessage');
             const cancelBtn = document.getElementById('modalCancel');
-            
+
             if (!overlay || !modalTitle || !modalMessage) {
                 resolve(true);
                 return;
             }
-            
+
+            dismissOpenModal(overlay);
+            resetModalParts();
             modalTitle.textContent = title;
-            // Use textContent to prevent XSS attacks
-            modalMessage.textContent = message;
-            cancelBtn.style.display = showCancel ? 'inline-block' : 'none';
-            overlay.classList.add('active');
-            
-            AppState.modalResolve = resolve;
+            fill(modalMessage);
+            if (cancelBtn) cancelBtn.style.display = showCancel ? '' : 'none';
+            setConfirmButton(opts);
+            openModal(overlay, resolve);
         });
     },
+
+    openSheet,
+    closeSheet,
 
     /**
      * Closes the modal dialog and resolves with result.
@@ -218,17 +452,17 @@ const UIManager = {
     closeModal(result) {
         const overlay = document.getElementById('modalOverlay');
         if (overlay) {
-            overlay.classList.remove('active');
-            if (AppState.modalResolve) {
-                AppState.modalResolve(result);
-                AppState.modalResolve = null;
-            }
+            closeSheet(overlay);
+            const resolve = AppState.modalResolve;
+            AppState.modalResolve = null;
+            if (resolve) resolve(result);
         }
     },
 
     /**
-     * Shows a custom modal with HTML content and custom buttons.
+     * Shows a custom modal with HTML content and custom buttons, in the same dialog.
      * WARNING: Only use for trusted content. Consider using DOMPurify for user-generated content.
+     * A button whose value is null, false or undefined is the dismiss: Esc, Back and a scrim tap press it.
      * @param {string} html - The HTML content to display
      * @param {Array<{text: string, value: any, class?: string}>} buttons - Array of button configs
      * @returns {Promise<any>} Resolves with the clicked button's value
@@ -236,64 +470,31 @@ const UIManager = {
     showCustomModal(html, buttons) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('modalOverlay');
-            const modalBox = overlay.querySelector('.modal-box');
-            
-            // Create content safely using DOM methods where possible
-            modalBox.innerHTML = '';
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'modal-content';
-            // For custom modals, we trust the caller has sanitized the HTML
-            // In production, consider using DOMPurify: contentDiv.innerHTML = DOMPurify.sanitize(html);
-            contentDiv.innerHTML = html;
-            modalBox.appendChild(contentDiv);
-            
-            const footer = document.createElement('div');
-            footer.className = 'modal-footer';
-            
-            buttons.forEach(btn => {
-                const button = document.createElement('button');
-                button.className = btn.class || 'modal-btn';
-                button.textContent = btn.text;
-                button.onclick = () => {
-                    overlay.classList.remove('active');
-                    resolve(btn.value);
-                };
-                footer.appendChild(button);
-            });
-            
-            modalBox.appendChild(footer);
-            overlay.classList.add('active');
-        });
-    },
-
-    /**
-     * Shows a modal with HTML content. For trusted internal use only.
-     * WARNING: Only use for trusted content. Consider DOMPurify for user-generated content.
-     * @param {string} htmlMessage - The HTML message to display
-     * @param {string} [title='Alert'] - The modal title
-     * @param {boolean} [showCancel=false] - Whether to show cancel button
-     * @returns {Promise<boolean>} Resolves with user's choice
-     */
-    showModalWithHtml(htmlMessage, title = t('ui.modals.alert'), showCancel = false) {
-        return new Promise((resolve) => {
-            const overlay = document.getElementById('modalOverlay');
-            const modalTitle = document.getElementById('modalTitle');
             const modalMessage = document.getElementById('modalMessage');
-            const cancelBtn = document.getElementById('modalCancel');
-            
-            if (!overlay || !modalTitle || !modalMessage) {
-                resolve(true);
+            const footer = document.getElementById('modalFooter');
+            if (!overlay || !modalMessage || !footer) {
+                resolve(null);
                 return;
             }
-            
-            modalTitle.textContent = title;
-            // WARNING: Only use for trusted content. Consider DOMPurify for user-generated content.
-            modalMessage.innerHTML = htmlMessage;
-            cancelBtn.style.display = showCancel ? 'inline-block' : 'none';
-            overlay.classList.add('active');
-            
-            AppState.modalResolve = resolve;
+
+            dismissOpenModal(overlay);
+            resetModalParts();
+            const header = document.getElementById('modalHeader');
+            if (header) header.hidden = true;
+            document.getElementById('modalConfirm')?.setAttribute('hidden', '');
+            document.getElementById('modalCancel')?.setAttribute('hidden', '');
+            modalMessage.innerHTML = html;
+            (buttons || []).forEach(cfg => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = cfg.class || 'btn';
+                button.textContent = cfg.text;
+                button.dataset.custom = '';
+                if (cfg.value === null || cfg.value === false || cfg.value === undefined) button.dataset.dismiss = '';
+                button.addEventListener('click', () => this.closeModal(cfg.value));
+                footer.appendChild(button);
+            });
+            openModal(overlay, resolve, { custom: true });
         });
     },
 

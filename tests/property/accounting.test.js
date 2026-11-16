@@ -251,8 +251,8 @@ test('AC5 Outstanding total = sum of open dues (Outstanding screen, Money › Wo
             OutstandingManager.agingBucket = null;
             OutstandingManager.renderDue();
             let total = 0;
-            document.querySelectorAll('#dueList .history-item .history-header').forEach(h => {
-                total += Number(h.textContent.match(/Due: ₹([\d,.]+)/)[1].replace(/,/g, ''));
+            document.querySelectorAll('#dueList [data-history-item] .history-header').forEach(h => {
+                total += Number(h.textContent.match(/Due:? ₹([\d,.]+)/)[1].replace(/,/g, ''));
             });
             return total;
         };
@@ -376,8 +376,8 @@ test('AC5 with opening records: Outstanding and Money dues include them; aging u
         OutstandingManager.agingBucket = null;
         OutstandingManager.renderDue();
         let screen = 0;
-        document.querySelectorAll('#dueList .history-item .history-header').forEach(h => {
-            screen += Number(h.textContent.match(/Due: ₹([\d,.]+)/)[1].replace(/,/g, ''));
+        document.querySelectorAll('#dueList [data-history-item] .history-header').forEach(h => {
+            screen += Number(h.textContent.match(/Due:? ₹([\d,.]+)/)[1].replace(/,/g, ''));
         });
         const fin = dues();
         const openingSaleDue = allBills(s).filter(b => O.isOpening(b) && b.type !== 'purchase').reduce((a, b) => a + outstandingDue(b), 0);

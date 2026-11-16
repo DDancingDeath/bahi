@@ -1,14 +1,14 @@
 /* -------------------- BILL TOTALS -------------------- */
 .bill-totals {
-  background: var(--card-bg);
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  margin: 16px 0;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  padding: var(--sp-4);
+  border-radius: var(--r-panel);
+  margin: var(--sp-4) 0;
+  box-shadow: var(--e1);
+  border: 1px solid var(--line);
 }
 
-.total-row {
+.total-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -16,23 +16,23 @@
   font-size: var(--fs-body);
 }
 
-.total-row span {
+.total-line span {
   font-weight: var(--w-strong);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
-.total-row strong {
+.total-line strong {
   font-size: var(--fs-lead);
   font-weight: var(--w-strong);
-  color: var(--primary-color);
+  color: var(--accent-text);
 }
 
-.labor-input-row {
+.bill-labour {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 .checkbox-label {
@@ -42,172 +42,221 @@
   font-weight: var(--w-label);
   cursor: pointer;
   font-size: var(--fs-body);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .checkbox-label input[type="checkbox"] {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: var(--primary-color);
+  accent-color: var(--accent-text);
+  border-radius: var(--r-sm);
 }
 
-.labor-input-row input[type="number"] {
+.bill-labour input[type="number"] {
   width: 120px;
   padding: 11px;
   text-align: right;
-  font-size: 16px;
+  font-size: var(--fs-input);
   font-weight: var(--w-strong);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
   margin: 0;
   max-width: 120px;
-  transition: all var(--transition);
+  transition: all var(--dur-2) var(--ease);
 }
 
-.labor-input-row input[type="number"]:focus {
-  border-color: var(--primary-color);
-  box-shadow: var(--focus-ring);
+.bill-labour input[type="number"]:focus {
+  border-color: var(--accent-text);
+  box-shadow: var(--focus);
+}
+
+.bill-labour input[type="number"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .grand-total {
   padding: 14px !important;
   margin-top: 10px;
-  font-size: 16px !important;
-  background: var(--success-soft);
-  border-radius: var(--radius);
+  font-size: var(--fs-body) !important;
+  background: var(--positive-soft);
+  border-radius: var(--r-control);
   margin: 10px -4px;
 }
 
 .grand-total span {
   font-weight: var(--w-strong);
-  color: var(--on-success-soft);
+  color: var(--positive);
 }
 
 .grand-total strong {
   font-size: 22px !important;
-  color: var(--on-success-soft) !important;
+  color: var(--positive) !important;
 }
 
-.payment-row {
+.pay-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  gap: 12px;
+  padding: var(--sp-3) 0;
+  gap: var(--sp-3);
+  border-bottom: 1px var(--rule-style) var(--line);
 }
 
-.payment-row label {
+.pay-line:last-child {
+  border-bottom: none;
+}
+
+.pay-line label {
   margin: 0;
   font-weight: var(--w-label);
   font-size: var(--fs-body);
   flex: 1;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
-.payment-row span {
+.pay-line span {
   font-weight: var(--w-strong);
   font-size: var(--fs-body);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
-.payment-row strong {
-  font-size: 18px;
-  color: var(--primary-color);
-  transition: color var(--transition);
+.pay-line strong {
+  font-size: var(--fs-lead);
+  color: var(--accent-text);
+  transition: color var(--dur-2) var(--ease);
 }
 
-.payment-row input[type="number"] {
+.pay-line input[type="number"] {
   width: 120px;
   min-width: 120px;
   max-width: 120px;
   padding: 11px;
   text-align: right;
-  font-size: 16px;
+  font-size: var(--fs-input);
   font-weight: var(--w-strong);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
   margin: 0;
   flex-shrink: 0;
-  transition: all var(--transition);
+  transition: all var(--dur-2) var(--ease);
 }
 
-.payment-row input[type="number"]:focus {
-  border-color: var(--primary-color);
-  box-shadow: var(--focus-ring);
+.pay-line input[type="number"]:focus {
+  border-color: var(--accent-text);
+  box-shadow: var(--focus);
 }
 
-.payment-row.payment-total {
+.pay-line.payment-total {
   background: var(--info-soft);
   padding: 14px;
-  border-radius: var(--radius);
+  border-radius: var(--r-control);
   margin: 10px -4px;
-  transition: background var(--transition);
+  transition: background var(--dur-2) var(--ease);
 }
 
-.payment-row.payment-total span {
+.pay-line.payment-total span {
   font-weight: var(--w-strong);
-  color: var(--on-info-soft);
+  color: var(--info);
 }
 
-.payment-row.payment-total strong {
-  font-size: 18px;
-  color: var(--info-dark);
+.pay-line.payment-total strong {
+  font-size: var(--fs-lead);
+  color: var(--info);
 }
 
-.payment-row.payment-excess {
-  background: var(--danger-soft) !important;
+/* Cash + Online + Due must add up to the bill total (#23); the row shows only while some is not split */
+.pay-line.pay-rest {
+  flex-wrap: wrap;
+  gap: var(--sp-2);
 }
 
-.payment-row.payment-excess strong {
-  color: var(--danger-dark) !important;
-  animation: pulse 1.5s ease-in-out infinite;
+.pay-line.pay-rest[hidden] {
+  display: none;
 }
 
-/* Purchase totals in the brand colour, sale totals green */
-#purchaseSection .grand-total,
-#purchaseSection .payment-row.payment-total:not(.payment-excess) {
-  background: var(--primary-soft);
+.pay-line.pay-rest strong {
+  font-size: var(--fs-body);
 }
 
-#purchaseSection .grand-total :is(span, strong),
-#purchaseSection .payment-row.payment-total:not(.payment-excess) :is(span, strong) {
-  color: var(--on-primary-soft) !important;
+.pay-rest [data-split="ok"] {
+  color: var(--positive);
 }
 
-#saleSection .payment-row.payment-total:not(.payment-excess),
-#wholesale-sales .payment-row.payment-total:not(.payment-excess) {
-  background: var(--success-soft);
-}
-
-#saleSection .payment-row.payment-total:not(.payment-excess) :is(span, strong),
-#wholesale-sales .payment-row.payment-total:not(.payment-excess) :is(span, strong) {
-  color: var(--on-success-soft) !important;
+.pay-rest [data-split="off"] {
+  color: var(--negative);
 }
 
 /* ---------- Billing totals and payment (redesign 3.1b): colon-less labels, ₹ in the field ---------- */
-#billing .bill-col-summary > .bill-totals {
+:is(#billing, .bill-page) .bill-side > .bill-totals {
   border: 1px solid var(--panel-border);
   border-radius: var(--r-panel);
   background: var(--panel-bg);
   box-shadow: var(--panel-shadow);
 }
 
-#billing .total-row span {
+:is(#billing, .bill-page) .total-line span {
   color: var(--ink-2);
   font-weight: var(--w-regular);
 }
 
-#billing .total-row strong {
+:is(#billing, .bill-page) .total-line strong {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
-#billing .grand-total span {
+/* Totals (3.5): a plain panel; the payable is the big ink figure, Total paid a plain row */
+:is(#billing, .bill-page) .money > span:not(.cur) {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* The shared .cur (surfaces.css), over the older span rules above */
+:is(#billing, .bill-page) .money > .cur {
+  color: var(--ink-3);
+  font-size: var(--fs-cur);
+  font-weight: var(--w-regular);
+}
+
+@media print {
+  :is(#billing, .bill-page) .money > .cur {
+    color: inherit;
+  }
+}
+
+:is(#billing, .bill-page) .grand-total,
+:is(#billing, .bill-page) .pay-line.payment-total {
+  margin: 0;
+  padding: var(--sp-3) 0 !important;
+  border-radius: 0;
+  background: none;
+}
+
+:is(#billing, .bill-page) .bill-totals > * + .grand-total {
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+:is(#billing, .bill-page) .grand-total > span {
+  color: var(--ink);
   font-weight: var(--w-strong);
 }
 
-#billing .grand-total strong {
+:is(#billing, .bill-page) .pay-line.payment-total > span {
+  color: var(--ink-2);
+  font-weight: var(--w-regular);
+}
+
+:is(#billing, .bill-page) .pay-line.payment-total strong {
+  color: var(--ink);
+  font-size: var(--fs-lead);
+  font-weight: var(--w-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+:is(#billing, .bill-page) .grand-total strong {
+  color: var(--ink) !important;
   font-family: var(--font-hero);
   font-size: var(--fs-display) !important;
   font-weight: var(--w-display);
@@ -215,7 +264,7 @@
   letter-spacing: var(--tracking-display);
 }
 
-#billing .labor-input-row .checkbox-label {
+:is(#billing, .bill-page) .bill-labour .checkbox-label {
   margin: 0;
 }
 
@@ -225,11 +274,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-#billing .bill-money {
+/* Labour off: only its switch */
+.bill-labour > [hidden] {
+  display: none;
+}
+
+:is(#billing, .bill-page) .bill-money {
   flex: none;
 }
 
-#billing .bill-money > .input {
+:is(#billing, .bill-page) .bill-money > .input {
   width: 100px;
   min-width: 0;
   max-width: 100px;
@@ -238,7 +292,7 @@
   text-align: right;
 }
 
-#billing .bill-pay-title {
+:is(#billing, .bill-page) .bill-pay-title {
   margin-top: var(--sp-2);
   padding-top: var(--sp-3);
   border-top: 1px var(--rule-style) var(--line);
@@ -247,25 +301,199 @@
   font-weight: var(--w-label);
 }
 
-#billing .payment-row > label {
+:is(#billing, .bill-page) .pay-line > label {
   color: var(--ink);
 }
 
-#billing .split-rest-btn {
-  border-color: transparent;
-  background-color: var(--accent-soft);
-  color: var(--accent-text);
+/* "Fill" puts the whole bill in that row: the row's tick box, drawn as a text button. Ticked it reads
+   "Filled ✓" on a solid fill; its name is the visible word plus the hidden hint (.pay-fill-hint). */
+:is(#billing, .bill-page) .pay-line > .pay-fill {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: stretch;
+  min-width: 48px;
+  min-height: 44px;
+  margin: 0;
+  color: var(--bill-tone-text, var(--accent-text));
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+  cursor: pointer;
 }
 
-#billing #saleSection .split-rest-btn {
-  background-color: var(--positive-soft);
+:is(#billing, .bill-page) .pay-line > .pay-fill > input {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-base);
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+:is(#billing, .bill-page) .pay-line > .pay-fill > span {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sp-2);
+  border: 2px solid transparent;
+  border-radius: var(--r-control);
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  white-space: nowrap;
+}
+
+:is(#billing, .bill-page) .pay-line > .pay-fill > .pay-fill-on,
+:is(#billing, .bill-page) .pay-line > .pay-fill > input:checked ~ .pay-fill-off {
+  display: none;
+}
+
+:is(#billing, .bill-page) .pay-line > .pay-fill > input:checked ~ .pay-fill-on {
+  display: flex;
+  border-color: var(--bill-tone-fill, var(--accent-text));
+  background: var(--bill-tone-fill, var(--btn-primary-bg));
+  color: var(--bill-tone-ink, var(--btn-primary-ink));
+  font-weight: var(--w-strong);
+}
+
+:is(#billing, .bill-page) .pay-line > .pay-fill > .pay-fill-on::after {
+  content: "✓" / "";
+  margin-left: var(--sp-1);
+}
+
+:is(#billing, .bill-page) .pay-line > .pay-fill > .pay-fill-hint {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  :is(#billing, .bill-page) .pay-line > .pay-fill:hover > input:not(:checked) ~ .pay-fill-off {
+    background: var(--state-hover);
+  }
+}
+
+:is(#billing, .bill-page) .pay-line > .pay-fill > input:focus-visible ~ span {
+  box-shadow: var(--focus);
+}
+
+#billing #saleSection .pay-line > .pay-fill {
   color: var(--positive);
 }
 
-#billing .form-row.field > .bill-note-print {
+#billing #saleSection .pay-line > .pay-fill > input:checked ~ .pay-fill-on {
+  border-color: var(--positive);
+  background: var(--btn-sale-bg);
+  color: var(--btn-sale-ink);
+}
+
+@media (forced-colors: active) {
+  :is(#billing, .bill-page) .pay-line > .pay-fill > input:checked ~ .pay-fill-on {
+    outline: 2px solid Highlight;
+  }
+}
+
+:is(#billing, .bill-page) .bill-form-field.field > .bill-note-print {
   align-self: flex-start;
   min-height: 44px;
   font-weight: var(--w-regular);
+}
+
+/* Under the totals: "Today · Change date" and "Add note" on one line; Notes and the Date box unfold below it
+   (Notes | Date side by side when both are open) */
+.bill-notes-date {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--sp-3);
+  align-items: flex-end;
+  margin-bottom: var(--sp-3);
+}
+
+.bill-notes-date > [hidden] {
+  display: none;
+}
+
+.bill-extras {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1) var(--sp-3);
+  min-height: var(--control-h);
+}
+
+.bill-date-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.bill-date-text:has(+ .bill-date-change:not([hidden]))::after {
+  content: " ·";
+}
+
+.bill-extras .btn-sm {
+  color: var(--bill-tone-text, var(--accent-text));
+}
+
+.bill-sale .bill-extras .btn-sm {
+  color: var(--positive);
+}
+
+.bill-notes-date > .bill-notes {
+  flex: 1.4 1 14em;
+  min-width: 0;
+}
+
+.bill-notes-date > .bill-date {
+  flex: 1 1 10em;
+  min-width: 0;
+}
+
+:is(#billing, .bill-page) .bill-notes-date > .bill-form-field.field {
+  margin-bottom: 0;
+}
+
+:is(#billing, .bill-page) .bill-form-field.field.bill-notes:not([hidden]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--sp-2);
+  row-gap: 0;
+}
+
+:is(#billing, .bill-page) .bill-notes > label[for] {
+  grid-row: 1;
+  grid-column: 1;
+  padding-bottom: 6px;
+  align-self: end;
+}
+
+:is(#billing, .bill-page) .bill-notes > .input {
+  grid-row: 2;
+  grid-column: 1 / -1;
+}
+
+:is(#billing, .bill-page) .bill-form-field.field.bill-notes > .bill-note-print {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: end;
+  gap: 6px;
+  min-height: 36px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
 }
 
 .bill-debug-preview {
@@ -276,8 +504,9 @@
   margin-top: var(--sp-5);
 }
 
-/* Share / Print / Save (3.2): the summary footer on desktop, the action bar on the phone.
-   The bar repeats the payable (BF-PAYABLE) or receivable figure, written beside it in purchase.js / retail-sale.js. */
+/* Total · Share / Save / Print (3.2; Print right-most, the most used): the summary footer on desktop, the action bar on the phone.
+   The row starts with the payable (BF-PAYABLE) or receivable figure, on every width, written in purchase.js / retail-sale.js /
+   wholesale-sales.js. */
 .bill-actions {
   display: flex;
   align-items: center;
@@ -285,8 +514,32 @@
   margin-top: var(--sp-4);
 }
 
-.bill-bar-total {
-  display: none;
+:is(#billing, .bill-page) .bill-bar-total {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+:is(#billing, .bill-page) .bill-bar-label {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:is(#billing, .bill-page) .bill-bar-money {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-hero);
+  font-size: var(--fs-title);
+  font-weight: var(--w-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .bill-actions > button {
@@ -294,39 +547,22 @@
   min-height: 48px;
 }
 
-.bill-actions > .bill-icon-btn {
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background-color: var(--surface);
-  box-shadow: none;
-  color: var(--ink);
+/* Save and Print share the rest of the row equally */
+.bill-actions > :is(.btn-primary, .bill-print) {
+  flex: 1 1 0;
+  min-width: min-content;
 }
 
-.bill-actions > .bill-icon-btn:hover:not(:disabled) {
-  background-image: linear-gradient(var(--state-hover), var(--state-hover));
-}
-
-.bill-actions > .share-draft-btn {
+/* Share is an icon (its words stay for screen readers and the tooltip) */
+.bill-actions > .bill-share {
   flex: none;
   width: 48px;
-  padding: 0;
   color: var(--positive);
-  cursor: pointer;
 }
 
-.bill-actions > .share-draft-btn .i {
+.bill-actions > .bill-share .i {
   width: 22px;
   height: 22px;
-}
-
-/* Share is an icon; its words stay for screen readers and the tooltip */
-.bill-actions > .share-draft-btn > span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 /* Desktop shortcut hint (Ctrl S / Ctrl P), left out of the button's name. ::after is the busy spinner. */
@@ -339,61 +575,26 @@
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
   line-height: 1.4;
+  white-space: nowrap;
 }
 
-/* Phone and tablet: the row is compact (payable, two icon buttons, Save) */
+/* Phone and tablet: the row is compact (payable, Share icon, Save and Print of equal width) */
 @media (max-width: 1023.98px) {
-  #billing .bill-bar-total {
-    display: block;
-    flex: 1;
-    min-width: 0;
+  :is(#billing, .bill-page) .bill-actions > :is(.btn-primary, .bill-print) {
+    padding: 0 var(--sp-2);
   }
 
-  #billing .bill-bar-label {
-    display: block;
-    overflow: hidden;
-    color: var(--ink-3);
-    font-size: var(--fs-caption);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  #billing .bill-bar-money {
-    display: block;
-    overflow: hidden;
-    color: var(--ink);
-    font-family: var(--font-hero);
-    font-size: var(--fs-title);
-    font-weight: var(--w-display);
-    font-variant-numeric: tabular-nums lining-nums;
-    line-height: 1.2;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  #billing .bill-actions > .bill-icon-btn {
-    flex: none;
-    width: 48px;
-    padding: 0;
-  }
-
-  #billing .bill-actions > .print-btn .bill-btn-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  #billing .bill-actions > .save-btn {
-    flex: none;
-    min-width: 96px;
-    padding: 0 var(--sp-5);
-  }
-
-  #billing .bill-actions > button[data-kbd]::before {
+  /* Hints are for a keyboard; at 1023 px and below there is room for the words only */
+  :is(#billing, .bill-page) .bill-actions > button[data-kbd]::before {
     content: none;
+  }
+}
+
+/* Print keeps its word without the icon below 400 px (room for the total beside equal Save and Print)
+   and on desktop (its Ctrl P hint says what it is) */
+@media (max-width: 399.98px), (min-width: 1024px) {
+  .bill-actions > .bill-print > .i {
+    display: none;
   }
 }
 
@@ -401,12 +602,12 @@
    move it, so a tap that ends a field's focus still lands on Save). It runs down behind the tab bar.
    A short screen (a phone on its side, the app with its keyboard open) keeps the row at the end of the bill. */
 @media (max-width: 1023.98px) and (min-height: 481px) {
-  #billing .bill-actions {
+  :is(#billing, .bill-page) .bill-actions {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 940;
+    z-index: calc(var(--z-appbar) - 10);
     margin: 0;
     padding: 10px max(var(--sp-4), calc((100vw - 480px) / 2 + var(--sp-4)));
     padding-bottom: calc(10px + 56px + env(safe-area-inset-bottom, 0px));
@@ -414,24 +615,24 @@
     background: var(--surface);
   }
 
-  body.biz-rentals #billing .bill-actions {
+  body.biz-rentals :is(#billing, .bill-page) .bill-actions {
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   /* The tab fades in without moving: a transform would hold the fixed bar for the animation */
-  #billing.tab.active {
+  :is(#billing, .bill-page).tab.active {
     animation-name: bill-fade-in;
   }
 
   /* Room under the last field (notes, date) to scroll clear of the bar, and for focus scrolling */
-  #billing.tab {
+  :is(#billing, .bill-page).tab {
     padding-bottom: calc(96px + 72px + env(safe-area-inset-bottom, 0px));
     scroll-padding-bottom: calc(64px + 72px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Toasts and the update banner show above the bar, not on Save */
-  body:has(#billing.tab.active) .toast,
-  body:not(.biz-rentals):has(#billing.tab.active) .app-update-banner {
+  body:has(:is(#billing, .bill-page).tab.active) .toast,
+  body:not(.biz-rentals):has(:is(#billing, .bill-page).tab.active) .app-update {
     bottom: calc(80px + 72px + env(safe-area-inset-bottom, 0px));
   }
 }
@@ -439,4 +640,17 @@
 @keyframes bill-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Payment checkbox styling */
+.pay-line input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  border: 2px solid var(--line);
+  margin: 0;
+  accent-color: var(--accent-text);
 }

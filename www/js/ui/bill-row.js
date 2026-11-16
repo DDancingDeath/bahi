@@ -4,7 +4,7 @@
  * the old app" toggle. Both pages use these so their rows line up the same way:
  * desktop = one grid row with fixed columns (bill no | party | amount |
  * date & by | items | payment chips), phone = a two-line card (see
- * history.css / desktop.css, `.bill-row`).
+ * history.css / desktop.css, `[data-bill-row]`).
  * @module ui/bill-row
  */
 
@@ -12,6 +12,7 @@ import { Helpers } from '../utils/helpers.js';
 import { t, tn } from '../i18n/index.js';
 import { billTotal, formatAmount, formatRupees, hasBillAmount, isActiveBill, isOpeningRecord, openingAmount, outstandingDue, readPayment, UNKNOWN_AMOUNT, formatKg, formatRate } from '../utils/money.js';
 import { billDateOf } from '../utils/history-filters.js';
+import { ageInDays, dueTone } from '../utils/aging.js';
 import { printStatusOf } from '../utils/print-status.js';
 import { SyncStatus } from './sync-status.js';
 
@@ -19,6 +20,8 @@ const L = (key, params) => Helpers.escapeHtml(t(key, params));
 
 /** Class names of the row slots, in desktop column order. */
 export const BILL_ROW_SLOTS = Object.freeze(['no', 'party', 'amount', 'date', 'items', 'chips']);
+
+const MODE_DOT = Object.freeze({ retail: ' sale', sale: ' sale', wholesale: ' wholesale' });
 
 /**
  * Bill number shown in lists ("S20261022-005"; short id when there is none).
@@ -64,6 +67,12 @@ export function billRowDate(bill) {
 }
 
 /** "Date?" badge for a date that can't be read (title says why). */
+/** "By {name}" with the name escaped (and in <strong> unless strong is false). */
+export function byNameHtml(name, strong = true) {
+    const who = Helpers.escapeHtml(name);
+    return L('ui.outstanding.by_name').replace('{name}', () => (strong ? `<strong>${who}</strong>` : who));
+}
+
 export function badDateBadgeHtml() {
     return ` <span class="bad-date-badge" title="${L('ui.history.bad_date_title')}">${L('ui.history.bad_date')}</span>`;
 }
@@ -78,9 +87,11 @@ export function paymentChipsHtml(bill) {
     const pay = readPayment(bill);
     const p = { online: pay.online, cash: pay.cash, due: outstandingDue(bill) };
     const chips = [];
-    if (p.online > 0) chips.push(`<span class="payment-badge payment-online">${L('ui.history.badge_online', { amount: formatAmount(p.online) })}</span>`);
-    if (p.cash > 0) chips.push(`<span class="payment-badge payment-cash">${L('ui.history.badge_cash', { amount: formatAmount(p.cash) })}</span>`);
-    if (p.due > 0) chips.push(`<span class="payment-badge payment-due">${L('ui.history.badge_due', { amount: formatAmount(p.due) })}</span>`);
+    if (p.online > 0) chips.push(`<span class="tag payment-badge payment-online">${L('ui.history.badge_online', { amount: formatAmount(p.online) })}</span>`);
+    if (p.cash > 0) chips.push(`<span class="tag payment-badge payment-cash">${L('ui.history.badge_cash', { amount: formatAmount(p.cash) })}</span>`);
+    const date = billDateOf(bill);
+    const tone = dueTone(date ? ageInDays(date) : null, p.due);
+    if (p.due > 0) chips.push(`<span class="tag payment-badge payment-due${tone ? ` ${Helpers.escapeHtml(tone)}` : ''}">${L('ui.history.badge_due', { amount: formatAmount(p.due) })}</span>`);
     return chips.join('');
 }
 
@@ -98,7 +109,7 @@ export function billItemsText(bill) {
 }
 
 /**
- * One bill row element (`div.history-item.bill-row`).
+ * One bill row element (`div[data-history-item][data-bill-row]`).
  * @param {Object} bill
  * @param {Object} opts
  * @param {string} opts.onclick - safe data-onclick call for the bill number (built with Helpers.escapeJsAttr)
@@ -112,7 +123,9 @@ export function buildBillRow(bill, { onclick, kind, rowTap = false, typeTag = fa
     const opening = isOpeningRecord(bill);
     const voided = !isActiveBill(bill);
     const type = kind || bill?.type || 'purchase';
-    div.className = `history-item bill-row${opening ? ' is-opening' : ''}${voided ? ' is-voided' : ''}`;
+    div.className = `row${opening ? ' is-opening' : ''}${voided ? ' is-voided' : ''}`;
+    div.dataset.historyItem = '';
+    div.dataset.billRow = '';
     div.setAttribute('data-type', type);
     if (rowTap && onclick) {
         // `onclick` is escaped for markup (escapeJsAttr): parse it as markup, as the link's was
@@ -130,12 +143,12 @@ export function buildBillRow(bill, { onclick, kind, rowTap = false, typeTag = fa
     const date = billRowDate(bill);
     const items = billItemsText(bill);
     div.innerHTML = `
-        <span class="bill-row__no" title="#${Helpers.escapeHtml(number)}"><span class="bill-row__link"${link}>#${Helpers.escapeHtml(number)}</span></span>
+        <span class="bill-row__no" title="#${Helpers.escapeHtml(number)}"><span class="mode-dot${Helpers.escapeHtml(MODE_DOT[type] || '')}" aria-hidden="true"></span><span class="bill-row__link"${link}>#${Helpers.escapeHtml(number)}</span></span>
         <span class="bill-row__party" title="${Helpers.escapeHtml(party)}">${party ? `<strong>${Helpers.escapeHtml(party)}</strong>` : '—'}</span>
         <span class="bill-row__amount">${Helpers.escapeHtml(billListAmountText(bill))}</span>
         <span class="bill-row__meta">
-            <span class="bill-row__date">${Helpers.escapeHtml(date.text)}${date.bad ? badDateBadgeHtml() : ''}${by ? `<span class="bill-row__by"> • ${L('ui.outstanding.by')} <strong>${Helpers.escapeHtml(by)}</strong></span>` : ''}</span>
-            <span class="bill-row__items history-summary" title="${Helpers.escapeHtml(items)}">${Helpers.escapeHtml(items)}</span>
+            <span class="bill-row__date">${Helpers.escapeHtml(date.text)}${date.bad ? badDateBadgeHtml() : ''}${by ? `<span class="bill-row__by"> • ${byNameHtml(by)}</span>` : ''}</span>
+            <span class="bill-row__items" title="${Helpers.escapeHtml(items)}">${Helpers.escapeHtml(items)}</span>
             <span class="bill-row__chips history-payment">${tag}${opening ? `<span class="old-app-chip">${L('ui.history.old_app_chip')}</span>` : ''}${opening ? '' : SyncStatus.chipHtml(bill?.id)}${voidedChipHtml(bill)}${printStatusChipHtml(bill)}${paymentChipsHtml(bill)}</span>
         </span>
     `;
@@ -223,7 +236,7 @@ export function buildOpeningGroup(bills, build, kind = 'opening') {
  * @returns {?HTMLElement}
  */
 export function addVoidedToggle(list, opts) {
-    return addToggleChip(list, { ...opts, cls: 'voided-toggle-chip', showKey: 'ui.void.show', hideKey: 'ui.void.hide' });
+    return addToggleChip(list, { ...opts, kind: 'voided', showKey: 'ui.void.show', hideKey: 'ui.void.hide' });
 }
 
 /**
@@ -238,17 +251,18 @@ export function addVoidedToggle(list, opts) {
  * @returns {?HTMLElement}
  */
 export function addOpeningToggle(list, opts) {
-    return addToggleChip(list, { ...opts, cls: 'opening-toggle-chip', showKey: 'ui.history.show_old_dues', hideKey: 'ui.history.hide_old_dues' });
+    return addToggleChip(list, { ...opts, kind: 'opening', showKey: 'ui.history.show_old_dues', hideKey: 'ui.history.hide_old_dues' });
 }
 
-function addToggleChip(list, { id, count, on, onToggle, cls, showKey, hideKey }) {
+function addToggleChip(list, { id, count, on, onToggle, kind, showKey, hideKey }) {
     if (!list || !id) return null;
     document.getElementById(id)?.remove();
     if (!count) return null;
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.id = id;
-    chip.className = `${cls}${on ? ' active' : ''}`;
+    chip.className = 'chip';
+    chip.dataset.groupToggle = kind;
     chip.setAttribute('aria-pressed', on ? 'true' : 'false');
     chip.textContent = t(on ? hideKey : showKey, { count });
     chip.addEventListener('click', () => onToggle?.());
@@ -292,7 +306,7 @@ export function billTableHtml(bills, { onclickFor, openings = [], voided = [], t
                 <td class="bill-table__no" title="#${Helpers.escapeHtml(number)}">#${Helpers.escapeHtml(number)}</td>
                 <td class="bill-table__party">${Helpers.escapeHtml(bill?.customerName || '—')}</td>
                 <td class="bill-table__amount">${Helpers.escapeHtml(billListAmountText(bill))}</td>
-                <td class="bill-table__date">${Helpers.escapeHtml(date.text)}${date.bad ? badDateBadgeHtml() : ''}${by ? `<div class="bill-table__by">${L('ui.outstanding.by')} ${Helpers.escapeHtml(by)}</div>` : ''}</td>
+                <td class="bill-table__date">${Helpers.escapeHtml(date.text)}${date.bad ? badDateBadgeHtml() : ''}${by ? `<div class="bill-table__by">${byNameHtml(by, false)}</div>` : ''}</td>
                 <td class="bill-table__items">${tableItemsHtml(bill)}</td>
                 <td class="bill-table__chips">${typeTags ? typeTagHtml(bill?.type) : ''}${opening ? `<span class="old-app-chip">${L('ui.history.old_app_chip')}</span>` : ''}${opening ? '' : SyncStatus.chipHtml(bill?.id)}${voidedChipHtml(bill)}${printStatusChipHtml(bill)}${paymentChipsHtml(bill)}</td>
             </tr>`;
@@ -303,8 +317,8 @@ export function billTableHtml(bills, { onclickFor, openings = [], voided = [], t
     const openingRows = group(openings, 'ui.history.old_dues_group');
     const voidedRows = group(voided, 'ui.void.group');
     return `
-        <div class="bill-table-wrap">
-            <table class="bill-table">
+        <div class="bill-table-scroll panel">
+            <table class="table" data-bill-table>
                 <thead>
                     <tr>
                         <th class="bill-table__no">${L('ui.history.col_bill_no')}</th>

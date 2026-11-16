@@ -90,7 +90,7 @@ test('English: no Hindi text anywhere on the page (history built and not yet bui
     const text = await renderPage('en', built());
     expect(text).toMatch(/Rate changes on the Rates page/);
     expect(text).toMatch(/Items moved in the month/);
-    expect(text).toContain('₹25.00 → ₹26.00');
+    expect(text).toContain('₹25 → ₹26');
     expect(text).toMatch(/Week of \d+ [A-Z][a-z]{2} 20\d\d/);
     expect(text).toMatch(/Usually|Not enough history/);
     expect(text).not.toMatch(DEVANAGARI);
@@ -104,7 +104,7 @@ test('English: no Hindi text anywhere on the page (history built and not yet bui
 test('Hindi: no English sentences from the catalogue on the page', async () => {
     const text = await renderPage('hi', built());
     expect(text).toMatch(/रेट पेज पर रेट में बदलाव/);
-    expect(text).toContain('₹25.00 → ₹26.00');
+    expect(text).toContain('₹25 → ₹26');
     expect(text).toMatch(/वाला हफ़्ता/);
     for (const en of ['Trends', 'Rates page', 'Items page', 'Estimated from bills', 'Purchase', 'Wholesale', 'Retail', 'Weekly',
         'Month', 'Week', 'Bills', 'Not enough history', 'Day by day', 'Product traffic', 'History built']) {
@@ -113,4 +113,31 @@ test('Hindi: no English sentences from the catalogue on the page', async () => {
     const fresh = await renderPage('hi', null);
     expect(fresh).not.toMatch(/Build history|Reads per day|free limit/);
     expect(fresh).toMatch(/सभी बिलों से इतिहास बनाएँ/);
+});
+
+test('chart greys come from the theme tokens and are redrawn when the theme or mode changes', async () => {
+    await renderPage('en', built());
+    await RateTrendsManager.setSection('rates');
+    await RateTrendsManager.setView('chart');
+    const styles = [];
+    const ctx = new Proxy({}, {
+        get: (o, k) => (k in o ? o[k] : () => {}),
+        set: (o, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle') styles.push(v); o[k] = v; return true; }
+    });
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = () => ctx;
+    const offsetParent = jest.spyOn(HTMLElement.prototype, 'offsetParent', 'get').mockReturnValue(document.body);
+    const root = document.documentElement.style;
+    root.setProperty('--ink-2', '#a8a8b5');
+    root.setProperty('--line', 'rgba(255, 255, 255, 0.07)');
+    try {
+        window.dispatchEvent(new CustomEvent('aadhat:themechange', { detail: { mode: 'dark' } }));
+        expect(styles).toEqual(expect.arrayContaining(['#a8a8b5', 'rgba(255, 255, 255, 0.07)']));
+        expect(styles).not.toEqual(expect.arrayContaining(['#4b5563']));
+    } finally {
+        HTMLCanvasElement.prototype.getContext = getContext;
+        offsetParent.mockRestore();
+        root.removeProperty('--ink-2');
+        root.removeProperty('--line');
+    }
 });

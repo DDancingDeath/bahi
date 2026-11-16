@@ -8,6 +8,7 @@
  */
 
 import { isArchivedItem, normalizeItemName } from './item-catalog.js';
+import { looseWord } from './party-match.js';
 
 // Hindi words are kept apart from Latin ones (one script per string), and the Hindi
 // word for kilo is written with escapes: it is only understood here, never shown.
@@ -226,13 +227,26 @@ function matchItem(tokens, items) {
     return null;
 }
 
-/** A word that starts like a one-word item name (3+ letters in common), or -1. */
+/**
+ * A word that starts like a one-word item name (3+ letters in common), or -1. A Latin word
+ * also matches a Hindi name said in Latin letters ("gehun" = गेहूं, "chawal" = चावल; #498).
+ */
 function closeItem(/** @type {string} */ w, /** @type {Array<{name?: string, hindiName?: string}>} */ items) {
     if (!w || w.length < 4 || numberOf(w) !== undefined || NOT_ITEM_WORDS.has(w)) return -1;
-    return (items || []).findIndex(item => item && !isArchivedItem(item) && [item.name, item.hindiName].some(name => {
+    const direct = (items || []).findIndex(item => item && !isArchivedItem(item) && [item.name, item.hindiName].some(name => {
         const n = nfc(normalizeItemName(name));
         return n.length >= 4 && !n.includes(' ') && (w.startsWith(n) || n.startsWith(w));
     }));
+    if (direct !== -1 || !/^[a-z]+$/.test(w)) return direct;
+    const said = looseWord(w);
+    return (items || []).findIndex(item => {
+        const hindi = normalizeItemName(item?.hindiName);
+        if (!item || isArchivedItem(item) || !hindi || hindi.includes(' ')) return false;
+        const h = looseWord(hindi);
+        // An English name that is the Hindi one in Latin letters ("Aloo") is matched as spelt above
+        if (h === looseWord(normalizeItemName(item.name))) return false;
+        return h.length >= 3 && (h === said || (Math.min(h.length, said.length) >= 4 && (h.startsWith(said) || said.startsWith(h))));
+    });
 }
 
 /**
@@ -587,4 +601,33 @@ export function pickVoiceBill(alternatives, items = [], knownNames = []) {
     let best = parsed[0];
     for (const b of parsed) if (score(b) > score(best)) best = b;
     return best || parseVoiceBill('', items);
+}
+
+/** For the whole-bill parser (utils/voice-bill-parse.js): the shared word lists and helpers. */
+export const VOICE_WORDS = {
+    WEIGHT_UNITS, GRAM_UNITS, PRICE_AFTER, RATE_WORDS, CURRENCY_BEFORE, PER_WORDS, POSSESSIVE,
+    CUSTOMER_WORDS, NOT_ITEM_WORDS, LINE_SEPARATORS, NAME_FILLER, NAME_END, BREAK
+};
+export { nfc as voiceNfc, numberGroups as voiceNumberGroups, itemSpans as voiceItemSpans, nameCase as voiceNameCase };
+
+/** Whole utterances that undo the last voice change (#131); one script per phrase. */
+const UNDO_PHRASES = wordSet([
+    'undo', 'undo it', 'undo that', 'undo last', 'undo karo', 'cancel last', 'remove last', 'delete last',
+    'wapas', 'vapas', 'wapas lo', 'vapas lo', 'wapas karo', 'vapas karo', 'pichla hatao', 'pichhla hatao',
+    'hatao', 'hata do', 'galat', 'galat hai',
+    'वापस', 'वापस लो', 'वापस करो', 'पिछला हटाओ', 'हटाओ', 'हटा दो', 'गलत', 'ग़लत', 'गलत है', 'ग़लत है',
+    'अनडू', 'अन्डू', 'अनडू करो'
+]);
+
+/**
+ * True when the recogniser's best guess is only an undo command ("undo", "वापस", "pichla hatao"),
+ * never when it also names an item or a number.
+ * @param {string[]|string} alternatives
+ * @returns {boolean}
+ */
+export function isUndoCommand(alternatives) {
+    const first = (Array.isArray(alternatives) ? alternatives : [alternatives]).find(a => String(a || '').trim());
+    if (!first) return false;
+    const words = voiceTokens(first).filter(w => w !== '.' && w !== 'please' && w !== 'कृपया');
+    return words.length > 0 && UNDO_PHRASES.has(words.join(' '));
 }
