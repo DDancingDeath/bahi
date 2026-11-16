@@ -166,6 +166,9 @@ describe('REM-3 backup check (#63)', () => {
         AppState.salesHistory = [];
         AppState.purchaseHistory = [];
         localStorage.clear();
+        // The first-run list (U-58) and the phone-lock offer (U-55) are done / answered here
+        localStorage.setItem('happa.firstRun.hidden.u1', '1');
+        localStorage.setItem('happa.appLockAsked.u1', '1');
     });
     afterEach(() => { AppState.userRole = null; });
     const card = () => document.querySelector('[data-reminder="backup"]');
@@ -323,7 +326,7 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
         expect(toggle().getAttribute('aria-expanded')).toBe('false');
         expect(toggle().getAttribute('aria-controls')).toBe('todayRemindersBody');
         expect(body().hidden).toBe(true);
-        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Udhaar ₹250·Rent ₹68,000·Backup');
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Dues ₹250·Rent ₹68,000·Backup');
         expect(toggle().querySelector('[data-disclosure-alert]')).not.toBeNull();
         expect(toggle().textContent).toContain('Something is overdue');
         expect(toggle().textContent).not.toContain('raja kumar');
@@ -361,7 +364,7 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
     test('Hindi chips', () => {
         setLang('hi');
         DayManager.renderReminders(TODAY);
-        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('उधार ₹250·किराया ₹68,000·बैकअप');
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('बकाया ₹250·किराया ₹68,000·बैकअप');
         expect(document.querySelector('.today-reminders-add').getAttribute('aria-label')).toBe('याद जोड़ें');
     });
 

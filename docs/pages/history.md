@@ -16,3 +16,5 @@ A bill that stored no total shows **—** instead of ₹0, and a date the app ca
 read shows **Date?** next to it.
 **Edit** first reads the bill again from the server: if it was changed on another
 phone (a payment, an edit or a void) the app asks before loading the latest copy.
+Wholesale bills are edited the same way (same window, same record of the change): Edit opens
+the bill on the Wholesale page, with **Cancel edit** to leave it unchanged.

@@ -8,5 +8,6 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [stock.
 | Average rate (S2) | The average cost after all of that. |
 | Value per item, total value (S3, S4) | Quantity × average rate; the total is their sum. |
 | Adjustment value (S5) | Quantity of a correction × its rate (or today's average rate). |
+| "A bill has a doubtful rate" notice (BF-USUAL; owner and managers) | A loaded purchase with a line at least 5× (or at most ⅕ of) the item's Rates-page rate, e.g. ₹2,400/kg against ₹24/kg. Such a bill moves the average rate and the value; **Open bill** shows it to correct (Edit) or keep. |
 | Dead stock value (S6) | Value of items with stock and no sale in the chosen days. |
 | Summary card (S7, S4) | Above the list: items in stock, their total kg and the stock value (S4). Members see the item count only. |

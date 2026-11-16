@@ -7,9 +7,10 @@
 import { APP_VERSION } from '../version.js';
 import { UIManager, buildSheet } from '../ui/ui-manager.js';
 import { openExternal } from '../utils/open-external.js';
+import { icon } from '../ui/icons.js';
 import { getLang, t, LANG_CHANGE_EVENT } from '../i18n/index.js';
 import {
-    APK_DOWNLOAD_URL, APP_NAME, DOWNLOAD_PAGE_URL, LATEST_RELEASE_API,
+    APP_NAME, DOWNLOAD_PAGE_URL, LATEST_RELEASE_API,
     buildShareMessage, findRelease, formatVersion, shouldCheckForUpdate, updateToOffer,
     whatsAppShareUrl, whatsNewToShow, whatsNewContent, WHATS_NEW_LABELS
 } from '../utils/release-info.js';
@@ -18,8 +19,12 @@ const KEYS = {
     lastSeen: 'aadhat.lastSeenVersion',
     lastCheck: 'aadhat.updateLastCheck',
     latestTag: 'aadhat.updateLatestTag',
-    dismissed: 'aadhat.updateDismissedVersion'
+    dismissed: 'aadhat.updateDismissedVersion',
+    snoozedUntil: 'aadhat.updateSnoozedUntil'
 };
+
+/** "Later" on the update card hides it for a day. */
+const SNOOZE_MS = 24 * 60 * 60 * 1000;
 
 const store = {
     get(key) { try { return localStorage.getItem(key); } catch (_) { return null; } },
@@ -163,12 +168,21 @@ export class AppUpdatesManager {
             }
         }
         const version = updateToOffer(await installedVersion(), latestTag, store.get(KEYS.dismissed));
-        if (version) this.renderUpdateBanner(version);
+        this.offeredVersion = version || null;
+        if (version && !(Number(store.get(KEYS.snoozedUntil)) > now)) this.renderUpdateBanner(version);
+        this.renderSettings();
     }
 
+    /**
+     * The update card: at the top of Today, in the page (never over Billing's controls). Download opens the
+     * download page (install steps, Play Protect help, then the APK); Later hides it for a day; × skips this version.
+     * Settings › Help & about shows the offer too.
+     */
     static renderUpdateBanner(version) {
         document.getElementById('appUpdateBanner')?.remove();
-        const banner = el('div', 'notice info solid app-update');
+        const host = document.querySelector('#day .day-container');
+        if (!host) return;
+        const banner = el('div', 'notice info app-update');
         banner.id = 'appUpdateBanner';
         banner.setAttribute('role', 'status');
 
@@ -179,20 +193,26 @@ export class AppUpdatesManager {
         const actions = el('div', 'notice-actions');
         const download = el('button', 'btn btn-sm btn-primary', t('ui.updates.download'));
         download.type = 'button';
-        download.addEventListener('click', () => this.openExternal(APK_DOWNLOAD_URL));
-        const howTo = el('a', 'btn btn-sm btn-ghost', t('ui.updates.how_to_install'));
-        howTo.href = DOWNLOAD_PAGE_URL;
-        howTo.addEventListener('click', (e) => { e.preventDefault(); this.openExternal(DOWNLOAD_PAGE_URL); });
-        const close = el('button', 'btn btn-sm btn-ghost btn-icon', '✕');
+        download.addEventListener('click', () => this.openExternal(DOWNLOAD_PAGE_URL));
+        const later = el('button', 'btn btn-sm btn-ghost', t('ui.updates.later'));
+        later.type = 'button';
+        later.addEventListener('click', () => {
+            store.set(KEYS.snoozedUntil, Date.now() + SNOOZE_MS);
+            banner.remove();
+        });
+        const close = el('button', 'btn btn-sm btn-ghost btn-icon');
         close.type = 'button';
+        close.innerHTML = icon('x');
         close.setAttribute('aria-label', t('ui.updates.dismiss'));
         close.addEventListener('click', () => {
             store.set(KEYS.dismissed, version);
+            this.offeredVersion = null;
             banner.remove();
+            this.renderSettings();
         });
-        actions.append(download, howTo, close);
+        actions.append(download, later, close);
         banner.appendChild(actions);
-        document.body.appendChild(banner);
+        host.prepend(banner);
     }
 
     /** Opens a URL outside the app (system browser / WhatsApp on Android). */
@@ -230,10 +250,23 @@ export class AppUpdatesManager {
         this.openExternal(DOWNLOAD_PAGE_URL);
     }
 
-    /** Fills the version text and hides unsupported buttons in Settings. */
+    /** Fills the version text (the APK's own version in the app), the update offer, and hides unsupported buttons in Settings. */
     static renderSettings() {
         const versionText = document.getElementById('appVersionText');
-        if (versionText) versionText.textContent = APP_VERSION;
+        if (versionText) {
+            versionText.textContent = APP_VERSION;
+            if (isNative()) {
+                Promise.resolve(window.Capacitor?.Plugins?.App?.getInfo?.()).then((info) => {
+                    const v = formatVersion(info?.version);
+                    if (v) versionText.textContent = info?.build ? `${v} (${info.build})` : v;
+                }).catch(() => { /* no App plugin: the bundled version stays */ });
+            }
+        }
+        const offer = document.getElementById('appUpdateOffer');
+        if (offer) {
+            offer.hidden = !this.offeredVersion;
+            offer.textContent = this.offeredVersion ? t('ui.updates.available', { version: this.offeredVersion }) : '';
+        }
         const nativeShareBtn = document.getElementById('shareAppNativeBtn');
         if (nativeShareBtn) {
             nativeShareBtn.hidden = !this.canNativeShare();

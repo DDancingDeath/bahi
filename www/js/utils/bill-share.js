@@ -112,6 +112,9 @@ const TITLES = {
 };
 
 
+/** The party's word on shared text (U-27): its own key per bill kind; both read Customer since v730. */
+const partyLabel = (/** @type {string} */ kind) => t(kind === 'purchase' ? 'ui.bill.supplier' : 'ui.bill.customer');
+
 /**
  * WhatsApp text for a saved bill, in the app language, dated with the bill's own date.
  * Internal figures (expenses, profit, who created it) are never included.
@@ -127,7 +130,7 @@ export function buildBillShareText(bill, type, { copy = true } = {}) {
     const lines = [`*${t(TITLES[kind])}*${copy ? ` (${copyMark()})` : ''}`, ''];
     if (p.billNumber) lines.push(`${t('ui.bill.bill_no')}: #${p.billNumber}`);
     if (date) lines.push(`${t('ui.bill.date')}: ${formatReceiptDateTime(date)}`);
-    if (p.customerName) lines.push(`${t('ui.bill.customer')}: ${p.customerName}`);
+    if (p.customerName) lines.push(`${partyLabel(kind)}: ${p.customerName}`);
     if (p.printComments && String(p.comments || '').trim()) lines.push(`${t('ui.bill.note')}: ${String(p.comments).trim()}`);
     lines.push('', `*${t('ui.bill.items')}:*`);
     p.items.forEach((/** @type {{name: string, rate: number, qty: number, total: number}} */ item) => {
@@ -172,7 +175,7 @@ export function buildBillShareText(bill, type, { copy = true } = {}) {
 export function buildDraftShareText({ kind, customer, date = new Date(), note, items = [], total, labour = 0, expenses = 0, profit = 0 }) {
     // Not saved yet: says so, so nobody takes it for a recorded bill (S-10)
     const lines = [`*${t(TITLES[kind] || TITLES.retail)}* (${t('ui.bill.draft_mark')})`, ''];
-    lines.push(`${t('ui.bill.customer')}: ${customer || t('ui.bill.customer_default')}`);
+    lines.push(`${partyLabel(kind)}: ${customer || partyLabel(kind)}`);
     lines.push(`${t('ui.bill.date')}: ${date.toLocaleDateString('en-IN')}`);
     if (note) lines.push(`${t('ui.bill.note')}: ${note}`);
     lines.push('', `*${t('ui.bill.items')}:*`);

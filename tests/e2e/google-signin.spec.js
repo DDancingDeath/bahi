@@ -49,20 +49,20 @@ test('a new Google account waits for the owner (pending profile), then gets in o
     await expect(page.locator('#googleSignInBtn')).toHaveText(/Continue with Google/);
 
     await googlePopup(page, { email, name: 'New Google' });
-    await expect(page.locator('#googleMessage')).toHaveText('Registration successful! Please wait for admin approval.');
+    await expect(page.locator('#googleMessage')).toHaveText('Account made. Now the owner needs to approve it.');
     await expect(page.locator('#authScreen')).toBeVisible();
     const pending = await profileOf(email);
     expect(pending).toMatchObject({ name: 'New Google', email, role: 'staff', status: 'pending' });
-    expect(await page.evaluate(() => window.firebase.auth().currentUser)).toBeNull();
 
-    // Still pending: signed straight back out
-    await googlePopup(page, { email });
-    await expect(page.locator('#googleMessage')).toHaveText('Your account is pending approval. Please wait for admin approval.');
+    // Waiting on the approval card, still signed in (U-24): Check again says so
+    await expect(page.locator('#pendingCard')).toBeVisible();
+    await page.locator('#pendingCheckBtn').click();
+    await expect(page.locator('#pendingMessage')).toHaveText('Still waiting. Ask the owner to approve you, then check again.');
 
-    // The owner approves (Admin › Users does this write)
+    // The owner approves (Settings › Team does this write); Check again opens the app
     const { _id: pendingUid, ...pendingProfile } = pending;
     await commit([['dev_users', pendingUid, { ...pendingProfile, status: 'approved' }]]);
-    await googlePopup(page, { email });
+    await page.locator('#pendingCheckBtn').click();
     await page.waitForFunction(isReady, null, { timeout: 60000 });
     expect(await page.evaluate(() => window.firebase.auth().currentUser.uid)).toBe(pendingUid);
     expect(problems.pageErrors).toEqual([]);

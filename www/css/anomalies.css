@@ -209,6 +209,11 @@
   overflow-x: auto;
 }
 
+.anom-scroll:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
 .anom-heat,
 .anom-table {
   font-size: var(--fs-caption);
@@ -290,4 +295,26 @@
   margin: 0;
   padding-left: var(--sp-5);
   font-size: var(--fs-sm);
+}
+
+/* Results first (U-74): the six filters fold behind one "Filters · Last 7 days" chip */
+.anom-filter-box {
+  margin-bottom: var(--sp-3);
+}
+
+.anom-filter-box > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--control-h);
+  list-style: none;
+  cursor: pointer;
+}
+
+.anom-filter-box > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anom-filter-box[open] > summary {
+  margin-bottom: var(--sp-2);
 }

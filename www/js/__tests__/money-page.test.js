@@ -15,7 +15,7 @@ import {
     buildSnapshot, figuresFromSnapshot, partialFigures, sumFigures, rangeFigures, monthsToRoll, monthKeysBetween, lastMonthKeys, monthBounds, SNAPSHOT_VERSION, outdatedOlderMonths,
     snapshotCustomers
 } from '../utils/month-snapshots.js';
-import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways } from '../utils/takeaways.js';
+import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways, caveatKey } from '../utils/takeaways.js';
 import { setInsightsContext, resetInsightsContextForTests, getInsightsContext, contextMonth } from '../utils/insights-context.js';
 import { t, tn, setLang } from '../i18n/index.js';
 import { billsOfLines } from '../utils/finance-breakdown.js';
@@ -194,7 +194,7 @@ describe('comparisons and takeaways', () => {
         setLang('hi');
         try {
             MoneyManager.render();
-            expect(text()).toContain('1–21 सित॰ से');
+            expect(text()).toContain('1–21 सितंबर से');
             expect(text()).not.toContain('1 से 21');
         } finally {
             setLang('en');
@@ -221,7 +221,13 @@ describe('comparisons and takeaways', () => {
         expect(cashTakeaways({ net: -1574, out: { atPurchase: 1274, duePaid: 400, expenses: 250 }, profit: 100, salesDue: 250 }).map(x => x.key))
             .toEqual(['ui.tk.cash_out', 'ui.tk.biggest_out_purchases']);
         expect(spendingTakeaways({ business: 670, vsLastYear: { pct: 8, dir: 'up' }, topCategory: 'rent', withdrawn: 2000, kept: -3170, personal: 1080, show: { profit: true, personal: true } }).map(x => x.key))
-            .toEqual(['ui.tk.expenses_up', 'ui.tk.kept_negative']);
+            .toEqual(['ui.tk.expenses_up', 'ui.tk.loss_taken']);
+        // U-75: a loss with nothing taken out never says "₹0 went to personal use"; a profit smaller than what was taken keeps kept_negative
+        expect(spendingTakeaways({ business: 670, withdrawn: 0, kept: -500, personal: 0, show: { profit: true, personal: true } }).slice(-1))
+            .toEqual([{ key: 'ui.tk.loss_nothing_taken', params: { loss: 500 } }]);
+        expect([caveatKey({ key: 'uncosted', estimate: 0 }), caveatKey({ key: 'uncosted', estimate: 0.3 }), caveatKey({ key: 'uncosted', estimate: 40 }), caveatKey({ key: 'gap' })])
+            .toEqual(['uncosted_unknown', 'uncosted_unknown', 'uncosted', 'gap']);
+        expect(spendingTakeaways({ business: 670, withdrawn: 800, kept: -300, personal: 0, show: { profit: true, personal: true } }).slice(-1)[0].key).toBe('ui.tk.kept_negative');
         expect(worthTakeaways({ worth: null }).map(x => x.key)).toEqual(['ui.tk.worth_unknown']);
         expect(worthTakeaways({ worth: 5000, change: { dir: 'up', diff: 1000 }, receivable: 200, sinceLabel: 'Oct 2025' }).map(x => x.key))
             .toEqual(['ui.tk.worth_up', 'ui.tk.worth_receivable']);
@@ -885,7 +891,8 @@ describe('what each role sees (Roles & access)', () => {
 
     test('owner: the spending takeaway says what went to personal use and what stays of the profit', () => {
         MoneyManager.init('spending');
-        expect(spendText()).toContain(t('ui.tk.kept_negative', { taken: formatAmount(w().M9_withdrawals + w().M8_personalExpenses), kept: formatAmount(Math.abs(w().M10_kept)) }));
+        const taken = w().M9_withdrawals + w().M8_personalExpenses;
+        expect(spendText()).toContain(t('ui.tk.loss_taken', { taken: formatAmount(taken), loss: formatAmount(Math.abs(Math.round(w().M10_kept + taken))) }));
     });
     test('without profit: personal use only, nothing about the profit', () => {
         asMember({ profit: false });
@@ -933,6 +940,55 @@ describe('what each role sees (Roles & access)', () => {
         MoneyManager.render();
         const again = [...document.querySelectorAll('#moneyWorthTerms [data-metric-ref]')].map(el => el.dataset.metricRef);
         expect(again).toEqual(expect.arrayContaining(['S4', 'M15']));
+    });
+});
+
+describe('worker pay and regular bills on Money (M22–M26, U-22)', () => {    let setLinkedSource;
+    beforeAll(async () => {
+        ({ setLinkedSource } = await import('../utils/linked-outflows.js'));
+    });
+    const seed = () => {
+        setLinkedSource('workers', [{ entries: [
+            { date: '2026-10-05', amount: 800, kind: 'pay', mode: 'cash' },
+            { date: '2026-09-05', amount: 999, kind: 'pay', mode: 'cash' }
+        ] }], Date.now());
+        setLinkedSource('billItems', [{ entries: [
+            { kind: 'bill', date: '2026-10-03', amount: 400 },
+            { kind: 'pay', date: '2026-10-04', amount: 400, mode: 'online' }
+        ] }], Date.now());
+    };
+
+    test('owner: Spending lists them, Profit and Cash subtract the same M24, every ₹ explained', async () => {
+        const { unexplainedValues } = await import('../utils/metric-registry.js');
+        seed();
+        MoneyManager.init('spending');
+        expect(document.getElementById('moneyLinkedCard').hidden).toBe(false);
+        expect(shown('moneyLinkedWorkers')).toBe(800);
+        expect(shown('moneyLinkedBills')).toBe(400);
+        expect(shown('moneyLinkedTotal')).toBe(1200);
+        const m = MoneyManager.lastSummary;
+        expect(shown('moneyProfitAfterLinked')).toBe(rupee(m.M6.total - 1200));
+        expect(shown('moneyNetAfterLinked')).toBe(rupee(m.M14 - 1200));
+        expect(unexplainedValues(document.getElementById('money'))).toEqual([]);
+    });
+
+    test('manager: hidden (only the owner may read workers and recurring bills)', () => {
+        seed();
+        AppState.userRole = 'manager';
+        MoneyManager.init('spending');
+        ['moneyLinkedCard', 'moneyLinkedProfit', 'moneyLinkedCash'].forEach(id => expect(document.getElementById(id).hidden).toBe(true));
+    });
+
+    test('owner, nothing loaded on this phone yet: opening Money reads nothing; one tap includes them', () => {
+        setLinkedSource('workers', null);
+        setLinkedSource('billItems', null);
+        const load = jest.spyOn(MoneyManager, 'loadLinked').mockImplementation(() => {});
+        MoneyManager.init('spending');
+        expect(load).not.toHaveBeenCalled();
+        expect(document.getElementById('moneyLinkedLoad').hidden).toBe(false);
+        expect(document.getElementById('moneyLinkedRows').hidden).toBe(true);
+        expect(document.getElementById('moneyLinkedProfit').hidden).toBe(true);
+        load.mockRestore();
     });
 });
 

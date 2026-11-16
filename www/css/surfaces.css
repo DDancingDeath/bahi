@@ -67,11 +67,14 @@ a.row:active {
   min-width: 0;
 }
 
+/* Large text (U-17): a title or subtitle takes up to two lines before it is cut */
 .row-title,
 .row-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .row-title {
@@ -353,9 +356,21 @@ a.row:active {
   height: 100%;
 }
 
-/* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ---------- */
-.page-head {
-  display: none;
+/* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ----------
+   On the phone its h2 stays for screen readers, so headings go h1 (app bar) > h2 (page) > h3 (sections) (U-47) */
+@media (max-width: 1023.98px) {
+  .page-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .page-head > :not(h2) {
+    display: none;
+  }
 }
 
 /* ---------- Notice ---------- */
@@ -382,6 +397,19 @@ a.row:active {
 
 .notice b {
   font-weight: var(--w-strong);
+}
+
+/* Doubtful-rate notice (N-06): the sentence takes the full width, "Open bill" goes under it */
+.notice.doubtful-rates {
+  flex-wrap: wrap;
+}
+
+.notice.doubtful-rates > .grow {
+  flex: 1 1 70%;
+}
+
+.notice.doubtful-rates > .btn {
+  margin-left: auto;
 }
 
 .notice[hidden],

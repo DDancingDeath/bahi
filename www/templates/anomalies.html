@@ -1,7 +1,9 @@
 <div id="anomalies" class="tab">
-    <header class="page-head"><h2 data-i18n="ui.anom.page_title">Anomalies</h2></header>
+    <div class="page-head"><h2 data-i18n="ui.anom.page_title">Anomalies</h2></div>
     <p id="anomalyDenied" class="empty" hidden data-i18n="ui.anom.denied">Only the owner or a manager can see this page.</p>
     <div id="anomalyBody">
+        <details class="anom-filter-box">
+            <summary class="chip anom-filter-chip"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-sliders"/></svg><span id="anomalyFilterChipText" data-i18n="ui.anom.filters_short">Filters</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></summary>
         <div class="panel panel-pad anom-filters">
             <div class="field">
                 <label for="anomalyFilterPreset" data-i18n="ui.anom.f_dates">Dates</label>
@@ -49,6 +51,7 @@
                 </div>
             </div>
         </div>
+        </details>
 
         <div class="tabs anom-tabs" role="tablist">
             <button type="button" id="anomalyTabList" class="active" role="tab" aria-selected="true" data-onclick="anomalies.showView('list')"><span data-i18n="ui.anom.tab_list">List</span></button>

@@ -10,6 +10,7 @@ import { getDb, col } from '../db.js';
 import { isQuotaExhaustedError } from '../../utils/quota-guard.js';
 import { isStorageFullError, STORAGE_FULL_KEY } from '../../utils/storage-full.js';
 import { t } from '../../i18n/index.js';
+import { friendlyError } from '../../utils/friendly-error.js';
 
 /** Max time a bill save waits for the server to acknowledge a write. */
 const WRITE_ACK_TIMEOUT_MS = 1500;
@@ -88,7 +89,7 @@ export function settleWrite(writePromise, label = 'write') {
                 if (isQuotaExhaustedError(error) || error?.code === 'already-saved') return;
                 const text = isStorageFullError(error)
                     ? t(STORAGE_FULL_KEY)
-                    : t('msg.sync.save_failed_on_server', { value: error?.message || error });
+                    : t('msg.sync.save_failed_on_server', { value: friendlyError(error) });
                 import('../../ui/ui-manager.js')
                     .then(({ UIManager }) => UIManager.showToast(text, 'error'))
                     .catch(() => {});

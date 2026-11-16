@@ -42,7 +42,7 @@ test('the owner sends a test error from the website; it is stored and listed und
 
     await page.evaluate(() => window.app.i18n.setLang('hi'));
     await page.evaluate(() => window.app.diagnostics.showTab('status'));
-    await expect(page.locator('.diag-errtest [data-errtest="error"]')).toHaveText('टेस्ट गड़बड़ी भेजें');
+    await expect(page.locator('.diag-errtest [data-errtest="error"]')).toHaveText('टेस्ट गलती भेजें');
     await shot(page, testInfo, `web-owner-hi-${testInfo.project.name}`);
     await page.evaluate(() => window.app.i18n.setLang('en'));
     expect(problems.pageErrors).toEqual([]);

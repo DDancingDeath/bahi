@@ -14,6 +14,15 @@ const isSheet = () => typeof window === 'undefined' || !window.matchMedia || !wi
 
 const shown = (el) => !!el && el.isConnected && el.getClientRects().length > 0;
 
+/** The shop's own name under the Bahi mark in the More sheet / sidebar head (U-90); hidden while it has none. */
+export function showShopName() {
+    const el = document.getElementById('navShopName');
+    if (!el) return;
+    const name = String(AppState.settings?.shopName || '').trim();
+    el.textContent = name;
+    el.hidden = !name;
+}
+
 /**
  * Focus back after the sheet closes: what opened it if it still shows, else the opener showing now
  * (switching business swaps More for the bar's menu button), else the page title.
@@ -66,6 +75,10 @@ const ROUTES = Object.freeze({
     'settings-aadhat': { tab: 'settings', section: 'shop', id: 'settings-shop' },
     'admin-configure': { tab: 'settings', section: 'shop', id: 'settings-shop' },
 
+    // One Cash screen (U-32): Today › Cash. The old Cash page route (Money's cash drawer link) opens it.
+    'day-cash': { tab: 'day', section: 'cash', nav: 'day' },
+    'cash-management': { tab: 'day', section: 'cash', id: 'day-cash', nav: 'day' },
+
     // Ask (#88) replaced the unused Chat page.
     chat: { tab: 'ask', id: 'ask' }
 });
@@ -110,6 +123,14 @@ function roleMayOpenRoute(route) {
     return roleMayOpenTab(route.tab, AppState.userRole) && (!route.needs || roleMayOpenTab(route.needs, AppState.userRole));
 }
 
+/** @type {Array<() => boolean>} */
+const unsavedBillChecks = [];
+/** Bill editors say here whether they hold a bill with lines: Back on home and closing the page ask before leaving it. */
+export function onUnsavedBillCheck(check) {
+    unsavedBillChecks.push(check);
+}
+export const billInProgress = () => unsavedBillChecks.some(check => check());
+
 const NavigationManager = {
     isMenuOpen() {
         const sideNav = document.querySelector('.side-nav');
@@ -122,6 +143,7 @@ const NavigationManager = {
         const wasOpen = this.isMenuOpen();
         if (sideNav) sideNav.classList.toggle('active', open);
         if (overlay) overlay.classList.toggle('active', open);
+        if (open) showShopName();
         document.querySelectorAll('.bottom-nav-item[data-tab="more"], .app-bar .hamburger').forEach(b => b.setAttribute('aria-expanded', String(!!open)));
         if (!sideNav || open === wasOpen || !isSheet()) return;
         // Phone: the menu is a modal bottom sheet (redesign 4.1); focus goes in, and back to what opened it
@@ -263,7 +285,8 @@ const NavigationManager = {
         
         // Render outstanding when Due tab is shown
         if (tabId === 'due' && window.app?.outstanding) {
-            setTimeout(() => window.app.outstanding.filterDue('purchase'), 100);
+            // Sales first (collecting is the daily job, U-69), or the list last opened this session
+            setTimeout(() => window.app.outstanding.filterDue(window.app.outstanding.currentFilter?.() || 'sale'), 100);
         }
         
         // Wholesale page: Sales (entry) tab, or History for 'wholesale-history'
@@ -307,13 +330,16 @@ const NavigationManager = {
             setTimeout(() => window.app.health.init(), 100);
         }
         
-        // Initialize Day page when Day tab is shown
-        if (tabId === 'day' && window.app?.day) {
-            setTimeout(() => window.app.day.init(), 100);
+        // Initialize Day page when Day tab is shown (day-cash opens its Cash tab)
+        if (route.tab === 'day' && window.app?.day) {
+            setTimeout(() => {
+                window.app.day.init();
+                if (route.section === 'cash') window.app.day.showSubTab('cash');
+            }, 100);
         }
         
         // Initialize cash management when Cash Management tab is shown
-        if (tabId === 'cash-management' && window.app?.cashManagement) {
+        if (route.tab === 'cash-management' && window.app?.cashManagement) {
             window.app.day?.returnCashBody?.();
             setTimeout(() => window.app.cashManagement.init(), 100);
         }
@@ -486,6 +512,8 @@ const NavigationManager = {
     // Closes the menu, the notifications panel or the top dialog; true when something was open
     closeOverlay() {
         if (this.isMenuOpen()) { this.setMenuOpen(false); return true; }
+        const menu = /** @type {HTMLDetailsElement|null} */ (document.querySelector('details.bill-menu[open]'));
+        if (menu) { menu.open = false; return true; }
         const notif = document.getElementById('notifPanel');
         if (notif && !notif.hidden && window.app?.notifications?.close) {
             window.app.notifications.close();
@@ -512,8 +540,31 @@ const NavigationManager = {
             else this.showTabFromNav(this.homeTab, null);
             return;
         }
-        appPlugin?.exitApp?.();
+        return this.leaveApp(appPlugin);
     },
+
+    /**
+     * Back on home: a bill with lines asks first; otherwise a second Back within 2 s leaves. The app is
+     * minimised (it opens again warm, the bill as it was); exitApp only on an APK without minimizeApp.
+     */
+    async leaveApp(appPlugin) {
+        const leave = () => (appPlugin?.minimizeApp ? appPlugin.minimizeApp() : appPlugin?.exitApp?.());
+        if (billInProgress()) {
+            const ok = await UIManager.showModal(t('msg.app.leave_with_bill'), t('ui.app.leave_title'), true, { confirmLabel: t('ui.app.leave') });
+            if (ok) leave();
+            return;
+        }
+        const now = Date.now();
+        if (now - this.backPressedAt < BACK_AGAIN_MS) {
+            this.backPressedAt = 0;
+            leave();
+            return;
+        }
+        this.backPressedAt = now;
+        UIManager.showToast(t('msg.app.back_again_to_leave'), BACK_AGAIN_MS);
+    },
+
+    backPressedAt: 0,
 
     initBackNavigation() {
         if (typeof window === 'undefined' || window.__happaBackNavBound) return;
@@ -525,6 +576,8 @@ const NavigationManager = {
         }
     }
 };
+
+const BACK_AGAIN_MS = 2000;
 
 // Export NavigationManager
 export { NavigationManager, resolveRoute };

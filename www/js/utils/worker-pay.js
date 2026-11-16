@@ -2,7 +2,7 @@
 /**
  * @fileoverview Worker pay (#373 phase 1, docs/calculations.md WP-1 … WP-10): monthly pay per
  * worker, what was paid for each month, and the balance carried from month to month (arrears
- * and advances). Pure; whole rupees. Not linked to Money (owner decision pending).
+ * and advances). Pure; whole rupees. Payments show in Money (M22–M24, utils/linked-outflows.js).
  * @module utils/worker-pay
  */
 

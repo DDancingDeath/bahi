@@ -12,7 +12,7 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { t, tn, getLang } from '../i18n/index.js';
 import { formatKg, formatRate, formatRupees, moneyText } from '../utils/money.js';
 import { can } from '../utils/role-access.js';
-import { parseQuestion, answerQuestion } from '../utils/ask.js';
+import { parseQuestion, answerQuestion, exampleNames } from '../utils/ask.js';
 import { approxStockNote } from '../utils/stock-check.js';
 import { pickLang } from '../i18n/localize.js';
 import { estimateReportReads, groupLabel, mergeReportBills, quickItemSummary, quickPeriodOk, REPORT_COLLECTIONS, REPORT_GROUPS, REPORT_PRESETS, REPORT_TYPES, reportBillTypes, reportCsv, reportDays, reportPeriod, reportSheets, totalLabelKey } from '../utils/ask-report.js';
@@ -52,9 +52,18 @@ export const AskManager = {
     renderExamples() {
         const host = document.getElementById('askExamples');
         if (!host) return;
-        host.innerHTML = Array.from({ length: EXAMPLES }, (_, i) => t(`ui.ask.example_${i + 1}`))
+        // The last two use this shop's own top customer and item, so a first tap gives an answer (U-96)
+        const names = exampleNames({
+            retailSales: AppState.retailSalesHistory, wholesaleSales: AppState.salesHistory, items: AppState.items, stock: AppState.stock
+        }, { wholesale: can(AppState.userRole, 'wholesale', AppState.settings?.roleAccess), hindi: getLang() === 'hi' });
+        const list = Array.from({ length: EXAMPLES - 2 }, (_, i) => t(`ui.ask.example_${i + 1}`));
+        if (names.party) list.push(t('ui.ask.example_party_due', { name: names.party }));
+        if (names.item) list.push(t('ui.ask.example_item_stock', { name: names.item }));
+        host.innerHTML = list
             .map(q => `<button type="button" class="chip ask-example" title="${esc(q)}" data-onclick="ask.ask('${Helpers.escapeJsAttr(q)}')">${esc(q)}</button>`)
             .join('');
+        const input = document.getElementById('askInput');
+        if (input && names.party) input.placeholder = t('ui.ask.placeholder_for', { q: t('ui.ask.example_party_due', { name: names.party }) });
     },
 
     submit(event) {

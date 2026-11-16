@@ -23,8 +23,8 @@ const sale = (extra) => ({
     customerName: 'Trader', items: [{ name: 'Maize', qty: 200, rate: 25, total: 5000 }], total: 5000, ...extra
 });
 const lines = () => {
-    const h4 = [...document.querySelectorAll('#billDetailsContent h4')].find(h => h.textContent === 'Payment details');
-    return [...h4.parentElement.children].slice(1).map(d => d.textContent.replace(/\s+/g, ' ').trim());
+    const h3 = [...document.querySelectorAll('#billDetailsContent h3')].find(h => h.textContent === 'Payment details');
+    return [...h3.parentElement.children].slice(1).map(d => d.textContent.replace(/\s+/g, ' ').trim());
 };
 
 beforeEach(() => {
@@ -33,6 +33,20 @@ beforeEach(() => {
     AppState.currentUser = { uid: 'u1' };
     AppState.userRole = 'owner';
     AppState.settings = {};
+});
+
+test('U-67: money first (party, total, Paid / Due chips), bill no and times folded at the end, Void last', async () => {
+    AppState.salesHistory = [sale({
+        payment: { cash: 2500, online: 500, due: 2000, total: 5000 },
+        payments: [{ id: 'p1', cash: 1500, online: 500, at: NOW }]
+    })];
+    await HistoryManager.viewBill('id:w1', 'wholesale');
+    const head = document.querySelector('#billDetailsContent .bill-view-head');
+    expect(head.textContent.replace(/\s+/g, ' ')).toMatch(/Trader.*₹5,000.*Paid ₹3,000.*Due ₹2,000/);
+    expect(document.querySelector('#billDetailsContent .bill-view-more .bill-view-no').textContent).toBe('#W-1');
+    expect(document.querySelector('#billDetailsContent .bill-view-more').open).toBe(false);
+    const actions = [...document.querySelectorAll('.bill-details-footer button')].map(b => b.id);
+    expect(actions.indexOf('billVoidBtn')).toBeGreaterThan(actions.indexOf('billEditBtn'));
 });
 
 test('paid later: save-time cash/online, then the later payments, then the due', async () => {
@@ -69,7 +83,7 @@ test('the dialog is titled with the bill number and party; amounts are in ink, a
     expect(document.getElementById('billDetailsTitle').textContent).toBe('Bill #W-1');
     expect(document.getElementById('billDetailsParty').textContent).toBe('Trader');
     expect(document.getElementById('billDetailsParty').hidden).toBe(false);
-    const panel = [...document.querySelectorAll('#billDetailsContent h4')].find(h => h.textContent === 'Payment details').parentElement;
+    const panel = [...document.querySelectorAll('#billDetailsContent h3')].find(h => h.textContent === 'Payment details').parentElement;
     expect([...panel.querySelectorAll('.tag')].map(t => [t.className, t.textContent])).toEqual([['tag warn', '₹2,000']]);
     expect(panel.querySelector('.row-amt').textContent).toBe('₹3,000');
 });

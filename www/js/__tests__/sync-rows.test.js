@@ -13,6 +13,7 @@ import { updateSession, addSessionEntry } from '../firebase/repos/cash-sessions.
 import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { setLang } from '../i18n/index.js';
+import { syncSheetRows } from '../ui/sync-sheet.js';
 
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
 
@@ -46,7 +47,7 @@ describe('"as of" on the offline pill', () => {
 
     test('text: offline with a known time, with and without changes waiting', () => {
         expect(syncStatusText({ online: false, pending: 0, asOf: '2:05 pm' })).toBe('Offline · data as of 2:05 pm');
-        expect(syncStatusText({ online: false, pending: 2, asOf: '2:05 pm' })).toBe('Offline · data as of 2:05 pm · 2 changes waiting to sync');
+        expect(syncStatusText({ online: false, pending: 2, asOf: '2:05 pm' })).toBe('2 not sent · Offline');
         expect(syncStatusText({ online: false, pending: 0 })).toBe('Offline');
         setLang('hi');
         expect(syncStatusText({ online: false, pending: 0, asOf: '2:05 अपराह्न' })).toBe('ऑफ़लाइन · 2:05 अपराह्न तक का डेटा');
@@ -154,7 +155,7 @@ describe('per-row sync state', () => {
         status.trackWrite('purchases/b9', new Promise(r => { ack = r; }));
         status.fillSyncChips(document);
         expect(chip().hidden).toBe(false);
-        expect(chip().textContent).toBe('Waiting to sync');
+        expect(chip().textContent).toBe('Not sent yet');
         expect(chip().dataset.state).toBe('pending');
         ack();
         await flush();
@@ -169,7 +170,7 @@ describe('per-row sync state', () => {
     test('syncChipHtml: nothing for no id; a hidden empty chip for no state; ids are cleaned', () => {
         expect(syncChipHtml('')).toBe('');
         expect(syncChipHtml('a"b<c')).toBe('<span class="sync-chip" data-sync-id="abc" data-state="" hidden></span>');
-        expect(syncChipHtml('x1', 'pending')).toBe('<span class="sync-chip" data-sync-id="x1" data-state="pending">Waiting to sync</span>');
+        expect(syncChipHtml('x1', 'pending')).toBe('<span class="sync-chip" data-sync-id="x1" data-state="pending">Not sent yet</span>');
     });
 });
 
@@ -180,7 +181,7 @@ describe('History rows carry the chip', () => {
         jest.spyOn(SyncStatus, 'syncStateOf').mockImplementation(id => (id === 'p1' ? 'pending' : null));
         const bill = { id: 'p1', billNumber: 'P1', customerName: 'Ram', grandTotal: 100, items: [], date: '2026-11-01T10:00:00' };
         const row = buildBillRow(bill, { onclick: '' });
-        expect(row.querySelector('.sync-chip').textContent).toBe('Waiting to sync');
+        expect(row.querySelector('.sync-chip').textContent).toBe('Not sent yet');
         document.body.innerHTML = billTableHtml([bill, { ...bill, id: 'p2' }], { onclickFor: () => '' });
         const chips = [...document.querySelectorAll('.sync-chip')];
         expect(chips.map(c => c.hidden)).toEqual([false, true]);
@@ -244,7 +245,7 @@ describe('cash rows carry the chip (#70)', () => {
         const chips = [...list.querySelectorAll('.sync-chip')];
         expect(chips.map(c => c.dataset.syncId)).toEqual(['cash_2026-11-02', 'cash_2026-11-01']);
         expect(chips.map(c => c.hidden)).toEqual([false, true]);
-        expect(chips[0].textContent).toBe('Waiting to sync');
+        expect(chips[0].textContent).toBe('Not sent yet');
     });
 
     test('a withdrawal row carries its document\'s chip', () => {
@@ -270,5 +271,60 @@ describe('cash rows carry the chip (#70)', () => {
         await sent;
         expect(get).not.toHaveBeenCalled();
         delete global.firebase;
+    });
+});
+
+describe('not-sent count first, the waiting list and sign-out (U-03, U-04)', () => {
+    let online;
+    let status;
+    let waiter;
+    const pill = () => document.getElementById('syncStatus');
+    beforeEach(() => {
+        document.body.innerHTML = '';
+        online = false;
+        jest.spyOn(window.navigator, 'onLine', 'get').mockImplementation(() => online);
+        waiter = null;
+        status = createSyncStatus({ win: window, doc: document, pendingWrites: () => (waiter ? () => waiter : null) });
+        status.start();
+    });
+    afterEach(() => {
+        jest.useRealTimers();
+        status.stop();
+        jest.restoreAllMocks();
+    });
+
+    test('the count comes first; the pill opens the list while something waits', () => {
+        status.trackWrite('dev_purchases/b1', new Promise(() => {}));
+        expect(pill().textContent).toBe('1 not sent · Offline');
+        expect(pill().getAttribute('tabindex')).toBe('0');
+        expect(pill().querySelector('use').getAttribute('href')).toBe('#i-refresh');
+        expect(status.pendingItems()).toEqual([{ collection: 'purchases', id: 'b1' }]);
+    });
+
+    test('sign-out check: the tracked count, 0 once the SDK has sent everything, -1 while it still holds some', async () => {
+        status.trackWrite('expenses/e1', new Promise(() => {}));
+        await expect(status.unsentCount()).resolves.toBe(1);
+        status.stop();
+        status.start();
+        waiter = Promise.resolve();
+        await expect(status.unsentCount()).resolves.toBe(0);
+        jest.useFakeTimers();
+        waiter = new Promise(() => {});
+        const check = status.unsentCount(1500);
+        await Promise.resolve();
+        jest.advanceTimersByTime(1500);
+        await expect(check).resolves.toBe(-1);
+    });
+});
+
+describe('sync sheet rows (U-04)', () => {
+    test('a waiting bill shows its number, party and amount; anything else its kind', () => {
+        const rows = syncSheetRows([{ collection: 'purchases', id: 'b1' }, { collection: 'cashManagement', id: 'c1' }, { collection: 'auditLogs', id: 'a1' }],
+            { purchaseHistory: [{ id: 'b1', billNumber: 'P20261115-001', seller: 'Ramesh', grandTotal: 2400 }] });
+        expect(rows).toEqual([
+            { title: 'Purchase bill', detail: '#P20261115-001 · Ramesh · ₹2,400' },
+            { title: 'Cash drawer', detail: '' },
+            { title: 'Other change', detail: '' }
+        ]);
     });
 });

@@ -255,7 +255,10 @@ describe('Tenants and the tenant screen', () => {
         _test.render();
         expect(menu()).toEqual(['editTenant', 'changeUnit']);
         RentalsModule.api.back();
-        await new Promise(r => setTimeout(r, 20));
+        // Back re-renders asynchronously; a fixed 20 ms wait flaked on loaded CI runners.
+        for (let i = 0; i < 100 && document.querySelector('#rentalsBody #rentDetailTitle'); i++) {
+            await new Promise(r => setTimeout(r, 20));
+        }
         root = document.getElementById('rentalsBody');
         expect(root.querySelector('#rentDetailTitle')).toBeNull();
         expect(root.querySelectorAll('[data-tenant]').length).toBe(2);

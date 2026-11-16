@@ -24,7 +24,7 @@ import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { isShareToken, publicLink } from './rent-public.js';
 import {
-    UNIT_TYPES, VIEW_KEY, unitRows, summarize, tenantRows, placeText, typedPlace, meterPending
+    UNIT_TYPES, VIEW_KEY, rentModeKey, unitRows, summarize, collectedPct, tenantRows, placeText, typedPlace, meterPending
 } from './rent-views.js';
 import {
     PAYMENT_MODES, normalizeRentSettings, monthKey, monthLabel, monthsToCharge, chargeDue, leaseDues,
@@ -64,8 +64,8 @@ const state = {
     filters: { propertyId: '', type: '', status: '', q: '', sort: 'desc' }
 };
 
-/** Simple or Advanced, per user on this phone (owner decision: everyone starts in Simple). */
-const modeKey = () => `happa.rentMode.${AppState.currentUser?.uid || ''}`;
+/** Simple or Advanced (chosen in Settings › Rentals, U-65). */
+const modeKey = () => rentModeKey(AppState.currentUser?.uid);
 function savedMode() {
     try { return localStorage.getItem(modeKey()) === 'advanced' ? 'advanced' : 'simple'; } catch (_) { return 'simple'; }
 }
@@ -198,15 +198,18 @@ function render() {
         b.classList.toggle('active', on);
         b.setAttribute('aria-selected', String(on));
     });
-    document.querySelectorAll('#rentals [data-rent-mode]').forEach((b) => {
-        const on = b.getAttribute('data-rent-mode') === state.mode;
-        b.classList.toggle('active', on);
-        b.setAttribute('aria-pressed', String(on));
+    document.querySelectorAll('.bottom-nav-item[data-rent-bar]').forEach((b) => {
+        const name = b.getAttribute('data-rent-bar');
+        if (name === 'reports') b.hidden = !adv || !canWrite();
+        b.classList.toggle('active', name === state.page);
+        if (name === state.page) b.setAttribute('aria-current', 'page');
+        else b.removeAttribute('aria-current');
     });
     const links = byId('rentSettingsLinks');
-    if (links) links.hidden = !adv || !isManager();
+    if (links) links.hidden = !canWrite();
+    byId('rentals')?.setAttribute('data-rent-mode', state.mode);
     const roles = byId('rentRolesLink');
-    if (roles) roles.hidden = !isOwner();
+    if (roles) roles.hidden = !adv || !isOwner();
     document.querySelectorAll('.nav-menu a').forEach(a => {
         a.classList.toggle('active', a.getAttribute('data-rent-nav') === state.page);
     });
@@ -298,22 +301,29 @@ function renderMonth(d, ix, rows) {
     }
     const summary = `<div class="panel panel-pad rent-collect">
         <div class="rent-collect-line">${moneyInText(t('ui.rent.collected_of', { collected: formatRupees(sum.collected), expected: formatRupees(sum.expected) }), [sum.collected, sum.expected])}</div>
-        ${sum.expected > 0 ? `<progress class="rent-progress" max="${esc(sum.expected)}" value="${esc(sum.collected)}" aria-label="${et('ui.rent.collected')}"></progress>` : ''}
+        ${sum.expected > 0 ? progressBar(sum.collected, sum.expected) : ''}
         <div class="rent-sub" data-rent-received>${et('ui.rent.received_month')}: ${receivedText(d)}</div>
+        <div class="row-meta">${et('ui.rent.received_month_note')}</div>
         <div class="rent-sub">${et('ui.rent.outstanding')}: ${moneyHtml(sum.due)}</div>
     </div>`;
     const list = shown.map(a => collectRow(a, ix, lang)).join('')
         || emptyState({ icon: 'check', tone: 'pos', title: t(owe.length ? 'ui.rent.none_late' : 'ui.rent.all_paid', { month: monthLabel(state.month, lang) }) });
     const paidList = paid.length ? `<details class="rent-more"><summary>${et('ui.rent.paid_month', { n: paid.length })}</summary>
         <div class="panel">${paid.map(a => collectRow(a, ix, lang)).join('')}</div></details>` : '';
-    const vacant = sum.vacant ? `<button type="button" class="btn btn-ghost btn-sm rent-vacant" data-onclick="rentals.page('properties')">${et('ui.rent.vacant_units', { n: sum.vacant })}${icon('chevR', 'i-sm')}</button>` : '';
-    const payAny = canWrite() && owe.length ? `<div class="rent-sticky">${btn(' btn-primary btn-block', 'payAny', '', 'ui.rent.record_payment', '', ' data-rent-pay')}</div>` : '';
-    return `${title}${summary}${attentionHtml(d, ix)}
+    const vacant = sum.vacant ? `<button type="button" class="btn btn-ghost btn-sm rent-vacant" data-onclick="rentals.page('properties')">${et(sum.vacant === 1 ? 'ui.rent.vacant_units_one' : 'ui.rent.vacant_units', { n: sum.vacant })}${icon('chevR', 'i-sm')}</button>` : '';
+    const payAny = canWrite() && owe.length ? `<div class="rent-pay-any">${btn(' btn-primary btn-block', 'payAny', '', 'ui.rent.record_payment', '', ' data-rent-pay')}</div>` : '';
+    return `${title}${summary}${payAny}${attentionHtml(d, ix)}
         <h3 class="rent-section-title">${et('ui.rent.to_collect', { n: owe.length })}${owe.some(a => a.late)
             ? ` <button type="button" class="chip" aria-pressed="${state.onlyLate ? 'true' : 'false'}" data-onclick="rentals.onlyLate()">${et('ui.rent.status_late')}</button>` : ''}</h3>
-        ${shown.length ? `<div class="panel">${list}</div>` : list}${paidList}${vacant}${payAny}`;
+        ${shown.length ? `<div class="panel">${list}</div>` : list}${paidList}${vacant}`;
 }
 
+/** This month's rent paid as a bar with the % in words: a native <progress> looks full at 0 % in dark mode (U-31). */
+function progressBar(collected, expected) {
+    const pct = collectedPct(collected, expected);
+    return `<div class="rent-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${esc(pct)}" aria-label="${et('ui.rent.collected')}"><span class="rent-bar-fill" style="--w:${esc(pct)}%"></span></div>
+        <div class="row-meta rent-bar-pct">${et('ui.rent.paid_pct', { pct })}</div>`;
+}
 /** RENT-20 once its listener has answered complete; null ("—") until then, or when it failed or was cut at its limit. */
 function received(d) {
     return state.loaded.has('monthPaid') && !state.paidError && !store.paidTruncated?.() ? receivedIn(d.paidCharges, state.month) : null;
@@ -339,7 +349,7 @@ function attentionHtml(d, ix) {
     const notes = leaseReminder(localStorage, uid, state.month);
     const rows = [];
     if (rem?.late) {
-        rows.push(`<button type="button" class="row" data-onclick="rentals.onlyLate(true)"><span class="row-main">${et('ui.today.reminder_rent_units', { count: rem.dueUnits, late: rem.late })}</span><strong class="row-trail row-amt">${moneyHtml(rem.due)}</strong></button>`);
+        rows.push(`<button type="button" class="row" data-onclick="rentals.onlyLate(true)"><span class="row-main">${et(rem.dueUnits === 1 ? 'ui.today.reminder_rent_units_one' : 'ui.today.reminder_rent_units', { count: rem.dueUnits, late: rem.late })}</span><strong class="row-trail row-amt">${moneyHtml(rem.due)}</strong></button>`);
     }
     const meters = meterPending(d, state.month).length;
     if (meters) rows.push(`<button type="button" class="row" data-onclick="rentals.meters()"><span class="lead-icon warn">${icon('bolt', 'i-sm')}</span><span class="row-main">${et('ui.rent.meter_pending', { n: meters })}</span></button>`);

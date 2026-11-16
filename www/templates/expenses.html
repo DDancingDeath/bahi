@@ -1,5 +1,5 @@
 <div id="expenses" class="tab">
-    <header class="page-head"><h2 data-i18n="ui.nav.expenses">Expenses</h2></header>
+    <div class="page-head"><h2 data-i18n="ui.nav.expenses">Expenses</h2></div>
 
         <div class="seg exp-seg" role="group">
             <button type="button" aria-pressed="true" data-onclick="expenses.filterExpenseTab('business', event)" data-i18n="ui.expenses.business_expenses">Business expenses</button>
@@ -13,7 +13,7 @@
             <div class="panel panel-pad exp-form">
             <div class="field">
                 <label for="businessExpenseType" data-i18n="ui.expenses.expense_type">Expense type</label>
-                <input type="text" class="input" id="businessExpenseType" list="businessExpenseTypeOptions" placeholder="Enter expense type" data-i18n-placeholder="ui.expenses.enter_expense_type" />
+                <input type="text" class="input" id="businessExpenseType" enterkeyhint="next" list="businessExpenseTypeOptions" placeholder="Enter expense type" data-i18n-placeholder="ui.expenses.enter_expense_type" />
                 <datalist id="businessExpenseTypeOptions">
                     <option value="Labor">
                     <option value="Salary">
@@ -29,7 +29,7 @@
                 <label for="businessExpenseAmount" data-i18n="ui.expenses.amount">Amount</label>
                 <div class="adorn">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="businessExpenseAmount" placeholder="Enter amount" data-i18n-placeholder="ui.cash.enter_amount" />
+                    <input type="number" class="input" inputmode="decimal" id="businessExpenseAmount" enterkeyhint="next" placeholder="Enter amount" data-i18n-placeholder="ui.cash.enter_amount" />
                 </div>
             </div>
 
@@ -48,13 +48,13 @@
 
             <div class="field">
                 <label for="businessExpensePerson" data-i18n="ui.expenses.person_name_optional">Person name (optional)</label>
-                <input type="text" class="input" id="businessExpensePerson" list="businessExpensePersonOptions" placeholder="Enter name" data-i18n-placeholder="ui.expenses.enter_name" />
+                <input type="text" class="input" id="businessExpensePerson" enterkeyhint="next" list="businessExpensePersonOptions" placeholder="Enter name" data-i18n-placeholder="ui.expenses.enter_name" />
                 <datalist id="businessExpensePersonOptions"></datalist>
             </div>
 
             <div class="field">
                 <label for="businessExpenseRemarks" data-i18n="ui.expenses.remarks_optional">Remarks (optional)</label>
-                <input type="text" class="input" id="businessExpenseRemarks" placeholder="Enter remarks" data-i18n-placeholder="ui.expenses.enter_remarks" />
+                <input type="text" class="input" id="businessExpenseRemarks" enterkeyhint="done" placeholder="Enter remarks" data-i18n-placeholder="ui.expenses.enter_remarks" />
             </div>
 
             <div class="exp-actions">
@@ -82,7 +82,7 @@
             <div class="panel panel-pad exp-form">
             <div class="field">
                 <label for="personalExpenseType" data-i18n="ui.expenses.expense_type">Expense type</label>
-                <input type="text" class="input" id="personalExpenseType" list="personalExpenseTypeOptions" placeholder="Enter expense type" data-i18n-placeholder="ui.expenses.enter_expense_type" />
+                <input type="text" class="input" id="personalExpenseType" enterkeyhint="next" list="personalExpenseTypeOptions" placeholder="Enter expense type" data-i18n-placeholder="ui.expenses.enter_expense_type" />
                 <datalist id="personalExpenseTypeOptions">
                     <option value="Newspaper">
                     <option value="Bike Servicing">
@@ -97,7 +97,7 @@
                 <label for="personalExpenseAmount" data-i18n="ui.expenses.amount">Amount</label>
                 <div class="adorn">
                     <span class="adorn-pre" aria-hidden="true">₹</span>
-                    <input type="number" class="input" inputmode="decimal" id="personalExpenseAmount" placeholder="Enter amount" data-i18n-placeholder="ui.cash.enter_amount" />
+                    <input type="number" class="input" inputmode="decimal" id="personalExpenseAmount" enterkeyhint="next" placeholder="Enter amount" data-i18n-placeholder="ui.cash.enter_amount" />
                 </div>
             </div>
 
@@ -116,13 +116,13 @@
 
             <div class="field">
                 <label for="personalExpensePerson" data-i18n="ui.expenses.person_name_optional">Person name (optional)</label>
-                <input type="text" class="input" id="personalExpensePerson" list="personalExpensePersonOptions" placeholder="Enter name" data-i18n-placeholder="ui.expenses.enter_name" />
+                <input type="text" class="input" id="personalExpensePerson" enterkeyhint="next" list="personalExpensePersonOptions" placeholder="Enter name" data-i18n-placeholder="ui.expenses.enter_name" />
                 <datalist id="personalExpensePersonOptions"></datalist>
             </div>
 
             <div class="field">
                 <label for="personalExpenseRemarks" data-i18n="ui.expenses.remarks_optional">Remarks (optional)</label>
-                <input type="text" class="input" id="personalExpenseRemarks" placeholder="Enter remarks" data-i18n-placeholder="ui.expenses.enter_remarks" />
+                <input type="text" class="input" id="personalExpenseRemarks" enterkeyhint="done" placeholder="Enter remarks" data-i18n-placeholder="ui.expenses.enter_remarks" />
             </div>
 
             <div class="exp-actions">
@@ -145,7 +145,7 @@
 
         <!-- Expense Details Modal -->
         <div class="scrim app-scrim page-sheet" id="expenseDetailsOverlay">
-            <div class="app-dialog dialog" role="dialog" aria-modal="true" tabindex="-1">
+            <div class="app-dialog dialog" role="dialog" aria-modal="true" aria-label="Expense details" data-i18n-aria-label="ui.expenses.details_title" tabindex="-1">
                 <div class="grabber" aria-hidden="true"></div>
                 <div class="dialog-body" id="expenseDetailsContent">
                     <!-- Expense content will be inserted here -->

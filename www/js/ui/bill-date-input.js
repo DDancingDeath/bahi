@@ -7,7 +7,7 @@
 
 import { AppState } from '../utils/state.js';
 import { backdatedCash, billDayRange } from '../utils/bill-date.js';
-import { formatDate, parseAnyBillDate, toLocalISODate } from '../utils/dates.js';
+import { addLocalDays, formatDate, parseAnyBillDate, toLocalISODate } from '../utils/dates.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { sessionForDate } from '../utils/cash-session.js';
 import { UIManager } from './ui-manager.js';
@@ -54,42 +54,106 @@ export function prepareBillDate(id, editingBill = null) {
     renderBillDateLine(id);
 }
 
-/** Only the owner gets "Change date" on the Billing forms; everyone else sees the day only. */
-export const canChangeBillDate = () => AppState.userRole === 'owner';
+/**
+ * Only the owner gets "Change date" on the Billing forms; everyone else sees the day only. On Wholesale,
+ * whose Date box was always open, anyone whose role may pick another day keeps that (U-59).
+ * @param {string} [id]
+ */
+export const canChangeBillDate = (id) => {
+    if (AppState.userRole === 'owner') return true;
+    const input = id === 'wholesaleDate' ? /** @type {?HTMLInputElement} */ (document.getElementById(id)) : null;
+    return !!input && !!input.min && !!input.max && input.min < input.max;
+};
 
 /**
- * The line under the bill (Billing only, `[data-date-line]`): "Today" or the bill's day, and
- * "Change date" for the owner. The Date box stays folded until "Change date" is tapped.
+ * "Back-dated: 12 Nov" (day-month always; the year only when it is not this year).
+ * @param {string} day YYYY-MM-DD
+ * @param {Date} [now]
+ * @returns {string}
+ */
+export function backdatedText(day, now = new Date()) {
+    const sameYear = String(day).slice(0, 4) === String(now.getFullYear());
+    return t('ui.billing.backdated', { day: formatDate(day, sameYear ? 'short' : 'full') });
+}
+
+/**
+ * The line under the bill (Billing only, `[data-date-line]`): "Today" or "Back-dated: 12 Nov", and
+ * "Change date" for the owner. The Date box stays folded until "Change date" is tapped. A day that is
+ * not today also shows as a tag beside the bill's total (`[data-backdated-for]`, U-78), on every form.
  * @param {string} id the date input's id
  * @param {Date} [now]
  */
 export function renderBillDateLine(id, now = new Date()) {
-    const line = document.querySelector(`[data-date-line="${id}"]`);
     const input = document.getElementById(id);
-    if (!line || !input) return;
+    if (!input) return;
     const day = input.value || toLocalISODate(now);
+    const back = day !== toLocalISODate(now);
+    const backText = back ? backdatedText(day, now) : '';
+    document.querySelectorAll(`[data-backdated-for="${id}"]`).forEach(tag => {
+        tag.hidden = !back;
+        tag.textContent = backText;
+    });
+    const line = document.querySelector(`[data-date-line="${id}"]`);
+    if (!line) return;
     const text = line.querySelector('.bill-date-text');
-    if (text) text.textContent = day === toLocalISODate(now) ? t('ui.billing.date_today') : formatDate(day, 'full');
-    const can = canChangeBillDate() && !input.disabled;
+    if (text) {
+        text.textContent = back ? backText : t('ui.billing.date_today_on', { day: formatDate(toLocalISODate(now), 'short') });
+        text.classList.toggle('bill-date-back', back);
+    }
+    const can = canChangeBillDate(id) && !input.disabled;
     const open = can && input.dataset.open === '1';
     const field = input.closest('.bill-date');
     if (field) field.hidden = !open;
+    if (field && open) renderDateChips(field, input, day, now);
     const change = line.querySelector('.bill-date-change');
     if (change) change.hidden = !can || open;
 }
 
-/** "Change date": unfolds the Date box (owner only) and opens its picker where the browser allows. */
+/**
+ * Today / Yesterday above the Date box (U-78): one tap, always shown as day-month; the box is for any other day.
+ * @param {HTMLElement} field
+ * @param {HTMLInputElement} input
+ * @param {string} day the day in the box (YYYY-MM-DD)
+ * @param {Date} now
+ */
+function renderDateChips(field, input, day, now) {
+    let chips = /** @type {?HTMLElement} */ (field.querySelector('.bill-date-chips'));
+    if (!chips) {
+        chips = document.createElement('div');
+        chips.className = 'bill-date-chips';
+        chips.setAttribute('role', 'group');
+        chips.setAttribute('aria-label', t('ui.billing.date_label'));
+        field.insertBefore(chips, field.querySelector('label') || field.firstChild);
+    }
+    const today = toLocalISODate(now);
+    const yesterday = toLocalISODate(addLocalDays(now, -1) || now);
+    const days = [[today, t('ui.billing.date_today_on', { day: formatDate(today, 'short') })]];
+    if (!input.min || yesterday >= input.min) {
+        days.push([yesterday, `${t('ui.billing.date_yesterday')} · ${formatDate(yesterday, 'short')}`]);
+    }
+    chips.replaceChildren(...days.map(([value, label]) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip';
+        b.textContent = label;
+        b.setAttribute('aria-pressed', String(value === day));
+        b.addEventListener('click', () => {
+            input.value = value;
+            delete input.dataset.open;
+            input.dispatchEvent(new Event('change'));
+            /** @type {?HTMLElement} */ (document.querySelector(`[data-date-line="${input.id}"] .bill-date-change`))?.focus();
+        });
+        return b;
+    }));
+}
+
+/** "Change date": unfolds Today / Yesterday and the Date box (U-78). */
 export function revealBillDate(id) {
     const input = document.getElementById(id);
-    if (!input || !canChangeBillDate() || input.disabled) return;
+    if (!input || !canChangeBillDate(id) || input.disabled) return;
     input.dataset.open = '1';
     renderBillDateLine(id);
-    input.focus();
-    try {
-        input.showPicker?.();
-    } catch {
-        // No picker without a user gesture (or not supported): the box is open to type in
-    }
+    /** @type {?HTMLElement} */ (input.closest('.bill-date')?.querySelector('.bill-date-chips .chip[aria-pressed="true"], .bill-date-chips .chip'))?.focus();
 }
 
 /**

@@ -183,7 +183,7 @@ export const FinanceBreakdownSheet = {
                 <div class="dialog-head">
                     ${this.stack.length > 1 ? `<button type="button" class="btn btn-ghost btn-icon" data-action="back" aria-label="${esc(t('ui.finance.back'))}">${icon('chevL')}</button>` : ''}
                     <div class="grow">
-                        <h3 class="dialog-title" id="finSheetTitle">${esc(t(b.label))}</h3>
+                        <h2 class="dialog-title" id="finSheetTitle">${esc(t(b.label))}</h2>
                         <span class="fin-period">${esc(this.period)}</span>
                     </div>
                     <button type="button" class="btn btn-ghost btn-icon" data-action="close" data-dismiss aria-label="${esc(t('ui.common.close'))}">${icon('x')}</button>

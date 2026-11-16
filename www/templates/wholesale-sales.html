@@ -1,5 +1,5 @@
 <div id="wholesale-sales" class="tab bill-page">
-    <header class="page-head"><h2 data-i18n="ui.nav.sales">Sales</h2></header>
+    <div class="page-head"><h2 data-i18n="ui.nav.sales">Sales</h2></div>
 
         <!-- Sales | History | Outstanding (redesign 5.5): the Billing components in the wholesale (violet) mode -->
         <div class="tabs ws-tabs" role="tablist">
@@ -9,21 +9,35 @@
         </div>
 
         <div id="salesEntrySection" class="ws-entry">
+            <div id="wholesaleLastSaved" class="panel last-saved" role="status" hidden></div>
+            <div id="wholesaleEditNotice" class="notice info bill-edit-notice" role="status" hidden>
+                <svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg>
+                <span id="wholesaleEditNoticeText" class="grow"></span>
+                <button type="button" class="btn btn-sm btn-ghost" data-onclick="wholesaleSales.cancelEdit()" data-i18n="ui.wholesale.cancel_edit">Cancel edit</button>
+            </div>
             <div class="bill-main">
-            <div class="bill-form-field field bill-customer">
-                <label for="wholesaleCustomerName" data-i18n="ui.billing.customer_label">Customer</label>
+            <div class="field-float bill-customer">
+                <label for="wholesaleCustomerName"><span data-i18n="ui.billing.customer_label">Customer</span><span class="party-needed-note" data-i18n="ui.billing.needed_for_due">needed if anything is in Due</span></label>
                 <div class="bill-party">
-                    <input type="text" class="input" id="wholesaleCustomerName" list="wholesaleCustomerOptions" placeholder="Enter customer name" data-i18n-placeholder="ui.common.enter_customer_name"/>
+                    <input type="text" class="input" id="wholesaleCustomerName" enterkeyhint="next" list="wholesaleCustomerOptions" autocomplete="off" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
                     <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="wholesaleSales.pickContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
                 </div>
                 <datalist id="wholesaleCustomerOptions"></datalist>
             </div>
 
-            <h3 class="bill-section-title" data-i18n="ui.billing.new_line">New line</h3>
-            <div class="panel panel-pad bill-line-form">
-                <div class="bill-form-field field">
-                    <label for="sellItem" data-i18n="ui.common.item_2">Item</label>
-                    <select id="sellItem" class="input" data-onchange="wholesaleSales.loadItemDetails()"></select>
+            <div class="panel panel-pad bill-line-form" role="group" aria-label="New line" data-i18n-aria-label="ui.billing.new_line">
+                <div class="bill-entry-row">
+                    <div class="field-float bill-entry-item">
+                        <label for="sellItem" data-i18n="ui.common.item_2">Item</label>
+                        <select id="sellItem" class="input" data-onchange="wholesaleSales.loadItemDetails()"></select>
+                    </div>
+                    <div class="field-float bill-entry-rate">
+                        <label for="sellRate" data-i18n="ui.common.rate">Rate</label>
+                        <div class="adorn">
+                            <span class="adorn-pre" aria-hidden="true">₹</span>
+                            <input type="number" class="input" inputmode="decimal" id="sellRate" placeholder="0"/>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="wholesaleItemStats" class="ws-stock" hidden>
@@ -40,19 +54,11 @@
                     <p id="availableStockApprox" class="notice warn ws-stock-note" hidden></p>
                 </div>
 
-                <div class="bill-line-grid ws-entry-grid">
-                    <div class="bill-form-field field">
-                        <label for="sellRate" data-i18n="ui.wholesale.rate_kg">Rate</label>
+                <div class="bill-entry-row ws-entry-grid">
+                    <div class="field-float bill-entry-weight">
+                        <label for="sellQuantity" data-i18n="ui.billing.weight_label">Weight</label>
                         <div class="adorn">
-                            <span class="adorn-pre" aria-hidden="true">₹</span>
-                            <input type="number" class="input" inputmode="decimal" id="sellRate" placeholder="Enter selling rate" data-i18n-placeholder="ui.wholesale.enter_selling_rate"/>
-                            <span class="adorn-post" aria-hidden="true">/kg</span>
-                        </div>
-                    </div>
-                    <div class="bill-form-field field">
-                        <label for="sellQuantity" data-i18n="ui.wholesale.quantity">Quantity</label>
-                        <div class="adorn">
-                            <input type="number" class="input" inputmode="decimal" id="sellQuantity" placeholder="Enter quantity" data-onenter="event.preventDefault(); wholesaleSales.addToWholesaleBill()" data-i18n-placeholder="ui.wholesale.enter_quantity"/>
+                            <input type="number" class="input" inputmode="decimal" id="sellQuantity" enterkeyhint="enter" placeholder="0" data-onenter="event.preventDefault(); wholesaleSales.addToWholesaleBill()"/>
                             <span class="adorn-post" aria-hidden="true">kg</span>
                         </div>
                     </div>
@@ -66,10 +72,10 @@
                 <thead>
                     <tr>
                         <th data-i18n="ui.common.item_2">Item</th>
-                        <th data-i18n="ui.common.rate">Rate</th>
+                        <th data-i18n="ui.common.rate_per_kg">Rate ₹/kg</th>
                         <th data-i18n="ui.common.qty">Qty</th>
                         <th data-i18n="ui.common.total">Total</th>
-                        <th></th>
+                        <th><span class="sr-only" data-i18n="ui.billing.col_remove">Remove</span></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -83,14 +89,14 @@
                     <strong class="money"><span class="cur">₹</span><span id="salesTotalAmount">0</span></strong>
                 </div>
 
-                <div class="bill-pay-title" data-i18n="ui.billing.payment">Payment</div>
+                <div class="bill-pay-title"><span data-i18n="ui.billing.payment">Payment</span></div>
 
                 <div class="pay-line">
                     <label for="wholesaleOnlinePayment" id="wholesaleOnlinePaymentLabel" data-i18n="ui.billing.online_label">Online</label>
                     <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="wholesaleOnlineCheckbox" aria-describedby="wholesaleOnlinePaymentLabel" data-onchange="wholesaleSales.fillReceivableAmount('online')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                     <div class="adorn bill-money">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="wholesaleOnlinePayment" data-oninput="wholesaleSales.updatePaymentTotal()" placeholder="0" />
+                        <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="wholesaleOnlinePayment" enterkeyhint="next" data-oninput="wholesaleSales.updatePaymentTotal()" placeholder="0" />
                     </div>
                 </div>
 
@@ -99,11 +105,11 @@
                     <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="wholesaleCashCheckbox" aria-describedby="wholesaleCashPaymentLabel" data-onchange="wholesaleSales.fillReceivableAmount('cash')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                     <div class="adorn bill-money">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="wholesaleCashPayment" data-oninput="wholesaleSales.updatePaymentTotal()" placeholder="0" />
+                        <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="wholesaleCashPayment" enterkeyhint="next" data-oninput="wholesaleSales.updatePaymentTotal()" placeholder="0" />
                     </div>
                 </div>
 
-                <div class="pay-line payment-total">
+                <div class="pay-line payment-total" hidden>
                     <span data-i18n="ui.billing.total_received_label">Total received</span>
                     <strong class="money"><span class="cur">₹</span><span id="wholesaleTotalReceived">0</span></strong>
                 </div>
@@ -113,7 +119,7 @@
                     <label class="pay-fill" title="Fill: put the whole bill here" data-i18n-title="ui.billing.fill_all"><input type="checkbox" id="wholesaleDueCheckbox" aria-describedby="wholesaleDueAmountLabel" data-onchange="wholesaleSales.fillReceivableAmount('due')" /><span class="pay-fill-off" data-i18n="ui.billing.fill">Fill</span><span class="pay-fill-on" data-i18n="ui.billing.filled">Filled</span><span class="pay-fill-hint" data-i18n="ui.billing.fill_hint">(put the whole bill here)</span></label>
                     <div class="adorn bill-money">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="wholesaleDueAmount" data-oninput="wholesaleSales.updatePaymentTotal()" placeholder="0" />
+                        <input type="text" class="input" inputmode="decimal" data-money autocomplete="off" id="wholesaleDueAmount" enterkeyhint="next" data-oninput="wholesaleSales.updatePaymentTotal()" placeholder="0" />
                     </div>
                 </div>
 
@@ -124,12 +130,13 @@
                 </div>
             </div>
 
-            <div class="panel ws-profit">
+            <details class="panel ws-profit" id="wholesaleMargin">
+                <summary class="ws-margin-toggle" data-i18n="ui.wholesale.margin">Expenses and profit</summary>
                 <div class="pay-line">
                     <label for="salesExpensesAmount" data-i18n="ui.wholesale.expenses">Expenses</label>
                     <div class="adorn bill-money">
                         <span class="adorn-pre" aria-hidden="true">₹</span>
-                        <input type="number" class="input" inputmode="decimal" id="salesExpensesAmount" data-oninput="wholesaleSales.updateProfitCalculation()" placeholder="0" value="0" />
+                        <input type="number" class="input" inputmode="decimal" id="salesExpensesAmount" enterkeyhint="next" data-oninput="wholesaleSales.updateProfitCalculation()" placeholder="0" value="0" />
                     </div>
                 </div>
                 <div class="pay-line" data-perm="profit">
@@ -140,17 +147,24 @@
                     <span data-i18n="ui.wholesale.profit_2">Profit %</span>
                     <strong><span id="salesProfitPercent">0</span>%</strong>
                 </div>
-            </div>
+            </details>
 
             <div class="bill-notes-date">
-            <div class="bill-form-field field bill-notes">
+            <div class="bill-extras">
+                <span class="bill-date-line" data-date-line="wholesaleDate">
+                    <span class="bill-date-text" id="wholesaleDateText"></span>
+                    <button type="button" class="btn btn-ghost btn-sm bill-date-change" id="wholesaleDateChange" hidden data-onclick="billing.showDate('wholesaleDate')" data-i18n="ui.billing.change_date">Change date</button>
+                </span>
+                <button type="button" class="btn btn-ghost btn-sm bill-note-toggle" id="wholesaleNoteToggle" data-onclick="billing.showNotes('salesComments')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.billing.add_note">Add note</span></button>
+            </div>
+            <div class="bill-form-field field bill-notes" hidden>
                 <label for="salesComments" data-i18n="ui.billing.notes_label">Notes</label>
-                <input type="text" class="input" id="salesComments" />
+                <input type="text" class="input" id="salesComments" enterkeyhint="done" />
             </div>
 
-            <div class="bill-form-field field bill-date">
+            <div class="bill-form-field field bill-date" hidden>
                 <label for="wholesaleDate" data-i18n="ui.billing.bill_date">Date</label>
-                <input type="date" id="wholesaleDate" class="bill-date-input input" />
+                <input type="date" id="wholesaleDate" class="bill-date-input input" lang="en-IN" />
             </div>
             </div>
 
@@ -158,20 +172,21 @@
                 <div class="bill-bar-total">
                     <span class="bill-bar-label" aria-hidden="true" data-i18n="ui.billing.bar_receivable">Receivable</span><span class="sr-only" data-i18n="ui.billing.total_receivable_label">Total receivable</span>
                     <strong class="bill-bar-money money"><span class="cur">₹</span><span id="wholesaleBarTotal">0</span></strong>
+                <span class="bill-backdated" data-backdated-for="wholesaleDate" role="status" hidden></span>
                 </div>
-                <button type="button" data-onclick="wholesaleSales.shareViaWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+                <button type="button" data-onclick="wholesaleSales.shareViaWhatsApp()" class="btn bill-share" hidden title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                     <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
-                    <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
+                    <span class="bill-share-tag" aria-hidden="true" data-i18n="ui.billing.draft_tag">Draft</span><span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
                 </button>
                 <button type="button" class="btn btn-primary" id="saveWholesaleBtn" data-onclick="wholesaleSales.completeSale()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
                 <button type="button" class="btn bill-print" id="printWholesaleBtn" data-onclick="wholesaleSales.printWholesaleSale()" data-kbd="Ctrl P">
                     <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
-                    <span class="bill-print-label" data-i18n="ui.common.print">Print</span>
+                    <span class="bill-print-label" data-i18n="ui.billing.save_print">Save &amp; print</span>
                 </button>
             </div>
             </div>
 
-            <h3 class="bill-section-title" data-i18n="ui.wholesale.recent_sales">Recent wholesale bills</h3>
+            <h3 class="bill-section-title ws-recent-title" data-i18n="ui.wholesale.recent_sales">Recent wholesale bills</h3>
             <div id="salesRecentList">
                 <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.wholesale.no_sales_yet">No sales yet</b></div>
             </div>
@@ -183,7 +198,7 @@
         <div id="salesHistorySection" hidden>
             <div class="history-date-filter wholesale-history-controls">
                 <label for="wholesaleHistoryPreset" class="history-date-label" data-i18n="ui.history.date">Date</label>
-                <select id="wholesaleHistoryPreset" data-onchange="wholesaleSales.setHistoryPreset(this.value)">
+                <select id="wholesaleHistoryPreset" class="period-preset" data-onchange="wholesaleSales.setHistoryPreset(this.value)">
                     <option value="all" data-i18n="ui.history.all_dates">All dates</option>
                     <option value="today" data-i18n="ui.history.today">Today</option>
                     <option value="yesterday" data-i18n="ui.history.yesterday">Yesterday</option>

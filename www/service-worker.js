@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v741';
+const CACHE_NAME = 'happa-v743';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -24,6 +24,7 @@ const STATIC_ASSETS = [
     '/css/app.css',
     '/css/rentals.css',
     '/js/auth/authentication.js',
+    '/js/boot/boot-splash.js',
     '/js/boot/capture-install-prompt.js',
     '/js/boot/download-lang.js',
     '/js/boot/download-page.js',
@@ -122,6 +123,12 @@ const STATIC_ASSETS = [
     '/js/ui/party-suggest.js',
     '/js/ui/pending-line.js',
     '/js/ui/rate-check.js',
+    '/js/ui/doubtful-rates.js',
+    '/js/ui/number-input.js',
+    '/js/utils/number-text.js',
+    '/js/ui/undo-bar.js',
+    '/js/ui/last-saved.js',
+    '/js/ui/bill-line.js',
     '/js/ui/manual-reminders.js',
     '/js/ui/period-compare.js',
     '/js/ui/infinite-scroll.js',
@@ -132,6 +139,9 @@ const STATIC_ASSETS = [
     '/js/ui/seg.js',
     '/js/ui/sticky-focus.js',
     '/js/ui/sync-status.js',
+    '/js/ui/app-lock.js',
+    '/js/ui/sync-sheet.js',
+    '/js/ui/boot-splash.js',
     '/js/ui/theme.js',
     '/js/ui/icons.js',
     '/js/ui/disclosure.js',
@@ -159,7 +169,9 @@ const STATIC_ASSETS = [
     '/js/utils/anomalies.js',
     '/js/utils/party-due.js',
     '/js/utils/due-reminder.js',
+    '/js/utils/due-split.js',
     '/js/utils/open-external.js',
+    '/js/utils/native-shell.js',
     '/js/utils/cash-session.js',
     '/js/utils/clock-skew.js',
     '/js/utils/constants.js',
@@ -219,7 +231,11 @@ const STATIC_ASSETS = [
     '/js/utils/render-memo.js',
     '/js/utils/startup-timings.js',
     '/js/utils/storage-full.js',
+    '/js/utils/friendly-error.js',
     '/js/utils/state.js',
+    '/js/utils/owner-alerts.js',
+    '/js/utils/worker-accounts.js',
+    '/js/utils/first-run.js',
     '/js/utils/security-flags.js',
     '/js/services/security-monitor.js',
     '/js/utils/scrub.js',
@@ -322,6 +338,7 @@ const LAZY_ASSETS = [
     '/js/auth/google-signin.js',
     '/js/modules/workers.js',
     '/js/utils/worker-pay.js',
+    '/js/utils/linked-outflows.js',
     '/js/firebase/repos/workers.js',
     '/css/workers.css',
     '/js/modules/recurring-bills.js',
