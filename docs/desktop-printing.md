@@ -74,7 +74,7 @@ pages: a security-header decision for the owner/reviewer.
 
 1. Windows Settings › Bluetooth & devices: pair the shop printer (PIN usually
    0000 or 1234).
-2. In **Chrome or Edge**, open https://myhappa.web.app/spike/serial.html. Step 1
+2. In **Chrome or Edge**, open https://bahi-happa.web.app/spike/serial.html. Step 1
    should say the browser can talk to the printer directly.
 3. Click **Choose printer**. Pick the printer: it may be listed by name or as
    "Standard Serial over Bluetooth link (COMx)". Then click **Print test slip**.

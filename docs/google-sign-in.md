@@ -1,5 +1,8 @@
 # Google sign-in (web + Android)
 
+> **Since the #72 cut-over (16 Nov 2026)** the web app is on `bahi-happa` (`happa.config.json`); the mentions of
+> `happa-bfc07` / `myhappa.web.app` below describe the time before it. `happa-bfc07` is retired (301 to bahi-happa).
+
 "Continue with Google" on the login card, next to email and password. It is **built but off**:
 `googleSignIn` in `happa.config.json` is `{ "web": false, "android": false }` until the owner has
 done the console steps below. Off means no button, and its code is never loaded.

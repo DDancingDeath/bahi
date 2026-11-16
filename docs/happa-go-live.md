@@ -1,5 +1,9 @@
 # Happa go-live runbook (26 Oct 2026, ~15:00 IST)
 
+> **Historical (26 Oct 2026).** This runbook set the app up on `happa-bfc07` (myhappa). Since the #72
+> cut-over on 16 Nov 2026 the app lives on **`bahi-happa`** (test project `bahi-happa-dev`) and
+> `happa-bfc07` only 301s to it; see AGENTS.md section 1 and docs/release-checklist.md section 9.
+
 Happa is a **new app**: its own Android package, signing key, Firebase project
 (business account, Firestore in `asia-south1`) and website. The old app is
 archived and must not change: Android `com.hitesh.aadhat`, Firebase project

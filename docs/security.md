@@ -1,7 +1,7 @@
 # Web security: headers, CSP, script integrity, App Check (#89)
 
 What the Hosting sites send, why, and what is still to do. Hosting headers apply
-only to the web (`myhappa.web.app` and the PWA); the Android app serves `www/`
+only to the web (`bahi-happa.web.app` and the PWA); the Android app serves `www/`
 from inside the APK (Capacitor), so none of this reaches it.
 
 ## Headers (`firebase.json`)
@@ -14,7 +14,7 @@ Every site sends these on every path (the first `"source": "**"` entry):
 | `X-Content-Type-Options` | `nosniff` | Files run only as their declared type |
 | `X-Frame-Options` | `DENY` | No clickjacking: the app can't be put in a frame (old browsers) |
 | `Content-Security-Policy` | the enforced policy below, ending in `frame-ancestors 'none'` | The same for current browsers (the redirect-only sites send `default-src 'none'; frame-ancestors 'none'; base-uri 'none'`) |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | Other sites see only `https://myhappa.web.app`, never a path |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Other sites see only `https://bahi-happa.web.app`, never a path |
 | `Permissions-Policy` | `camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), hid=()` | The web app uses none of these except the microphone and the camera, for its own pages only: voice billing (#81, `docs/voice-billing.md`) is off by default and asks for the microphone only when a user switches it on and taps 🎤 (the browser then asks once per site). Photo of weights (#374, `docs/photo-weights.md`) takes the photo with `<input type="file" accept="image/*" capture="environment">`, which opens the phone's own camera app and is not a camera API this header governs (`camera` covers `getUserMedia`); `camera=(self)` only keeps a later in-page camera possible on the app's own pages. Frames and other sites get neither. The redirect-only sites and the tenant link page keep `camera=()` and `microphone=()`. Bluetooth is left alone: printing is native-only today, but a web printer would need it |
 
 - The tenant link page (`/r/**`, `/r.html`) keeps its stricter
@@ -28,9 +28,11 @@ Every site sends these on every path (the first `"source": "**"` entry):
   (Google on most phones; Chrome's on the web), which turns it into text. The app keeps
   no audio and no text. The spoken readback uses only an on-device voice (`localService`),
   never a network one, so what was understood is not sent anywhere. The in-app notice is the Settings › Billing tools › Voice billing hint (en/hi).
-- The redirect-only sites (`happaapp`, `happa-bfc07`) get the same headers from
+- Redirect-only sites (`redirectHostingSites`; none today) get the same headers from
   `scripts/happa-config.js` (`REDIRECT_SECURITY_HEADERS`; `npm run apply:happa-config`
-  writes them) with an enforced `default-src 'none'`, since they only answer 301s.
+  writes them) with an enforced `default-src 'none'`, since they only answer 301s. The retired
+  `happa-bfc07` sites (`myhappa`, `happaapp`, `happa-bfc07`) carry the same set from
+  `ops/myhappa/firebase.json` on the `ops/myhappa-retire` branch (deployed once, #72).
 
 ## Content-Security-Policy (enforced)
 
@@ -49,7 +51,7 @@ connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.goog
             https://content-firebaseappcheck.googleapis.com https://firebasevertexai.googleapis.com
             https://apis.google.com https://www.google.com https://api.github.com;
 worker-src 'self'; manifest-src 'self';
-frame-src 'self' https://happa-bfc07.firebaseapp.com https://www.google.com/recaptcha/;
+frame-src 'self' https://bahi-happa.firebaseapp.com https://www.google.com/recaptcha/;
 object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 ```
 
@@ -60,7 +62,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 | `https://cdn.sheetjs.com` (script) | Excel export (`ensureXLSX()`, pinned with SRI) |
 | `firestore.googleapis.com` | Firestore SDK and the tenant page's single REST read |
 | `identitytoolkit.googleapis.com`, `securetoken.googleapis.com` | Firebase Auth sign-in and token refresh |
-| `apis.google.com` (script, connect), `www.google.com` (connect), `happa-bfc07.firebaseapp.com` and `'self'` (frame) | Firebase Auth (compat) on **phones** (and Safari) loads Google's `gapi` loader at start-up and frames `<authDomain>/__/auth/iframe` (its popup/redirect helper), even when the person signs in with email + password. Found by the E2E phone runs. These scripts can't carry SRI; dropping them needs Auth without the popup/redirect resolver (modular SDK), a separate change. `'self'`: with Google sign-in on, the helper is the site's own `/__/auth/` ([google-sign-in.md](google-sign-in.md)) |
+| `apis.google.com` (script, connect), `www.google.com` (connect), `bahi-happa.firebaseapp.com` (the project's authDomain) and `'self'` (frame) | Firebase Auth (compat) on **phones** (and Safari) loads Google's `gapi` loader at start-up and frames `<authDomain>/__/auth/iframe` (its popup/redirect helper), even when the person signs in with email + password. Found by the E2E phone runs. These scripts can't carry SRI; dropping them needs Auth without the popup/redirect resolver (modular SDK), a separate change. `'self'`: with Google sign-in on, the helper is the site's own `/__/auth/` ([google-sign-in.md](google-sign-in.md)) |
 | `firebaseinstallations.googleapis.com` | not called today; listed for the Firebase SDKs that use it |
 | `content-firebaseappcheck.googleapis.com` (connect) | App Check token exchange (monitor mode, only with a site key; see "App Check" below) |
 | `firebasevertexai.googleapis.com` (connect) | Firebase AI Logic (Gemini Developer API): photo of weights (#374), only when the owner has switched it on and someone takes a photo. The SDK is vendored (`vendor/firebase/13.2.0/`, `'self'`); no Gemini key is in the app |
@@ -288,8 +290,11 @@ app, AI Logic (`firebaseml.googleapis.com`) ENFORCED, Firestore and Auth unenfor
 set only in the local bahi-happa-dev config branch and in `config/targets/bahi-happa-dev.json` (the "Bahi
 Dev" test APK). `bahi-happa` (16 Nov 2026): its own key `6LeLOiMuAAAAAFwG1zM7ElYJWZlvqpxROKr2qpCp`
 (project bahi-happa; domains bahi-happa.web.app, bahi-happa.firebaseapp.com, localhost) registered for
-its web app, AI Logic ENFORCED, Firestore and Auth unenforced; set in the local prod config branch and
-in `config/targets/bahi-happa.json` (the APK from rc15). `happa-bfc07` has no key yet.
+its web app, AI Logic ENFORCED, Firestore and Auth unenforced; set in `happa.config.json` (the web app,
+since the #72 cut-over) and in `config/targets/bahi-happa.json` (the APK from rc15). The dev key is in
+`config/targets/bahi-happa-dev.json`, used by `bahi-dev-deploy.yml` and the PR previews. The retired
+`happa-bfc07` never had a key. The E2E harness serves App Check off against the emulators
+(`tests/e2e/support/emulator-target.js`).
 
 **403 "App attestation failed" on bahi-happa-dev (16 Nov 2026).** The token exchange (`content-firebaseappcheck.googleapis.com/.../exchangeRecaptchaEnterpriseToken`) returns 403 for scripted browsers. The set-up is right (key, domains, both APIs on, the key registered for the web app); an assessment of such a token shows it valid for `bahi-happa-dev.web.app` with score 0.1, under the app's `minValidScore` 0.5. reCAPTCHA scores headless / automated browsers and data-centre IPs low, so review probes and E2E always see it. After a 403 the SDK waits a day before trying again in that browser. Check real phones in App Check › APIs and the key's score metrics before lowering the threshold.
 
