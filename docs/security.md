@@ -286,9 +286,10 @@ that covers the APK:** a Play Integrity provider through a native Capacitor plug
 localhost; the APK's WebView is `https://localhost`) registered as the Enterprise provider of its web
 app, AI Logic (`firebaseml.googleapis.com`) ENFORCED, Firestore and Auth unenforced (monitor). It is
 set only in the local bahi-happa-dev config branch and in `config/targets/bahi-happa-dev.json` (the "Bahi
-Dev" test APK). `bahi-happa` (prod, and the APK target) and
-`happa-bfc07` have no key yet: prod gets its own key in project "Bahi", then
-`config/targets/bahi-happa.json` gets `appCheck.siteKey` for rc15.
+Dev" test APK). `bahi-happa` (16 Nov 2026): its own key `6LeLOiMuAAAAAFwG1zM7ElYJWZlvqpxROKr2qpCp`
+(project bahi-happa; domains bahi-happa.web.app, bahi-happa.firebaseapp.com, localhost) registered for
+its web app, AI Logic ENFORCED, Firestore and Auth unenforced; set in the local prod config branch and
+in `config/targets/bahi-happa.json` (the APK from rc15). `happa-bfc07` has no key yet.
 
 **Firestore stays NOT enforced.** Enforcing App Check on Firestore would break the
 tenant link page `/r/`: it reads Firestore over REST with no SDK (its "tiny, no SDK"

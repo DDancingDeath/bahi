@@ -2,18 +2,26 @@
   "releases": [
     {
       "version": "1.0.0",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "androidVersionCode": 1,
       "notes": {
         "en": [
-          "This Android app is for Bahi: it works with bahi-happa.web.app and the Bahi data.",
-          "Have an older Bahi APK? Uninstall it first, then install this one and sign in with your Bahi account.",
-          "New since the last APK: photo of weights on the purchase bill (owner switch in Settings), a lighter billing page with Print on the right, Settings in groups, a new look with more themes, and better voice billing."
+          "This Android app is for Bahi: it works with bahi-happa.web.app and the Bahi data. Coming from an APK older than rc14? Uninstall it first, then install this one and sign in.",
+          "Photo of weights works now: photograph the weights sheet on a purchase bill and check the weights before adding them (owner switch in Settings).",
+          "Billing: a cleaner form with labels inside the boxes, the bill total next to Save and Print, \"Payable / Receivable\", \"Customer\" instead of party, a Bluetooth printer button next to the bell, and the phone's contact list to pick a name (saved as Name - Number).",
+          "Voice: hold the mic and say the whole bill (name, items, rate, payment); you check it before it fills the bill.",
+          "Phone notifications: To do reminders at a set time, the udhaar summary, rent due days and bell updates (Settings › Help & about › Notifications).",
+          "Today opens on its figures; Reminders and Day report are folded to one line. Each role opens on its own start page.",
+          "A shop can have more than one owner (Admin › Users › Edit role). The app file is now bahi.apk."
         ],
         "hi": [
-          "यह Android ऐप Bahi के लिए है: यह bahi-happa.web.app और Bahi के डेटा के साथ चलता है।",
-          "पुराना Bahi APK है? पहले उसे अनइंस्टॉल करें, फिर यह इंस्टॉल करें और अपने Bahi खाते से लॉगिन करें।",
-          "पिछले APK के बाद नया: खरीद बिल पर वज़न की फ़ोटो (मालिक सेटिंग में चालू करें), हल्का बिलिंग पेज और प्रिंट दाईं ओर, सेटिंग समूहों में, नया रूप और ज़्यादा थीम, और बेहतर बोलकर बिलिंग।"
+          "यह Android ऐप Bahi के लिए है: यह bahi-happa.web.app और Bahi के डेटा के साथ चलता है। rc14 से पुराना APK है? पहले उसे अनइंस्टॉल करें, फिर यह इंस्टॉल करके लॉगिन करें।",
+          "वज़न की फ़ोटो अब चलती है: खरीद बिल पर वज़न की पर्ची की फ़ोटो लें और जोड़ने से पहले वज़न जाँच लें (मालिक सेटिंग में चालू करें)।",
+          "बिलिंग: साफ़ फ़ॉर्म, लेबल बॉक्स के अंदर, Save और Print के पास बिल का कुल, \"देना / लेना\", \"ग्राहक\" शब्द, घंटी के पास ब्लूटूथ प्रिंटर बटन, और फ़ोन की संपर्क सूची से नाम चुनें (नाम - नंबर के रूप में)।",
+          "आवाज़: माइक दबाकर रखें और पूरा बिल बोलें (नाम, सामान, रेट, भुगतान); बिल भरने से पहले आप जाँच लेते हैं।",
+          "फ़ोन सूचनाएँ: तय समय पर करने वाले काम, उधार का सार, किराया देय दिन और घंटी के अपडेट (सेटिंग › मदद और जानकारी › सूचनाएँ)।",
+          "आज पेज पहले आँकड़े दिखाता है; रिमाइंडर और दिन की रिपोर्ट एक लाइन में बंद रहते हैं। हर भूमिका अपने शुरू पेज पर खुलती है।",
+          "एक दुकान के एक से ज़्यादा मालिक हो सकते हैं (एडमिन › यूज़र › भूमिका बदलें)। ऐप फ़ाइल अब bahi.apk है।"
         ]
       }
     }
