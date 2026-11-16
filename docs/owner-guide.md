@@ -59,6 +59,7 @@ Each page has its own short file in `docs/pages/` (English and Hindi): what it s
 - [Rates](pages/rates.md)
 - [Rentals](pages/rentals.md)
 - [Workers / Salaries (owner)](pages/workers.md)
+- [Recurring bills (owner)](pages/recurring.md)
 - [Settings, Admin, App health](pages/settings.md)
 
 ---
@@ -83,14 +84,14 @@ Each page has its own short file in `docs/pages/` (English and Hindi): what it s
 
 ### The printer is not printing
 
-1. Settings › Common › **Bluetooth Printer**: is the printer turned on, paired in
+1. Settings › Printing & receipts › **Bluetooth printer**: is the printer turned on, paired in
    Android Bluetooth settings, "Enable Bluetooth Printer" ticked and the printer
    picked and connected? Tap **Test Print** (it shows once the printer is
    connected).
 2. "May have printed": the printer did not confirm. **Check the paper before
    printing again**, so the bill is not printed twice.
 3. Still nothing: turn the printer off and on, then connect it again from
-   Settings › Common › Bluetooth Printer.
+   Settings › Printing & receipts › Bluetooth printer.
 4. Android stops apps in the background to save battery. Open Android Settings ›
    Apps › Bahi › Battery and choose **Unrestricted** (or "Don't optimise"), so the
    printer link is not cut.

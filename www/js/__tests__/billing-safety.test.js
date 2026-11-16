@@ -16,6 +16,7 @@ import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { BillChecksUI } from '../ui/bill-highlight.js';
 import { UIManager } from '../ui/ui-manager.js';
+import { closeTopDialog } from '../utils/keyboard-shortcuts.js';
 import { Helpers } from '../utils/helpers.js';
 import { AppState } from '../utils/state.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
@@ -61,7 +62,7 @@ const WHOLESALE_DOM = `
 
 const $ = (id) => document.getElementById(id);
 const setVal = (id, v) => { $(id).value = String(v); };
-const dialog = () => document.querySelector('.pending-line-dialog');
+const dialog = () => document.querySelector('.pending-line-sheet');
 const toasts = () => UIManager.showToast.mock.calls.map(c => c[0]);
 
 /** Waits for the "Line not added" dialog, answers it and returns its message. */
@@ -126,7 +127,7 @@ describe('purchase: a line typed but not added (S-1, BF-PENDING)', () => {
 
     test('"Add this line and save" saves both lines', async () => {
         const saving = PurchaseManager.saveBillToHistory();
-        expect(await answer('add')).toBe('Wheat 4 kg × ₹30.00 = ₹120 is typed but not on the bill.');
+        expect(await answer('add')).toBe('Wheat 4 kg × ₹30 = ₹120 is typed but not on the bill.');
         const bill = await saving;
         expect(bill.items.map(i => [i.name, i.qty, i.total])).toEqual([['Rice', 10, 250], ['Wheat', 4, 120]]);
         expect(bill.billTotal).toBe(370);
@@ -149,6 +150,27 @@ describe('purchase: a line typed but not added (S-1, BF-PENDING)', () => {
         expect(dialog()).toBeNull();
         expect($('newWeight').value).toBe('4');
         expect(PurchaseManager.getBillItems()).toHaveLength(1);
+    });
+
+    test('on the shared sheet: Add is focused, and Esc / Back is Cancel', async () => {
+        const saving = PurchaseManager.saveBillToHistory();
+        for (let i = 0; i < 50 && !dialog(); i++) await new Promise(r => setTimeout(r, 0));
+        expect(dialog().matches('.app-scrim.active')).toBe(true);
+        expect(document.activeElement.dataset.choice).toBe('add');
+        expect(closeTopDialog()).toBe(true);
+        expect(await saving).toBeUndefined();
+        expect(FirebaseService.savePurchase).not.toHaveBeenCalled();
+        expect(dialog()).toBeNull();
+        expect(document.activeElement.id).toBe('newWeight');
+    });
+
+    test('Esc on a narrow screen is Cancel', async () => {
+        const saving = PurchaseManager.saveBillToHistory();
+        for (let i = 0; i < 50 && !dialog(); i++) await new Promise(r => setTimeout(r, 0));
+        document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(await saving).toBeUndefined();
+        expect(FirebaseService.savePurchase).not.toHaveBeenCalled();
+        expect(dialog()).toBeNull();
     });
 
     test('Print with only a typed line asks too (it no longer says "no items")', async () => {
@@ -198,7 +220,7 @@ describe('retail sale: a line typed but not added (S-1)', () => {
         setVal('saleRate', 36);
         setVal('saleWeight', 4);
         const saving = RetailSaleManager.completeSale();
-        expect(await answer('add')).toBe('Rice 4 kg × ₹36.00 = ₹144 is typed but not on the bill.');
+        expect(await answer('add')).toBe('Rice 4 kg × ₹36 = ₹144 is typed but not on the bill.');
         const sale = await saving;
         expect(sale.items.map(i => [i.name, i.qty])).toEqual([['Wheat', 2], ['Rice', 4]]);
         expect(sale.total).toBe(200);
@@ -244,7 +266,7 @@ describe('wholesale: a quantity typed but not added (S-1)', () => {
 
     test('"Add this line and save" adds the 5 kg', async () => {
         const saving = WholesaleSalesManager.completeSale();
-        expect(await answer('add')).toBe('Rice 5 kg × ₹34.00 = ₹170 is typed but not on the bill.');
+        expect(await answer('add')).toBe('Rice 5 kg × ₹34 = ₹170 is typed but not on the bill.');
         expect((await saving).items.map(i => i.quantity)).toEqual([10, 5]);
     });
 
@@ -318,9 +340,9 @@ describe('Print with no printer (S-12)', () => {
 });
 
 describe('Billing mode (D-5)', () => {
-    const DOM = `<div class="side-nav"><nav class="nav-menu"></nav></div><div class="overlay"></div>
+    const DOM = `<div class="side-nav"><nav class="nav-menu"></nav></div><div class="scrim nav-scrim"></div>
         <div class="tab" id="billing">
-          <button class="filter-btn active" id="purchaseModeBtn"></button><button class="filter-btn" id="saleModeBtn"></button>
+          <button class="active" id="purchaseModeBtn"></button><button id="saleModeBtn"></button>
           <div id="purchaseSection" style="display: block;"></div><div id="saleSection" style="display: none;"></div>
         </div><div class="tab" id="day"></div>`;
 
@@ -355,19 +377,31 @@ describe('Billing mode (D-5)', () => {
         jest.advanceTimersByTime(1000);
         expect(BillingManager.currentMode).toBe('sale');
     });
+
+    test('loading a sale draft while on Purchase moves the pressed button to Retail sale (no event)', () => {
+        ['setSaleItems', 'setSaleWeights', 'setPendingBill', 'renderSalesBill', 'renderSaleWeights']
+            .forEach(m => jest.spyOn(RetailSaleManager, m).mockImplementation(() => {}));
+        jest.spyOn(PurchaseManager, 'updateTotals').mockImplementation(() => {});
+        BillingManager.applyDraft({ mode: 'sale', items: [], weights: [] });
+        expect($('saleSection').style.display).toBe('block');
+        expect($('saleModeBtn').getAttribute('aria-pressed')).toBe('true');
+        expect($('saleModeBtn').classList.contains('active')).toBe(true);
+        expect($('purchaseModeBtn').getAttribute('aria-pressed')).toBe('false');
+        expect($('purchaseModeBtn').classList.contains('active')).toBe(false);
+    });
 });
 
 describe('WhatsApp on the bill form shares a draft (S-10)', () => {
     test('the message says it is not saved', () => {
         const text = buildDraftShareText({ kind: 'retail', items: [{ name: 'Rice', rate: 36, qty: 4, total: 144 }], total: 144 });
-        expect(text.split('\n')[0]).toBe('*Sale Bill* (DRAFT, not saved)');
+        expect(text.split('\n')[0]).toBe('*Sale bill* (DRAFT, not saved)');
     });
 
     test('every bill-form share button is labelled "Share draft (not saved)"', () => {
         const read = (f) => fs.readFileSync(path.join(__dirname, '..', '..', 'templates', f), 'utf8');
         const buttons = [read('billing.html'), read('wholesale-sales.html')].join('\n')
-            .match(/<button data-onclick="(?:billing\.share\w+|wholesaleSales\.shareViaWhatsApp)\(\)"[\s\S]*?<\/button>/g);
+            .match(/<button type="button" data-onclick="(?:billing\.share\w+|wholesaleSales\.shareViaWhatsApp)\(\)"[\s\S]*?<\/button>/g);
         expect(buttons).toHaveLength(3);
-        buttons.forEach(b => expect(b).toContain('<span data-i18n="ui.billing.share_draft">Share draft (not saved)</span>'));
+        buttons.forEach(b => expect(b).toContain('<span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>'));
     });
 });

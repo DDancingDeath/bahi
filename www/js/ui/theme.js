@@ -3,7 +3,7 @@
  * this device (localStorage, no Firestore). The inline #themeBoot in index.html applies the saved
  * choice before first paint with the same keys and rules; this module keeps it live afterwards.
  * <html> carries data-theme, data-appearance (the choice) and data-mode (light | dark, what the CSS
- * keys on); body.dark-mode mirrors data-mode="dark" for the older dark-mode selectors.
+ * keys on).
  */
 import { APPEARANCES, DEFAULT_APPEARANCE, DEFAULT_THEME, themeById } from './themes.js';
 import { safeSetItem } from '../utils/storage-full.js';
@@ -14,6 +14,8 @@ export const THEME_KEYS = {
     kind: 'happa.themeKind',
     barLight: 'happa.bar.light',
     barDark: 'happa.bar.dark',
+    // The saved theme this version could not show (the boot script then ignores its kind and bar colour)
+    fallback: 'happa.themeFallback',
     legacyDark: 'darkMode',
     // Written on every start since #143, so an install from before the theme engine has it
     existingInstall: 'aadhat.itemNamesFollowLang',
@@ -66,16 +68,27 @@ export const ThemeManager = {
         // The first start keeps its choice, so a key the app writes later can't change it
         if (store && store.getItem(THEME_KEYS.appearance) === null) safeSetItem(THEME_KEYS.appearance, this.current.appearance, store);
         const state = this.render(this.current);
+        // A saved theme this version can't show (e.g. after a rollback) stays saved with its kind and bar colours,
+        // so a version that knows it shows it again; the boot script then ignores that kind and bar colour
+        const saved = store ? store.getItem(THEME_KEYS.theme) : null;
+        const unknown = saved !== null && !themeById(saved);
+        if (store && unknown) safeSetItem(THEME_KEYS.fallback, saved, store);
+        else if (store && store.getItem(THEME_KEYS.fallback) !== null) {
+            try { store.removeItem(THEME_KEYS.fallback); } catch { /* storage unavailable */ }
+        }
         const barKey = state.mode === 'dark' ? THEME_KEYS.barDark : THEME_KEYS.barLight;
-        if (store && BAR_COLOUR.test(state.bar) && store.getItem(barKey) !== state.bar) safeSetItem(barKey, state.bar, store);
+        if (store && !unknown && BAR_COLOUR.test(state.bar) && store.getItem(barKey) !== state.bar) safeSetItem(barKey, state.bar, store);
         const query = systemQuery();
         if (query && !this._watching) {
             this._watching = true;
             const follow = () => { if (this.current.appearance === 'system') this.render({ ...this.current, theme: this.previewing || this.current.theme }); };
             if (query.addEventListener) query.addEventListener('change', follow);
             else if (query.addListener) query.addListener(follow);
-            // A preview never outlives Settings
-            window.addEventListener('aadhat:tabshown', (e) => { if (e.detail?.tabId !== 'settings') this.cancelPreview(); });
+            // A preview never outlives Settings › Appearance (the gallery's group)
+            window.addEventListener('aadhat:tabshown', (e) => {
+                const { tabId, section } = e.detail || {};
+                if (tabId !== 'settings' || section !== 'appearance') this.cancelPreview();
+            });
         }
         return this.current;
     },
@@ -89,7 +102,6 @@ export const ThemeManager = {
         root.setAttribute('data-theme', th.id);
         root.setAttribute('data-appearance', choice);
         root.setAttribute('data-mode', mode);
-        document.body?.classList.toggle('dark-mode', mode === 'dark');
         const bar = getComputedStyle(root).getPropertyValue('--bg').trim();
         const meta = document.querySelector('meta[name="theme-color"]');
         if (meta && BAR_COLOUR.test(bar)) meta.setAttribute('content', bar);
@@ -125,11 +137,12 @@ export const ThemeManager = {
             safeSetItem(THEME_KEYS.theme, state.theme, store);
             safeSetItem(THEME_KEYS.appearance, state.appearance, store);
             safeSetItem(THEME_KEYS.kind, state.kind, store);
-            if (changedTheme) {
+            // A new theme, or the first save over a theme this version couldn't show: drop the old bar colours
+            if (changedTheme || store.getItem(THEME_KEYS.fallback) !== null) {
                 try { store.removeItem(THEME_KEYS.barLight); store.removeItem(THEME_KEYS.barDark); } catch { /* storage unavailable */ }
             }
             if (BAR_COLOUR.test(state.bar)) safeSetItem(state.mode === 'dark' ? THEME_KEYS.barDark : THEME_KEYS.barLight, state.bar, store);
-            try { store.removeItem(THEME_KEYS.legacyDark); } catch { /* storage unavailable */ }
+            try { store.removeItem(THEME_KEYS.legacyDark); store.removeItem(THEME_KEYS.fallback); } catch { /* storage unavailable */ }
         }
         return state;
     },

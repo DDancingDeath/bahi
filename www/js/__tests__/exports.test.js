@@ -8,6 +8,9 @@ import { exportStamp, stampPairs, stampLine, stampedCsv, exportFilename, exportA
 import { buildErrorReport, errorReportPeriod, nameScrubber } from '../utils/error-report.js';
 import * as UsersRepo from '../firebase/repos/users.js';
 import { Exporter } from '../services/exporter.js';
+import { icon } from '../ui/icons.js';
+import { moneyHtml } from '../ui/components.js';
+import { moneyText } from '../utils/money.js';
 import { AuditService } from '../services/audit.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { DiagnosticsManager } from '../modules/diagnostics.js';
@@ -91,7 +94,7 @@ describe('Exporter.run (#103)', () => {
         expect(await Exporter.run(job)).toBe(false);
         expect(produce).not.toHaveBeenCalled();
         expect(await Exporter.run(job)).toBe(true);
-        expect(modal.mock.calls[0][0]).toMatch(/customer and supplier names/);
+        expect(modal.mock.calls[0][0]).toMatch(/customer names and amounts/);
         expect(produce.mock.calls[0][0]).toMatchObject({ shop: 'Gupta Traders', user: 'Asha', from: '2026-10-01', to: '2026-11-01' });
         expect(note.mock.calls.map(c => c[1].exportStatus)).toEqual(['started', 'done']);
         expect(note.mock.calls[0][1]).toMatchObject({ exportKind: 'party', format: 'print', from: '2026-10-01', to: '2026-11-01', rows: 3 });
@@ -173,7 +176,7 @@ describe('Diagnostics exports', () => {
         expect(await DiagnosticsManager.exportAuditCsv()).toBe(true);
         const lines = saved[0].text.split('\r\n');
         expect(lines[5]).toBe('Time,Action,Who,Details');
-        expect(lines[6]).toMatch(/^2026-10-31 10:00,Void Bill,Ravi.*R-7.*typo/);
+        expect(lines[6]).toMatch(/^2026-10-31 10:00,Void bill,Ravi.*R-7.*typo/);
         expect(saved[0].name).toMatch(/^Gupta-Traders_audit_2026-10-30_2026-10-31_\d{8}-\d{4}\.csv$/);
         expect(note).toHaveBeenLastCalledWith('EXPORT', expect.objectContaining({ exportKind: 'audit', format: 'csv', from: '2026-10-30', to: '2026-10-31', rows: 2, exportStatus: 'done' }));
     });
@@ -188,7 +191,7 @@ describe('Diagnostics exports', () => {
         const lines = saved[0].text.split('\r\n');
         expect(lines.slice(0, 4).map(l => l.replace('\uFEFF', '').split(',')[0])).toEqual(['Shop', 'Period', 'Exported', 'By']);
         expect(lines[5]).toBe('Time,Action,Who,Details');
-        expect(lines[6]).toMatch(/Void Bill,Ravi \(Manager\),Bill: R-7/);
+        expect(lines[6]).toMatch(/Void bill,Ravi \(Manager\),Bill: R-7/);
         expect(saved[0].text).not.toMatch(/[\u0900-\u097F]/);
         const doc = { write: jest.fn(), close: jest.fn() };
         jest.spyOn(window, 'open').mockReturnValue({ document: doc, print: jest.fn() });
@@ -251,5 +254,46 @@ describe('Diagnostics exports', () => {
         expect(nameScrubber(['Al', '', null])('Al Pacino')).toBe('Al Pacino');
         const placeholders = buildErrorReport([{ type: 'x', message: 'auth/user-not-found; Unknown error in User list', source: 'https://myhappa.web.app/js/services/user-admin.js', line: 3, userName: 'User', occurrences: [{ userName: 'Unknown' }] }], { names: ['Shop Staff', 'Unknown User'] });
         expect(placeholders.errors[0]).toMatchObject({ message: 'auth/user-not-found; Unknown error in User list', source: 'https://myhappa.web.app/js/services/user-admin.js:3' });
+    });
+});
+
+describe('Exporter.printPage: a statement printed in its own window (#444)', () => {
+    test('sprite icons are hidden and their ⚠ / ✓ words print as text', () => {
+        const frame = document.createElement('iframe');
+        document.body.appendChild(frame);
+        const w = frame.contentWindow;
+        w.print = jest.fn();
+        jest.spyOn(window, 'open').mockReturnValue(w);
+        const html = `<div class="notice warn">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>Cost not known</span></div>`
+            + `<div class="notice pos">${icon('check', 'i-sm')}<span class="grow"><span class="sr-only">✓ </span>Matches Outstanding</span></div>`;
+        expect(Exporter.printPage({ title: 'Party ledger', html, stampText: 'Gupta Traders', lang: 'en' })).toBe(true);
+        const doc = w.document;
+        const svgs = [...doc.querySelectorAll('svg')];
+        expect(svgs).toHaveLength(2);
+        for (const svg of svgs) {
+            expect(svg.getAttribute('width')).toBe('1em');
+            expect(svg.getAttribute('height')).toBe('1em');
+            expect(w.getComputedStyle(svg).display).toBe('none');
+        }
+        for (const sr of doc.querySelectorAll('.sr-only')) expect(w.getComputedStyle(sr).position).toBe('static');
+        expect(doc.body.textContent).toContain('⚠ Cost not known');
+        expect(doc.body.textContent).toContain('✓ Matches Outstanding');
+        frame.remove();
+    });
+
+    test('money prints with the plain hyphen (MONEY-TEXT): no true minus before ₹; a "−" label stays', () => {
+        const frame = document.createElement('iframe');
+        document.body.appendChild(frame);
+        const w = frame.contentWindow;
+        w.print = jest.fn();
+        jest.spyOn(window, 'open').mockReturnValue(w);
+        const html = `<div class="ins-line"><span>= Profit</span>${moneyHtml(-12741)}</div><p>${moneyText(-500)} · − Cost of what was sold</p>`;
+        expect(html).toContain('−');
+        Exporter.printPage({ title: 'Month statement', html, stampText: 'Shop', lang: 'en' });
+        const text = w.document.body.textContent;
+        expect(text).toContain('= Profit-₹12,741');
+        expect(text).toContain('-₹500 · − Cost of what was sold');
+        expect(text).not.toMatch(/−₹/);
+        frame.remove();
     });
 });

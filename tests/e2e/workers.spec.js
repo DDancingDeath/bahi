@@ -1,9 +1,9 @@
 /**
  * Workers / Salaries (#373, WP-*): the owner adds a worker, records a mid-month advance (part-paid),
- * then more than the rest (paid, advance carried); the page reads the workers once per open and
+ * then more than the rest (paid, advance carried); Today shows the salaries due (WP-11); the page reads the workers once per open and
  * works in Hindi; managers and members cannot open it.
  */
-const { test, expect, login, showTab, clickAfterTyping } = require('./support/app');
+const { test, expect, login, showTab, clickAfterTyping, openDisclosure } = require('./support/app');
 const { listDocs } = require('./support/emulator');
 
 const row = (page, name) => page.locator('#workersBody .row[data-worker]', { hasText: name });
@@ -29,6 +29,18 @@ test('the owner records an advance and the rest; the month goes part-paid, then 
     await expect(row(page, name).locator('[data-wp-state]')).toHaveText('Part-paid, ₹3,000 of ₹9,000');
     await expect(row(page, name)).toContainText('₹6,000 still to pay');
 
+    // WP-11: Today shows the salaries still to pay (the page's "Still to pay"), and its button opens the page
+    const toPay = (await page.locator('#workersBody [data-wp="WP-9"]').textContent()).trim();
+    await showTab(page, 'day');
+    const salaries = page.locator('#todayReminders [data-reminder="salaries"]');
+    await expect(salaries).toContainText(`Salaries due ${toPay}`);
+    await expect(salaries).toContainText(/\d+ workers? still to be paid/);
+    await expect(page.locator('#todayRemindersToggle')).toContainText(`Salaries ${toPay}`);
+    await openDisclosure(page, 'todayReminders');
+    await salaries.locator('button').click();
+    await expect(page.locator('#workers.tab.active')).toBeVisible();
+    await expect(row(page, name).locator('[data-wp-state]')).toHaveText('Part-paid, ₹3,000 of ₹9,000');
+
     await page.click('#wpDetail [data-onclick="workers.showForm(\'pay\')"]');
     await page.fill('#wpAmount', '8000');
     await page.selectOption('#wpMode', 'online');
@@ -48,7 +60,7 @@ test('the owner records an advance and the rest; the month goes part-paid, then 
     await expect(row(page, name).locator('[data-wp-state]')).toHaveText('Paid');
 
     await page.evaluate(() => window.app.i18n.setLang('hi'));
-    await expect(page.locator('#workers h2')).toHaveText('कर्मचारी / वेतन');
+    await expect(page.locator('#workers h2')).toHaveText('कर्मचारी');
     await expect(row(page, name).locator('[data-wp-state]')).toHaveText('चुकाया');
     await expect(row(page, name)).toContainText('एडवांस ₹2,000 अगले महीने में गया');
     await page.evaluate(() => window.app.i18n.setLang('en'));

@@ -153,7 +153,7 @@ describe('Day report card', () => {
         expect(card.textContent).not.toContain('R0');
         expect(card.textContent).not.toContain('Yesterday');
         expect(card.textContent).toContain('Needs review (1)');
-        expect(card.querySelector('.anomaly-count-badge').textContent).toBe('1');
+        expect(card.querySelector('#dayReportToggle [data-day-report-sev="high"]').textContent).toBe('High 1');
         expect(card.textContent).toContain('All anomalies · 1 pending');
         const text = AnomaliesManager.dayReportText();
         expect(text).toContain('Anomalies: 1 (High 1, Medium 0, Low 0)');
@@ -167,6 +167,40 @@ describe('Day report card', () => {
         const card = document.getElementById('dayReportCard');
         expect(card.textContent).toContain('All anomalies');
         expect(card.textContent).not.toContain('pending');
+    });
+
+    test('closed by default: one row with the date and the counts in their colours; the report is in the closed body', async () => {
+        AnomaliesManager.renderDayReport({ sales: 400, saleCount: 1 }, null);
+        await AnomaliesManager.refreshing;
+        const toggle = document.getElementById('dayReportToggle');
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(document.getElementById('dayReportBody').hidden).toBe(true);
+        expect(toggle.querySelector('[data-day-report-sev="high"]').className).toBe('tag neg');
+        expect(toggle.querySelector('[data-day-report-review]').className).toBe('tag warn');
+        expect(toggle.querySelector('.disclosure-summary').textContent).toBe('21 OctHigh 1Review 1');
+        expect(toggle.querySelector('.lead-icon').classList.contains('neg')).toBe(true);
+        const body = document.getElementById('dayReportBody');
+        for (const action of ['anomalies.refreshNow()', 'anomalies.shareDayReport()', 'anomalies.printDayReport()', 'anomalies.openPage()']) {
+            expect(body.querySelector(`[data-onclick="${action}"]`)).not.toBeNull();
+        }
+        localStorage.setItem('happa.open.day-report', '1');
+        AnomaliesManager.drawDayReport();
+        expect(document.getElementById('dayReportToggle').getAttribute('aria-expanded')).toBe('true');
+        expect(document.getElementById('dayReportBody').hidden).toBe(false);
+    });
+
+    test('nothing found: "No issues" when closed, one short line and no zero chips when open', async () => {
+        AppState.retailSalesHistory = [];
+        AnomaliesManager.renderDayReport({}, null);
+        await AnomaliesManager.refreshing;
+        const card = document.getElementById('dayReportCard');
+        expect(card.querySelector('.disclosure-summary').textContent).toBe('21 Oct · No issues');
+        expect(card.querySelector('[data-day-report-sev], [data-day-report-review]')).toBeNull();
+        expect(card.querySelector('.anom-chips')).toBeNull();
+        expect(card.querySelector('.empty')).toBeNull();
+        expect(card.querySelector('[data-day-report-clear]').textContent).toBe('No anomalies · Nothing to review');
+        expect(card.textContent).not.toContain('Needs review');
+        expect(card.querySelector('[data-onclick="anomalies.openPage()"]')).not.toBeNull();
     });
 
     test('hidden for other users', () => {

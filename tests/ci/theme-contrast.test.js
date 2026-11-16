@@ -93,6 +93,8 @@ function colour(t, name) {
 const PAIRS = [
     ['ink', 'bg'], ['ink', 'surface'], ['ink-2', 'bg'], ['ink-2', 'surface'], ['ink-2', 'surface-2'],
     ['ink-3', 'bg'], ['ink-3', 'surface'], ['ink-3', 'surface-2'], ['ink-placeholder', 'input-bg'],
+    // A floating field label (.field-float) is half on the field, half on the page or panel behind it
+    ['ink-2', 'input-bg'], ['ink-2', 'panel-bg'], ['accent-text', 'input-bg'], ['accent-text', 'panel-bg'],
     ['accent-text', 'bg'], ['accent-text', 'surface'], ['accent-text', 'surface-2'], ['accent-text', 'accent-soft@surface'],
     ['on-accent', 'accent'], ['on-accent-strong', 'accent-strong'], ['btn-primary-ink', 'btn-primary-bg'],
     ['btn-sale-ink', 'btn-sale-bg'], ['on-mode-wholesale', 'mode-wholesale'], ['btn-danger-ink', 'btn-danger-bg'],

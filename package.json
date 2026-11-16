@@ -25,6 +25,7 @@
     "audit:numbers": "node tools/audit/real-data-audit.js"
   },
   "dependencies": {
+    "@capacitor-community/contacts": "^7.2.0",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-firebase/authentication": "7.5.0",
     "@capacitor-firebase/crashlytics": "7.5.0",
@@ -33,6 +34,7 @@
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/filesystem": "^7.1.9",
+    "@capacitor/local-notifications": "^7.0.7",
     "@capacitor/share": "^7.0.4",
     "cordova-plugin-android-permissions": "^1.1.5",
     "cordova-plugin-bluetooth-serial": "^0.4.7",

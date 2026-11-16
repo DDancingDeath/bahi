@@ -81,10 +81,12 @@
   --r-chip: 999px;
   --r-sheet: 16px;
   --r-full: 999px;
+  --r-2xs: 2px;
+  --r-round: 50%;
   --rule-style: solid;
 }
 
-/* Every token defined with var() (layer 2, the old names): re-declared on each themed element, so it follows that element's layer-1 values */
+/* Every token defined with var() (layer 2): re-declared on each themed element, so it follows that element's layer-1 values */
 :root,
 [data-theme],
 [data-mode] {
@@ -115,69 +117,8 @@
   --btn-danger-bg: var(--negative-fill);
   --btn-danger-ink: #ffffff;
   --preview-apply-line: transparent;
-
-  /* Old names (32 stylesheets and script-written styles use them); new code uses the tokens above */
-  --primary-color: var(--accent-text);
-  --primary-dark: var(--accent-hover);
-  --primary-light: var(--accent-text);
-  --primary-soft: var(--accent-soft);
-  --primary-gradient: var(--accent-strong);
-  --primary-border: var(--accent-line);
-  --on-primary-soft: var(--accent-text);
-  --focus-ring: var(--focus);
-  --success-color: var(--positive);
-  --success-light: var(--positive-soft);
-  --success-dark: var(--positive);
-  --success-soft: var(--positive-soft);
-  --on-success-soft: var(--positive);
-  --success-border: var(--positive-line);
-  --danger-color: var(--negative);
-  --danger-light: var(--negative-soft);
-  --danger-dark: var(--negative);
-  --danger-soft: var(--negative-soft);
-  --on-danger-soft: var(--negative);
-  --danger-border: var(--negative-line);
-  --warning-color: var(--warning-dot);
-  --warning-light: var(--warning-soft);
-  --warning-dark: var(--warning);
-  --on-warning-soft: var(--warning);
-  --warning-border: var(--warning-line);
-  --info-color: var(--info);
-  --info-light: var(--info-soft);
-  --info-dark: var(--info);
-  --on-info-soft: var(--info);
-  --info-border: var(--info-line);
-  --purchase-color: var(--accent-text);
-  --purchase-light: var(--mode-purchase-soft);
-  --purchase-dark: var(--accent-text);
-  --sale-color: var(--positive);
-  --sale-light: var(--mode-sale-soft);
-  --sale-dark: var(--positive);
-  --wholesale-color: var(--mode-wholesale);
-  --wholesale-soft: var(--mode-wholesale-soft);
-  --dark-color: var(--ink);
-  --text-primary: var(--ink);
-  --text-secondary: var(--ink-2);
-  --text-muted: var(--ink-3);
-  --light-bg: var(--bg);
-  --white: var(--surface);
-  --card-bg: var(--panel-bg);
-  --seg-bg: var(--seg-track);
-  --seg-active: var(--seg-on);
-  --border-color: var(--line);
-  --border-light: var(--line);
-  --border-strong: var(--line-strong);
-  --surface-muted: var(--surface-2);
-  --btn-primary: var(--btn-primary-bg);
-  --btn-success: var(--btn-sale-bg);
-  --btn-danger: var(--btn-danger-bg);
-  --shadow-xs: var(--e1);
-  --shadow-sm: var(--e1);
-  --shadow: var(--e1);
-  --shadow-md: var(--e2);
-  --shadow-lg: var(--e3);
-  --shadow-xl: var(--e3);
-  --font-sans: var(--font-ui);
+  --r-md: calc(var(--r-control) + 2px);
+  --r-lg: calc(var(--r-panel) + 2px);
 }
 
 /* Graphite dark. Screen only: printing from any theme or mode uses the light values (black on white) */
@@ -234,6 +175,13 @@
   }
 }
 
+/* The browser's placeholder grey is tuned for light pages */
+@media screen {
+  [data-mode="dark"] ::placeholder {
+    color: var(--ink-3);
+  }
+}
+
 /* "Continue with Google" button: Google's own light and dark button colours (its branding guidelines) */
 :root {
   --google-btn-bg: #ffffff;
@@ -249,6 +197,22 @@
   }
 }
 
+/* The Bahi mark (docs/brand/icon-full.svg, #375): white B with the sage corner on charcoal, fixed in every theme;
+   on dark surfaces a faint ring keeps the tile's edge */
+:root {
+  --brand-tile: #16161d;
+  --brand-tile-top: #26262f;
+  --brand-ink: #ffffff;
+  --brand-corner: #89b284;
+  --brand-tile-ring: none;
+}
+
+@media screen {
+  [data-mode="dark"] {
+    --brand-tile-ring: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
+}
+
 /* Layout, type scale, density and motion: the same in every theme */
 :root {
   --w-label: 600;
@@ -260,6 +224,10 @@
   --fs-display: 28px;
   --fs-hero: 34px;
   --fs-appbar: 22px;
+  --fs-input: 16px;
+  /* Floating field labels (.field-float): the 14 px minimum text size (#68) */
+  --fs-label: 14px;
+  --fs-cur: 0.78em;
   --lh-body: 1.45;
   --sp-1: 4px;
   --sp-2: 8px;
@@ -273,6 +241,7 @@
   --section-gap: 24px;
   --row-h: 56px;
   --appbar-h: 52px;
+  --phone-col-max: 480px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
   --control-h: 44px;
   --control-h-sm: 32px;
@@ -280,23 +249,31 @@
   --dur-1: 120ms;
   --dur-2: 200ms;
   --dur-3: 280ms;
+  /* Layers, low to high (docs/design-system.md has the map). A step inside a band is a calc() offset of its token */
+  --z-base: 1;
+  --z-raised: 2;
+  --z-sticky: 5;
+  --z-popover: 30;
+  --z-nav: 900;
+  --z-appbar: 950;
+  --z-drawer: 1000;
+  --z-sheet: 9000;
+  --z-dialog: 10000;
+  --z-busy: 15000;
+  --z-modal: 20000;
+  --z-toast: 100000;
+  --z-max: 2147483647;
+  --z-menu: var(--z-sticky);
+  --z-bell: var(--z-drawer);
+  --z-notif-scrim: calc(var(--z-drawer) + 2);
+  --z-notif: calc(var(--z-drawer) + 3);
+  --z-auth: var(--z-dialog);
+  /* Edge stripes (box-shadow: var(--stripe) <colour>) and validation rings */
+  --stripe: inset 4px 0 0;
+  --stripe-sm: inset 3px 0 0;
+  --ring-danger: 0 0 0 2px rgba(220, 38, 38, 0.25);
+  --ring-warning: 0 0 0 2px rgba(217, 119, 6, 0.25);
 
-  --transition-fast: var(--dur-1) var(--ease);
-  --transition: var(--dur-2) var(--ease);
-  --transition-slow: var(--dur-3) var(--ease);
-  --radius-sm: var(--r-sm);
-  --radius: var(--r-control);
-  --radius-md: var(--r-panel);
-  --radius-lg: var(--r-panel);
-  --radius-xl: var(--r-sheet);
-  --radius-full: var(--r-full);
-  --space-xs: var(--sp-1);
-  --space-sm: var(--sp-2);
-  --space-md: var(--sp-3);
-  --space-lg: var(--sp-4);
-  --space-xl: var(--sp-5);
-  --space-2xl: var(--sp-6);
-  --space-3xl: var(--sp-8);
   --text-xs: 12px;
   --text-sm: 13px;
   --text-base: 14px;
@@ -327,240 +304,6 @@ html[lang="hi"] [data-theme] {
   --tracking-display: 0;
 }
 
-body.dark-mode {
-  background: var(--light-bg);
-  color: var(--text-primary);
-}
-
-body.dark-mode .item-card,
-body.dark-mode .bill-item-row,
-body.dark-mode .settings-card,
-body.dark-mode .stock-item,
-body.dark-mode .report-card,
-body.dark-mode .date-filter-card,
-body.dark-mode .popular-item,
-body.dark-mode .item-report,
-body.dark-mode .modern-card {
-  background: var(--card-bg);
-  color: var(--text-primary);
-  border-color: var(--border-color);
-}
-
-body.dark-mode input,
-body.dark-mode select,
-body.dark-mode textarea {
-  background: var(--input-bg);
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-
-/* White text on the accent hero (var(--white) is dark in this theme) */
-body.dark-mode .ins-hero,
-body.dark-mode .ins-hero .ins-cmp {
-  color: #fff;
-}
-
-body.dark-mode .ins-card .ins-link,
-body.dark-mode .ins-list .ins-link {
-  color: var(--info-color);
-}
-
-body.dark-mode .diag-delete-btn {
-  background: var(--surface-muted);
-  color: var(--text-primary);
-}
-
-body.dark-mode input::placeholder {
-  color: var(--text-muted);
-}
-
-body.dark-mode .top-bar,
-body.dark-mode .side-nav,
-body.dark-mode .modal-box {
-  background: var(--card-bg);
-}
-
-body.dark-mode .top-bar {
-  border-bottom-color: var(--border-color);
-}
-
-body.dark-mode .modal-box {
-  color: var(--text-primary);
-}
-
-body.dark-mode .nav-menu a {
-  color: var(--text-primary);
-}
-
-body.dark-mode .nav-menu a:hover {
-  background: var(--border-color);
-}
-
-body.dark-mode .nav-menu a.active {
-  background: var(--primary-soft);
-  color: var(--primary-light);
-}
-
-/* Inline colours written by page scripts stay readable in dark mode */
-.dark-mode [style*="background: rgb(249, 250, 251)"],
-.dark-mode [style*="background: rgb(245, 245, 245)"],
-.dark-mode [style*="background: white"],
-.dark-mode [style*="background: #fff"],
-.dark-mode [style*="background: #f8f9fa"],
-.dark-mode [style*="background: #f7fafc"],
-.dark-mode [style*="background: #f3f4f6"],
-.dark-mode [style*="background: #f5f5f5"] {
-  background: var(--surface-muted) !important;
-}
-
-.dark-mode [style*="background: #fff3cd"],
-.dark-mode [style*="background: #fef3c7"],
-.dark-mode [style*="background: #fffbeb"],
-.dark-mode [style*="background: #fff8e1"] {
-  background: var(--warning-soft) !important;
-}
-
-.dark-mode [style*="background: #fff7ed"] {
-  background: var(--caution-soft) !important;
-}
-
-.dark-mode [style*="background: #fee2e2"],
-.dark-mode [style*="background: #fef2f2"] {
-  background: var(--danger-soft) !important;
-}
-
-.dark-mode [style*="background: #d1fae5"],
-.dark-mode [style*="background: #f0fdf4"],
-.dark-mode [style*="background: #d1e7dd"],
-.dark-mode [style*="background: #e7f5e9"] {
-  background: var(--success-soft) !important;
-}
-
-.dark-mode [style*="background: #d1ecf1"],
-.dark-mode [style*="background: #cfe2ff"],
-.dark-mode [style*="background: #e3f2fd"] {
-  background: var(--info-soft) !important;
-}
-
-.dark-mode [style^="color: rgb(51, 51, 51)"],
-.dark-mode [style*=" color: rgb(51, 51, 51)"],
-.dark-mode [style^="color: #333"],
-.dark-mode [style*=" color: #333"],
-.dark-mode [style^="color: #212529"],
-.dark-mode [style*=" color: #212529"],
-.dark-mode [style*=" color: #2c3e50"],
-.dark-mode [style*=" color: #1f2937"] {
-  color: var(--text-primary) !important;
-}
-
-.dark-mode [style^="color: rgb(102, 102, 102)"],
-.dark-mode [style*=" color: rgb(102, 102, 102)"],
-.dark-mode [style^="color: rgb(108, 117, 125)"],
-.dark-mode [style*=" color: rgb(108, 117, 125)"],
-.dark-mode [style^="color: rgb(85, 85, 85)"],
-.dark-mode [style*=" color: rgb(85, 85, 85)"],
-.dark-mode [style^="color: rgb(75, 85, 99)"],
-.dark-mode [style*=" color: rgb(75, 85, 99)"],
-.dark-mode [style^="color: #64748b"],
-.dark-mode [style*=" color: #64748b"],
-.dark-mode [style^="color: #666"],
-.dark-mode [style*=" color: #666"],
-.dark-mode [style^="color:#666"],
-.dark-mode [style^="color: #6c757d"],
-.dark-mode [style*=" color: #6c757d"],
-.dark-mode [style*=" color: #495057"],
-.dark-mode [style*=" color:#555"],
-.dark-mode [style*=" color: #555"],
-.dark-mode [style*=";color:#555"],
-.dark-mode [style*=" color: #374151"],
-.dark-mode [style^="color: #595959"],
-.dark-mode [style*=" color: #777"],
-.dark-mode [style*=" color:#4b5563"],
-.dark-mode [style^="color:#4b5563"],
-.dark-mode [style*=";color:#4b5563"],
-.dark-mode [style*=" color: #9ca3af"] {
-  color: var(--text-secondary) !important;
-}
-
-.dark-mode [style*=" color: #059669"],
-.dark-mode [style^="color: #166534"],
-.dark-mode [style*=" color: #166534"],
-.dark-mode [style^="color: #15803d"],
-.dark-mode [style*=" color: #15803d"],
-.dark-mode [style^="color:#15803d"],
-.dark-mode [style*=" color: #1c7430"],
-.dark-mode [style*=" color: #0f5132"],
-.dark-mode [style*=" color: #155724"],
-.dark-mode [style*=" color: #2e7d32"],
-.dark-mode [style^="color: #059669"] {
-  color: var(--on-success-soft) !important;
-}
-
-.dark-mode [style^="color: #ef4444"],
-.dark-mode [style*=" color: #ef4444"],
-.dark-mode [style*=" color: #991b1b"],
-.dark-mode [style*=" color:#b91c1c"],
-.dark-mode [style^="color: #b91c1c"],
-.dark-mode [style^="color:#b91c1c"],
-.dark-mode [style*=";color:#b91c1c"],
-.dark-mode [style^="color: #b02a37"],
-.dark-mode [style*=" color: #b02a37"] {
-  color: var(--on-danger-soft) !important;
-}
-
-.dark-mode [style^="color: rgb(138, 109, 0)"],
-.dark-mode [style*=" color: rgb(138, 109, 0)"],
-.dark-mode [style^="color:#92400e"],
-.dark-mode [style^="color: #9a3412"],
-.dark-mode [style*=" color: #9a3412"],
-.dark-mode [style^="color: #c2410c"],
-.dark-mode [style*=" color: #92400e"],
-.dark-mode [style*=" color: #78350f"],
-.dark-mode [style^="color: #b45309"],
-.dark-mode [style^="color:#b45309"],
-.dark-mode [style*=" color: #856404"],
-.dark-mode [style*=" color: #8a6d00"],
-.dark-mode [style*=" color: #997404"] {
-  color: var(--on-warning-soft) !important;
-}
-
-.dark-mode [style*=" color: #7c3aed"],
-.dark-mode [style*=" color: #6d28d9"],
-.dark-mode [style*=" color: #5560d6"],
-.dark-mode [style^="color: #6366f1"],
-.dark-mode [style*=" color: #9333ea"] {
-  color: var(--on-primary-soft) !important;
-}
-
-.dark-mode [style^="color: #2563eb"],
-.dark-mode [style*=" color: #2563eb"],
-.dark-mode [style^="color: #1976d2"],
-.dark-mode [style*=" color: #1976d2"],
-.dark-mode [style*=" color: #0058b8"],
-.dark-mode [style*=" color: #084298"],
-.dark-mode [style^="color: #3b82f6"] {
-  color: var(--on-info-soft) !important;
-}
-
-.dark-mode [style*="linear-gradient(135deg, #e3f2fd"] {
-  background: var(--info-soft) !important;
-}
-
-/* Cash close: the "extra cash" note the script colours #997404 (3.9:1 on its yellow) */
-.dark-mode #cashDifferenceAlert[style*="background: rgb(255, 243, 205)"] {
-  background: var(--warning-soft) !important;
-}
-
-#cashDifferenceAlert[style*="color: rgb(153, 116, 4)"] {
-  color: var(--on-warning-soft) !important;
-}
-
-/* The old purple brand gradient still written inline by a few templates */
-[style*="linear-gradient(135deg, #5560d6"],
-[style*="linear-gradient(135deg, rgb(85, 96, 214)"] {
-  background: var(--primary-gradient) !important;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -573,7 +316,7 @@ body.dark-mode .nav-menu a.active {
 }
 
 :focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -590,9 +333,9 @@ html {
 }
 
 body {
-  font-family: var(--font-sans);
-  background: var(--light-bg);
-  color: var(--text-primary);
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
@@ -612,25 +355,9 @@ html[lang="hi"] body {
 /* Money and weight columns line up digit under digit */
 table,
 input[type="number"],
-.stat-value,
-.stat-value-sm,
-.total-row strong,
-.payment-row strong {
+.total-line strong,
+.pay-line strong {
   font-variant-numeric: tabular-nums;
-}
-
-/* Modern Card Utility Class */
-.modern-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border-color);
-  padding: var(--space-lg);
-  transition: box-shadow var(--transition), transform var(--transition);
-}
-
-.modern-card:hover {
-  box-shadow: var(--shadow-md);
 }
 
 /* Status Badge Utilities */
@@ -638,28 +365,17 @@ input[type="number"],
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  border-radius: var(--radius-full);
+  border-radius: var(--r-full);
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
 }
 
 .badge-success {
-  background: var(--success-light);
-  color: var(--success-dark);
-}
-
-.badge-danger {
-  background: var(--danger-light);
-  color: var(--danger-dark);
-}
-
-.badge-warning {
-  background: var(--warning-light);
-  color: var(--warning-dark);
+  background: var(--positive-soft);
+  color: var(--positive);
 }
 
 .badge-info {
-  background: var(--info-light);
-  color: var(--info-dark);
+  background: var(--info-soft);
+  color: var(--info);
 }
-

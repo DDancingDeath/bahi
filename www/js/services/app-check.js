@@ -2,9 +2,9 @@
 /**
  * @fileoverview Firebase App Check in monitor mode (#89, docs/security.md "App Check").
  * Off until happa.config.json has appCheck.siteKey (firebaseConfig.js sets
- * window.APP_CHECK_SITE_KEY). With a key, after the first screen: reCAPTCHA v3 is loaded
+ * window.APP_CHECK_SITE_KEY; a reCAPTCHA Enterprise score key). With a key, after the first screen: reCAPTCHA Enterprise is loaded
  * and must report ready first, then the SDK is loaded and activated (it reuses
- * self.grecaptcha). The SDK's own reCAPTCHA loader has no error path, so activating
+ * self.grecaptcha.enterprise). The SDK's own reCAPTCHA loader has no error path, so activating
  * without a working reCAPTCHA would leave every Firestore / Auth call waiting on a token.
  * @module services/app-check
  */
@@ -13,7 +13,7 @@ import { loadScriptOnce } from '../utils/lazy-scripts.js';
 export const APP_CHECK_SDK_URL = '/vendor/firebase/10.7.1/firebase-app-check-compat.js';
 export const APP_CHECK_SDK_INTEGRITY = 'sha384-rxbD+YIVHadImwEcPc07/NNXIMwVf3RtXkQUgI0cE4GzDCFQ9IQ+kLvlefJ/Eb7E';
 // The SDK renders its own invisible widget; render=explicit keeps reCAPTCHA from adding a badge.
-export const RECAPTCHA_URL = 'https://www.google.com/recaptcha/api.js?render=explicit';
+export const RECAPTCHA_URL = 'https://www.google.com/recaptcha/enterprise.js?render=explicit';
 export const RECAPTCHA_READY_TIMEOUT_MS = 5000;
 
 /** @param {Rec} win */
@@ -36,7 +36,7 @@ export function useDebugProvider(win) {
  */
 export function whenRecaptchaReady(win, timeoutMs) {
     return new Promise((resolve, reject) => {
-        const g = win.grecaptcha;
+        const g = win.grecaptcha?.enterprise;
         if (typeof g?.ready !== 'function') {
             reject(new Error('reCAPTCHA missing'));
             return;
@@ -44,7 +44,7 @@ export function whenRecaptchaReady(win, timeoutMs) {
         const timer = setTimeout(() => reject(new Error('reCAPTCHA not ready')), timeoutMs);
         g.ready(() => {
             clearTimeout(timer);
-            if (typeof win.grecaptcha?.render === 'function') resolve();
+            if (typeof win.grecaptcha?.enterprise?.render === 'function') resolve();
             else reject(new Error('reCAPTCHA not usable'));
         });
     });
@@ -96,7 +96,7 @@ export function startAppCheck(opts = {}) {
             if (typeof fb?.appCheck !== 'function') throw new Error('App Check SDK missing');
             if (useDebugProvider(win) && !win.FIREBASE_APPCHECK_DEBUG_TOKEN) win.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
             const appCheck = fb.appCheck();
-            appCheck.activate(new fb.appCheck.ReCaptchaV3Provider(siteKey), true);
+            appCheck.activate(new fb.appCheck.ReCaptchaEnterpriseProvider(siteKey), true);
             activated = appCheck;
             return appCheck;
         })

@@ -51,12 +51,11 @@ test('init uses the choice read when the module loaded (before main.js wrote its
     expect(localStorage.getItem(THEME_KEYS.appearance)).toBe('system');
 });
 
-test('System follows the device live, with body.dark-mode', () => {
+test('System follows the device live', () => {
     ThemeManager.init();
     systemDark = true;
     listeners.forEach((fn) => fn());
     expect(attrs()[2]).toBe('dark');
-    expect(document.body.classList.contains('dark-mode')).toBe(true);
 });
 
 test('a fixed choice ignores the device', () => {
@@ -75,7 +74,6 @@ test('apply saves the new keys, drops the old darkMode and fires aadhat:themecha
     window.addEventListener('aadhat:themechange', (e) => seen.push(e.detail.mode), { once: true });
     ThemeManager.apply({ appearance: 'light' });
     expect(attrs()).toEqual(['modern', 'light', 'light']);
-    expect(document.body.classList.contains('dark-mode')).toBe(false);
     expect(seen).toEqual(['light']);
     expect(localStorage.getItem(THEME_KEYS.appearance)).toBe('light');
     expect(localStorage.getItem(THEME_KEYS.theme)).toBe('modern');
@@ -83,10 +81,46 @@ test('apply saves the new keys, drops the old darkMode and fires aadhat:themecha
     expect(localStorage.getItem('darkMode')).toBeNull();
 });
 
-test('an unknown saved theme falls back to the default', () => {
+test('an unknown saved theme shows the default but stays saved (with its kind and bar colours) for a version that knows it', () => {
     localStorage.setItem(THEME_KEYS.theme, 'no-such-theme');
+    localStorage.setItem(THEME_KEYS.kind, 'dark');
+    localStorage.setItem(THEME_KEYS.appearance, 'light');
+    localStorage.setItem(THEME_KEYS.barDark, '#07070d');
     expect(ThemeManager.init().theme).toBe('modern');
-    expect(attrs()[0]).toBe('modern');
+    expect(attrs()).toEqual(['modern', 'light', 'light']);
+    expect(localStorage.getItem(THEME_KEYS.theme)).toBe('no-such-theme');
+    expect(localStorage.getItem(THEME_KEYS.kind)).toBe('dark');
+    expect(localStorage.getItem(THEME_KEYS.barDark)).toBe('#07070d');
+    expect(localStorage.getItem(THEME_KEYS.barLight)).toBeNull();
+    // The boot script reads this and ignores the stale kind and bar colour
+    expect(localStorage.getItem(THEME_KEYS.fallback)).toBe('no-such-theme');
+    // A version that knows the theme again clears the marker
+    localStorage.setItem(THEME_KEYS.theme, 'cyberpunk');
+    expect(ThemeManager.init().theme).toBe('cyberpunk');
+    expect(localStorage.getItem(THEME_KEYS.fallback)).toBeNull();
+});
+
+test('the first save over an unknown theme replaces it and clears the marker and the old bar colours', () => {
+    localStorage.setItem(THEME_KEYS.theme, 'no-such-theme');
+    localStorage.setItem(THEME_KEYS.kind, 'dark');
+    localStorage.setItem(THEME_KEYS.barDark, '#07070d');
+    localStorage.setItem(THEME_KEYS.appearance, 'light');
+    ThemeManager.init();
+    ThemeManager.apply({ appearance: 'light' });
+    expect(localStorage.getItem(THEME_KEYS.theme)).toBe('modern');
+    expect(localStorage.getItem(THEME_KEYS.kind)).toBe('both');
+    expect(localStorage.getItem(THEME_KEYS.fallback)).toBeNull();
+    expect(localStorage.getItem(THEME_KEYS.barDark)).toBeNull();
+});
+
+test('a saved 4.6 theme is kept (Glass, Material, Fluent; Cyberpunk is always dark)', () => {
+    for (const [theme, mode] of [['glass', 'light'], ['material', 'light'], ['fluent', 'light'], ['cyberpunk', 'dark']]) {
+        localStorage.setItem(THEME_KEYS.theme, theme);
+        localStorage.setItem(THEME_KEYS.appearance, 'light');
+        expect(ThemeManager.init().theme).toBe(theme);
+        expect(attrs()).toEqual([theme, 'light', mode]);
+        expect(localStorage.getItem(THEME_KEYS.theme)).toBe(theme);
+    }
 });
 
 test('the browser bar takes the page colour and caches it for the boot script', () => {
@@ -120,18 +154,23 @@ describe('preview (Settings › Appearance gallery)', () => {
         ThemeManager.apply({ theme: 'modern', appearance: 'light' });
         ThemeManager.preview('midnight');
         expect(attrs()).toEqual(['midnight', 'light', 'dark']);
-        expect(document.body.classList.contains('dark-mode')).toBe(true);
         const state = ThemeManager.apply({ theme: 'midnight' });
         expect(state).toMatchObject({ theme: 'midnight', appearance: 'light', mode: 'dark', previewing: null });
         expect([localStorage.getItem(THEME_KEYS.theme), localStorage.getItem(THEME_KEYS.kind)]).toEqual(['midnight', 'dark']);
     });
 
-    test('leaving Settings ends a preview; the saved theme and unknown ids never start one', () => {
+    test('leaving Settings › Appearance (another page, the Settings list or another group) ends a preview; the saved theme and unknown ids never start one', () => {
         ThemeManager.init();
         ThemeManager.apply({ theme: 'modern', appearance: 'light' });
         ThemeManager.preview('nature');
-        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings' } }));
+        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings', section: 'appearance' } }));
         expect(ThemeManager.previewing).toBe('nature');
+        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings' } }));
+        expect(ThemeManager.previewing).toBeNull();
+        ThemeManager.preview('nature');
+        window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'settings', section: 'shop' } }));
+        expect(ThemeManager.previewing).toBeNull();
+        ThemeManager.preview('nature');
         window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'billing' } }));
         expect(ThemeManager.previewing).toBeNull();
         expect(attrs()[0]).toBe('modern');

@@ -1,8 +1,8 @@
 /**
- * @fileoverview Settings: Common (language, account, notifications, printer,
- * install, about, Roles & access), Aadhat (internal id 'shop': business name,
- * UPI, labour, bill checks, bill numbers, opening stock) and Rentals (loaded on
- * demand from js/rentals). Which sections show: utils/settings-sections.js.
+ * @fileoverview Settings: a short main list (language, account, then one row per group) and
+ * a sub-page per group: Appearance, Printing & receipts, Billing tools, Aadhat (internal id
+ * 'shop'), Rentals (loaded on demand from js/rentals), Team and Help & about. Which groups
+ * show: utils/settings-sections.js.
  * @module modules/settings
  */
 
@@ -13,19 +13,24 @@ import { changedFields } from '../utils/audit-changes.js';
 import { PrinterService, loadReceiptDrawing } from '../services/printer.js';
 import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
-import { LABOUR_PACKAGE_KG_MAX, LABOUR_PACKAGE_KG_MIN, normalizeLabourSettings, normalizePackageKg } from '../utils/money.js';
+import { LABOUR_PACKAGE_KG_MAX, LABOUR_PACKAGE_KG_MIN, moneyText, normalizeLabourSettings, normalizePackageKg } from '../utils/money.js';
 import { DEFAULT_THRESHOLDS, normalizeThresholds } from '../utils/bill-checks.js';
 import { CHANGED_ELSEWHERE, NEEDS_INTERNET, writeErrorKey } from '../utils/write-conflict.js';
 import { t } from '../i18n/index.js';
+import { emptyState } from '../ui/components.js';
 import { safeSetItem, STORAGE_FULL_KEY } from '../utils/storage-full.js';
-import { settingsView } from '../utils/settings-sections.js';
+import { groupOf, settingsView, shownGroup } from '../utils/settings-sections.js';
+import { NavigationManager } from '../ui/navigation.js';
 import { BusinessSwitcher } from '../ui/business-switcher.js';
+import { PhotoWeights } from '../ui/photo-weights.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { forgetPrinter, normalizePrinterSettings, normalizeReceiptOptions, PAPER_WIDTHS, setPaperWidth, usePrinter } from '../utils/printer-settings.js';
 import { AuthManager, authErrorMessage } from '../auth/authentication.js';
 import { UsageView } from '../ui/usage-view.js';
 import { ThemeManager, resolveMode } from '../ui/theme.js';
 import { APPEARANCES, DEFAULT_APPEARANCE, DEFAULT_THEME, THEMES, themeById } from '../ui/themes.js';
+import { icon } from '../ui/icons.js';
+import { on, PRINTER_CHANGED } from '../utils/events.js';
 
 const LABOUR_OWNER_ONLY_KEY = 'msg.settings.labour_owner_only';
 const LABOUR_INPUTS = ['settingHeavyWeight', 'settingLaborRate', 'settingLabourPackageKg'];
@@ -34,22 +39,75 @@ export const ITEM_NAMES_FOLLOW_LANG_KEY = 'aadhat.itemNamesFollowLang';
 /** '1' once this phone was offered to share its own printed-bill choices with every phone (#107). */
 export const RECEIPT_SHARE_ASKED_KEY = 'receiptShareAsked';
 
-/** Bill-check limits in Settings › Aadhat (keys of DEFAULT_THRESHOLDS); moved from Admin › Configure. */
+/** Bill-check limits in Settings › Aadhat (keys of DEFAULT_THRESHOLDS, label, unit beside the box); moved from Admin › Configure. */
 export const CHECK_THRESHOLD_FIELDS = [
-    ['oversellBlockKg', 'ui.checks.oversell_block'],
+    ['oversellBlockKg', 'ui.checks.oversell_block', 'kg'],
     ['rateMultiple', 'ui.checks.rate_multiple'],
     ['duplicateWindowSec', 'ui.checks.duplicate_window'],
     ['maxFutureMin', 'ui.checks.max_future'],
     ['backdateDays', 'ui.checks.backdate_days'],
-    ['cashOkRs', 'ui.checks.cash_ok'],
-    ['cashHighRs', 'ui.checks.cash_high'],
-    ['stockAdjustFlagKg', 'ui.checks.stock_adjust_flag'],
+    ['cashOkRs', 'ui.checks.cash_ok', '₹'],
+    ['cashHighRs', 'ui.checks.cash_high', '₹'],
+    ['stockAdjustFlagKg', 'ui.checks.stock_adjust_flag', 'kg'],
     ['deniedCount', 'ui.checks.denied_count'],
     ['deniedWindowMin', 'ui.checks.denied_window']
 ];
 const MAX_BUSINESS_NAME = 80;
 const MAX_BUSINESS_DETAILS = 120;
 const MAX_UPI = 60;
+/** Group id → its section's element id. */
+const GROUP_IDS = Object.freeze({
+    appearance: 'settingsAppearance', printing: 'settingsPrinting', billing: 'settingsBilling', shop: 'settingsShop',
+    rentals: 'settingsRentals', team: 'settingsTeam', help: 'settingsHelp'
+});
+
+/** The gallery's sample bill: kg, rate, amount (fixed figures, nothing is computed on screen). */
+const THEME_SAMPLE_LINES = [[50, 56, 2800], [48.5, 55.5, 2691.75]];
+const THEME_SAMPLE_TOTAL = 5491.75;
+
+/** @param {string} cls @param {string} [text] */
+function themeSpan(cls, text) {
+    const el = document.createElement('span');
+    el.className = cls;
+    if (text != null) el.textContent = text;
+    return el;
+}
+
+/**
+ * A miniature of Billing (app bar, Purchase / Retail sale, two lines, the total and Save) in a theme:
+ * real DOM scoped with data-theme / data-mode, so every theme previews itself.
+ * @param {{id: string, kind: string}} th
+ */
+function themePreview(th) {
+    const span = themeSpan;
+    const systemDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const preview = span('tcp');
+    preview.setAttribute('aria-hidden', 'true');
+    preview.setAttribute('data-theme', th.id);
+    preview.setAttribute('data-mode', resolveMode(ThemeManager.current.appearance, th.kind, systemDark));
+    const screen = span('tcp-screen');
+    const bar = span('tcp-bar');
+    bar.append(span('tcp-title', t('ui.nav.billing')), span('tcp-chip', t('ui.sync.synced')));
+    const seg = span('tcp-seg');
+    const on = span('tcp-seg-on');
+    on.append(span('tcp-dot'), t('ui.common.purchase'));
+    const off = span('tcp-seg-off');
+    off.append(span('tcp-dot tcp-dot-sale'), t('ui.billing.sale'));
+    seg.append(on, off);
+    const card = span('tcp-card');
+    for (const [kg, rate, amount] of THEME_SAMPLE_LINES) {
+        const row = span('tcp-row');
+        const main = span('tcp-row-main');
+        main.append(span('tcp-item', t('ui.settings.theme_sample_item')), span('tcp-meta', `${kg} kg × ${moneyText(rate, { exact: true })}`));
+        row.append(main, span('tcp-amt', moneyText(amount)));
+        card.append(row);
+    }
+    const foot = span('tcp-foot');
+    foot.append(span('tcp-total', moneyText(THEME_SAMPLE_TOTAL)), span('tcp-save', t('ui.common.save')));
+    screen.append(bar, seg, card, foot);
+    preview.append(screen);
+    return preview;
+}
 
 /** Audit entry for a shared setting saved for everyone, with before → after (#85); nothing when unchanged. */
 function noteSettingsChange(section, before, after) {
@@ -113,21 +171,23 @@ export class SettingsManager {
         this.renderThemeGallery();
         this.syncAppearance();
         
-        const bluetoothCheckbox = document.getElementById('settingBluetoothEnabled');
-        if (bluetoothCheckbox) {
-            const printerSettings = PrinterService.settings();
-            bluetoothCheckbox.checked = printerSettings.enabled;
-            const section = document.getElementById('bluetoothPrinterSection');
-            if (section) {
-                section.style.display = printerSettings.enabled ? 'block' : 'none';
-            }
-            const preview = document.getElementById('settingPrintPreview');
-            if (preview) preview.checked = printerSettings.previewFirst;
-        }
+        this.syncPrinterPanel();
         this.renderReceiptOptions();
         
         this.updatePrinterStatus();
         UsageView.render();
+    }
+
+    /** The Bluetooth printer panel's switches from this phone's printer settings (also used by Billing's printer sheet). */
+    static syncPrinterPanel() {
+        const bluetoothCheckbox = document.getElementById('settingBluetoothEnabled');
+        if (!bluetoothCheckbox) return;
+        const printerSettings = PrinterService.settings();
+        bluetoothCheckbox.checked = printerSettings.enabled;
+        const section = document.getElementById('bluetoothPrinterSection');
+        if (section) { section.hidden = !printerSettings.enabled; section.style.display = printerSettings.enabled ? '' : 'none'; }
+        const preview = document.getElementById('settingPrintPreview');
+        if (preview) preview.checked = printerSettings.previewFirst;
     }
 
     /**
@@ -175,30 +235,22 @@ export class SettingsManager {
     static renderThemeGallery() {
         const box = document.getElementById('themeGallery');
         if (!box) return;
-        const systemDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const span = (cls, text) => {
-            const el = document.createElement('span');
-            el.className = cls;
-            if (text != null) el.textContent = text;
-            return el;
-        };
+        const span = themeSpan;
         box.replaceChildren(...THEMES.map((th) => {
             const card = document.createElement('button');
             card.type = 'button';
-            card.className = 'theme-card';
+            card.className = 'theme-tile';
             card.dataset.themeChoice = th.id;
             card.setAttribute('data-onclick', `settings.previewTheme('${th.id}')`);
-            const preview = span('theme-card-preview');
-            preview.setAttribute('aria-hidden', 'true');
-            preview.setAttribute('data-theme', th.id);
-            preview.setAttribute('data-mode', resolveMode(ThemeManager.current.appearance, th.kind, systemDark));
-            const panel = span('tcp-panel');
-            panel.append(span('tcp-line'), span('tcp-line tcp-line-short'), span('tcp-dots'));
-            preview.append(span('tcp-bar'), panel, span('tcp-btn'));
-            const text = span('theme-card-text');
-            text.append(span('theme-card-name', t(`ui.settings.theme_${th.id}`)), span('theme-card-desc', t(`ui.settings.theme_${th.id}_desc`)));
-            if (th.kind === 'dark') text.append(span('theme-card-badge', t('ui.settings.theme_always_dark')));
-            card.append(preview, text);
+            const preview = themePreview(th);
+            preview.classList.add('theme-tile-preview');
+            const check = span('theme-tile-check');
+            check.innerHTML = icon('check', 'i-sm');
+            const text = span('theme-tile-text');
+            const name = span('theme-tile-name', t(`ui.settings.theme_${th.id}`));
+            if (th.kind === 'dark') name.append(' ', span('tag theme-tile-badge', t('ui.settings.theme_always_dark')));
+            text.append(name, span('theme-tile-desc', t(`ui.settings.theme_${th.id}_desc`)));
+            card.append(preview, check, text);
             return card;
         }));
         this.syncTheme();
@@ -224,6 +276,42 @@ export class SettingsManager {
             const label = document.getElementById('themePreviewText');
             if (label) label.textContent = previewing ? t('ui.settings.theme_previewing', { name: t(`ui.settings.theme_${previewing}`) }) : '';
         }
+        this.renderThemePane(shown);
+    }
+
+    /** Desktop: the live preview pane beside the gallery, with its own Cancel / Apply. */
+    static renderThemePane(shown) {
+        const pane = document.getElementById('themePane');
+        if (!pane || !shown) return;
+        const title = document.getElementById('themePaneTitle');
+        if (title) title.textContent = t('ui.settings.theme_live_preview', { name: t(`ui.settings.theme_${shown.id}`) });
+        const kind = document.getElementById('themePaneKind');
+        if (kind) kind.textContent = t(shown.kind === 'dark' ? 'ui.settings.theme_always_dark' : 'ui.settings.theme_light_dark');
+        const box = document.getElementById('themePanePreview');
+        if (box) box.replaceChildren(themePreview(shown));
+        pane.querySelectorAll('[data-theme-pane-action]').forEach((btn) => { btn.disabled = !ThemeManager.previewing; });
+        this.watchThemePaneActions(pane);
+    }
+
+    /**
+     * Desktop: the floating preview bar shows only while the pane's Cancel / Apply are off screen,
+     * so a live preview can always be applied or cancelled.
+     */
+    static watchThemePaneActions(pane) {
+        const actions = pane.querySelector('.theme-pane-actions');
+        const bar = document.getElementById('themePreviewBar');
+        if (!actions || !bar || this._paneActions === actions) return;
+        this._paneActions = actions;
+        this._paneObserver?.disconnect();
+        if (typeof window.IntersectionObserver !== 'function') {
+            bar.classList.add('theme-preview-float');
+            return;
+        }
+        this._paneObserver = new IntersectionObserver((entries) => {
+            const seen = entries[entries.length - 1];
+            bar.classList.toggle('theme-preview-float', !seen.isIntersecting);
+        });
+        this._paneObserver.observe(actions);
     }
 
     /** Shows a theme across the app; the preview bar applies or cancels it. */
@@ -252,8 +340,9 @@ export class SettingsManager {
 
     /** The preview bar hides under the focused Apply / Cancel: keep keyboard focus in the gallery. */
     static focusThemeCard(id) {
-        const bar = document.getElementById('themePreviewBar');
-        if (bar && !bar.contains(document.activeElement) && document.activeElement !== document.body) return;
+        const active = document.activeElement;
+        const hosts = ['themePreviewBar', 'themePane'].map((hook) => document.getElementById(hook)).filter(Boolean);
+        if (hosts.length && !hosts.some((host) => host.contains(active)) && active !== document.body) return;
         document.querySelector(`[data-theme-choice="${id}"]`)?.focus({ preventScroll: true });
     }
 
@@ -358,6 +447,8 @@ export class SettingsManager {
         // Business name/details (Settings › Aadhat): shared; a name set only on this device is kept until one is saved
         if (typeof appSettings?.businessName === 'string') AppState.settings.shopName = appSettings.businessName;
         if (typeof appSettings?.businessDetails === 'string') AppState.settings.businessDetails = appSettings.businessDetails;
+        // Photo of weights (#374): the owner's switch for every phone, off unless set
+        PhotoWeights.setShared(appSettings?.photoWeights);
         storeLocalSettings();
         const hasShared = !!appSettings && (appSettings.laborRate !== undefined || appSettings.heavyWeightThreshold !== undefined
             || appSettings.labourPackageKg !== undefined);
@@ -395,68 +486,102 @@ export class SettingsManager {
         return settingsView({ userRole: AppState.userRole, rentRole: AppState.rentRole, roleAccess: AppState.settings?.roleAccess }).shop.editable;
     }
 
-    /** Section the user toggled to (null = the business open in the switcher). */
-    static sectionChoice = null;
+    /** The group open now (null = the main list). */
+    static group = null;
 
     /**
-     * Opens Settings: Common always; the Aadhat or Rentals section by the
-     * business switcher, or `section` from a settings-* route.
-     * @param {('common'|'shop'|'rentals'|'roles'|null)} [section]
+     * Opens Settings on the main list, or on the group of a settings-* route; a group
+     * the user may not see shows the list instead.
+     * @param {?string} [section] a group id, or the old 'common' / 'roles'
      */
     static open(section = null) {
-        if (section === 'shop' || section === 'rentals') this.sectionChoice = section;
         this.loadSettings();
         window.app?.roles?.render?.();
         const view = this.renderSections();
-        const target = section === 'roles' ? 'roleAccessCard'
-            : section === 'common' ? 'settingsCommon'
-            : (section === 'shop' || section === 'rentals') && view.active === section ? 'settingsBizBar' : null;
-        const el = target && document.getElementById(target);
-        if (el?.scrollIntoView) el.scrollIntoView({ block: 'start' });
+        const group = this.showGroup(shownGroup(section, view));
+        if (!group && groupOf(section)) NavigationManager.replaceRoute('settings');
         return view;
     }
 
-    /** View the other business's section (only offered when the user has a role there). */
-    static showOther() {
-        const view = this.currentView();
-        if (!view.other) return view;
-        this.sectionChoice = view.other;
-        return this.renderSections();
+    /**
+     * A row of the main list opens its group, with a history entry so the back gesture returns to the list.
+     * @param {string} group
+     * @returns {?string} the group shown
+     */
+    static openGroup(group) {
+        const shown = this.showGroup(shownGroup(group, this.currentView()));
+        if (shown) NavigationManager.noteRoute(`settings-${shown}`);
+        return shown;
+    }
+
+    /** The group's Back button: the main list, as the back gesture. */
+    static back() {
+        const tab = NavigationManager.currentTab;
+        if (tab && tab !== 'settings' && typeof history !== 'undefined' && history.state?.happaTab === tab && history.length > 1) {
+            history.back();
+            return;
+        }
+        this.showGroup(null);
+        NavigationManager.noteRoute('settings');
     }
 
     static currentView() {
-        return settingsView({
-            userRole: AppState.userRole, rentRole: AppState.rentRole,
-            business: BusinessSwitcher.current(), choice: this.sectionChoice, roleAccess: AppState.settings?.roleAccess
-        });
+        return settingsView({ userRole: AppState.userRole, rentRole: AppState.rentRole, roleAccess: AppState.settings?.roleAccess });
     }
 
-    /** Shows the active business section only; Rentals code and data load only when that section is shown. */
+    /** Shows the list rows the user may open and redraws the open group. */
     static renderSections() {
         const view = this.currentView();
-        const shop = document.getElementById('settingsShop');
-        const rentals = document.getElementById('settingsRentals');
-        if (shop) shop.hidden = view.active !== 'shop';
-        if (rentals) rentals.hidden = view.active !== 'rentals';
-        const bar = document.getElementById('settingsBizBar');
-        if (bar) bar.hidden = !view.active && !view.other;
-        const title = document.getElementById('settingsBizTitle');
-        if (title) {
-            title.hidden = !view.active;
-            title.textContent = view.active ? t(view.active === 'rentals' ? 'ui.settings.section_rentals' : 'ui.settings.section_shop') : '';
+        document.querySelectorAll('#settings [data-settings-open]').forEach(row => {
+            row.hidden = !view[/** @type {keyof typeof view} */ (row.getAttribute('data-settings-open'))]?.visible;
+        });
+        if (this.group && !view[/** @type {keyof typeof view} */ (this.group)]?.visible) this.showGroup(null);
+        else this.renderGroup(view);
+        return view;
+    }
+
+    /**
+     * Shows one group (null = the main list). Rentals code and data load only when its group shows.
+     * @param {?string} group
+     * @returns {?string} the group shown
+     */
+    static showGroup(group) {
+        const view = this.currentView();
+        const shown = group && view[/** @type {keyof typeof view} */ (group)]?.visible ? group : null;
+        const from = this.group;
+        const page = document.getElementById('settings');
+        const hadFocus = !!page && page.contains(document.activeElement);
+        this.group = shown;
+        const home = document.getElementById('settingsHome');
+        if (home) home.hidden = !!shown;
+        document.querySelectorAll('#settings [data-settings-group]').forEach(el => {
+            /** @type {HTMLElement} */ (el).hidden = el.getAttribute('data-settings-group') !== shown;
+        });
+        if (shown !== 'appearance' && ThemeManager.previewing) {
+            ThemeManager.cancelPreview();
+            this.syncTheme();
         }
-        const toggle = document.getElementById('settingsBizToggle');
-        if (toggle) {
-            toggle.hidden = !view.other;
-            toggle.textContent = view.other ? t(view.other === 'rentals' ? 'ui.settings.view_rentals' : 'ui.settings.view_shop') : '';
+        this.renderGroup(view);
+        if (shown !== from) {
+            if (shown) {
+                page?.scrollIntoView?.({ block: 'start' });
+                document.getElementById(`${GROUP_IDS[shown]}Title`)?.focus({ preventScroll: true });
+            } else if (from && hadFocus) {
+                /** @type {?HTMLElement} */ (document.querySelector(`#settings [data-settings-open="${from}"]`))?.focus();
+            }
         }
-        if (view.active === 'shop') this.renderShop(view.shop.editable);
-        if (view.active === 'rentals') this.renderRentals(view.rentals.editable).catch(e => console.warn('Rentals settings not shown:', e));
+        return shown;
+    }
+
+    /** Fills the open group from AppState (shared values were read at start-up). */
+    static renderGroup(view = this.currentView()) {
+        if (this.group === 'shop') this.renderShop(view.shop.editable);
+        if (this.group === 'billing') PhotoWeights.apply();
+        if (this.group === 'rentals') this.renderRentals(view.rentals.editable).catch(e => console.warn('Rentals settings not shown:', e));
         else {
             const body = document.getElementById('settingsRentalsBody');
             if (body) body.innerHTML = '';
         }
-        return view;
     }
 
     /** Settings › Aadhat: values from settings/app (already read at start-up) and this device. */
@@ -471,6 +596,36 @@ export class SettingsManager {
         const code = document.getElementById('settingBillDeviceCode');
         if (code) code.textContent = Helpers.getBillDeviceCode();
         this.renderCheckThresholds(editable);
+        PhotoWeights.apply();
+    }
+
+    /**
+     * Photo of weights (#374): on or off for everyone. Owner only; anyone else sees the
+     * switch as it is, greyed out.
+     * @param {boolean} on
+     * @returns {Promise<boolean>} true when saved
+     */
+    static async savePhotoWeights(on) {
+        const previous = PhotoWeights.shared();
+        if (AppState.userRole !== 'owner') {
+            PhotoWeights.apply();
+            return false;
+        }
+        const next = { enabled: on === true };
+        PhotoWeights.setShared(next);
+        try {
+            await FirebaseService.savePhotoWeightsSettings(next);
+            noteSettingsChange('photo_weights', previous, next);
+            UIManager.showToast(t('msg.admin.settings_saved_everyone'));
+            return true;
+        } catch (error) {
+            console.error('Saving photo of weights failed:', error);
+            const messageKey = writeErrorKey(error, 'msg.admin.not_saved_everyone_check_internet');
+            UIManager.showToast(t(messageKey));
+            PhotoWeights.setShared(previous);
+            await this.afterRefusedSave(error, () => PhotoWeights.setShared(previous));
+            return false;
+        }
     }
 
     /** Bill-check limits (#37): shop-wide, blank = default. */
@@ -479,11 +634,18 @@ export class SettingsManager {
         if (!box) return;
         const e = Helpers.escapeHtml;
         const vals = normalizeThresholds(AppState.settings?.checkThresholds);
-        box.innerHTML = CHECK_THRESHOLD_FIELDS.map(([key, label]) => `
-                <label for="settingCheck_${key}">${e(t(label))}</label>
-                <input type="number" inputmode="decimal" min="0" step="any" id="settingCheck_${key}"
+        box.innerHTML = CHECK_THRESHOLD_FIELDS.map(([key, label, unit]) => {
+            const input = `<input type="number" class="input" inputmode="decimal" min="0" step="any" id="settingCheck_${key}"
                        placeholder="${e(DEFAULT_THRESHOLDS[key])}" value="${e(vals[key])}"${editable ? '' : ' disabled'}
-                       data-onchange="settings.saveCheckThresholds()" />`).join('');
+                       data-onchange="settings.saveCheckThresholds()" />`;
+            const field = unit === '₹' ? `<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span>${input}</div>`
+                : unit ? `<div class="adorn">${input}<span class="adorn-post" aria-hidden="true">${e(unit)}</span></div>` : input;
+            return `
+                <div class="field">
+                <label for="settingCheck_${key}">${e(t(label))}</label>
+                ${field}
+                </div>`;
+        }).join('');
     }
 
     /**
@@ -589,7 +751,7 @@ export class SettingsManager {
         if (!body) return;
         try {
             const mod = await BusinessSwitcher.loadSettings();
-            if (this.currentView().active !== 'rentals') return;
+            if (this.group !== 'rentals') return;
             await mod.mount(body, { editable });
         } catch (error) {
             console.error('Rentals settings failed to open:', error);
@@ -636,7 +798,7 @@ export class SettingsManager {
     static async changePassword() {
         const email = AppState.currentUser?.email;
         if (!email) return false;
-        const ok = await UIManager.showModal(t('msg.common.send_password_reset_email', { email }), t('msg.common.reset_password'), true);
+        const ok = await UIManager.showModal(t('msg.common.send_password_reset_email', { email }), t('msg.common.reset_password'), true, { confirmLabel: t('ui.confirm.send_email') });
         if (!ok) return false;
         try {
             await firebase.auth().sendPasswordResetEmail(email, { url: APP_IDENTITY.siteUrl, handleCodeInApp: false });
@@ -661,9 +823,7 @@ export class SettingsManager {
         this._setPrinterSettings({ ...PrinterService.settings(), enabled });
         
         const section = document.getElementById('bluetoothPrinterSection');
-        if (section) {
-            section.style.display = enabled ? 'block' : 'none';
-        }
+        if (section) { section.hidden = !enabled; section.style.display = enabled ? '' : 'none'; }
         
         this.updatePrinterStatus();
     }
@@ -831,31 +991,34 @@ export class SettingsManager {
         const container = document.getElementById('savedPrintersList');
         if (!container) return;
         const { printers, deviceId } = PrinterService.settings();
+        const connected = PrinterService.isConnected();
+        this._listConnected = connected;
         container.innerHTML = '';
         if (!printers.length || !PrinterService.isAvailable()) return;
-        const title = document.createElement('div');
-        title.className = 'saved-printers-title';
-        title.innerHTML = `<strong>${Helpers.escapeHtml(t('ui.settings.saved_printers'))}</strong>`;
-        container.appendChild(title);
+        const title = document.createElement('h4');
+        title.className = 'set-subtitle saved-printers-title';
+        title.textContent = t('ui.settings.saved_printers');
+        const list = document.createElement('div');
+        list.className = 'panel set-devices';
+        container.append(title, list);
         printers.forEach((p) => {
             const inUse = p.deviceId === deviceId;
             const row = document.createElement('div');
-            row.className = 'saved-printer';
+            row.className = 'row saved-printer';
             row.dataset.deviceId = p.deviceId;
-            row.style.cssText = 'background: #f5f5f5; padding: 10px 12px; margin: 8px 0; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;';
             const name = p.deviceName || p.deviceId;
             const widths = PAPER_WIDTHS.map(mm => `<option value="${mm}"${p.widthMm === mm ? ' selected' : ''}>${Helpers.escapeHtml(t('ui.settings.paper_mm', { mm }))}</option>`).join('');
             row.innerHTML = `
-                <div><strong>${Helpers.escapeHtml(name)}</strong>${inUse ? ` <small class="saved-printer-in-use">· ${Helpers.escapeHtml(t('ui.settings.printer_in_use'))}</small>` : ''}</div>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <select class="saved-printer-width" aria-label="${Helpers.escapeHtml(t('ui.settings.paper_width'))}">${widths}</select>
-                    ${inUse ? '' : `<button type="button" class="filter-btn saved-printer-use">${Helpers.escapeHtml(t('ui.settings.use_printer'))}</button>`}
-                    <button type="button" class="filter-btn saved-printer-forget">${Helpers.escapeHtml(t('ui.settings.forget_printer'))}</button>
+                <div class="row-main"><span class="row-title">${Helpers.escapeHtml(name)}</span>${inUse ? ` <span class="tag pos saved-printer-in-use">${Helpers.escapeHtml(t('ui.settings.printer_in_use'))}</span>` : ''}</div>
+                <div class="set-device-tools">
+                    <select class="input saved-printer-width" aria-label="${Helpers.escapeHtml(t('ui.settings.paper_width'))}">${widths}</select>
+                    ${inUse && connected ? '' : `<button type="button" class="btn btn-sm btn-tonal saved-printer-use">${Helpers.escapeHtml(t(inUse ? 'ui.settings.connect' : 'ui.settings.use_printer'))}</button>`}
+                    <button type="button" class="btn btn-sm btn-ghost saved-printer-forget">${Helpers.escapeHtml(t('ui.settings.forget_printer'))}</button>
                 </div>`;
             row.querySelector('.saved-printer-width').addEventListener('change', (e) => this.setPaperWidth(p.deviceId, Number(e.target.value)));
             row.querySelector('.saved-printer-use')?.addEventListener('click', () => this.connectToPrinter(p.deviceId, p.deviceName));
             row.querySelector('.saved-printer-forget').addEventListener('click', () => this.forgetPrinter(p.deviceId));
-            container.appendChild(row);
+            list.appendChild(row);
         });
     }
 
@@ -885,15 +1048,18 @@ export class SettingsManager {
         if (!container) return;
         
         if (!devices || devices.length === 0) {
-            container.innerHTML = `<p style="color: #666; padding: 12px;">${Helpers.escapeHtml(t('ui.settings.no_devices_found'))}</p>`;
+            container.innerHTML = emptyState({ icon: 'phone', title: t('ui.settings.no_devices_found') });
             return;
         }
         
-        container.innerHTML = `<div style="margin-top: 12px;"><strong>${Helpers.escapeHtml(t('ui.settings.available_devices'))}</strong></div>`;
+        container.innerHTML = `<h4 class="set-subtitle">${Helpers.escapeHtml(t('ui.settings.available_devices'))}</h4>`;
+        const list = document.createElement('div');
+        list.className = 'panel set-devices';
+        container.appendChild(list);
         
         devices.forEach((device, index) => {
             const deviceCard = document.createElement('div');
-            deviceCard.style.cssText = 'background: #f5f5f5; padding: 12px; margin: 8px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;';
+            deviceCard.className = 'row';
             const address = device.address || device.deviceId || device.id;
             const name = device.name || 'Unknown Device';
             
@@ -902,11 +1068,11 @@ export class SettingsManager {
             deviceCard.setAttribute('data-device-name', name);
             
             deviceCard.innerHTML = `
-                <div>
-                    <strong>${Helpers.escapeHtml(name)}</strong><br>
-                    <small style="color: #666;">${Helpers.escapeHtml(address)}</small>
+                <div class="row-main">
+                    <div class="row-title">${Helpers.escapeHtml(name)}</div>
+                    <div class="row-meta">${Helpers.escapeHtml(address)}</div>
                 </div>
-                <button class="add-item-btn" data-device-index="${index}">${Helpers.escapeHtml(t('ui.settings.connect'))}</button>
+                <button type="button" class="btn btn-sm btn-tonal" data-device-index="${index}">${Helpers.escapeHtml(t('ui.settings.connect'))}</button>
             `;
             
             // Add click handler to the button
@@ -915,7 +1081,7 @@ export class SettingsManager {
                 this.connectToPrinter(address, name);
             });
             
-            container.appendChild(deviceCard);
+            list.appendChild(deviceCard);
         });
     }
 
@@ -977,3 +1143,8 @@ export class SettingsManager {
 
 // A preview can end outside Settings (leaving the page): keep the bar and the cards in step
 if (typeof window !== 'undefined') window.addEventListener('aadhat:themechange', () => SettingsManager.syncTheme());
+
+// A saved printer's Connect shows only while it is not connected; the link can drop or come up outside this page
+on(PRINTER_CHANGED, () => {
+    if (SettingsManager._listConnected !== undefined && PrinterService.isConnected() !== SettingsManager._listConnected) SettingsManager.renderSavedPrinters();
+});

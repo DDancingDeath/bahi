@@ -31,7 +31,7 @@ the data came from the phone's copy (`fromCache`) or the server.
 
 ## 2. Voice billing (#81)
 
-Switch it on first: **Settings › Voice billing** (per phone, off by default). Details:
+Switch it on first: **Settings › Billing tools › Voice billing** (per phone, off by default). Details:
 [voice-billing.md](voice-billing.md).
 
 1. **Mic prompt:** tap 🎤 on the purchase form. Android asks once for the microphone: allow it. The
@@ -75,7 +75,7 @@ Only after the cut-over to **bahi-happa**, once the `GOOGLE_SERVICES_JSON` secre
 `google-services.json` and an APK has been built with it ([error-reporting.md](error-reporting.md) ›
 "Set-up"). Until then the switch says crash reports are not set up.
 
-1. **Settings › Crash reports**: switch on.
+1. **Settings › Help & about › Crash reports**: switch on.
 2. **Settings › Diagnostics › Status › Test error reports › Send a test crash (closes the app)**,
    confirm. The app closes.
 3. Open the app again (the report is sent then).

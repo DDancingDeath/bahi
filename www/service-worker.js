@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v640';
+const CACHE_NAME = 'happa-v739';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -82,6 +82,7 @@ const STATIC_ASSETS = [
     '/js/modules/items.js',
     '/js/modules/miscellaneous.js',
     '/js/modules/notifications.js',
+    '/js/modules/phone-notify.js',
     '/js/modules/outstanding.js',
     '/js/modules/purchase.js',
     '/js/modules/rate-trends.js',
@@ -127,16 +128,23 @@ const STATIC_ASSETS = [
     '/js/ui/finance-breakdown-sheet.js',
     '/js/ui/navigation.js',
     '/js/ui/bottom-nav.js',
-    '/js/ui/heading-emoji.js',
     '/js/ui/scroll-cue.js',
+    '/js/ui/seg.js',
     '/js/ui/sticky-focus.js',
     '/js/ui/sync-status.js',
     '/js/ui/theme.js',
+    '/js/ui/icons.js',
+    '/js/ui/disclosure.js',
+    '/js/ui/components.js',
     '/js/ui/themes.js',
     '/js/ui/ui-manager.js',
     '/js/ui/voice-mic.js',
+    '/js/ui/photo-weights.js',
+    '/js/ui/printer-shortcut.js',
     '/js/modules/voice-billing.js',
     '/js/utils/voice-parse.js',
+    '/js/utils/voice-bill-parse.js',
+    '/js/utils/voice-undo.js',
     '/js/i18n/index.js',
     '/js/i18n/lang-catalogues.js',
     '/js/i18n/en.js',
@@ -155,6 +163,7 @@ const STATIC_ASSETS = [
     '/js/utils/cash-session.js',
     '/js/utils/clock-skew.js',
     '/js/utils/constants.js',
+    '/js/utils/contact-picker.js',
     '/js/utils/data-export.js',
     '/js/utils/backup-verify.js',
     '/js/utils/data-freshness.js',
@@ -177,6 +186,7 @@ const STATIC_ASSETS = [
     '/js/utils/print-status.js',
     '/js/utils/user-activity.js',
     '/js/utils/reminders.js',
+    '/js/utils/pay-reminder.js',
     '/js/utils/perf-probe.js',
     '/js/utils/status-report.js',
     '/js/utils/usage-stats.js',
@@ -188,6 +198,7 @@ const STATIC_ASSETS = [
     '/js/utils/qr-code.js',
     '/js/utils/labour.js',
     '/js/utils/launch-shortcut.js',
+    '/js/utils/start-page.js',
     '/js/utils/calc/billing.js',
     '/js/utils/calc/today.js',
     '/js/utils/calc/stock.js',
@@ -195,6 +206,7 @@ const STATIC_ASSETS = [
     '/js/utils/number-checks.js',
     '/js/utils/number-check-flags.js',
     '/js/utils/notification-format.js',
+    '/js/utils/phone-reminders.js',
     '/js/utils/record-permissions.js',
     '/js/utils/role-access.js',
     '/js/utils/personal-expenses.js',
@@ -216,6 +228,7 @@ const STATIC_ASSETS = [
     '/js/utils/audit-changes.js',
     '/js/utils/login-backoff.js',
     '/js/utils/team-directory.js',
+    '/js/utils/owner-roles.js',
     '/js/utils/stock-adjust.js',
     '/js/utils/dead-stock.js',
     '/js/utils/item-rate-series.js',
@@ -275,6 +288,7 @@ const STATIC_ASSETS = [
     '/templates/insights.html',
     '/templates/statements.html',
     '/templates/workers.html',
+    '/templates/recurring.html',
     '/vendor/firebase/10.7.1/firebase-app-compat.js',
     '/vendor/firebase/10.7.1/firebase-auth-compat.js',
     '/vendor/firebase/10.7.1/firebase-firestore-compat.js'
@@ -309,7 +323,15 @@ const LAZY_ASSETS = [
     '/js/modules/workers.js',
     '/js/utils/worker-pay.js',
     '/js/firebase/repos/workers.js',
-    '/css/workers.css'
+    '/css/workers.css',
+    '/js/modules/recurring-bills.js',
+    '/js/utils/recurring-bills.js',
+    '/js/firebase/repos/recurring-bills.js',
+    '/js/firebase/repos/entry-docs.js',
+    '/css/recurring-bills.css',
+    '/js/modules/photo-weights.js',
+    '/js/utils/photo-weights.js',
+    '/js/firebase/photo-weights-ai.js'
 ];
 
 /**
@@ -345,6 +367,23 @@ self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
+});
+
+/**
+ * A tap on a notification the app showed (modules/phone-notify.js): the open app goes to
+ * the page it is about; with none open, the app opens there.
+ */
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const route = (event.notification.data && event.notification.data.route) || '';
+    event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        const client = list.find((c) => c.url && new URL(c.url).origin === self.location.origin);
+        if (client) {
+            client.postMessage({ type: 'HAPPA_NOTIFICATION', route });
+            return 'focus' in client ? client.focus() : undefined;
+        }
+        return self.clients.openWindow(route ? `/?notify=${encodeURIComponent(route)}` : '/');
+    }));
 });
 
 /**

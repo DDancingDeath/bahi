@@ -1,31 +1,226 @@
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+/* ---------- Bill lines (#billTable, #saleTable, .bill-lines) ---------- */
+#billTable, :is(#saleTable, .bill-lines) {
+  width: 100%;
+  margin-top: var(--sp-4);
+  table-layout: fixed;
+  border-collapse: collapse;
 }
 
-.form-row label {
+#billTable thead, :is(#saleTable, .bill-lines) thead {
+  display: table-header-group;
+  background: var(--surface-2);
+  font-weight: var(--w-strong);
+  color: var(--ink);
+}
+
+#billTable thead tr, :is(#saleTable, .bill-lines) thead tr {
+  display: table-row;
+}
+
+#billTable thead th, :is(#saleTable, .bill-lines) thead th {
+  display: table-cell;
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--table-rule);
+  font-size: var(--fs-caption);
+  font-weight: var(--w-label);
+  color: var(--ink-2);
+}
+
+#billTable tbody tr, :is(#saleTable, .bill-lines) tbody tr {
+  display: table-row;
+  background: var(--panel-bg);
+  border-bottom: 1px var(--rule-style) var(--line);
+  transition: background var(--dur-2) var(--ease);
+}
+
+#billTable tbody tr:hover, :is(#saleTable, .bill-lines) tbody tr:hover {
+  background: var(--bg);
+}
+
+#billTable td, :is(#saleTable, .bill-lines) td {
+  display: table-cell;
+  padding: 14px 8px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 0;
+  color: var(--ink);
+}
+
+#billTable td:before, :is(#saleTable, .bill-lines) td:before {
+  display: none;
+}
+
+#billTable td:first-child, :is(#saleTable, .bill-lines) td:first-child {
+  text-align: left;
+  font-weight: var(--w-strong);
+}
+
+#billTable td:last-child, :is(#saleTable, .bill-lines) td:last-child {
+  text-align: center;
+}
+
+/* Rate, Qty and Total line up on the right */
+#billTable :is(th, td):nth-child(n+2):nth-child(-n+4),
+:is(#saleTable, .bill-lines) :is(th, td):nth-child(n+2):nth-child(-n+4) {
+  text-align: right;
+}
+
+/* Bill lines written by purchase.js / retail-sale.js (3.3): a line opens for editing */
+#billTable tbody tr.bill-line, #saleTable tbody tr.bill-line {
+  cursor: pointer;
+}
+
+#billTable td.empty, :is(#saleTable, .bill-lines) td.empty {
+  padding: var(--sp-6) var(--sp-2);
+  color: var(--ink-3);
+  font-weight: var(--w-regular);
+  text-align: center;
+}
+
+/* Phone and tablet: the bill lines are a row list in a panel (3.5). Item over "kg × rate",
+   the amount and × on the right. Same cells as the desktop table. */
+@media (max-width: 1023.98px) {
+  #billTable, :is(#saleTable, .bill-lines) {
+    display: block;
+    margin-top: 0;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    border-radius: var(--r-panel);
+    background: var(--panel-bg);
+    box-shadow: var(--panel-shadow);
+  }
+
+  #billTable thead, :is(#saleTable, .bill-lines) thead {
+    display: none;
+  }
+
+  #billTable tbody, :is(#saleTable, .bill-lines) tbody {
+    display: block;
+  }
+
+  #billTable tbody tr, :is(#saleTable, .bill-lines) tbody tr {
+    display: block;
+    border-bottom: none;
+    background: none;
+  }
+
+  #billTable tbody tr + tr, :is(#saleTable, .bill-lines) tbody tr + tr {
+    border-top: 1px var(--rule-style) var(--line);
+  }
+
+  #billTable tbody tr.bill-line, :is(#saleTable, .bill-lines) tbody tr.bill-line {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+    column-gap: var(--sp-1);
+    align-items: center;
+    min-height: var(--row-h);
+    padding: 10px var(--sp-2) 10px var(--sp-4);
+  }
+
+  #billTable tbody tr.bill-line > td, :is(#saleTable, .bill-lines) tbody tr.bill-line > td {
+    display: block;
+    max-width: none;
+    padding: 0;
+    text-align: left;
+  }
+
+  #billTable tbody tr.bill-line > td:nth-child(1), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(1) {
+    grid-column: 1 / 4;
+    grid-row: 1;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    color: var(--ink);
+    font-size: var(--fs-body);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  #billTable tbody tr.bill-line > :is(td:nth-child(2), td:nth-child(3)),
+  :is(#saleTable, .bill-lines) tbody tr.bill-line > :is(td:nth-child(2), td:nth-child(3)) {
+    grid-row: 2;
+    color: var(--ink-3);
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  #billTable tbody tr.bill-line > td:nth-child(3), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(3) {
+    grid-column: 1;
+  }
+
+  #billTable tbody tr.bill-line > td:nth-child(2), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(2) {
+    grid-column: 2;
+  }
+
+  #billTable tbody tr.bill-line > td:nth-child(2)::before, :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(2)::before {
+    display: inline;
+    content: "× ";
+  }
+
+  #billTable tbody tr.bill-line > td:nth-child(4), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(4) {
+    grid-column: 4;
+    grid-row: 1 / 3;
+    padding-left: var(--sp-3);
+    color: var(--ink);
+    font-family: var(--font-num);
+    font-size: var(--fs-body);
+    font-weight: var(--w-strong);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  #billTable tbody tr.bill-line > td:nth-child(5), :is(#saleTable, .bill-lines) tbody tr.bill-line > td:nth-child(5) {
+    grid-column: 5;
+    grid-row: 1 / 3;
+  }
+
+  #billTable tbody tr.bill-line:hover, :is(#saleTable, .bill-lines) tbody tr.bill-line:hover {
+    background: var(--state-hover);
+  }
+
+  /* An empty bill and a check message under a line span the whole row */
+  #billTable :is(td.empty, tr.bill-check-line > td), :is(#saleTable, .bill-lines) :is(td.empty, tr.bill-check-line > td) {
+    display: block;
+    max-width: none;
+  }
+}
+
+.bill-form-field {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.bill-form-field label {
   width: 140px;
   flex-shrink: 0;
   font-weight: var(--w-label);
-  font-size: 14px;
-  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  color: var(--ink);
   margin: 0;
 }
 
-.form-row input.bill-date-input,
-.form-row select,
-.form-row input[type="number"],
-.form-row input[type="text"] {
+.bill-form-field input.bill-date-input,
+.bill-form-field select,
+.bill-form-field input[type="number"],
+.bill-form-field input[type="text"] {
   flex: 1;
   padding: 13px 15px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
   font-size: var(--fs-body);
-  background: var(--card-bg);
-  color: var(--text-primary);
-  transition: all var(--transition);
+  background: var(--panel-bg);
+  color: var(--ink);
+  transition: all var(--dur-2) var(--ease);
   margin: 0;
 }
 
@@ -40,36 +235,21 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-.form-row select:focus,
-.form-row input:focus {
-  border-color: var(--primary-color);
+.bill-form-field select:focus,
+.bill-form-field input:focus {
+  border-color: var(--accent-text);
   outline: none;
-  box-shadow: var(--focus-ring);
+  box-shadow: var(--focus);
 }
-
-.quick-add-btn-inline {
-  white-space: nowrap;
-}
-
-.tab.purchase-theme .quick-add-btn-inline {
-  background: var(--btn-primary);
-}
-
-.tab.sale-theme .quick-add-btn-inline {
-  background: var(--btn-success);
-  color: var(--btn-sale-ink);
-}
-
 
 label {
   display: block;
-  margin-top: 12px;
-  margin-bottom: 8px;
+  margin-top: var(--sp-3);
+  margin-bottom: var(--sp-2);
   font-weight: var(--w-label);
-  font-size: 14px;
-  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  color: var(--ink);
 }
-
 
 /* Remove spinner arrows from all number inputs */
 input[type="number"]::-webkit-outer-spin-button,
@@ -81,19 +261,6 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
-
-
-.weight-input-row {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  margin-top: 12px;
-}
-
-.weight-input-row > div {
-  flex: 1;
-}
-
 
 .weights-compact {
   margin: var(--sp-1) 0 var(--sp-2);
@@ -122,99 +289,31 @@ input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
 
-.weight-chip-remove {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: var(--r-sm);
-  background: transparent;
+.weight-chip > .btn-icon {
   color: var(--ink-3);
-  font-size: var(--fs-lead);
-  cursor: pointer;
 }
 
-.weight-chip-remove:hover {
+.weight-chip > .btn-icon:hover {
   color: var(--negative);
 }
 
-.bill-summary {
-  background: var(--card-bg);
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  margin: 12px 0;
-  box-shadow: var(--shadow);
+.bill-line-sum {
+  background: var(--panel-bg);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-panel);
+  margin: var(--sp-3) 0;
+  box-shadow: var(--e1);
   display: flex;
   flex-wrap: nowrap;
   justify-content: space-around;
-  gap: 16px;
-  border: 1px solid var(--border-color);
+  gap: var(--sp-4);
+  border: 1px solid var(--line);
 }
-
-.summary-item {
-  text-align: center;
-  flex: 1;
-  white-space: nowrap;
-}
-
-.summary-item span {
-  font-size: 14px;
-  color: var(--text-secondary);
-  font-weight: var(--w-strong);
-}
-
-.summary-item strong {
-  font-size: 16px;
-  font-weight: var(--w-strong);
-  color: var(--text-primary);
-  margin-left: 4px;
-}
-
-.add-to-bill-btn {
-  width: 100%;
-  margin: 16px 0;
-}
-
-#saleSection .quick-add-btn-inline,
-#saleSection .add-to-bill-btn,
-#wholesale-sales .add-to-bill-btn,
-.items-add-btn {
-  background: var(--btn-success);
-  color: var(--btn-sale-ink);
-}
-
 
 /* -------------------- BILLING THEME -------------------- */
-.tab.purchase-theme {
-  background: var(--light-bg);
-}
-
-.tab.sale-theme {
-  background: linear-gradient(to bottom, var(--success-soft) 0%, var(--light-bg) 240px);
-}
-
-.tab.purchase-theme .add-to-bill-btn {
-  background: var(--btn-primary);
-}
-
-.tab.sale-theme .add-to-bill-btn {
-  background: var(--btn-success);
-  color: var(--btn-sale-ink);
-}
-
-.tab.purchase-theme .bill-totals {
-  border-left: 4px solid var(--purchase-color);
-}
-
-.tab.sale-theme .bill-totals {
-  border-left: 4px solid var(--sale-color);
-}
-
 .rates-container {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-2);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -222,219 +321,140 @@ input[type="number"] {
 .rate-input {
   width: 70px;
   padding: 10px;
-  font-size: 16px;
+  font-size: var(--fs-input);
   font-weight: var(--w-strong);
   border: 2px solid;
-  border-radius: var(--radius);
+  border-radius: var(--r-control);
   text-align: center;
-  transition: all var(--transition);
+  transition: all var(--dur-2) var(--ease);
 }
 
 .rate-input.purchase {
-  border-color: var(--purchase-color);
-  background: var(--purchase-light);
+  border-color: var(--accent-text);
+  background: var(--mode-purchase-soft);
 }
 
 .rate-input.sale {
-  border-color: var(--sale-color);
-  background: var(--sale-light);
+  border-color: var(--positive);
+  background: var(--mode-sale-soft);
 }
 
 .rate-input:focus {
   outline: none;
-  box-shadow: var(--focus-ring);
+  box-shadow: var(--focus);
 }
 
-.delete-rate {
-  background: var(--btn-danger);
-  color: white;
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  font-size: 18px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  font-weight: var(--w-strong);
-  margin-right: 4px;
-  transition: all var(--transition);
-}
-
-.delete-rate:hover {
-  transform: scale(1.05);
-}
-
-.add-rate-plus {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: var(--radius);
-  font-size: var(--fs-title);
-  font-weight: var(--w-strong);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  color: white;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-sm);
-}
-
-.add-rate-plus.purchase {
-  background: var(--btn-primary);
-  color: var(--btn-primary-ink);
-}
-
-.add-rate-plus.wholesale {
-  background: var(--wholesale-color);
-  color: var(--on-mode-wholesale);
-}
-
-.add-rate-plus.sale {
-  background: var(--btn-success);
-  color: var(--btn-sale-ink);
-}
-
-.add-rate-plus:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow);
-}
-
-.add-rate-plus:active {
-  transform: scale(0.95);
-}
-
-/* Unsaved-bill banner and bill number hint (#117) */
-.autosave-banner {
-  display: flex;
+/* Unsaved-bill notice and bill number hint (#117) */
+.autosave-notice,
+.bill-edit-notice {
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  border: 1px solid var(--warning-border);
-  border-left-width: 4px;
-  border-radius: var(--radius);
-  background: var(--warning-soft);
-  color: var(--on-warning-soft);
-  font-size: 14px;
-}
-
-.autosave-banner[hidden] {
-  display: none;
-}
-
-.autosave-banner-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.autosave-banner-actions button {
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: var(--w-strong);
-  cursor: pointer;
-}
-
-.autosave-restore {
-  background: var(--btn-primary);
-  border: 1px solid var(--btn-primary);
-  color: var(--btn-primary-ink);
-}
-
-.autosave-discard {
-  background: var(--card-bg);
-  border: 1px solid var(--danger-border);
-  color: var(--on-danger-soft);
+  margin-bottom: var(--sp-4);
 }
 
 .bill-no-hint {
-  margin-top: 12px;
+  margin-top: var(--sp-3);
   font-size: var(--fs-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
+}
+
+/* Phone and tablet: the likely next number is left out (a saved or retried bill's number stays) */
+@media (max-width: 1023.98px) {
+  .bill-no-hint[data-kind="next"] {
+    display: none;
+  }
 }
 /* Voice billing (#81): shown only when switched on in Settings */
-.voice-mic-btn {
-  display: block;
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 10px;
-  border: 1px dashed var(--primary-border);
-  border-radius: 8px;
-  background: var(--primary-soft);
-  color: var(--on-primary-soft);
-  font-size: var(--fs-body);
-}
-
-.voice-mic-btn[hidden] {
-  display: none;
-}
-
-.voice-mic-btn.voice-listening {
-  border-style: solid;
-  border-color: var(--danger-border);
-  background: var(--danger-soft);
-  color: var(--on-danger-soft);
+.btn[data-voice-mic].voice-listening {
+  background-color: var(--negative-soft);
+  color: var(--negative);
 }
 
 .voice-check th {
   text-align: left;
-  padding-right: 12px;
+  padding-right: var(--sp-3);
   font-weight: var(--w-regular);
 }
 
 .voice-warn {
-  color: var(--on-warning-soft);
+  color: var(--warning);
 }
 
 /* Save with a line not added to the bill (BF-PENDING), extreme rate (BF-RATECHECK): choices wrap on a phone */
-.pending-line-dialog .modal-footer,
-.rate-check-dialog .modal-footer {
-  flex-wrap: wrap;
-}
-
-.pending-line-dialog .modal-footer .modal-btn,
-.rate-check-dialog .modal-footer .modal-btn {
+.pending-line-sheet .dialog-actions > .btn,
+.rate-check-sheet .dialog-actions > .btn {
   flex: 1 1 auto;
 }
 
-.pending-line-discard,
-.rate-check-confirm {
-  background: var(--card-bg);
-  color: var(--danger-color);
-  border: 1px solid var(--danger-color);
-}
-
-/* ---------- Billing entry (redesign 3.1a): labels above, ₹ / kg in the field, one line panel ---------- */
-#billing > .filter-buttons {
-  margin-bottom: var(--sp-3);
-}
-
-.bill-toolbar {
+/* ---------- Billing entry (redesign 3.1a): ₹ / kg in the field, one line panel ---------- */
+/* Purchase / Retail sale and the ⋯ menu on one row */
+.bill-mode-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
 }
 
-#billing .bill-toolbar .draft-btn {
-  flex: none;
+.bill-mode-row > .bill-mode {
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 0 var(--sp-3);
-  border-color: transparent;
-  background-color: transparent;
-  box-shadow: none;
+}
+
+/* Drafts (only when there are some), Save draft and Clear sit in the ⋯ menu; a badge on ⋯ counts the drafts */
+.bill-menu {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+}
+
+.bill-menu > summary {
+  position: relative;
+  list-style: none;
   color: var(--ink-2);
 }
 
-#billing .bill-toolbar .draft-clear-btn {
-  margin-left: auto;
+.bill-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bill-menu-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--sp-1);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--fs-label);
+  font-weight: var(--w-strong);
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-menu-badge[hidden] {
+  display: none;
+}
+
+.bill-menu-list {
+  position: absolute;
+  right: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+}
+
+.bill-menu-list > .btn {
+  justify-content: flex-start;
+  font-weight: var(--w-label);
+}
+
+.bill-menu-list > .bill-clear {
   color: var(--negative);
 }
 
@@ -452,14 +472,14 @@ input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
 
-#billing .form-row.field {
+:is(#billing, .bill-page) .bill-form-field.field {
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
   margin-bottom: var(--sp-3);
 }
 
-#billing .form-row.field > label {
+:is(#billing, .bill-page) .bill-form-field.field > label {
   width: auto;
   margin: 0;
   color: var(--ink-2);
@@ -467,7 +487,7 @@ input[type="number"] {
   font-weight: var(--w-label);
 }
 
-#billing .form-row.field .input {
+:is(#billing, .bill-page) .bill-form-field.field .input {
   flex: 1;
   min-width: 0;
   border-color: var(--input-border);
@@ -475,39 +495,36 @@ input[type="number"] {
   color: var(--ink);
 }
 
-.bill-customer-box {
+.bill-party {
   position: relative;
 }
 
-#billing .adorn > .adorn-pre + .input {
+:is(#billing, .bill-page) .adorn > .adorn-pre + .input {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
 
-#billing .adorn > .input:has(+ .adorn-post) {
+:is(#billing, .bill-page) .adorn > .input:has(+ .adorn-post) {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-#billing .bill-customer-box > .input {
+:is(#billing, .bill-page) .bill-party > .input {
   width: 100%;
-  padding-right: 52px;
+  padding-right: var(--bill-party-pad, 52px);
 }
 
-#billing .bill-customer-box > .contact-pick-btn {
+.bill-party > .btn-icon {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  min-width: 48px;
-  border: none;
-  background: transparent;
+  width: 48px;
   color: var(--ink-3);
-  text-shadow: none;
 }
 
-#billing .bill-customer-box > .contact-pick-btn:hover {
-  color: var(--accent-text);
+.bill-party > .btn-icon:hover {
+  color: var(--bill-tone-text, var(--accent-text));
 }
 
 /* Name suggestions while typing a customer / supplier (#139 phase 1) */
@@ -516,7 +533,7 @@ input[type="number"] {
   top: calc(100% + var(--sp-1));
   left: 0;
   right: 0;
-  z-index: 30;
+  z-index: var(--z-popover);
   max-height: 50vh;
   margin: 0;
   padding: var(--sp-1) 0;
@@ -525,7 +542,7 @@ input[type="number"] {
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
   background: var(--surface);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--e2);
 }
 
 .party-suggest[hidden] {
@@ -549,7 +566,7 @@ input[type="number"] {
 }
 
 .party-suggest-option[aria-selected="true"] {
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: var(--stripe-sm) var(--accent);
 }
 
 .party-suggest-name {
@@ -565,7 +582,7 @@ input[type="number"] {
 }
 
 .party-suggest-due.has-due {
-  color: var(--on-warning-soft);
+  color: var(--warning);
 }
 
 /* "Did you mean …?" under the name: a warning, never a stop */
@@ -576,10 +593,10 @@ input[type="number"] {
   gap: var(--sp-2);
   margin: 0 0 var(--sp-3);
   padding: var(--sp-2) var(--sp-3);
-  border: 1px solid var(--warning-border);
+  border: 1px solid var(--warning-line);
   border-radius: var(--r-control);
   background: var(--warning-soft);
-  color: var(--on-warning-soft);
+  color: var(--warning);
   font-size: var(--fs-sm);
 }
 
@@ -591,7 +608,7 @@ input[type="number"] {
   flex: 1 1 12em;
 }
 
-#billing .bill-section-title {
+:is(#billing, .bill-page) .bill-section-title {
   margin: var(--sp-5) 0 var(--sp-2);
   font-family: var(--font-display);
   font-style: var(--title-style);
@@ -600,34 +617,127 @@ input[type="number"] {
   font-weight: var(--w-label);
 }
 
-.bill-entry {
+.bill-line-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--sp-3);
   margin-bottom: var(--sp-4);
 }
 
+/* One column, except the line preview (packets, kg) with Add to bill beside it */
+.bill-line-form > * {
+  grid-column: 1 / -1;
+}
+
+#billing .bill-line-form > .bill-line-sum {
+  grid-column: 1;
+}
+
+#billing .bill-line-form > [data-add-line] {
+  grid-column: 2;
+  width: auto;
+  min-height: 48px;
+  margin-top: var(--sp-3);
+}
+
 /* Rate | Weight | Add on one line */
-.bill-entry-grid {
+.bill-line-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   column-gap: var(--sp-2);
   align-items: end;
 }
 
+/* A rate with a datalist keeps room for the list arrow, so the placeholder is not drawn under it */
+.bill-line-grid .input[list] {
+  padding-right: var(--sp-10);
+  text-overflow: ellipsis;
+}
+
 /* A live check message under Rate or Weight (bill-highlight.js) takes its own row below the three */
-#billing .bill-entry-grid > .bill-check-msg {
+:is(#billing, .bill-page) .bill-line-grid > .bill-check-msg {
   grid-column: 1 / -1;
   order: 1;
 }
 
-#billing .bill-entry-grid > .quick-add-btn-inline {
+.bill-line-grid > [data-add-weight] {
   min-height: 48px;
   margin-bottom: var(--sp-3);
-  border-color: var(--line-strong);
-  background-color: var(--surface);
-  box-shadow: none;
-  color: var(--ink);
+  white-space: nowrap;
 }
 
-#billing .bill-summary {
+/* Purchase / Retail sale: the name and the line's fields carry floating labels (.field-float) */
+.field-float.bill-customer {
+  margin-bottom: var(--sp-4);
+}
+
+/* Item | Rate | 🎙 and Weight | 📷 | Add; a hidden tool button leaves its room to the fields */
+.bill-entry-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.bill-entry-row:first-child {
+  margin-top: 0;
+}
+
+.bill-entry-row > .field-float {
+  flex: 1 1 0;
+}
+
+.bill-entry-row > .bill-entry-item {
+  flex-grow: 1.6;
+}
+
+.bill-entry-row .input {
+  min-height: 48px;
+}
+
+.bill-entry-item > .input {
+  padding-left: var(--sp-3);
+}
+
+.bill-entry-rate .adorn-pre {
+  padding: 0 var(--sp-2);
+}
+
+.bill-entry-rate .input {
+  padding: 0 var(--sp-2);
+  text-overflow: ellipsis;
+}
+
+.bill-entry-row > .bill-entry-tool {
+  flex: none;
+  width: 48px;
+  min-height: 48px;
+}
+
+.bill-entry-row > [data-add-weight] {
+  flex: none;
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+/* A live check message under a field (bill-highlight.js) takes its own line below the row */
+.bill-entry-row > .bill-check-msg {
+  flex: 1 0 100%;
+  order: 1;
+}
+
+/* What voice heard and Undo voice, right under Item | Rate | 🎙; no gap while both are hidden */
+.bill-entry-row + .voice-strip {
+  margin: 0;
+}
+
+.bill-entry-row + .voice-strip > * {
+  margin-top: var(--sp-2);
+}
+
+#billing .bill-line-sum {
   justify-content: flex-start;
   gap: var(--sp-4);
   margin: var(--sp-1) 0 0;
@@ -639,24 +749,32 @@ input[type="number"] {
   font-size: var(--fs-sm);
 }
 
-#billing .bill-summary strong {
+#billing .bill-line-sum strong {
   color: var(--ink);
   font-weight: var(--w-strong);
   font-variant-numeric: tabular-nums;
 }
 
-/* Add to bill is tonal: Save is the screen's one primary button */
-#billing .add-to-bill-btn {
-  margin: var(--sp-3) 0 0;
-  border-color: transparent;
-  background-color: var(--accent-soft);
-  box-shadow: none;
-  color: var(--accent-text);
+/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale and wholesale
+   screens give both their mode's colour */
+.bill-sale .btn-primary {
+  background-color: var(--btn-sale-bg);
+  color: var(--btn-sale-ink);
 }
 
-#billing #saleSection .add-to-bill-btn {
+.bill-sale .btn-tonal {
   background-color: var(--positive-soft);
   color: var(--positive);
+}
+
+.ws-entry .btn-primary {
+  background-color: var(--bill-tone-fill);
+  color: var(--bill-tone-ink);
+}
+
+.ws-entry .btn-tonal {
+  background-color: var(--bill-tone-soft);
+  color: var(--bill-tone-text);
 }
 
 .bill-breakdown:not(:empty) {
@@ -680,19 +798,30 @@ input[type="number"] {
 .bill-weights {
   margin-bottom: var(--sp-2);
   padding: var(--sp-3);
-  border-left: 4px solid var(--mode-purchase);
   border-radius: var(--r-control);
   background: var(--surface-2);
-}
-
-.bill-weights-sale {
-  border-left-color: var(--mode-sale);
 }
 
 .bill-weights-title {
   margin-bottom: 6px;
   color: var(--ink);
   font-weight: var(--w-strong);
+}
+
+/* The bill's mode as a dot, not a stripe */
+.bill-weights-title::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--sp-2);
+  border-radius: var(--r-full);
+  background: var(--mode-purchase);
+  vertical-align: 0.1em;
+}
+
+.bill-weights-sale .bill-weights-title::before {
+  background: var(--mode-sale);
 }
 
 .bill-weights-list {
@@ -703,31 +832,12 @@ input[type="number"] {
   line-height: 1.4;
 }
 
-#draftsContent .drafts-empty {
-  margin: 0;
-  padding: var(--sp-6) var(--sp-4);
-  color: var(--ink-3);
-  text-align: center;
-}
-
-#draftsContent .drafts-empty.tone-neg {
-  color: var(--negative);
-}
-
-.draft-card {
+.draft {
   margin-bottom: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--mode-purchase);
-  border-radius: var(--r-control);
-  background: var(--surface);
 }
 
-.draft-card-sale {
-  border-left-color: var(--mode-sale);
-}
-
-.draft-card-head {
+.draft-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -735,33 +845,233 @@ input[type="number"] {
   gap: 2px var(--sp-2);
 }
 
-.draft-card-title {
+.draft-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
   color: var(--ink);
   font-weight: var(--w-strong);
 }
 
-.draft-card-meta,
-.draft-card-date {
+.draft-meta,
+.draft-date {
   color: var(--ink-3);
   font-size: var(--fs-sm);
 }
 
-.draft-card-date {
+.draft-date {
   margin-top: 2px;
 }
 
-.draft-card-customer {
-  margin-top: 4px;
+.draft-customer {
+  margin-top: var(--sp-1);
   color: var(--ink-2);
   font-size: var(--fs-sm);
 }
 
-.draft-card-actions {
+.draft-actions {
   display: flex;
   gap: var(--sp-2);
   margin-top: var(--sp-3);
 }
 
-.draft-card-actions > .btn {
+.draft-actions > .btn {
   flex: 1;
+}
+
+/* ---------- Wholesale (5.5): Billing's components in the wholesale (violet) mode ---------- */
+/* Billing's tones are --bill-tone-* with its accent as the fallback; the wholesale page sets them */
+.bill-page {
+  --bill-tone-text: var(--ink);
+  --bill-tone-soft: var(--mode-wholesale-soft);
+  --bill-tone-fill: var(--mode-wholesale);
+  --bill-tone-ink: var(--on-mode-wholesale);
+}
+
+.ws-tabs {
+  margin-bottom: var(--sp-3);
+}
+
+.ws-stock {
+  margin-bottom: var(--sp-3);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface-2);
+}
+
+.ws-stock .metric-value {
+  font-size: var(--fs-lead);
+}
+
+.ws-per {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-regular);
+}
+
+.ws-stock-note {
+  margin: 0 var(--sp-3) var(--sp-3);
+}
+
+.ws-stock-note[hidden] {
+  display: none;
+}
+
+.ws-entry-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ws-add {
+  min-height: 48px;
+}
+
+/* Expenses and the live profit (WS-PROFIT) */
+.ws-profit {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-1) var(--sp-4);
+}
+
+.ws-profit .pay-line > span {
+  color: var(--ink-2);
+  font-weight: var(--w-regular);
+}
+
+.ws-profit .pay-line > strong {
+  color: var(--ink);
+  font-size: var(--fs-lead);
+  font-weight: var(--w-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-more {
+  margin: var(--sp-2) 0 var(--sp-4);
+  text-align: center;
+}
+
+.ws-search,
+.history-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.ws-search > .i,
+.history-search > .i {
+  position: absolute;
+  top: 50%;
+  left: var(--sp-3);
+  color: var(--ink-3);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ws-search > .input,
+.history-search > .input {
+  flex: 1;
+  min-width: 0;
+  padding-left: var(--sp-10);
+}
+
+.ws-search > .btn,
+.history-search > .btn {
+  flex: none;
+}
+
+/* Wholesale › Outstanding: Mark as cleared is a tick box beside the bill's buttons */
+.ws-clear {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 44px;
+  padding-right: var(--sp-2);
+}
+
+.ws-clear > label {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+  cursor: pointer;
+}
+
+.ws-clear > input {
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* A wholesale bill opened from a list (bill details sheet) */
+.bill-view {
+  padding: var(--sp-4);
+}
+
+.bill-view-title {
+  margin: var(--sp-4) 0 var(--sp-2);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: var(--w-strong);
+}
+
+.bill-view-panel {
+  margin-top: var(--sp-3);
+}
+
+.bill-view-panel > .bill-view-title {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4) 0;
+}
+
+.bill-view-note {
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.bill-view-note-text {
+  color: var(--ink);
+}
+
+.bill-view-items {
+  width: 100%;
+  margin-bottom: var(--sp-2);
+}
+
+.bill-view-row {
+  font-size: var(--fs-sm);
+}
+
+.bill-view-info .row-main {
+  color: var(--ink-3);
+}
+
+.bill-view-total {
+  font-size: var(--fs-body);
+  font-weight: var(--w-strong);
+}
+
+.bill-view-total > .row-amt {
+  font-size: var(--fs-lead);
+}
+
+.bill-times-note {
+  margin: var(--sp-1) 0 var(--sp-2);
+  padding: 8px 10px;
+  border-radius: var(--r-control);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--fs-sm);
+}
+
+/* A bill line's remove is a quiet ghost × (3.5) */
+.bill-line-remove {
+  color: var(--ink-2);
+}
+
+.bill-line-remove:hover {
+  color: var(--negative);
 }

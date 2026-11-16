@@ -15,7 +15,7 @@ const TITLE_KEYS = Object.freeze({
     day: 'ui.nav.today', 'cash-management': 'ui.nav.today', items: 'ui.nav.rates', stock: 'ui.nav.stocks',
     'wholesale-sales': 'ui.nav.sales', due: 'ui.nav.outstanding', rentals: 'ui.biz.rentals'
 });
-const SAME_NAME = new Set(['billing', 'history', 'expenses', 'money', 'insights', 'statements', 'anomalies', 'health', 'admin', 'diagnostics', 'settings', 'ask', 'workers']);
+const SAME_NAME = new Set(['billing', 'history', 'expenses', 'money', 'insights', 'statements', 'anomalies', 'health', 'admin', 'diagnostics', 'settings', 'ask', 'workers', 'recurring']);
 
 /** The app bar title (redesign 4.1): the open page's menu name, else the app name. */
 export function pageTitleKey(tab) {
@@ -68,7 +68,7 @@ export function trackTyping(doc = document) {
     doc.addEventListener('focusout', () => setTimeout(sync, 0));
 }
 
-const somethingOpen = () => !!document.querySelector('.side-nav.active, .modal-overlay.active, .bill-details-overlay.active, #notifPanel:not([hidden])');
+const somethingOpen = () => !!document.querySelector('.side-nav.active, .app-scrim.active, #notifPanel:not([hidden])');
 
 export const BottomNav = {
     swipeOn: false,
@@ -153,7 +153,7 @@ export const BottomNav = {
                 start.pulled = dy;
                 el.hidden = false;
                 el.classList.toggle('ready', dy >= PULL_REFRESH_PX);
-                el.style.transform = `translate(-50%, ${Math.min(dy, 120) / 2}px)`;
+                el.style.setProperty('--pull-y', `${Math.min(dy, 120) / 2}px`);
             } else if (start.pulled) {
                 start.pulled = 0;
                 el.hidden = true;
@@ -164,7 +164,7 @@ export const BottomNav = {
             const s = start;
             start = null;
             const el = pill();
-            if (el) { el.hidden = true; el.classList.remove('ready'); el.style.transform = ''; }
+            if (el) { el.hidden = true; el.classList.remove('ready'); el.style.removeProperty('--pull-y'); }
             if (!s || !touch) return;
             const dx = touch.clientX - s.x;
             const dy = touch.clientY - s.y;

@@ -8,6 +8,8 @@
  *   node scripts/happa-config.js check            # release gate: in sync, no placeholders, owner confirmed
  *   node scripts/happa-config.js check --sync-only
  *   node scripts/happa-config.js get <key>        # print one derived value (siteUrl, projectId, apkFile, ...)
+ *   node scripts/happa-config.js target <name>    # CI build only: put config/targets/<name>.json over
+ *                                                 # happa.config.json, then apply (never commit the result)
  *   node scripts/happa-config.js guard [--require-ready] [--sa-env NAME] [--require-sa]
  *                                                 # CI: resolve the Firebase project, refuse the old one
  */
@@ -28,6 +30,43 @@ const QR_FILE = 'www/img/download-qr.svg';
 
 function loadConfig(root = DEFAULT_ROOT) {
     return JSON.parse(fs.readFileSync(path.join(root, CONFIG_FILE), 'utf8'));
+}
+
+const TARGETS_DIR = 'config/targets';
+const TARGET_KEYS = ['firebase', 'googleSignIn', 'appCheck', 'download'];
+// A side-by-side test app (e.g. "Bahi Dev", com.happa.dev) sets all four; see withTarget.
+const SIDE_BY_SIDE_KEYS = ['appName', 'appNameHi', 'androidPackage', 'apkName'];
+
+/** A build target (config/targets/<name>.json): another project's public web config for the same app. */
+function loadTarget(name, root = DEFAULT_ROOT) {
+    if (!/^[a-z0-9-]+$/.test(String(name || ''))) throw new Error(`Bad target name "${name}"`);
+    const target = JSON.parse(fs.readFileSync(path.join(root, TARGETS_DIR, `${name}.json`), 'utf8'));
+    const allowed = [...TARGET_KEYS, ...SIDE_BY_SIDE_KEYS];
+    const extra = Object.keys(target).filter((k) => !allowed.includes(k));
+    if (extra.length) throw new Error(`Target ${name} may only set ${allowed.join(', ')} (not ${extra.join(', ')})`);
+    if (!target.firebase || !target.firebase.projectId) throw new Error(`Target ${name} has no firebase.projectId`);
+    return target;
+}
+
+/**
+ * happa.config.json with a target's blocks swapped in whole (no field of the base project survives).
+ * A target keeps the app's identity, or gives it a whole new one that installs next to it: a package
+ * under the app's own (com.happa.dev), another name and another APK file. The code keeps its namespace.
+ */
+function withTarget(raw, target) {
+    const own = SIDE_BY_SIDE_KEYS.filter((k) => k in target);
+    if (own.length) {
+        const missing = SIDE_BY_SIDE_KEYS.filter((k) => !own.includes(k));
+        if (missing.length) throw new Error(`A side-by-side target must also set ${missing.join(', ')}`);
+        if (!String(target.androidPackage).startsWith(`${raw.androidPackage}.`)) {
+            throw new Error(`Target androidPackage "${target.androidPackage}" must be under "${raw.androidPackage}."`);
+        }
+        const same = ['appName', 'appNameHi', 'apkName'].filter((k) => target[k] === raw[k]);
+        if (same.length) throw new Error(`A side-by-side target needs its own ${same.join(', ')}`);
+    }
+    const merged = { ...raw, ...JSON.parse(JSON.stringify(target)) };
+    if (own.length) merged.androidNamespace = raw.androidNamespace || raw.androidPackage;
+    return merged;
 }
 
 function derive(raw) {
@@ -51,10 +90,14 @@ function derive(raw) {
     };
     if (fb.measurementId) webConfig.measurementId = fb.measurementId;
     const google = raw.googleSignIn || {};
+    // Optional "download" block: where the APK and its release info come from (default: releases/latest)
+    const dl = raw.download || {};
+    const dlName = dl.name || {};
     return {
         appName: raw.appName,
         appNameHi: raw.appNameHi,
         androidPackage: raw.androidPackage,
+        androidNamespace: raw.androidNamespace || raw.androidPackage,
         apkName: raw.apkName,
         apkFile,
         githubRepo: raw.githubRepo,
@@ -66,8 +109,9 @@ function derive(raw) {
         siteUrl,
         downloadPageUrl: `${siteUrl}/download`,
         downloadPageHost: `${siteHost}/download`,
-        apkDownloadUrl: `https://github.com/${raw.githubRepo}/releases/latest/download/${apkFile}`,
-        latestReleaseApi: `https://api.github.com/repos/${raw.githubRepo}/releases/latest`,
+        apkDownloadUrl: dl.apkDownloadUrl || `https://github.com/${raw.githubRepo}/releases/latest/download/${apkFile}`,
+        latestReleaseApi: dl.latestReleaseApi || `https://api.github.com/repos/${raw.githubRepo}/releases/latest`,
+        downloadName: { en: dlName.en || raw.appName, hi: dlName.hi || raw.appNameHi },
         // Off until the owner has done the console steps (docs/google-sign-in.md)
         googleSignIn: { web: google.web === true, android: google.android === true },
         // App Check (monitor mode) starts only when a reCAPTCHA v3 site key is set (docs/security.md)
@@ -116,6 +160,19 @@ function configProblems(raw) {
             (a.siteKey === undefined || (typeof a.siteKey === 'string' && /^[\w-]*$/.test(a.siteKey.trim())));
         if (!ok) errors.push('appCheck must be { "siteKey": "<reCAPTCHA v3 site key>" } (empty = App Check off)');
     }
+    if (raw.download !== undefined) {
+        const dl = raw.download;
+        const keysOk = dl && typeof dl === 'object' && Object.keys(dl).every((k) => ['apkDownloadUrl', 'latestReleaseApi', 'name'].includes(k));
+        const repo = String(raw.githubRepo || '').replace(/[.]/g, '\\.');
+        const urlOk = (v, re) => v === undefined || (typeof v === 'string' && re.test(v));
+        const nameOk = (n) => n === undefined || (n && typeof n === 'object' &&
+            Object.entries(n).every(([k, v]) => ['en', 'hi'].includes(k) && typeof v === 'string' && v.trim() && !/[<>]/.test(v)));
+        if (!keysOk || !nameOk(dl.name) ||
+            !urlOk(dl.apkDownloadUrl, new RegExp(`^https://github\\.com/${repo}/releases/(latest/download|download/[\\w.-]+)/${String(d.apkFile).replace(/[.]/g, '\\.')}$`)) ||
+            !urlOk(dl.latestReleaseApi, new RegExp(`^https://api\\.github\\.com/repos/${repo}/releases/(latest|tags/[\\w.-]+)$`))) {
+            errors.push(`download must be { "apkDownloadUrl": a ${raw.githubRepo} release asset named ${d.apkFile}, "latestReleaseApi": that repo's releases API, "name": { "en", "hi" } }`);
+        }
+    }
     return errors;
 }
 
@@ -130,13 +187,16 @@ function downloadValues(d) {
     return {
         appName: d.appName,
         appNameHi: d.appNameHi,
+        downloadNameEn: d.downloadName.en,
+        downloadNameHi: d.downloadName.hi,
+        latestReleaseApi: d.latestReleaseApi,
         apkFile: d.apkFile,
         apkDownloadUrl: d.apkDownloadUrl,
         siteUrl: d.siteUrl,
         siteHost: d.siteHost,
         downloadPageHost: d.downloadPageHost,
-        downloadTitle: `${d.appName} — Download`,
-        downloadDescription: `Download the ${d.appName} Android app and see how to install it.`,
+        downloadTitle: `${d.downloadName.en} — Download`,
+        downloadDescription: `Download the ${d.downloadName.en} Android app and see how to install it.`,
         qrAlt: `QR code for ${d.downloadPageHost}`
     };
 }
@@ -281,7 +341,7 @@ const TARGETS = [
         file: 'android/app/build.gradle',
         write: (t, d) => replaceOrThrow(
             replaceOrThrow(t, /^(\s*applicationId\s+)"[^"]*"/m, `$1"${d.androidPackage}"`, 'applicationId'),
-            /^(\s*namespace\s+)"[^"]*"/m, `$1"${d.androidPackage}"`, 'namespace')
+            /^(\s*namespace\s+)"[^"]*"/m, `$1"${d.androidNamespace}"`, 'namespace')
     },
     {
         file: 'android/app/src/main/res/values/strings.xml',
@@ -345,10 +405,10 @@ function mainActivity(root, d) {
     if (!found.length) return null;
     if (found.length > 1) throw new Error(`More than one MainActivity.java under ${JAVA_ROOT}`);
     const rel = (p) => path.relative(root, p).split(path.sep).join('/');
-    const to = `${JAVA_ROOT}/${d.androidPackage.split('.').join('/')}/MainActivity.java`;
+    const to = `${JAVA_ROOT}/${d.androidNamespace.split('.').join('/')}/MainActivity.java`;
     const text = fs.readFileSync(found[0], 'utf8');
     const pkg = (/^package\s+([\w.]+);/m.exec(text) || [])[1];
-    return { from: pkg === d.androidPackage ? rel(found[0]) : `${rel(found[0])} (package ${pkg})`, to, file: found[0], text };
+    return { from: pkg === d.androidNamespace ? rel(found[0]) : `${rel(found[0])} (package ${pkg})`, to, file: found[0], text };
 }
 
 function moveMainActivity(root, d) {
@@ -356,7 +416,7 @@ function moveMainActivity(root, d) {
     if (!a || a.from === a.to) return null;
     const target = path.join(root, a.to);
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, a.text.replace(/^package\s+[\w.]+;/m, `package ${d.androidPackage};`));
+    fs.writeFileSync(target, a.text.replace(/^package\s+[\w.]+;/m, `package ${d.androidNamespace};`));
     if (path.resolve(a.file) !== path.resolve(target)) {
         fs.rmSync(a.file);
         let dir = path.dirname(a.file);
@@ -494,11 +554,24 @@ function main(argv) {
         console.log(`project=${r.projectId} site=${r.site} redirects=${r.redirectSites.join(',')} ready=${r.ready}`);
         return r.ok ? 0 : 1;
     }
-    console.error('Usage: node scripts/happa-config.js apply|check [--sync-only]|get <key>|guard [--require-ready] [--require-sa] [--sa-env NAME]');
+    if (cmd === 'target') {
+        const name = rest[0];
+        const raw = withTarget(loadConfig(), loadTarget(name));
+        const problems = configProblems(raw);
+        if (problems.length) {
+            console.error(`Target ${name} is not usable:\n  ${problems.join('\n  ')}`);
+            return 1;
+        }
+        fs.writeFileSync(path.join(DEFAULT_ROOT, CONFIG_FILE), JSON.stringify(raw, null, 2) + '\n');
+        const changed = apply(DEFAULT_ROOT, { qr: !has('--no-qr') });
+        console.log(`Built for target ${name} (project ${raw.firebase.projectId}). Updated:\n  ${[CONFIG_FILE, ...changed].join('\n  ')}`);
+        return 0;
+    }
+    console.error('Usage: node scripts/happa-config.js apply|check [--sync-only]|get <key>|target <name>|guard [--require-ready] [--require-sa] [--sa-env NAME]');
     return 1;
 }
 
-module.exports = { loadConfig, derive, configProblems, hostingProblems, plan, outOfSync, apply, check, guard, TARGETS, RETIRED_PROJECT_IDS, PLACEHOLDER_RE };
+module.exports = { loadConfig, loadTarget, withTarget, derive, configProblems, hostingProblems, plan, outOfSync, apply, check, guard, TARGETS, RETIRED_PROJECT_IDS, PLACEHOLDER_RE };
 
 if (require.main === module) {
     process.exitCode = main(process.argv.slice(2));

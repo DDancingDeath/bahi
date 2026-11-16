@@ -16,6 +16,8 @@ jest.mock('../firebase/firestore-service.js', () => ({
 jest.mock('../services/audit.js', () => ({ AuditService: { log: jest.fn(async () => {}), note: jest.fn(), ACTIONS: { ARCHIVE_ITEM: 'ARCHIVE_ITEM', UNARCHIVE_ITEM: 'UNARCHIVE_ITEM' } } }));
 jest.mock('../ui/ui-manager.js', () => ({
     UIManager: {
+        openSheet: jest.fn(),
+        closeSheet: jest.fn(),
         showToast: jest.fn(),
         showLoading: jest.fn(),
         hideLoading: jest.fn(),
@@ -167,6 +169,24 @@ describe('archive instead of delete (#123)', () => {
         const items = [A(), { ...B(), archived: true }];
         expect(visibleItems(items).map(i => i.id)).toEqual(['a']);
         expect(visibleItems(items, { showArchived: true }).map(i => i.id)).toEqual(['a', 'b']);
+    });
+
+    test('a new item is listed once when the live listener adds it before the save resolves', async () => {
+        FirebaseService.saveItem.mockImplementationOnce(async (item) => {
+            const saved = { ...item, id: 'n1' };
+            AppState.items = [...AppState.items, saved];
+            return saved;
+        });
+        ItemsManager.openAddModal();
+        document.getElementById('itemModalName').value = 'Masoor';
+        await ItemsManager.saveItemFromModal();
+        expect(AppState.items.filter(i => i.id === 'n1')).toHaveLength(1);
+
+        FirebaseService.saveItem.mockImplementationOnce(async (item) => ({ ...item, id: 'n2' }));
+        ItemsManager.openAddModal();
+        document.getElementById('itemModalName').value = 'Urad';
+        await ItemsManager.saveItemFromModal();
+        expect(AppState.items.filter(i => i.id === 'n2')).toHaveLength(1);
     });
 });
 
@@ -320,7 +340,9 @@ describe('rate / name history on save (#82)', () => {
         ItemsManager.openEditModal('a');
         ItemsManager.updateModalRate('purchase', 0, '500');
         await ItemsManager.saveItemFromModal();
-        expect(UIManager.showModalWithHtml.mock.calls[0][0]).toMatch(/₹50\.00 → ₹500\.00/);
+        const dlg = document.createElement('div');
+        dlg.innerHTML = UIManager.showModalWithHtml.mock.calls[0][0];
+        expect(dlg.textContent).toMatch(/₹50 → ₹500/);
         expect(FirebaseService.saveItem).not.toHaveBeenCalled();
         expect(FirebaseService.addRateHistoryEntries).not.toHaveBeenCalled();
     });

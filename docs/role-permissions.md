@@ -5,8 +5,8 @@ Owner decision on #87: *non-owner users may edit or delete a bill for 2 days.* S
 **voided** instead of deleted (same people, same window; see "Void and edit records").
 
 The owner sets, per role, which pages and numbers managers and members see, how far back
-History goes and for how many days bills can be changed. Screen: **Settings › Common › Roles & access**
-(owner only, English and Hindi; route `settings-roles`). The same card lists **People**: each
+History goes and for how many days bills can be changed. Screen: **Settings › Team › Roles & access**
+(owner only, English and Hindi; route `settings-team`, old `settings-roles`). The same card lists **People**: each
 approved user's Aadhat role (approved and changed in Admin › Users) and Rentals role (`users/{uid}.rentRole`,
 changed right there; this replaced the old Rentals › Access page, whose route now opens this card).
 
@@ -18,7 +18,7 @@ permission ids keep `shop`.
 
 | Stored value | Shown as | Configurable | Notes |
 |---|---|---|---|
-| `owner` | Owner / मालिक | no | Always sees and does everything; no edit window. Every change still keeps its record, enforced by the rules (OD-14, see "The owner's own changes"). |
+| `owner` | Owner / मालिक | no | Always sees and does everything; no edit window. Every change still keeps its record, enforced by the rules (OD-14, see "The owner's own changes"). There may be several owners, never none (see "Owners"). |
 | `manager` | Manager / मैनेजर | yes | The spec's "admin". The name stays `manager`. |
 | `staff` | Member / सदस्य | yes | The stored value stays `staff` (rules, profiles); the UI never says "staff". |
 
@@ -42,7 +42,7 @@ setting is missing or invalid.
 | `stockValue` | Stock ₹ value | स्टॉक की ₹ कीमत | on | on | client |
 | `oldCashSessions` | Past cash days | पिछले दिनों का कैश | on | on | client (rules: phase 2) |
 | `purchaseRates` | See purchase rates | खरीद रेट देखें | on | on | client (Rates page only) |
-| `contacts` | Pick names from phone contacts (Q52 of #111) | फ़ोन के संपर्कों से नाम चुनें | on | on | client (the three 👤 pick-contact buttons on Billing and Wholesale; the phone's contacts never reach the database) |
+| `contacts` | Pick names from phone contacts (Q52 of #111) | फ़ोन के संपर्कों से नाम चुनें | on | on | client (the three 👤 pick-contact buttons on Billing and Wholesale; the phone's contacts never reach the database; the Android app asks for the Contacts permission on the first tap, #495) |
 | `shopSettings` | Change Aadhat settings (labour, bill checks, business name, printed bill) | आढ़त की सेटिंग बदलें | off | – (managers only) | **client + rules** |
 | `historyDays` | History: days back (0 = all) | इतिहास: कितने दिन पीछे तक (0 = सभी) | 0 | 0 | client only (see "Server-side read rules") |
 | `editDays` | Edit/void bills for (days) | बिल बदलने/हटाने के दिन | 2 | 2 | **client + rules** |
@@ -77,10 +77,10 @@ setting is missing or invalid.
   For everyone, the owner included, each section stamp a write sets (`labour`, `checks`, `business`,
   `receipt`, `tip`, `roleAccess` + `UpdatedAt` / `UpdatedBy`) must be an int (ms) and a string of at
   most 128 characters (`settingsStampsOk`); stamps already stored are not re-checked.
-- Pages that read owner/manager-only collections (Admin, Workers / Salaries, Diagnostics, Anomalies, Insights › Seasons (Trends and Product traffic),
+- Pages that read owner/manager-only collections (Admin, Workers / Salaries, Recurring bills, Diagnostics, Anomalies, Insights › Seasons (Trends and Product traffic),
   App health) and the stock adjustment / item edit actions are not in the list: their rules are
   fixed and the setting could not open them. `TAB_ROLES` in `role-access.js` lists them (Admin and
-  Workers / Salaries: owner; the others: owner and manager); `canOpenTab()` refuses them for other roles, and
+  Workers / Salaries and Recurring bills: owner; the others: owner and manager); `canOpenTab()` refuses them for other roles, and
   `NavigationManager` shows Today with a message instead. Trends and Product traffic are views of
   Insights › Seasons with the extra permission id `rate-trends` (routes `insights-seasons`,
   `insights-trends`, `insights-traffic`; old `reports-trends`, `reports-traffic`, `rate-trends`,
@@ -162,6 +162,36 @@ Code: `www/js/utils/role-access.js` (pure: defaults, `normalizeRoleAccess`, `acc
 - **Edit window**: `canEditBill()` (billing) and the bill details' Edit / Void buttons and the
   void check use `canEditBillWith` / `canVoidBillWith`, the same conditions as the rules. A refused
   edit says the window has closed (with the number of days).
+
+### Start page
+
+Code: `www/js/utils/start-page.js` (`chooseStartPage`), used by `initializeUserData()` in
+`www/js/main.js` after every sign-in and app open (browser, installed web app, Android app).
+
+| Role | Opens on |
+|---|---|
+| Owner | Today (`day`) |
+| Manager | Billing |
+| Member (`staff`) | Billing |
+| Rentals-only (`none` + `rentRole`) and anything else | Billing, as before, also after a reload (the app always starts on Aadhat; Rentals opens from the switch) |
+
+- **Order:** a launch link, else the page this browser tab showed before a reload, else the
+  role's page. If the role may not open its page, the first it may open of Billing, Today,
+  History, Outstanding, Settings (`START_FALLBACKS`). Today and Billing have no Roles & access
+  switch today, so this only matters if one is added.
+- **Launch links win:** a home-screen shortcut (`?shortcut=sale|purchase|history`, #151) or a
+  `#route` hash naming a page or route (`#history`, `#settings-printing`, `#money-cash`, …). The
+  link is removed from the URL once read. An unknown hash (e.g. `#main`) is ignored; a page
+  the role may not open is refused with the usual message and fallback. Rentals is never opened
+  from a link. In-app links (notifications, Settings group links, a page's links) are unchanged.
+- **Reload vs. new launch:** `history.state.happaTab` survives a reload of the same browser tab
+  but not a new launch (new tab, home-screen icon, the Android app started again), so a reload
+  mid-bill stays on Billing and a fresh launch opens the role's page. Sign-out forgets it
+  (`NavigationManager.forgetRoute()`), so the next sign-in opens the role's page. A bill left
+  unsaved is never lost either way: the auto-save banner waits on Billing (Restore / Discard), and
+  typing a new bill first moves it to Drafts.
+- **Back:** the role's page is home (`NavigationManager.homeTab`): the Android Back button leaves
+  the app from there; for the owner, Back on Billing returns to Today.
 
 ## How the rules enforce it
 
@@ -403,7 +433,7 @@ rejected / no profile / unknown role.
 | `drafts` | own only (`where('userId', '==', uid)`, get by id) | own |
 | `autoSaves/{uid}` | own doc | own |
 | `users` | own profile at start-up / login / registration; full list: Admin and Roles & access › People (owner only) | **own only**. Names shown on bills, payments and audit rows are stored on those records |
-| `settings/team` (#87) | names and roles of the approved people, written by the owner's phone whenever it reads the profiles (Admin, App health, notification fan-out; and once a day 3 minutes after start-up, one read per profile + the doc; it writes only when a name or role differs) and by `tools/migrate`; one get for managers' App health device names and their notification fan-out on item and rate edits | no (managers only) |
+| `settings/team` (#87) | names and roles of the approved people, plus `ownerUids` (the active owners, see "Owners"), written by the owner's phone whenever it reads the profiles (Admin, App health, notification fan-out; and once a day 3 minutes after start-up, one read per profile + the doc; it writes only when a name or role differs) and by `tools/migrate`; one get for managers' App health device names and their notification fan-out on item and rate edits | no (managers only) |
 | `settings/accounts` (#74) | Money › Worth's bank, savings and other accounts, shared by every phone: one get each time Money opens on Worth (the page's own saves update it on the phone); owner and managers with Money only | no (bank balances are private; a member's M15 leaves them out and says so) |
 | `users/{uid}/preferences` | own | own |
 | `auditLogs`, `telemetry` | append by everyone; read in Settings/Diagnostics and the anomaly scan by the owner only | no |
@@ -412,6 +442,7 @@ rejected / no profile / unknown role.
 | `rent_*` | Rentals (`js/rentals/rent-store.js`), loaded only when Rentals opens | rentals roles only |
 | `rent_public/{token}` | tenant page, get by token | anyone with the link |
 | `workers` (#373) | Workers / Salaries (`firebase/repos/workers.js`), one query each time the page opens (one read per worker) | no (owner only) |
+| `recurringBills` (#437) | Recurring bills (`firebase/repos/recurring-bills.js`), one query each time the page opens (one read per bill item) | no (owner only) |
 
 ### Read matrix: before → after
 
@@ -442,6 +473,7 @@ except `rent_public` get.
 | `rent_*` (incl. `rent_settings`, `rent_receipts`, `rent_counters`, `rent_deposits`, `rent_expenses`) | ✓ → ✓ | ✗ without a `rentRole` | ✗ without a `rentRole` | ✓ → ✓ | ✗ → ✗ |
 | `rent_public` | G ✓, L ✗ for everyone, signed out too (unchanged) | | | | |
 | `workers` (#373, new) | ✓ | ✗ | ✗ | ✗ | ✗ |
+| `recurringBills` (#437, new) | ✓ | ✗ | ✗ | ✗ | ✗ |
 
 Rentals were already scoped and are unchanged; the matrix tests now check them for every role
 (a shop role alone reads no `rent_*`, a rentals role alone reads no shop data).
@@ -673,6 +705,58 @@ not checked one by one (rules can't loop over map keys), so a member can still c
   first, then Restore and approve them after the reset.
 - Admin › Clear Data › Users still deletes profiles (a fresh start); those people can register again.
 
+### First owner on a fresh Firebase project
+
+**Cut-over checklist item (#72, `bahi-happa` / `bahi-happa-dev`).** On a new, empty project nobody can
+approve anyone: the rules let a sign-up create only its own **pending staff** profile (`role: 'staff'`,
+`status: 'pending'`), and only an owner may change `role` or `status`. So the first owner is set outside the
+app, once per project, by one of:
+
+- **Firestore console** (signed in as a project Owner): the person registers in the app first (so the Auth
+  account and `users/{uid}` exist), then in `users/{uid}` (`dev_users/{uid}` for `dev_` collections) set
+  `role` to `'owner'` and `status` to `'active'`. The uid is in Authentication › Users.
+- **The migration tool** (`tools/migrate/README.md`): `apply` copies the profiles with their roles and the
+  same uids, and `auth:import` the logins, so the old owner arrives as owner.
+
+Then sign in as that owner and approve everyone else in Admin › Users as usual. That first owner can make
+others owner from the app (see "Owners" below); the console is needed only once. On their first sign-in
+the app lists them in `settings/team.ownerUids` (about 15 s after start-up).
+
+## Owners: more than one, never none
+
+A shop can have any number of owners. Every owner has every owner power (all checks are `role == 'owner'`;
+notifications, the anomaly scan and Rentals already treat each owner the same), and nothing in the app names
+"the" owner.
+
+- **Who changes roles:** only an owner, in **Admin › Users › Edit role**: a choice of **Member / Manager /
+  Owner** (the current one marked "(now)"). Managers and members never see Admin or the choice, and the rules
+  refuse them any role or status change (their own included) and any write to `settings/team`.
+- **Making someone owner** needs a confirmation (en + hi): "*Ramesh will get full control: money, settings,
+  people, deleting bills. Make owner?*". Only an **approved** person can be made owner: a pending
+  registration is approved as Member or Manager first (the approve list never offers Owner), then made owner
+  with Edit role. Two deliberate steps, so an unknown sign-up is never one tap away from full control.
+- **Taking it away:** an owner can demote or remove (Delete) another owner, with a strong, red confirmation
+  that says they lose full control. An owner can **step down** (their own row has Edit role) to Manager or
+  Member; the app then restarts in the new role.
+- **Never the last owner:** demoting, removing or stepping down is refused, in the app and in the rules, unless
+  another active owner remains. An owner can never remove (disable) themselves or change their own status.
+- **The owner list, `settings/team.ownerUids`:** the rules can't count profiles, so the uids of the active
+  owners are kept in the team directory, changed **in the same batch** as each role change (an owner added
+  on promotion, taken off on demotion or removal). The rules check that a demotion only happens while the list
+  has 2+ owners and names that person, that every uid added is an active owner after the write, that a
+  listed owner is never taken off without losing the role, and that the list never empties. Two owners
+  demoting each other at the same moment both write the list, so the second fails.
+- **Backfill (projects from before multi-owner):** each owner's phone lists that owner when they sign in
+  (`ensureSelfListedOwner`, about 15 s after start-up, one read, once per phone), the owner's phone lists
+  any owner it sees in the profiles when it rebuilds the team directory, and Admin lists every active owner
+  right before a demotion or removal. Until an owner is listed, nobody can demote anyone on the strength of
+  them (the list may under-count, never over-count). An older app that rewrites the whole directory drops
+  the list; the next owner sign-in or Admin visit lists the owners again.
+- **Audit:** every change writes `CHANGE_USER_ROLE` with who (the entry's `userId` / `userName`), whom
+  (`details.targetUserId`, `targetName`) and `from` → `to` (removing an owner: `to: 'removed'`, besides
+  `REMOVE_USER`).
+- Rules: `profileRoleChangeOk()`, `teamOwnersOk()` (docs/security.md, "user profile rules").
+
 ## Manual reminders on Today (#86)
 
 Shop-wide to-dos ("Collect from Ramesh on Friday") in `reminders/{id}` (+ `dev_`), in-app only (#58: no push).
@@ -729,6 +813,11 @@ Property expenses (`rent_expenses`, #157): anyone with a rentals role adds one (
 its units), signed with their uid; only the owner edits or deletes one. They are never Aadhat expenses or
 Aadhat cash.
 
-Members (Aadhat or Rentals) see only Common. Old routes keep working: `settings`, `admin-configure`
-and `settings-aadhat` (→ Aadhat), `settings-shop`, `settings-rentals`, `settings-roles`; Admin's old
-Configure tab opens Settings › Aadhat.
+Settings is a short list (language, account, then one row per group); each group is a sub-page with Back
+(the phone's back gesture returns to the list too). Everyone sees Appearance, Printing & receipts, Billing tools
+(the Photo of weights switch stays owner-only) and Help & about; Settings › Aadhat shows for the Aadhat owner and
+managers (edits per `shopSettings`), Settings › Rentals for the Rentals owner and managers, Settings › Team (Roles &
+access, People) for the owner only. Routes: `settings` (the list), `settings-appearance`, `settings-printing`,
+`settings-billing`, `settings-shop`, `settings-rentals`, `settings-team`, `settings-help`; old ones keep working:
+`settings-common` (→ the list), `settings-roles` (→ Team), `admin-configure` and `settings-aadhat` (→ Aadhat), and
+Admin's old Configure tab opens Settings › Aadhat. A group the role may not see opens the list instead.

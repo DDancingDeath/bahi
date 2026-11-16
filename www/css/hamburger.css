@@ -7,13 +7,13 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 990;
+    z-index: calc(var(--z-appbar) + 40);
     display: flex;
     align-items: center;
     gap: var(--sp-2);
     box-sizing: border-box;
     height: calc(var(--appbar-h) + env(safe-area-inset-top, 0px));
-    padding: env(safe-area-inset-top, 0px) max(var(--sp-1), calc(50% - 236px)) 0 max(var(--gutter), calc(50% - 224px));
+    padding: env(safe-area-inset-top, 0px) max(var(--sp-1), calc(50% - var(--phone-col-max) / 2 + var(--sp-1))) 0 max(var(--gutter), calc(50% - var(--phone-col-max) / 2 + var(--gutter)));
     background: var(--bg);
     color: var(--ink);
   }
@@ -32,7 +32,7 @@
     text-overflow: ellipsis;
   }
 
-  .app-bar .app-bar-btn {
+  .app-bar .app-bar-action {
     position: relative;
     top: auto;
     left: auto;
@@ -51,15 +51,15 @@
     color: var(--ink);
     box-shadow: none;
     cursor: pointer;
-    transition: background-color var(--transition-fast);
+    transition: background-color var(--dur-1) var(--ease);
     -webkit-tap-highlight-color: transparent;
   }
 
-  .app-bar .app-bar-btn:hover {
+  .app-bar .app-bar-action:hover {
     background: var(--state-hover);
   }
 
-  .app-bar .app-bar-btn:active {
+  .app-bar .app-bar-action:active {
     transform: scale(0.96);
   }
 
@@ -75,7 +75,8 @@
   .app-bar .notif-badge {
     top: 4px;
     right: 2px;
-    box-shadow: 0 0 0 2px var(--bg);
+    box-shadow: none;
+    outline: 2px solid var(--bg);
   }
 
   .app-bar .sync-pill {
@@ -97,7 +98,7 @@
     height: var(--tab-top);
     margin: calc(-1 * var(--tab-top)) calc(-1 * var(--gutter)) 0;
     background: var(--bg);
-    z-index: 900;
+    z-index: var(--z-nav);
   }
 }
 

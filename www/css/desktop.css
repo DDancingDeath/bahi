@@ -8,134 +8,371 @@
 
 @media (min-width: 1024px) {
   :root {
-    --desktop-nav-width: 232px;
+    --desktop-nav-width: 248px;
+    --desktop-header-h: 60px;
     --desktop-content-max: 1360px;
+    --desktop-tab-end: calc(var(--sp-10) + var(--sp-2));
+    --desktop-gutter: max(var(--sp-8), calc((100vw - var(--desktop-nav-width) - var(--desktop-content-max)) / 2));
+    /* Desktop density (DIRECTION §5): 36 px controls, 44 px rows */
+    --control-h: 36px;
+    --row-h: 44px;
+    /* Desktop type scale (DIRECTION §3.2); html[lang="hi"] keeps its larger --fs-sm / --fs-body */
+    --fs-body: 14px;
+    --fs-lead: 16px;
+    --fs-title: 18px;
+    --fs-display: 26px;
+    --fs-hero: 30px;
   }
 
-  /* ---------- App shell: permanent sidebar, no hamburger/overlay ---------- */
+  /* ---------- App shell (redesign 4.2): page header, permanent sidebar, no menu button or overlay ---------- */
   .hamburger,
-  .side-nav .close-btn,
-  .overlay,
-  .app-bar-title {
+  .side-nav .nav-close {
     display: none !important;
   }
 
-  /* The phone app bar is not drawn; its bell and sync pill keep their desktop places */
+  /* Page header: the open page's title (the phone app bar's #appBarTitle), the sync pill and the bell */
   .app-bar {
-    display: contents;
-  }
-
-  .side-nav {
-    left: 0;
-    width: var(--desktop-nav-width);
-    max-width: none;
-    box-shadow: none;
-    border-right: 1px solid var(--border-color);
-    transition: none;
-    z-index: 900;
-  }
-
-  .nav-header {
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 1;
-    padding: 20px 18px;
+    left: var(--desktop-nav-width);
+    right: 0;
+    z-index: var(--z-appbar);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    box-sizing: border-box;
+    height: var(--desktop-header-h);
+    padding: 0 var(--desktop-gutter);
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
   }
 
-  .nav-header h2 {
+  .app-bar-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--font-display);
     font-size: var(--fs-title);
+    font-weight: var(--w-strong);
+    letter-spacing: var(--tracking-display);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* Notifications bell sits in the sidebar header; inbox opens beside it */
-  .notif-bell {
-    top: 22px;
-    left: calc(var(--desktop-nav-width) - 54px);
-    right: auto;
-    width: 40px;
-    height: 40px;
-    border-color: transparent;
-    background: rgba(255, 255, 255, 0.18);
-    color: var(--on-accent-strong);
+  .app-bar .sync-pill {
+    position: static;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 40%;
+    transform: none;
     box-shadow: none;
+    z-index: auto;
+  }
+
+  .app-bar .notif-bell {
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    z-index: auto;
+    flex: none;
+    width: var(--control-h);
+    height: var(--control-h);
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-2);
+    box-shadow: none;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+  }
+
+  .app-bar .notif-bell:hover {
+    background: var(--state-hover);
+    color: var(--ink);
+  }
+
+  .app-bar .printer-shortcut {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--control-h);
+    height: var(--control-h);
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+  }
+
+  .app-bar .printer-shortcut:hover {
+    background: var(--state-hover);
+    color: var(--ink);
+  }
+
+  .app-bar .notif-badge {
+    top: -2px;
+    right: -4px;
   }
 
   .notif-backdrop {
     background: transparent;
   }
 
-  /* Sync pill: centred over the content, not the sidebar */
-  .sync-pill {
-    top: 14px;
-    left: calc(var(--desktop-nav-width) + (100% - var(--desktop-nav-width)) / 2);
-    max-width: 50%;
-  }
-
-  .notif-panel {
-    left: calc(var(--desktop-nav-width) + 12px);
-    right: auto;
-    top: 12px;
+  .notif-sheet {
+    left: auto;
+    right: var(--sp-4);
+    top: calc(var(--desktop-header-h) + var(--sp-2));
     bottom: auto;
     width: 420px;
-    max-height: calc(100vh - 24px);
-    border-radius: 14px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+    max-height: calc(100vh - var(--desktop-header-h) - var(--sp-6));
+    border-radius: var(--r-panel);
+    box-shadow: var(--e3);
   }
 
-  .nav-menu {
-    padding: 8px 0;
+  /* Sidebar: neutral surface, the business at the top, the same groups as the phone's More sheet */
+  .side-nav {
+    left: 0;
+    width: var(--desktop-nav-width);
+    max-width: none;
+    box-shadow: none;
+    border-right: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink);
+    transition: none;
+    z-index: var(--z-nav);
   }
 
-  .nav-menu a {
-    min-height: 40px;
-    padding: 10px 18px;
-    font-size: 14px;
-    margin: 1px 8px;
-  }
-
-  .nav-icon {
-    margin-right: 10px;
-  }
-
-  .desktop-shortcuts-link {
+  .nav-header {
     display: block;
-    margin: 8px 16px 20px;
-    padding: 8px 10px;
-    border: 1px dashed var(--border-color);
-    border-radius: var(--radius);
-    background: transparent;
-    color: var(--text-secondary);
+    padding: var(--sp-4) var(--sp-3) var(--sp-2);
+  }
+
+  .nav-who {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--sp-3);
+  }
+
+  .nav-mark {
+    grid-row: 1 / span 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-h);
+    height: var(--control-h);
+    overflow: hidden;
+    border-radius: var(--r-sm);
+    background: linear-gradient(var(--brand-tile-top), var(--brand-tile) 55%);
+    box-shadow: var(--brand-tile-ring);
+    color: var(--brand-ink);
+  }
+
+  .nav-mark-bahi {
+    width: 100%;
+    height: 100%;
+    fill: var(--brand-corner);
+  }
+
+  .nav-header h2 {
+    grid-column: 2;
+    font-size: var(--fs-body);
+    letter-spacing: normal;
+    line-height: 1.3;
+  }
+
+  .nav-user {
+    grid-column: 2;
+    margin-top: 0;
     font-size: var(--fs-caption);
-    text-align: left;
-    cursor: pointer;
-    width: calc(100% - 32px);
-  }
-
-  .desktop-shortcuts-link:hover {
-    color: var(--primary-color);
-    border-color: var(--primary-color);
-  }
-
-  .tab {
-    margin-left: var(--desktop-nav-width);
-    max-width: none;
-    padding: 24px max(32px, calc((100vw - var(--desktop-nav-width) - var(--desktop-content-max)) / 2)) 48px;
-    /* Dynamic viewport height where supported (tabs.css keeps 100vh for phones). */
-    min-height: 100dvh;
-    height: 100dvh;
-  }
-
-  /* rentals.css (loaded later) caps the phone width; desktop pages are full width */
-  .tab.rentals-tab {
-    max-width: none;
-  }
-
-  /* ---------- Billing: entry left, sticky bill summary right ---------- */
-  #billRate,
-  #saleRate {
-    padding-right: 40px;
+    white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  .biz-switch {
+    grid-column: 1 / -1;
+  }
+
+  .biz-switch button {
+    min-height: var(--control-h-sm);
+    font-size: var(--fs-sm);
+  }
+
+  .nav-menu {
+    padding: var(--sp-1) var(--sp-2);
+  }
+
+  .nav-group-title {
+    display: block;
+    margin: var(--sp-4) var(--sp-3) var(--sp-1);
+    font-family: var(--font-display);
+    font-size: var(--fs-sm);
+    font-style: var(--title-style);
+    font-weight: var(--w-label);
+    color: var(--ink-3);
+  }
+
+  .nav-group:first-child .nav-group-title {
+    margin-top: var(--sp-2);
+  }
+
+  /* A group shows only with a page the role may open, in the business that is open */
+  body:not(.biz-rentals) .nav-group[data-biz="rentals"],
+  body.biz-rentals .nav-group:not([data-biz]),
+  .nav-group:not(:has(a:not([hidden]))) {
+    display: none;
+  }
+
+  .nav-menu a,
+  .desktop-shortcuts-link {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    width: 100%;
+    min-height: var(--control-h);
+    margin: 1px 0;
+    padding: 0 var(--sp-3);
+    border: 0;
+    border-radius: var(--r-sm);
+    background: none;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: var(--fs-body);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+  }
+
+  .nav-icon {
+    width: auto;
+    margin: 0;
+    color: var(--ink-3);
+  }
+
+  .nav-menu a:hover,
+  .desktop-shortcuts-link:hover {
+    background: var(--state-hover);
+    color: var(--ink);
+  }
+
+  .nav-menu a.active {
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: var(--w-strong);
+    box-shadow: var(--e1);
+  }
+
+  .nav-menu a.active .nav-icon {
+    color: var(--accent-text);
+  }
+
+  .nav-menu a:focus-visible,
+  .desktop-shortcuts-link:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  /* Alt+N on the open page's link (and on hover or focus), as in the mock */
+  .nav-kbd {
+    margin-left: auto;
+    font-weight: var(--w-regular);
+  }
+
+  .nav-menu a:is(.active, :hover, :focus-visible) .nav-kbd,
+  .desktop-shortcuts-link .nav-kbd {
+    display: inline-block;
+  }
+
+  .nav-menu.nav-menu-footer {
+    padding: var(--sp-2);
+    border-top: 1px solid var(--line);
+  }
+
+  .tab {
+    margin: var(--desktop-header-h) 0 0 var(--desktop-nav-width);
+    max-width: none;
+    padding: var(--sp-6) var(--desktop-gutter) var(--desktop-tab-end);
+    /* The page scrolls under the header; dynamic viewport height where supported (navigation.css keeps 100vh for phones). */
+    min-height: 0;
+    height: calc(100vh - var(--desktop-header-h));
+    height: calc(100dvh - var(--desktop-header-h));
+  }
+
+  /* A page's head (<header class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</header>; surfaces.css hides it
+     below 1024 px). The header bar shows the title, so the h2 stays for screen readers and the row holds the page's mode and actions. */
+  .page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3);
+    margin: 0 0 var(--sp-5);
+  }
+
+  /* Title only: nothing to draw, and no box (inside a grid such as .ins-head it takes no cell) */
+  .page-head:not(:has(> :not(h2))) {
+    display: contents;
+  }
+
+  .tab .page-head > h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .page-head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-left: auto;
+  }
+
+  /* Rentals (rentals.css loads later, so these are one step more specific): the title is in the header bar, so the
+     view switch sits on the right (DIRECTION.md, page header); the unit filters share one row */
+  .tab .rent-head {
+    justify-content: flex-end;
+  }
+
+  .tab .rent-filters {
+    grid-template-columns: repeat(5, auto);
+  }
+
+  /* The Rentals form sheet is a centred dialog on desktop */
+  .tab .rent-sheet {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(480px, 100% - 64px);
+    max-height: 85vh;
+    padding: var(--sp-5);
+    border-radius: var(--r-panel);
+    transform: translate(-50%, -50%);
+  }
+
+  .tab .rent-sheet > .grabber {
+    display: none;
+  }
+
+  /* ---------- Billing: Purchase / Retail sale keep their phone width; ⋯ stays at the row's end (4.2) ---------- */
+  .bill-mode-row > .bill-mode {
+    flex: 0 1 360px;
+  }
+
+  /* ---------- Billing: entry left, sticky bill summary right ---------- */
   #purchaseSection:not([style*="none"]),
   #saleSection:not([style*="none"]),
   #salesEntrySection:not([style*="none"]) {
@@ -146,44 +383,39 @@
   }
 
   /* Live bill-check banner (#188) spans both columns */
-  .bill-check-banner {
+  .bill-check-notice {
     grid-column: 1 / -1;
   }
 
-  #salesEntrySection > :not(.bill-col-entry):not(.bill-col-summary) {
+  #salesEntrySection > :not(.bill-main):not(.bill-side) {
     grid-column: 1 / -1;
   }
 
-  .bill-col-entry,
-  .bill-col-summary {
+  .bill-main,
+  .bill-side {
     min-width: 0;
   }
 
-  .bill-col-summary {
+  .bill-side {
     position: sticky;
     top: 0;
     max-height: calc(100vh - 48px);
     max-height: calc(100dvh - 48px);
     overflow-y: auto;
-    padding: 4px 4px 8px;
+    padding: var(--sp-1) var(--sp-1) var(--sp-2);
   }
 
-  .bill-col-summary > .bill-totals:first-child {
+  .bill-side > .bill-totals:first-child {
     margin-top: 0;
   }
 
-  .bill-col-entry > .form-row:first-child {
+  /* The side column's footer holds the total, Share, then Save and Print with their Ctrl hints */
+  .bill-actions > :is(.btn-primary, .bill-print) {
+    padding: 0 var(--sp-2);
+  }
+
+  .bill-main > .bill-form-field:first-child {
     margin-top: 0;
-  }
-
-  #wholesale-sales .bill-col-entry > .bill-totals {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 16px;
-  }
-
-  #wholesale-sales .bill-col-entry > .bill-totals > * {
-    grid-column: 1 / -1;
   }
 
   #billTable,
@@ -192,53 +424,53 @@
     table-layout: auto;
   }
 
-  #billTable td, #saleTable td {
+  #billTable td, :is(#saleTable, .bill-lines) td {
     max-width: none;
   }
 
-  /* ---------- Outstanding: aging panel (#46) ---------- */
-  .aging-bucket {
-    padding: 10px 14px;
-  }
-
-  .aging-bucket-amount {
-    font-size: 18px;
-  }
-
-  #dueAgingParties {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 10px;
+  /* ---------- Outstanding (#46, redesign 5.3): legend in one line, party actions beside the amount ---------- */
+  .aging-buckets {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .aging-party {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
   }
 
   .aging-party-actions {
-    grid-column: auto;
+    grid-row: 1;
+    grid-column: 3;
     flex-wrap: nowrap;
+  }
+
+  .aging-party-total {
+    grid-row: 1;
+    grid-column: 4;
+    align-self: center;
+  }
+
+  .due-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--sp-3);
+  }
+
+  .due-list > :not(.due-bill) {
+    grid-column: 1 / -1;
   }
 
   /* ---------- History / Wholesale › History: one aligned row per bill ---------- */
   /* bill no | party | amount | date & by | items | payment chips (ui/bill-row.js) */
-  .history-item.bill-row {
+  [data-history-item][data-bill-row] {
     grid-template-columns: 9.5rem minmax(7rem, 1.2fr) 7rem 12rem minmax(6rem, 1fr) 12rem;
     grid-template-areas: none;
     align-items: center;
-    column-gap: 12px;
-    padding: 8px 16px;
-    margin-bottom: 6px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-xs);
+    column-gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
   }
 
-  .history-item.bill-row:hover {
-    transform: none;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .history-item.bill-row > *,
+  [data-history-item][data-bill-row] > *,
   .bill-row__meta > * {
     grid-area: auto;
     margin: 0;
@@ -254,188 +486,161 @@
   }
 
   .bill-row__date,
-  .bill-row .bill-row__items {
+  [data-bill-row] .bill-row__items {
     font-size: var(--fs-sm);
   }
 
-  .bill-row .bill-row__chips {
+  [data-bill-row] .bill-row__chips {
     justify-content: flex-end;
     flex-wrap: wrap;
   }
 
-  .bill-row .payment-badge {
+  [data-bill-row] .payment-badge {
     padding: 3px 8px;
     font-size: var(--fs-caption);
   }
 
-  .history-view-toggle {
-    min-height: 40px;
-  }
-
-  /* ---------- Today: dashboard grid ---------- */
+  /* ---------- Today: hero strip, then the day's figures (left) | needs attention (right, from the key figures down) ---------- */
   #dayTodayContent:not([style*="none"]) {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    grid-template-rows: repeat(4, auto) 1fr;
+    grid-auto-flow: row dense;
+    column-gap: var(--sp-6);
     align-items: start;
   }
 
   #dayTodayContent > * {
-    margin: 0 !important;
+    grid-column: 1 / -1;
     min-width: 0;
   }
 
-  #dayTodayContent > :nth-child(1),
-  #dayTodayContent > :nth-child(2) {
-    grid-column: 1 / -1;
+  #dayTodayContent > .today-main { grid-column: 1; }
+  #dayTodayContent > .today-side { grid-column: 2; }
+
+  /* Fixed rows: the side column starts beside the key figures, whatever above it is hidden */
+  .today-summary > .updating-note { grid-row: 1; }
+  .today-summary > .tip-health { grid-row: 2; }
+  .today-summary > .hero { grid-row: 3; }
+  .today-summary > .today-main-top { grid-row: 4; }
+  .today-summary > .today-side { grid-row: 4 / span 2; }
+  .today-summary > .today-main:not(.today-main-top) { grid-row: 5; }
+
+  #dayTodayContent .hero {
+    margin-bottom: var(--sp-2);
+    padding: var(--sp-4) var(--sp-5);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--r-panel);
+    background: var(--panel-bg);
+  }
+
+  #dayTodayContent .today-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+  }
+
+  #dayTodayContent .today-side > *,
+  #dayTodayContent .today-side .section-title,
+  #dayTodayContent .today-main-top > .section-title {
+    margin-top: 0;
+  }
+
+  .today-main-top > .today-cash-prompt {
+    margin: 0 0 var(--sp-4);
+  }
+  /* Today › Cash (5.2a): forms keep a readable width */
+  .cash-body {
+    max-width: 760px;
   }
 
   /* ---------- Generic: wider grids and tables ---------- */
-  .stats-grid-2:has(> :nth-child(3)) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  /* Values stay level across the row when a label wraps to two lines */
-  .stats-grid-2:has(> :nth-child(3)) > .stat-card {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .stats-grid-2:has(> :nth-child(3)) > .stat-card > .stat-label {
-    flex: 1 0 auto;
-  }
-
   .tab table {
     width: 100%;
   }
 
   /* ---------- Modals: centered dialogs with comfortable width ---------- */
-  .modal-box {
-    max-width: 520px;
-  }
-
-  .bill-details-container {
-    max-width: 680px;
+  .dialog-wide {
+    width: min(680px, 100%);
   }
 
   .bill-details-footer {
     justify-content: flex-end;
   }
 
-  .bill-details-footer .bill-action-btn {
+  .bill-details-footer > .btn {
     flex: 0 0 auto;
     min-width: 120px;
   }
 
   /* ---------- Android update banner: keep clear of the permanent sidebar ---------- */
-  .app-update-banner {
+  .app-update {
     left: calc(var(--desktop-nav-width) + 16px);
     right: 16px;
   }
 
   /* ---------- Keyboard shortcuts help ---------- */
-  .kbd-help-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 21000;
-  }
-
-  .kbd-help {
-    background: var(--card-bg);
-    color: var(--text-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xl);
-    width: min(560px, 92vw);
-    max-height: 85vh;
-    overflow-y: auto;
-    padding: 20px 24px;
-  }
-
-  .kbd-help h3 {
-    margin: 0 0 12px;
-    font-size: 18px;
-  }
-
   .kbd-help table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: var(--fs-sm);
   }
 
   .kbd-help td {
-    padding: 5px 4px;
-    border-bottom: 1px solid var(--border-color);
+    padding: var(--sp-1);
+    border-bottom: 1px solid var(--line);
     vertical-align: top;
   }
 
   .kbd-help td:first-child {
     white-space: nowrap;
     width: 1%;
-    padding-right: 16px;
-  }
-
-  .kbd-help kbd {
-    display: inline-block;
-    padding: 1px 6px;
-    border: 1px solid var(--border-color);
-    border-bottom-width: 2px;
-    border-radius: 4px;
-    background: var(--light-bg);
-    font-family: inherit;
-    font-size: var(--fs-caption);
-  }
-
-  .kbd-help .kbd-hi {
-    color: var(--text-secondary);
-    margin-left: 6px;
-  }
-
-  .kbd-help-close {
-    margin-top: 14px;
-    float: right;
-    padding: 8px 18px;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--primary-gradient);
-    color: white;
-    font-weight: var(--w-strong);
-    cursor: pointer;
+    padding-right: var(--sp-4);
   }
 
   /* Anomalies page (#187): filters in one row, patterns in two columns, row actions inline */
-  .anomaly-filters {
+  .anom-filters {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  .anomaly-pattern-grid {
+  .anom-patterns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .anomaly-pattern-wide {
+  .anom-wide {
     grid-column: 1 / -1;
   }
 
-  .anomaly-repeat {
+  .anom-repeat {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .anomaly-row {
-    flex-direction: row;
+  .anom-row {
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: space-between;
   }
 
-  .anomaly-row-main {
+  .anom-row-body {
     flex: 1 1 auto;
   }
 
-  .anomaly-row-actions {
+  .anom-actions {
     flex: 0 0 auto;
     justify-content: flex-end;
+  }
+
+  /* Today's side column is too narrow for one line: the review buttons go under the reason */
+  .day-report .anom-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .day-report .anom-row-body {
+    flex-basis: 100%;
+  }
+
+  .day-report .anom-actions {
+    justify-content: flex-start;
   }
 
   /* Rate trends page (#65): pickers in one row, outlooks side by side */
@@ -446,10 +651,10 @@
   #rtOutlook {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: var(--sp-2);
   }
 
-  #rtOutlook .rt-empty {
+  #rtOutlook .empty {
     grid-column: 1 / -1;
   }
 }
@@ -457,46 +662,67 @@
 @media (min-width: 1024px) and (max-height: 900px) {
   /* Laptop heights (768/720): compact the bill summary column so the total and
      Save/Print stay visible without scrolling the page. */
-  .bill-col-summary .bill-totals {
-    padding: 8px 16px;
+  .bill-side .bill-totals {
+    padding: var(--sp-2) var(--sp-4);
   }
 
-  .bill-col-summary .total-row,
-  .bill-col-summary .labor-input-row,
-  .bill-col-summary .payment-row {
+  .bill-side .total-line,
+  .bill-side .bill-labour,
+  .bill-side .pay-line {
     padding-top: 5px;
     padding-bottom: 5px;
   }
 
-  .bill-col-summary .grand-total,
-  .bill-col-summary .payment-row.payment-total {
+  .bill-side .grand-total,
+  .bill-side .pay-line.payment-total {
     padding: 9px 14px !important;
-    margin-top: 4px;
-    margin-bottom: 4px;
+    margin-top: var(--sp-1);
+    margin-bottom: var(--sp-1);
   }
 
-  .bill-col-summary input[type="number"],
-  #billing .bill-col-summary .bill-money > .input {
+  .bill-side input[type="number"],
+  :is(#billing, .bill-page) .bill-side .bill-money > .input {
     padding-top: 6px;
     padding-bottom: 6px;
   }
 
-  #billing .bill-col-summary .grand-total strong {
+  :is(#billing, .bill-page) .bill-side .grand-total strong {
     font-size: var(--fs-title) !important;
   }
 
-  #billing .bill-pay-title {
-    margin-top: 4px;
+  :is(#billing, .bill-page) .bill-side :is(.grand-total, .pay-line.payment-total) {
+    padding: 6px 0 !important;
+  }
+
+  :is(#billing, .bill-page) .bill-side .bill-notes-date {
+    margin-bottom: 0;
+  }
+
+  :is(#billing, .bill-page) .bill-side > .bill-totals {
+    margin-bottom: 0;
+  }
+
+  :is(#billing, .bill-page) .bill-side .pay-line > .pay-fill,
+  :is(#billing, .bill-page) .bill-side .bill-form-field.field.bill-notes > .bill-note-print {
+    min-height: 30px;
+  }
+
+  :is(#billing, .bill-page) .bill-side > .bill-actions:last-child {
+    padding: var(--sp-2) 0;
+  }
+
+  :is(#billing, .bill-page) .bill-pay-title {
+    margin-top: var(--sp-1);
     padding-top: 6px;
   }
 
-  .bill-col-summary > .form-row,
-  .bill-col-summary > :is(.bill-actions, div[style*="display: flex"]) {
+  .bill-side > :is(.bill-form-field, .bill-notes-date),
+  .bill-side > .bill-actions {
     margin-top: 10px !important;
   }
 
   /* Hidden receipt-preview holder still reserves its inline 20px margin. */
-  .bill-col-summary > div:has(> img[id$="DebugPreview"][style*="none"]) {
+  .bill-side > div:has(> img[id$="DebugPreview"][style*="none"]) {
     margin-top: 0 !important;
   }
 
@@ -504,7 +730,7 @@
      scrolls with the page, as tall as the bill beside it: its totals card sticks
      to the top and its Save/Print row to the bottom of the screen, and the fields
      between them (notes, date) scroll past in the gap, never hidden for good. */
-  .bill-col-summary {
+  .bill-side {
     position: static;
     align-self: stretch;
     display: flex;
@@ -514,110 +740,139 @@
   }
 
   /* The bill-check banner would cover the stuck totals card */
-  .bill-check-banner {
+  .bill-check-notice {
     position: static;
   }
 
-  .bill-col-summary > .bill-totals:first-child {
+  .bill-side > .bill-totals:first-child {
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: var(--z-raised);
   }
 
-  .bill-col-summary > :is(.bill-actions, div[style*="display: flex"]):last-child {
+  /* The Save / Print row is the column's footer: it reaches the bottom of the screen (over the
+     tab's 48px bottom padding, so no field shows under it) and focus scrolls a field clear of it. */
+  .bill-side > .bill-actions:last-child {
     position: sticky;
-    bottom: 0;
-    z-index: 2;
+    bottom: calc(-1 * var(--desktop-tab-end));
+    z-index: var(--z-raised);
     margin-top: auto !important;
-    padding: 8px 0;
-    background: var(--light-bg);
+    padding: var(--sp-3) 0;
+    border-top: 1px solid var(--line);
+    background: var(--bg);
   }
 
-  body.dark-mode .bill-col-summary > :is(.bill-actions, div[style*="display: flex"]):last-child {
-    background: var(--light-bg);
+  :is(#billing, .bill-page).tab {
+    scroll-padding-bottom: 96px;
   }
 }
 
-@media (min-width: 1440px) {
+/* 1024–1279: the sidebar is a 64 px icon rail; names stay for screen readers and show as tooltips (keyboard-shortcuts.js) */
+@media (min-width: 1024px) and (max-width: 1279.98px) {
   :root {
-    --desktop-nav-width: 256px;
+    --desktop-nav-width: 64px;
+  }
+
+  .nav-header {
+    padding: var(--sp-3) var(--sp-2) var(--sp-1);
+  }
+
+  .nav-who {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .nav-mark {
+    grid-row: auto;
+  }
+
+  .nav-who:has(.biz-switch:not([hidden])) .nav-mark {
+    display: none;
+  }
+
+  .nav-header h2,
+  .nav-user,
+  .nav-group-title,
+  .nav-menu a > span:not(.nav-icon),
+  .desktop-shortcuts-link > span:not(.nav-icon),
+  .biz-switch button > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .biz-switch {
+    flex-direction: column;
+    gap: 2px;
+    margin-top: var(--sp-2);
+    justify-self: stretch;
+  }
+
+  .biz-switch button {
+    padding: 0;
+  }
+
+  .nav-menu a,
+  .desktop-shortcuts-link {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .side-nav .nav-kbd,
+  .side-nav .nav-menu a:is(.active, :hover, :focus-visible) .nav-kbd {
+    display: none;
+  }
+
+  .nav-group + .nav-group {
+    margin-top: var(--sp-2);
+    padding-top: var(--sp-1);
+    border-top: 1px solid var(--line);
+  }
+
+  body.biz-rentals .nav-group[data-biz] {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
   }
 }
 
-/* Finance card breakdown (#215): side panel instead of a bottom sheet */
+/* Finance card breakdown (#215): search and the two pickers on one line */
 @media (min-width: 1024px) {
-  .fin-sheet-overlay {
-    align-items: stretch;
-    justify-content: flex-end;
-  }
-
-  .fin-sheet {
-    width: 520px;
-    max-width: 100%;
-    max-height: none;
-    height: 100%;
-    border-radius: 0;
-    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.25);
-  }
-
-  .fin-sheet-tools input {
+  .fin-tools input {
     flex: 2 1 200px;
   }
 
-  .fin-sheet-tools select {
+  .fin-tools select {
     flex: 1 1 120px;
   }
 }
 /* ---------- Money, Insights, Statements (redesign): two columns, wider period bar ---------- */
 @media (min-width: 1024px) {
-  .ins-title { margin-left: 0; }
-
+  /* The page title is in the header bar: the tabs, then the period; Compare & share shows open */
   .ins-head {
     display: grid;
-    grid-template-columns: auto 1fr minmax(320px, 420px);
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
     align-items: center;
-    gap: 16px;
+    gap: var(--sp-2) var(--sp-4);
   }
 
-  .ins-head .ins-title { margin-bottom: 0; }
+  .ins-head > .ins-abbar { grid-column: 1 / -1; }
   .ins-head .ins-period { margin-top: 0; }
-  .ins-cmp-toggle { display: none; }
+  .ins-more { display: none; }
   .ins-head:not(.ins-cmp-open) .ins-cmp-more { display: block; }
 
   .ins-section:not([hidden]) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 16px;
+    gap: 0 var(--sp-4);
     align-items: start;
   }
 
-  .ins-section > .ins-hero { grid-column: 1 / -1; }
+  .ins-section > .hero { grid-column: 1 / -1; }
   .ins-section > .ins-wide { grid-column: 1 / -1; }
-  .ins-hero-value { font-size: 40px; }
-}
-
-/* Today (#141): the cash prompt (now before the day report), bill types and the bills list span both columns; bill types side by side */
-@media (min-width: 1024px) {
-  #dayTodayContent > #todayCashPrompt,
-  #dayTodayContent > #dayReportCard,
-  #dayTodayContent > #todayChannelsCard,
-  #dayTodayContent > #todayBillsCard {
-    grid-column: 1 / -1;
-  }
-
-  /* Full-width cards would otherwise leave a hole beside a lone half-width card */
-  #dayTodayContent:not([style*="none"]) {
-    grid-auto-flow: row dense;
-  }
-
-  .today-channels {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  }
-
-  /* Four stat cards in a half-width card wrapped their amounts mid-number */
-  #dayTodayContent .stats-grid-2:has(> :nth-child(3)) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
 }
 
 /* Phone bottom bar and its settings (#142): the sidebar is permanent here */
@@ -629,53 +884,8 @@
   }
 }
 
-/* ---------- Stocks and Statements (#106): use the width ---------- */
+/* ---------- Statements (#106): use the width ---------- */
 @media (min-width: 1024px) {
-  #stockList,
-  #deadStockList {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
-    align-items: start;
-  }
-
-  #stockList > :not(.stock-item),
-  #deadStockList > :not(.stock-item) {
-    grid-column: 1 / -1;
-  }
-
-  #stockList > .stock-item,
-  #deadStockList > .stock-item {
-    margin-bottom: 0;
-  }
-
-  .stock-item:hover {
-    transform: none;
-  }
-
-  /* Adjustment form left, its history right */
-  #stockAdjustmentSection:not([style*="none"]) {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto 1fr;
-    column-gap: 24px;
-    align-items: start;
-  }
-
-  #stockAdjustmentSection > .settings-card {
-    grid-column: 1;
-    grid-row: 1 / span 4;
-    margin-bottom: 0;
-  }
-
-  #stockAdjustmentSection > :not(.settings-card) {
-    grid-column: 2;
-  }
-
-  #stockAdjustmentSection > h3 {
-    margin-top: 0;
-  }
-
   .st-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -686,7 +896,7 @@
     display: grid;
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
     grid-template-rows: auto auto auto 1fr;
-    column-gap: 16px;
+    column-gap: var(--sp-4);
     align-items: start;
   }
 
@@ -697,9 +907,14 @@
   .st-view > .st-doc { grid-column: 2; grid-row: 2 / span 3; margin-top: 0; min-width: 0; }
 }
 
+/* Theme preview: the Settings pane has Cancel / Apply; the floating bar shows only while they are scrolled off screen */
 @media (min-width: 1024px) {
   .theme-preview-bar {
     bottom: 24px;
     left: calc(50% + var(--desktop-nav-width) / 2);
+  }
+
+  .theme-preview-bar:not(.theme-preview-float) {
+    display: none;
   }
 }

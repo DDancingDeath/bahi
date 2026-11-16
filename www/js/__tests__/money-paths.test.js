@@ -105,11 +105,11 @@ describe('new purchase save', () => {
 
     test('items × rate, auto labour and grand total are computed from the lines', async () => {
         await buildBill();
-        expect(document.getElementById('billTotal').textContent).toBe('2580');
+        expect(document.getElementById('billTotal').textContent).toBe('2,580');
         expect(document.getElementById('totalPacketsInBill').textContent).toBe('3');
         expect(document.getElementById('manualLaborCharges').value).toBe('12');
         expect(document.getElementById('laborCalculation').textContent).toBe('6 × 2');
-        expect(document.getElementById('amountPayable').textContent).toBe('2568');
+        expect(document.getElementById('amountPayable').textContent).toBe('2,568');
     });
 
     test('saves a split payment with the due in payment.due only (#126)', async () => {
@@ -153,7 +153,7 @@ describe('new purchase save', () => {
         await buildBill();
         expect(document.getElementById('manualLaborCharges').value).toBe('16');
         expect(document.getElementById('laborCalculation').textContent).toBe('8 × 2');
-        expect(document.getElementById('amountPayable').textContent).toBe('2564');
+        expect(document.getElementById('amountPayable').textContent).toBe('2,564');
 
         for (const bad of ['', 'abc', 0, -3, null]) {
             AppState.settings.laborRate = bad;
@@ -167,7 +167,7 @@ describe('new purchase save', () => {
         document.getElementById('autoLaborCharge').checked = false;
         await buildBill();
         expect(document.getElementById('manualLaborCharges').value).toBe('0');
-        expect(document.getElementById('amountPayable').textContent).toBe('2580');
+        expect(document.getElementById('amountPayable').textContent).toBe('2,580');
     });
 
     test('refuses a purchase with Due but no supplier name; fully paid saves without one (#68)', async () => {
@@ -342,7 +342,7 @@ describe('new retail sale save', () => {
         await addLine(0, 36, [10]);
         setVal('saleCashPayment', 360);
         expect(await RetailSaleManager.completeSale()).toBeUndefined();
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('Rice: selling 10 kg, only 5 kg'), 'Check before saving', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('Rice: selling 10 kg, only 5 kg'), 'Check before saving', true, { confirmLabel: 'Save anyway' });
         expect(saveRetailSale).not.toHaveBeenCalled();
     });
 
@@ -570,7 +570,7 @@ describe('recording a due payment (Outstanding)', () => {
         // "Record another ₹100?" → yes: a new payment
         setVal('payment_r1', 100);
         await OutstandingManager.recordPayment('r1', 'retail');
-        expect(ask).toHaveBeenCalledWith(expect.stringContaining('₹100 on this bill was already recorded at'), 'Record it again?', true);
+        expect(ask).toHaveBeenCalledWith(expect.stringContaining('₹100 on this bill was already recorded at'), 'Record it again?', true, { confirmLabel: 'Record again' });
         expect(fake.raw('retailSales').get('r1').payments).toHaveLength(2);
         expect(toast).toHaveBeenLastCalledWith('✓ Payment of ₹100 recorded');
         // Another lost answer, the user answers no: nothing more is recorded

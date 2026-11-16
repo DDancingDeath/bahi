@@ -254,6 +254,17 @@ describe('the printed bill', () => {
         expect(drawn).toContain('चावल');
     });
 
+    test('the party line says Customer on a purchase (owner: no "Supplier") and on a sale, in the slip language', () => {
+        PrinterService.manager._renderBillCanvas({ ...bill, customerName: 'Ram Kisan' }, 384, {});
+        expect(drawn).toContain('Customer: Ram Kisan');
+        drawn = [];
+        PrinterService.manager._renderBillCanvas({ ...bill, isPurchase: false, customerName: 'Sita' }, 384, {});
+        expect(drawn).toContain('Customer: Sita');
+        drawn = [];
+        PrinterService.manager._renderBillCanvas({ ...bill, customerName: 'Ram Kisan' }, 384, { lang: 'hi' });
+        expect(drawn).toContain('ग्राहक: Ram Kisan');
+    });
+
     test('density sets how dark grey edges print', () => {
         pixel = 150;
         const normal = PrinterService.manager.billBytes(bill, 384, { threshold: 128 });
@@ -491,10 +502,10 @@ describe('Settings › Printed bill', () => {
     test('sample and walk-in names follow the bill language, not the app language', async () => {
         setLang('hi');
         PrinterService.setSharedReceipt({ lang: 'en' });
-        expect(PrinterService.sampleBill()).toMatchObject({ customerName: 'Test Customer', items: [{ name: 'Test Item' }] });
+        expect(PrinterService.sampleBill()).toMatchObject({ customerName: 'Test customer', items: [{ name: 'Test item' }] });
         const print = jest.spyOn(PrinterService, 'printBill').mockResolvedValue(false);
         await PrinterService.printWholesaleSale({ billNumber: 'W-1', items: [], total: 0 });
-        expect(print.mock.calls[0][0].customerName).toBe('Walk-in Customer');
+        expect(print.mock.calls[0][0].customerName).toBe('Walk-in customer');
     });
 });
 

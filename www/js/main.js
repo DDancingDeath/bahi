@@ -5,8 +5,9 @@ import { UIManager } from './ui/ui-manager.js';
 import { NavigationManager } from './ui/navigation.js';
 import { BottomNav } from './ui/bottom-nav.js';
 import { VoiceMic } from './ui/voice-mic.js';
+import { PhotoWeights } from './ui/photo-weights.js';
+import { PrinterShortcut } from './ui/printer-shortcut.js';
 import { CrashReports } from './services/crash-reports.js';
-import { watchHeadingEmoji } from './ui/heading-emoji.js';
 import { BusinessSwitcher } from './ui/business-switcher.js';
 import { SyncStatus } from './ui/sync-status.js';
 import { startClockCheck } from './ui/clock-banner.js';
@@ -30,6 +31,7 @@ import { SettingsManager } from './modules/settings.js';
 import { CashManagementManager } from './modules/cash-management.js';
 import { DayManager, loadAnomalies, loadedAnomalies } from './modules/day.js';
 import { ManualReminders } from './ui/manual-reminders.js';
+import { toggleDisclosure } from './ui/disclosure.js';
 import { RolesAccessManager } from './modules/roles-access.js';
 import { tip, configureTip, startTipReporting, tipDeviceId } from './tip/index.js';
 import { dayKeyOf } from './tip/tip.js';
@@ -37,12 +39,14 @@ import { createSyncWatcher } from './tip/scenarios/sync.js';
 import { createWatchdog, TICK_MS as WATCHDOG_TICK_MS } from './tip/scenarios/main-thread.js';
 import { runNumberChecksOnce, numberChecksProps } from './tip/scenarios/number-checks.js';
 import { whenIdle } from './utils/background-tasks.js';
+import { payDueStale, billsDueStale } from './utils/pay-reminder.js';
 import { startAppCheck } from './services/app-check.js';
 import { APP_VERSION } from './version.js';
 import { AuditService } from './services/audit.js';
 import { TelemetryService } from './services/telemetry.js';
 import { AppUpdatesManager } from './modules/app-updates.js';
 import { NotificationsManager } from './modules/notifications.js';
+import { PhoneNotify } from './modules/phone-notify.js';
 import { markStartup, noteStartup, logStartupTimings } from './utils/startup-timings.js';
 
 // Import template loader utility
@@ -52,8 +56,10 @@ import { InstallManager } from './services/install-prompt.js';
 import { SecurityMonitor } from './services/security-monitor.js';
 import { startLongTaskRecorder } from './utils/perf-probe.js';
 import { shortcutFromSearch, withoutShortcut } from './utils/launch-shortcut.js';
+import { chooseStartPage, routeFromHash } from './utils/start-page.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
+import { installTablistKeys } from './ui/seg.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
 
 // #59: only the app language's catalogue is loaded before the first screen (DOMContentLoaded waits for it)
@@ -64,7 +70,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261108cv-canonical-due';
+const BUILD_ID = '20261108gq-canonical-due';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -159,6 +165,28 @@ const loadDiagnostics = onDemand(() => Promise.all([import('./modules/diagnostic
 const loadAdmin = onDemand(() => import('./modules/admin.js').then(m => (admin = m.AdminManager)));
 let workers = null;
 const loadWorkers = onDemand(() => import('./modules/workers.js').then(m => (workers = m.WorkersManager)));
+let recurring = null;
+const loadRecurring = onDemand(() => import('./modules/recurring-bills.js').then(m => (recurring = m.RecurringBillsManager)));
+const ownerRefreshes = new Map();
+/**
+ * An owner reminder kept on this phone (salaries #373 WP-11, bills #437 RB-11): once per session on the
+ * owner's phone, after the first screen, and only when this phone keeps it from an earlier day (its page
+ * was opened here): one read per document of that page.
+ */
+function scheduleOwnerRefresh(name, isStale, refresh) {
+    const uid = AppState.currentUser?.uid;
+    if (AppState.userRole !== 'owner' || !uid || ownerRefreshes.get(name) === uid) return;
+    ownerRefreshes.set(name, uid);
+    whenIdle(() => {
+        if (AppState.currentUser?.uid !== uid || AppState.userRole !== 'owner' || navigator.onLine === false) return;
+        if (!backgroundReadsAllowed() || !isStale(localStorage, uid)) return;
+        refresh().catch(e => console.warn(`${name} not refreshed:`, e?.code || e?.message || e));
+    }, { minDelayMs: 20000 });
+}
+function scheduleOwnerReminders() {
+    scheduleOwnerRefresh('Salaries due', payDueStale, () => loadWorkers().then(m => m.refreshPayDue()));
+    scheduleOwnerRefresh('Bills due', billsDueStale, () => loadRecurring().then(m => m.refreshBillsDue()));
+}
 
 // Data changes re-render the open lazy pages (firestore-service.js emits, utils/events.js);
 // the eager pages subscribe in their own modules. Money, Insights and Statements subscribe
@@ -230,6 +258,7 @@ const PAGE_ADDED = {
     settings: () => {
         PrinterService.updateStatus();
         VoiceMic.apply();
+        PhotoWeights.apply();
         CrashReports.render();
         const swipe = document.getElementById('settingSwipeTabs');
         if (swipe) swipe.checked = !!BottomNav.swipeOn;
@@ -310,7 +339,8 @@ function refreshForLanguage(lang) {
         stock: () => StockManager.refreshForLanguage(),
         admin: () => { admin?.renderTabs(); admin?.renderContent(); },
         health: () => { if (health?.data) health.render(); },
-        workers: () => workers?.render()
+        workers: () => workers?.render(),
+        recurring: () => recurring?.render()
     }[tabId];
     if (redraw) run(tabId, redraw);
     if (tabId === 'day' && DayManager.currentSubTab === 'cash') run('day-cash', () => CashManagementManager.refreshForLanguage());
@@ -352,7 +382,6 @@ window.addEventListener('unhandledrejection', function(event) {
 function setupEventListeners() {
     // Close the side menu on overlay tap / Esc / swipe-left
     NavigationManager.initMenuDismiss();
-    watchHeadingEmoji(document.body);
     
     // Modal buttons: wired once, by their onclick in templates/modals.html. A second
     // listener here closed the next dialog too when one opened straight after (#63).
@@ -408,6 +437,7 @@ function blockOutdatedApp() {
     outdatedBlocked = true;
     FirebaseService.cleanup();
     NotificationsManager.stop();
+    PhoneNotify.stop();
     ManualReminders.reset();
     document.getElementById('appContent')?.classList.add('hidden');
     UIManager.hideLoading();
@@ -425,18 +455,33 @@ function writeTipReport({ delta, failures }) {
     });
 }
 
-/** Opens the page of a home-screen shortcut (#151) once, after the first screen. */
-function openLaunchShortcut() {
-    const shortcut = shortcutFromSearch(window.location.search);
-    if (!shortcut) return;
-    window.history.replaceState(window.history.state, '', withoutShortcut(window.location.pathname, window.location.search, window.location.hash));
-    if (shortcut.tab !== 'billing') {
-        const shown = NavigationManager.showTab(shortcut.tab);
-        if (shown && typeof shown.then === 'function') shown.then(ok => { if (ok) NavigationManager.setActiveNavLink(shortcut.tab); });
-        else if (shown !== false) NavigationManager.setActiveNavLink(shortcut.tab);
+/** The page a launch URL asks for (#151 home-screen shortcut, or `#route`), taken from the URL once. */
+function takeLaunchLink() {
+    const { pathname, search, hash } = window.location;
+    const shortcut = shortcutFromSearch(search);
+    const hashed = routeFromHash(hash);
+    const route = hashed && NavigationManager.isKnownRoute(hashed) ? hashed : null;
+    if (shortcut || route) window.history.replaceState(window.history.state, '', withoutShortcut(pathname, search, route ? '' : hash));
+    if (shortcut) return shortcut;
+    return route ? { tab: route } : null;
+}
+
+/** Shows the start page; Billing keeps its start-up path (bill dates, no mode reset). */
+function openStartPage(tab) {
+    if (tab === 'billing') {
+        NavigationManager.showTab('billing');
+        BillingManager.prepareBillDates();
+        NavigationManager.setActiveNavLink('billing');
         return;
     }
-    if (shortcut.mode) BillingManager.switchMode(shortcut.mode, { currentTarget: document.getElementById(shortcut.mode === 'sale' ? 'saleModeBtn' : 'purchaseModeBtn') });
+    BillingManager.prepareBillDates();
+    NavigationManager.showTabFromNav(tab, null, { quiet: true });
+}
+
+/** A home-screen shortcut's bill mode (#151), after the auto-save check has started. */
+function openLaunchMode(launch) {
+    if (launch?.tab !== 'billing' || !launch.mode) return;
+    BillingManager.switchMode(launch.mode, { currentTarget: document.getElementById(launch.mode === 'sale' ? 'saleModeBtn' : 'purchaseModeBtn') });
 }
 
 async function initializeUserData() {
@@ -543,7 +588,10 @@ async function initializeUserData() {
 
         // Notifications: the profile is loaded, so the uid is known (#12).
         const notifUid = AppState.currentUser?.uid || firebase.auth().currentUser?.uid;
-        if (notifUid) NotificationsManager.start(notifUid);
+        if (notifUid) {
+            NotificationsManager.start(notifUid);
+            PhoneNotify.start(notifUid).catch(e => console.warn('Phone notifications failed to start:', e));
+        }
 
         // Don't hold the first screen for a slow version read (up to ~24 s on a
         // weak network): wait briefly, then let it finish in the background and
@@ -564,6 +612,11 @@ async function initializeUserData() {
             });
         }
 
+        // A launch link or a reloaded page may need the owner's Roles & access choices (settings/app)
+        const launch = takeLaunchLink();
+        const restored = NavigationManager.restoredRoute();
+        if (launch || restored) await Promise.race([appSettingsApplied, new Promise(resolve => setTimeout(resolve, VERSION_CHECK_WAIT_MS))]);
+
         // Stock is computed right after the first screen is painted (#13): the
         // screens show "Stock updating…" until then and re-render when it is
         // ready, so the first screen never waits on it.
@@ -573,6 +626,7 @@ async function initializeUserData() {
         // Initialize billing manager (connects purchase and retail-sale modules)
         BillingManager.init();
         VoiceMic.apply();
+        PhotoWeights.apply();
         CrashReports.apply().catch(e => console.warn('Crash reports:', e));
         
         // Show app content
@@ -581,7 +635,16 @@ async function initializeUserData() {
             appContent.classList.remove('hidden');
         }
         
-        // Show the billing tab by default
+        // Billing's printer button and sheet: the Settings printer panel, Settings put in first
+        PrinterShortcut.init({
+            loadPanel: async () => {
+                if (!(await TemplateLoader.ensurePage('settings'))) return null;
+                SettingsManager.syncPrinterPanel();
+                SettingsManager.updatePrinterStatus().catch(e => console.warn('Printer status:', e));
+                return document.getElementById('printerPanel');
+            }
+        });
+
         BottomNav.init({
             showTab: (tab) => NavigationManager.showTabFromNav(tab),
             // Pull-to-refresh reloads data only: filters, the bill being entered and forms stay as they are
@@ -604,9 +667,15 @@ async function initializeUserData() {
             },
             onRefreshed: () => UIManager.showToast(t('msg.nav.refreshed'))
         });
-        NavigationManager.showTab('billing');
-        BillingManager.prepareBillDates();
-        NavigationManager.setActiveNavLink('billing');
+        // Start page (utils/start-page.js): a launch link, else this tab's page before a reload, else the role's
+        const start = chooseStartPage({
+            role: AppState.userRole,
+            link: launch?.tab,
+            restored,
+            canOpen: (id) => NavigationManager.canOpenRoute(id)
+        });
+        NavigationManager.homeTab = start.home;
+        openStartPage(start.tab);
         NavigationManager.initBackNavigation();
         
         // Initialize UI
@@ -634,7 +703,7 @@ async function initializeUserData() {
         // Auto-saved bill: its banner shows when the read returns. The first screen doesn't wait for it
         // (a server read queues behind the listeners' server answers, #59); auto-save writes wait for it.
         BillingManager.checkAutoSave();
-        openLaunchShortcut();
+        openLaunchMode(launch);
         BillingManager.renderBillNumber();
         BillingManager.focusFirstItem();
         if (outdatedBlocked) {
@@ -689,10 +758,14 @@ async function initializeUserData() {
                 .then(([m, confirmed]) => confirmed && m.scheduleDailyScan(Math.max(0, DAILY_SCAN_DELAY_MS - (Date.now() - shownAt))))
                 .catch(e => console.warn('Anomalies not loaded:', e?.message || e));
         }, { timeoutMs: 4000 });
+        scheduleOwnerReminders();
 
         // Team directory (#87): managers read names and roles from it; once a day the owner's phone
         // rebuilds it from the profiles when they differ (late, so it never slows the first screens)
         if (AppState.userRole === 'owner') {
+            // This owner is counted in settings/team.ownerUids (docs/role-permissions.md, "Owners")
+            setTimeout(() => FirebaseService.ensureSelfListedOwner()
+                .catch(e => console.warn('Owner list not checked:', e?.code || e)), 15000);
             setTimeout(() => FirebaseService.ensureTeamDirectory()
                 .catch(e => console.warn('Team directory not checked:', e?.code || e)), 180000);
         }
@@ -717,6 +790,7 @@ async function initializeUserData() {
 // Initialize app on DOM ready
 // data-on* attributes (delegated handlers, #89) work from the first template on
 installActions();
+installTablistKeys();
 
 // Before the templates go in, so their text never changes weight (variables.css: --w-strong)
 if (window.Capacitor?.getPlatform?.() === 'android') document.documentElement.classList.add('platform-android');
@@ -754,10 +828,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 FirebaseService.cleanup();
                 FirebaseService.forgetPeopleCaches();
                 NotificationsManager.stop();
+                PhoneNotify.stop();
                 ManualReminders.reset();
                 ask?.reset();
                 workers?.reset();
+                recurring?.reset();
                 BusinessSwitcher.reset();
+                NavigationManager.forgetRoute();
                 AppState.currentUser = null;
                 document.getElementById('printerPermissionBanner')?.remove();
                 document.getElementById('authScreen').style.display = 'flex';
@@ -985,8 +1062,20 @@ window.app = {
     // Voice billing (#81): Settings switch (off by default) and the Billing mic buttons
     voice: {
         start: (mode) => VoiceMic.start(mode),
+        name: (mode) => VoiceMic.name(mode),
+        pickName: (choice) => UIManager.closeModal(choice),
         setOn: (on) => VoiceMic.setOn(on),
-        setReadback: (on) => VoiceMic.setReadback(on)
+        setReadback: (on) => VoiceMic.setReadback(on),
+        setBeep: (on) => VoiceMic.setBeep(on),
+        undo: (mode) => VoiceMic.undo(mode),
+        editLine: (i) => VoiceMic.editLine(i),
+        lineChanged: (i) => VoiceMic.lineChanged(i)
+    },
+    // Photo of weights (#374): the owner's switch (off by default) and the Purchase button
+    photoWeights: {
+        pick: (mode) => PhotoWeights.pick(mode),
+        picked: (input) => PhotoWeights.picked(input),
+        setOn: (on) => SettingsManager.savePhotoWeights(on)
     },
     
     // Business switcher (#149) and Rentals (#170): rentals.* methods are added when the section loads
@@ -997,6 +1086,12 @@ window.app = {
         open: (page, evt) => BusinessSwitcher.openRentals(page, evt)
     },
     
+    // Billing's Bluetooth printer sheet (app bar, next to the bell)
+    printerSheet: {
+        open: () => PrinterShortcut.open(),
+        close: () => PrinterShortcut.close()
+    },
+
     // Notifications inbox (#12)
     notifications: {
         toggle: () => NotificationsManager.toggle(),
@@ -1006,7 +1101,10 @@ window.app = {
         markAllRead: () => NotificationsManager.markAllRead(),
         openNotification: (id) => NotificationsManager.openNotification(id),
         openReminder: (page) => NotificationsManager.openReminder(page),
-        toggleSystem: (checked) => NotificationsManager.toggleSystem(checked),
+        setPhone: (checked) => PhoneNotify.setOn(checked),
+        setType: (type, checked) => PhoneNotify.setType(type, checked),
+        setTime: (value) => PhoneNotify.setTime(value),
+        test: () => PhoneNotify.sendTest(),
         refreshSettings: () => NotificationsManager.refreshSettings()
     },
 
@@ -1120,6 +1218,9 @@ window.app = {
         loadDraft: (index) => BillingManager.loadDraft(index),
         deleteDraft: (index) => BillingManager.deleteDraft(index),
         clearBill: () => BillingManager.clearBill(),
+        confirmClear: () => BillingManager.confirmClear(),
+        showDate: (id) => BillingManager.showDate(id),
+        showNotes: (id) => BillingManager.showNotes(id),
         updateDraftCount: () => BillingManager.updateDraftCount(),
         
         // Auto-save management
@@ -1210,7 +1311,7 @@ window.app = {
         completeSale: () => WholesaleSalesManager.completeSale(),
         printWholesaleSale: () => WholesaleSalesManager.printWholesaleSale(),
         shareViaWhatsApp: () => WholesaleSalesManager.shareViaWhatsApp(),
-        filterTab: (view, evt) => WholesaleSalesManager.filterSalesTab(view, evt),
+        filterTab: (view) => WholesaleSalesManager.filterSalesTab(view),
         renderHistory: () => WholesaleSalesManager.renderSalesHistory(),
         setHistoryPreset: (preset) => WholesaleSalesManager.setHistoryPreset(preset),
         applyHistoryRange: (from, to) => WholesaleSalesManager.applyHistoryRange(from, to),
@@ -1342,6 +1443,12 @@ window.app = {
             .map(name => [name, (...args) => loadWorkers().then(m => m[name](...args))]))
     },
 
+    // Recurring bills (#437): owner page, recurring-bills.js is imported on first use
+    recurring: {
+        ...Object.fromEntries(['init', 'render', 'open', 'showForm', 'cancel', 'saveItem', 'saveEdit', 'saveBill', 'savePay', 'saveStop', 'removeEntry']
+            .map(name => [name, (...args) => loadRecurring().then(m => m[name](...args))]))
+    },
+
     // Money (redesign §5.2): money.js is imported on first use
     money: {
         init: (section) => loadMoney().then(m => m.init(section))
@@ -1387,6 +1494,11 @@ window.app = {
         ...Object.fromEntries(['selectItem', 'setRange', 'setPeriod', 'setView', 'setWeeks', 'setCompareKind', 'setBudget',
             'startBackfill', 'continueBackfill', 'setTrafficMonth', 'setTrafficItem', 'setTrafficWeeks']
             .map(name => [name, (...args) => loadRateTrends().then(m => m[name](...args))]))
+    },
+
+    // Disclosure cards (ui/disclosure.js): Today's Reminders and Day report
+    disclosure: {
+        toggle: (key) => toggleDisclosure(key)
     },
 
     // Day (Today's Summary + Cash Management)
@@ -1436,7 +1548,8 @@ window.app = {
             SettingsManager.open(section);
         },
         save: () => SettingsManager.saveSettings(),
-        showOther: () => SettingsManager.showOther(),
+        openGroup: (group) => SettingsManager.openGroup(group),
+        back: () => SettingsManager.back(),
         saveName: () => SettingsManager.saveName(),
         changePassword: () => SettingsManager.changePassword(),
         saveBusinessDetails: () => SettingsManager.saveBusinessDetails(),
@@ -1522,7 +1635,7 @@ window.app = {
         showLoading: () => UIManager.showLoading(),
         hideLoading: () => UIManager.hideLoading(),
         showToast: (msg, durationOrType, duration) => UIManager.showToast(msg, durationOrType, duration),
-        showModal: (msg, title, showCancel) => UIManager.showModal(msg, title, showCancel),
+        showModal: (msg, title, showCancel, opts) => UIManager.showModal(msg, title, showCancel, opts),
         closeModal: (result) => UIManager.closeModal(result)
     }
 };

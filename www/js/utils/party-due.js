@@ -10,9 +10,9 @@
  */
 
 import { buildAging } from './aging.js';
-import { partyNameKey } from './parties.js';
-import { formatINR } from './due-reminder.js';
+import { nameWithoutPhone, partyNameKey } from './parties.js';
 import { getLang, t } from '../i18n/index.js';
+import { formatRupees } from './money.js';
 
 /**
  * Open bills that make up the Outstanding list for a billing form.
@@ -29,14 +29,26 @@ export function billsForKind(state, kind) {
 }
 
 /**
- * Existing due of one party (exact normalized name match).
+ * Existing due of one party (exact normalized name match). A name filled from a contact
+ * ("Ramesh - 9876543210") with nothing owed under it falls back to the plain name ("Ramesh"),
+ * marked `matchedName` so the line says whose bills those are (never merged).
  * @param {Array<?Bill>} bills
  * @param {string} name Name typed on the bill
  * @param {{excludeId?: *, today?: Date}} [opts] excludeId: the bill being edited / retried
- * @returns {?{key: string, total: number, count: number, oldestDays: ?number, bucket: number}}
+ * @returns {?{key: string, total: number, count: number, oldestDays: ?number, bucket: number, matchedName?: string}}
  *   null when the name is blank or nothing is owed
  */
-export function partyDue(bills, name, { excludeId = null, today = new Date() } = {}) {
+export function partyDue(bills, name, opts = {}) {
+    const due = exactPartyDue(bills, name, opts);
+    if (due) return due;
+    const plain = nameWithoutPhone(name);
+    if (partyNameKey(plain) === partyNameKey(name)) return null;
+    const under = exactPartyDue(bills, plain, opts);
+    return under ? { ...under, matchedName: plain } : null;
+}
+
+/** @param {Array<?Bill>} bills @param {string} name @param {{excludeId?: *, today?: Date}} [opts] */
+function exactPartyDue(bills, name, { excludeId = null, today = new Date() } = {}) {
     const key = partyNameKey(name);
     if (!key) return null;
     const skip = excludeId === null || excludeId === undefined ? null : String(excludeId);
@@ -55,7 +67,7 @@ export function partyDue(bills, name, { excludeId = null, today = new Date() } =
  * @returns {string}
  */
 export function partyDueText(due, kind, lang = getLang()) {
-    const amount = formatINR(due.total);
+    const amount = formatRupees(due.total);
     const n = due.count;
     const bills = t(n === 1 ? 'ui.outstanding.bills_one' : 'ui.outstanding.bills_many', { count: n }, lang);
     const d = due.oldestDays;

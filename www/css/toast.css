@@ -1,38 +1,22 @@
-.toast {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  z-index: 100000;
-  opacity: 0;
-  pointer-events: none;
-  max-width: 85%;
-  text-align: center;
-}
-
-.toast.show {
-  opacity: 1;
-}
-
-
 /* Offline / waiting-to-sync pill (#70), between the menu button and the bell */
 .sync-pill {
   position: fixed;
   top: 22px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1001;
+  z-index: calc(var(--z-drawer) + 1);
   max-width: calc(100% - 140px);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  background: #374151;
-  color: #fff;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  background: var(--toast-bg);
+  color: var(--toast-ink);
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
   line-height: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--e2);
   pointer-events: none;
 }
 
@@ -41,22 +25,23 @@
 }
 
 .sync-pill[data-state="pending"] {
-  background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--card-bg);
-  color: var(--on-warning-soft);
+  background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--panel-bg);
+  color: var(--warning);
 }
 
 .sync-pill[data-state="synced"] {
-  background: #047857;
+  background: linear-gradient(var(--positive-soft), var(--positive-soft)), var(--panel-bg);
+  color: var(--positive);
 }
 
 .sync-pill[data-state="updating"] {
-  background: linear-gradient(var(--info-soft), var(--info-soft)), var(--card-bg);
+  background: linear-gradient(var(--info-soft), var(--info-soft)), var(--panel-bg);
   color: var(--info);
 }
 
 .sync-pill[data-state="stale"] {
-  background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--card-bg);
-  color: var(--on-warning-soft);
+  background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--panel-bg);
+  color: var(--warning);
 }
 
 /* Figures from the phone's cache until the server answers (#59): ui/sync-status.js sets html[data-updating] */
@@ -67,9 +52,9 @@
 
 html[data-updating] .updating-note {
   display: block;
-  margin: 0 0 12px;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-panel);
   background: var(--info-soft);
   color: var(--info);
   font-size: var(--fs-caption);
@@ -84,11 +69,11 @@ html[data-updating] .updating-mark {
 .sync-chip {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-full);
   font-size: var(--fs-caption);
   font-weight: var(--w-label);
   background: var(--warning-soft);
-  color: var(--on-warning-soft);
+  color: var(--warning);
 }
 
 .sync-chip[hidden] {
@@ -96,10 +81,10 @@ html[data-updating] .updating-mark {
 }
 
 .sync-chip[data-state="synced"] {
-  background: var(--success-soft);
-  color: var(--on-success-soft);
+  background: var(--positive-soft);
+  color: var(--positive);
 }
 
-.ins-row .sync-chip {
+.ins-line .sync-chip {
   margin-left: 6px;
 }

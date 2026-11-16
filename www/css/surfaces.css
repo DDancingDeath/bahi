@@ -1,6 +1,6 @@
 /* Surfaces and feedback (redesign 2.5b, DIRECTION 3.6): panel and rows, metrics, hero figure, meter,
    notice, empty, skeleton, table, dialog, sheet and scrim, toast, loading. Layer 3: tokens only.
-   Older classes listed beside a new one keep their hooks (JS, E2E) and share its look. */
+   Hooks for JS and tests are data-* attributes, not classes. */
 
 /* ---------- Text tones ---------- */
 .tone-pos { color: var(--positive); }
@@ -101,7 +101,7 @@ a.row:active {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: calc(var(--r-control) + 2px);
+  border-radius: var(--r-md);
   background: var(--surface-2);
   color: var(--ink-2);
 }
@@ -110,6 +110,18 @@ a.row:active {
 .lead-icon.pos { background: var(--positive-soft); color: var(--positive); }
 .lead-icon.neg { background: var(--negative-soft); color: var(--negative); }
 .lead-icon.warn { background: var(--warning-soft); color: var(--warning); }
+
+/* Mode dot: identity of purchase / sale / wholesale, never status */
+.mode-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-round);
+  background: var(--mode-purchase);
+}
+
+.mode-dot.sale { background: var(--mode-sale); }
+.mode-dot.wholesale { background: var(--mode-wholesale); }
 
 /* ---------- Metrics, hero figure, meter ---------- */
 .metrics {
@@ -166,6 +178,167 @@ a.row:active {
   font-size: var(--fs-display);
 }
 
+/* Hero figure: caption, the figure, then its in/out or compare line, plain on the page (no fill) */
+.hero {
+  padding: var(--sp-2) 0 var(--sp-1);
+  color: var(--ink);
+}
+
+.hero > .hero-cap {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--ink-3);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+  letter-spacing: normal;
+}
+
+.hero > .hero-cap::after {
+  content: none;
+}
+
+.hero > .hero-num,
+.hero > .hero-fig {
+  margin-top: var(--sp-1);
+  color: var(--ink);
+}
+
+/* A panel that opens something when tapped */
+.panel-tap {
+  cursor: pointer;
+}
+
+.panel-tap:hover {
+  background: var(--surface-2);
+}
+
+.panel-tap:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+/* Disclosure (ui/disclosure.js): a card closed to one row (title, a short summary, chevron) that opens to its content.
+   The row is an <h3><button aria-expanded>; small tools (a 44 px icon button) may sit after it. */
+.disclosure-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.disclosure-head > .btn-icon {
+  flex: none;
+  margin-right: var(--sp-2);
+}
+
+.disclosure .disclosure-heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.disclosure-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: var(--row-h);
+  padding: var(--sp-2) var(--sp-4);
+  border: none;
+  border-radius: var(--r-panel);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.disclosure-toggle:hover {
+  background: var(--surface-2);
+}
+
+.disclosure-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.disclosure-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.disclosure-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: var(--w-strong);
+}
+
+.disclosure-summary > span {
+  white-space: nowrap;
+}
+
+.disclosure-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+/* Something overdue: an amber dot after the title (its words are for screen readers) */
+.disclosure-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-round);
+  background: var(--warning);
+}
+
+.disclosure-chev {
+  display: inline-flex;
+  flex: none;
+  color: var(--ink-3);
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.disclosure-toggle[aria-expanded="true"] .disclosure-chev {
+  transform: rotate(180deg);
+}
+
+.disclosure-body {
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.disclosure-body[hidden] {
+  display: none;
+}
+
+/* Money figure: the ₹ sign smaller and muted beside the digits (<span class="cur">₹</span>) */
+.money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cur {
+  margin-right: 1px;
+  color: var(--ink-3);
+  font-size: var(--fs-cur);
+  font-weight: var(--w-regular);
+}
+
+@media print {
+  .cur {
+    color: inherit;
+  }
+}
+
 .meter {
   display: flex;
   gap: 2px;
@@ -180,13 +353,18 @@ a.row:active {
   height: 100%;
 }
 
+/* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ---------- */
+.page-head {
+  display: none;
+}
+
 /* ---------- Notice ---------- */
 .notice {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: calc(var(--r-control) + 2px);
+  border-radius: var(--r-md);
   background: var(--surface-2);
   color: var(--ink-2);
   font-size: var(--fs-sm);
@@ -206,9 +384,46 @@ a.row:active {
   font-weight: var(--w-strong);
 }
 
-/* ---------- Empty (old: .empty-state lines) and skeleton ---------- */
-.empty,
-.empty-state {
+.notice[hidden],
+.empty[hidden] {
+  display: none;
+}
+
+.notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Solid: the tint over an opaque surface, for a notice that sticks or floats over the page */
+.notice.solid {
+  background-color: var(--surface);
+  background-image: linear-gradient(var(--notice-tint, transparent), var(--notice-tint, transparent));
+}
+
+.notice.solid.neg { --notice-tint: var(--negative-soft); }
+.notice.solid.warn { --notice-tint: var(--warning-soft); }
+.notice.solid.info { --notice-tint: var(--info-soft); }
+
+/* Float: one message for the whole app at the top of the screen (wrong clock, printer permission) */
+.notice.float {
+  position: fixed;
+  top: calc(var(--sp-2) + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+  width: min(92vw, 560px);
+  box-shadow: var(--e2);
+}
+
+/* Wrong phone clock notice (#115): a .notice.float */
+.clock-notice {
+  z-index: calc(var(--z-sheet) + 1);
+}
+
+/* ---------- Empty and skeleton ---------- */
+.empty {
   padding: var(--sp-6) var(--sp-4);
   color: var(--ink-3);
   font-size: var(--fs-sm);
@@ -216,6 +431,7 @@ a.row:active {
 }
 
 .empty .lead-icon {
+  display: flex;
   width: 44px;
   height: 44px;
   margin: 0 auto var(--sp-3);
@@ -227,6 +443,18 @@ a.row:active {
   color: var(--ink);
   font-size: var(--fs-body);
   font-weight: var(--w-strong);
+}
+
+.empty p {
+  margin: 0;
+}
+
+.empty.tone-neg {
+  color: var(--negative);
+}
+
+.empty > .btn {
+  margin-top: var(--sp-3);
 }
 
 .skel {
@@ -255,7 +483,7 @@ a.row:active {
 }
 
 .table th {
-  padding: 8px 12px;
+  padding: var(--sp-2) var(--sp-3);
   border-bottom: 1px solid var(--table-rule);
   color: var(--ink-3);
   font-size: var(--fs-caption);
@@ -265,7 +493,7 @@ a.row:active {
 
 .table td {
   height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--sp-3);
   border-bottom: 1px var(--rule-style) var(--line);
 }
 
@@ -282,26 +510,52 @@ a.row:active {
   text-align: right;
 }
 
-/* ---------- Scrim, dialog (old: .modal-overlay > .modal-box, .modal > .modal-content), sheet ---------- */
-.scrim,
-.overlay,
-.modal-overlay,
-.modal {
+/* Horizontal-scroll tables: fade on the right while columns are hidden (ui/scroll-cue.js) */
+.scroll-cue {
+  position: relative;
+}
+
+.scroll-cue-inner {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-cue.scroll-cue-more::after {
+  content: '\203A';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--sp-1);
+  font-size: var(--fs-title);
+  font-weight: var(--w-strong);
+  color: var(--ink-2);
+  background: linear-gradient(to right, transparent, var(--panel-bg) 70%);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  pointer-events: none;
+}
+
+/* ---------- Scrim, dialog, sheet ---------- */
+/* A plain-text dialog message keeps its line breaks (UIManager.showModal) */
+.dialog-lines {
+  white-space: pre-line;
+}
+
+.scrim {
   background: var(--scrim);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
-.dialog,
-.modal-box,
-.modal-content {
+.dialog {
   border: 1px solid var(--line);
-  border-radius: calc(var(--r-panel) + 2px);
+  border-radius: var(--r-lg);
   background: var(--panel-bg);
   box-shadow: var(--e3);
-}
-
-.dialog {
   width: min(480px, 100% - 32px);
   min-width: min(320px, 100% - 32px);
   padding: var(--sp-5);
@@ -314,7 +568,7 @@ a.row:active {
   left: 0;
   max-height: 90vh;
   overflow-y: auto;
-  padding: 12px var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
   border-radius: var(--r-sheet) var(--r-sheet) 0 0;
   background: var(--panel-bg);
   box-shadow: var(--e3);
@@ -323,53 +577,45 @@ a.row:active {
 .sheet > .grabber {
   width: 36px;
   height: 4px;
-  margin: 0 auto 12px;
-  border-radius: 2px;
+  margin: 0 auto var(--sp-3);
+  border-radius: var(--r-2xs);
   background: var(--line-strong);
 }
 
-/* Dialog actions: ghost Cancel + one primary */
-.modal-btn {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  font-family: inherit;
-  font-size: var(--fs-body);
-  font-weight: var(--w-strong);
-  cursor: pointer;
-  transition: background-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+/* The side menu's scrim on the phone (desktop has a permanent sidebar) */
+.nav-scrim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: calc(var(--z-drawer) - 1);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--dur-3) var(--ease);
 }
 
-.modal-btn:active {
-  transform: scale(0.98);
+.nav-scrim.active {
+  opacity: 1;
+  visibility: visible;
 }
 
-.modal-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
-}
-
-.modal-btn-cancel {
-  background: transparent;
-  color: var(--accent-text);
-}
-
-.modal-btn-cancel:hover {
-  background: var(--surface-2);
-}
-
-.modal-btn-confirm {
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-ink);
-  box-shadow: var(--btn-primary-shadow);
+@media (min-width: 1024px) {
+  .nav-scrim {
+    display: none;
+  }
 }
 
 /* ---------- Toast: near-black in every theme; the type shows as a coloured bar ---------- */
 .toast {
-  padding: 12px 16px;
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  z-index: var(--z-toast);
+  max-width: 85%;
+  padding: var(--sp-3) var(--sp-4);
   border: none;
-  border-radius: calc(var(--r-control) + 2px);
+  border-radius: var(--r-md);
   background: var(--toast-bg);
   color: var(--toast-ink);
   font-size: var(--fs-sm);
@@ -377,30 +623,29 @@ a.row:active {
   box-shadow: var(--e3);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
   transform: translateX(-50%) translateY(16px);
   transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
 }
 
 .toast.show {
+  opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-.toast.success { box-shadow: inset 4px 0 0 var(--toast-pos), var(--e3); }
-.toast.error { box-shadow: inset 4px 0 0 var(--toast-neg), var(--e3); }
-.toast.warning { box-shadow: inset 4px 0 0 var(--toast-warn), var(--e3); }
-.toast.info { box-shadow: inset 4px 0 0 var(--toast-info), var(--e3); }
+.toast.success { box-shadow: var(--stripe) var(--toast-pos), var(--e3); }
+.toast.error { box-shadow: var(--stripe) var(--toast-neg), var(--e3); }
+.toast.warning { box-shadow: var(--stripe) var(--toast-warn), var(--e3); }
+.toast.info { box-shadow: var(--stripe) var(--toast-info), var(--e3); }
 
-/* ---------- Loading: the full-screen spinner is for blocking saves only ---------- */
-.loading-overlay {
-  background: var(--scrim);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--line-strong);
-  border-top-color: var(--accent);
-  box-shadow: none;
+/* ---------- Text for screen readers only ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

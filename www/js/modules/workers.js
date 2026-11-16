@@ -10,18 +10,20 @@ import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { AppState } from '../utils/state.js';
 import { t, getLang } from '../i18n/index.js';
-import { formatRupees } from '../utils/money.js';
+import { emptyState } from '../ui/components.js';
+import { formatRupees, moneyText } from '../utils/money.js';
 import { formatMonth, formatDay, todayLocalISO } from '../utils/dates.js';
 import * as repo from '../firebase/repos/workers.js';
 import {
     MAX_NAME, MAX_NOTE, MAX_PAY_STEPS, leftFrom, lastPay, monthKeyOf, addMonthKey, payFor, withPay, withStart,
-    paySummary, balanceParts, checkEntry, checkWorker, isMonthKey
+    paySummary, balanceParts, checkEntry, checkWorker, isMonthKey, payDueMonths
 } from '../utils/worker-pay.js';
+import { savePayDue } from '../utils/pay-reminder.js';
+import { ageInDays, dueTone } from '../utils/aging.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const js = (v) => Helpers.escapeJsAttr(v);
 const et = (key, p) => esc(t(key, p));
-const money = (n) => esc(formatRupees(n));
 const byId = (id) => document.getElementById(id);
 const val = (id) => (byId(id)?.value ?? '').trim();
 const monthText = (key) => esc(formatMonth(`${key}-01`, { lang: getLang() }));
@@ -41,25 +43,33 @@ const state = {
     rejoining: false
 };
 
-const STATE_TAGS = { paid: 'pos', part: 'warn', due: 'neg' };
+const STATE_TAGS = { paid: 'pos' };
+
+/** Days since a month's pay fell due (the 1st of the next month); 0 until then. */
+function monthAgeDays(month) {
+    if (!isMonthKey(month)) return null;
+    return ageInDays(new Date(`${addMonthKey(month, 1)}-01T00:00:00`));
+}
 
 function stateTag(row) {
     if (!row?.state) return '';
     const text = row.state === 'part'
         ? t('ui.workers.state_part', { paid: formatRupees(row.covered), of: formatRupees(row.owed) })
         : row.state === 'due' ? t('ui.workers.state_due', { amount: formatRupees(row.owed) }) : t('ui.workers.state_paid');
-    return `<span class="tag ${esc(STATE_TAGS[row.state])}" data-wp-state="${esc(row.state)}">${esc(text)}</span>`;
+    const left = row.state === 'part' ? Number(row.owed) - Number(row.covered) : Number(row.owed);
+    const tone = STATE_TAGS[row.state] || dueTone(monthAgeDays(row.month || state.month), left);
+    return `<span class="tag${tone ? ` ${esc(tone)}` : ''}" data-wp-state="${esc(row.state)}">${esc(text)}</span>`;
 }
 
 function balanceLine(balance) {
     const { left, advance } = balanceParts(balance);
-    if (left > 0) return `<span class="tone-neg">${et('ui.workers.balance_left', { amount: formatRupees(left) })}</span>`;
+    if (left > 0) return `<span class="wp-left">${et('ui.workers.balance_left', { amount: formatRupees(left) })}</span>`;
     if (advance > 0) return `<span class="tone-info">${et('ui.workers.advance_carried', { amount: formatRupees(advance) })}</span>`;
     return `<span class="tone-muted">${et('ui.workers.nothing_left')}</span>`;
 }
 
 function metric(id, key, amount) {
-    return `<div class="metric"><div class="metric-label">${et(key)}</div><div class="metric-value" data-wp="${esc(id)}">${money(amount)}</div></div>`;
+    return `<div class="metric"><div class="metric-label">${et(key)}</div><div class="metric-value" data-wp="${esc(id)}">${moneyText(amount)}</div></div>`;
 }
 
 function renderSummary(sum) {
@@ -97,7 +107,7 @@ const options = (keys, chosen) => Object.entries(keys).map(([v, key]) => `<optio
 function formActions(save) {
     return `<div class="wp-actions">
             <button type="button" class="btn btn-primary" id="wpSave" data-onclick="workers.${esc(save)}()">${et('ui.workers.save')}</button>
-            <button type="button" class="btn btn-ghost" data-onclick="workers.cancel()">${et('ui.workers.cancel')}</button>
+            <button type="button" class="btn btn-ghost" data-onclick="workers.cancel()">${et('ui.modals.cancel')}</button>
         </div>`;
 }
 
@@ -105,7 +115,7 @@ function renderAddForm() {
     return `<div class="panel panel-pad wp-form" id="wpAddForm">
             <h3>${et('ui.workers.add')}</h3>
             <div class="field">${label('wpName', 'ui.workers.name')}<input class="input" id="wpName" maxlength="${esc(MAX_NAME)}" autocomplete="off"></div>
-            <div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1"></div>
+            <div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1"></div></div>
             <div class="field">${label('wpStart', 'ui.workers.start_month')}<input class="input" id="wpStart" type="month" value="${esc(thisMonth())}"></div>
             ${formActions('saveWorker')}
         </div>`;
@@ -115,7 +125,7 @@ function renderPayForm(worker) {
     const month = state.month;
     return `<div class="panel panel-pad wp-form" id="wpPayForm">
             <h3>${et('ui.workers.record', { name: worker.name })}</h3>
-            <div class="field">${label('wpAmount', 'ui.workers.amount')}<input class="input" id="wpAmount" inputmode="numeric" type="number" min="1" step="1"></div>
+            <div class="field">${label('wpAmount', 'ui.workers.amount')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="wpAmount" inputmode="numeric" type="number" min="1" step="1"></div></div>
             <div class="field">${label('wpKind', 'ui.workers.kind')}<select class="input" id="wpKind">${options(KIND_KEYS, 'pay')}</select></div>
             <div class="field">${label('wpForMonth', 'ui.workers.for_month')}<input class="input" id="wpForMonth" type="month" value="${esc(month)}" max="${esc(thisMonth())}"></div>
             <div class="field">${label('wpDate', 'ui.workers.date')}<input class="input" id="wpDate" type="date" value="${esc(todayLocalISO())}"></div>
@@ -130,7 +140,7 @@ function renderEditForm(worker) {
     const hidePay = worker.active === false && !state.rejoining;
     const stop = hidePay ? leftFrom(worker.pays) : null;
     const startMax = stop ? `max="${esc(addMonthKey(stop, -1))}"` : '';
-    const payFields = hidePay ? '' : `<div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1" value="${esc(pay || '')}"></div>
+    const payFields = hidePay ? '' : `<div class="field">${label('wpPay', 'ui.workers.monthly_pay')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="wpPay" inputmode="numeric" type="number" min="1" step="1" value="${esc(pay || '')}"></div></div>
             <div class="field">${label('wpPayFrom', 'ui.workers.pay_from')}<input class="input" id="wpPayFrom" type="month" value="${esc(thisMonth())}"></div>
             <p class="tone-muted">${et('ui.workers.pay_from_help')}</p>`;
     return `<div class="panel panel-pad wp-form" id="wpEditForm">
@@ -156,22 +166,22 @@ function renderMonths(months) {
     if (!shown.length) return '';
     const rows = shown.map(r => `<tr data-month="${esc(r.month)}">
             <td>${monthText(r.month)}</td>
-            <td class="num">${money(r.pay)}</td>
-            <td class="num">${money(r.paid)}</td>
+            <td class="num">${moneyText(r.pay)}</td>
+            <td class="num">${moneyText(r.paid)}</td>
             <td class="num">${r.recovered > 0 ? et('ui.workers.from_advance', { amount: formatRupees(r.recovered) }) : ''}</td>
             <td>${stateTag(r)}</td>
             <td>${balanceLine(r.closing)}</td>
         </tr>`).join('');
-    return `<div class="scroll-cue"><div class="scroll-cue-inner"><table class="wp-table">
+    return `<div class="scroll-cue"><div class="scroll-cue-inner"><table class="table">
             <thead><tr><th>${et('ui.workers.month')}</th><th>${et('ui.workers.col_pay')}</th><th>${et('ui.workers.col_paid')}</th><th>${et('ui.workers.col_advance')}</th><th>${et('ui.workers.col_state')}</th><th>${et('ui.workers.col_balance')}</th></tr></thead>
             <tbody>${rows}</tbody></table></div></div>`;
 }
 
 function renderEntries(worker) {
     const list = [...(worker.entries || [])].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.month).localeCompare(String(a.month)));
-    if (!list.length) return `<p class="empty">${et('ui.workers.no_entries')}</p>`;
+    if (!list.length) return emptyState({ icon: 'list', title: t('ui.workers.no_entries') });
     return list.map(e => `<div class="row" data-entry="${esc(e.id)}">
-            <span class="row-main"><span class="row-title">${money(e.amount)} · ${et(KIND_KEYS[e.kind] || KIND_KEYS.pay)}</span>
+            <span class="row-main"><span class="row-title">${moneyText(e.amount)} · ${et(KIND_KEYS[e.kind] || KIND_KEYS.pay)}</span>
             <span class="row-meta">${et('ui.workers.entry_meta', { month: formatMonth(`${e.month}-01`, { lang: getLang() }), date: formatDay(e.date, { lang: getLang() }), mode: t(MODE_KEYS[e.mode] || MODE_KEYS.cash) })}${e.note ? ` · ${esc(e.note)}` : ''}</span></span>
             <button type="button" class="btn btn-ghost btn-sm" data-onclick="workers.removeEntry('${js(worker.id)}', '${js(e.id)}')">${et('ui.workers.remove')}</button>
         </div>`).join('');
@@ -187,7 +197,7 @@ function renderDetail(item) {
             <h3>${esc(w.name)}</h3>
             <p>${balanceLine(item.balance)}</p>
             <div class="wp-actions">
-                <button type="button" class="btn btn-primary btn-sm" data-onclick="workers.showForm('pay')">${et('ui.workers.record_btn')}</button>
+                <button type="button" class="btn btn-tonal btn-sm" data-onclick="workers.showForm('pay')">${et('ui.workers.record_btn')}</button>
                 <button type="button" class="btn btn-tonal btn-sm" data-onclick="workers.showForm('edit')">${et('ui.workers.edit')}</button>
                 ${leave}
             </div>
@@ -217,7 +227,7 @@ export function render() {
     const open = items.find(i => i.worker.id === state.open);
     const list = items.length
         ? `<div class="panel wp-list">${items.map(renderRow).join('')}</div>`
-        : `<p class="empty">${et('ui.workers.none')}</p>`;
+        : emptyState({ icon: 'users', title: t('ui.workers.none') });
     root.innerHTML = `${renderSummary(sum)}
         <div class="wp-actions"><button type="button" class="btn btn-tonal" data-onclick="workers.showForm('add')">${et('ui.workers.add')}</button></div>
         ${state.form === 'add' ? renderAddForm() : ''}
@@ -234,6 +244,28 @@ function ensureCss() {
     document.head.appendChild(link);
 }
 
+/** Keeps WP-11 for Today from the loaded workers (no reads). */
+function noteDue(list = state.workers, uid = AppState.currentUser?.uid) {
+    if (!uid) return;
+    try { savePayDue(localStorage, { uid, months: payDueMonths(list, thisMonth()) }); } catch (_) { /* never break the page */ }
+}
+
+/**
+ * Today's salaries line (WP-11), once a day on the owner's phone (main.js, after the first screen):
+ * one read per worker. Nothing on the page changes.
+ */
+export async function refreshPayDue() {
+    const uid = AppState.currentUser?.uid;
+    if (!isOwner() || !uid) return false;
+    const seq = state.seq;
+    const list = await repo.loadWorkers();
+    if (AppState.currentUser?.uid !== uid || !isOwner()) return false;
+    // The page opened or saved meanwhile: its figure is newer than this read
+    if (seq !== state.seq || state.loaded) return false;
+    noteDue(list, uid);
+    return true;
+}
+
 /** Opens the page: reads every worker once (one read each). */
 export async function init() {
     ensureCss();
@@ -248,6 +280,7 @@ export async function init() {
         if (seq !== state.seq) return;
         state.workers = list;
         state.loaded = true;
+        noteDue();
     } catch (e) {
         console.warn('Workers not loaded:', e?.code || e);
         if (seq === state.seq) state.error = true;
@@ -294,6 +327,7 @@ async function save(key, fn, doneKey, params) {
     }
     try {
         await Helpers.runExclusive(key, '#workers .btn', fn);
+        noteDue();
         state.form = '';
         state.rejoining = false;
         render();
@@ -385,7 +419,7 @@ export async function removeEntry(workerId, entryId) {
     const w = state.workers.find(x => x.id === workerId);
     const entry = w?.entries?.find(e => e.id === entryId);
     if (!entry || Helpers.isBusy('workers.remove')) return;
-    const ok = await UIManager.showModal(t('msg.workers.remove_confirm', { amount: formatRupees(entry.amount), name: w.name }), t('ui.workers.remove'), true);
+    const ok = await UIManager.showModal(t('msg.workers.remove_confirm', { amount: formatRupees(entry.amount), name: w.name }), t('ui.workers.remove'), true, { confirmLabel: t('ui.workers.remove'), danger: true });
     if (!ok) return;
     await save('workers.remove', async () => {
         await repo.removeEntry(w.id, entry);
@@ -398,4 +432,4 @@ export function reset() {
     Object.assign(state, { workers: [], loaded: false, error: false, month: null, open: '', form: '', seq: state.seq + 1, rejoining: false });
 }
 
-export const WorkersManager = { init, render, reset, step, open, showForm, cancel, saveWorker, savePay, saveEdit, saveLeft, rejoin, removeEntry };
+export const WorkersManager = { init, render, reset, step, open, showForm, cancel, saveWorker, savePay, saveEdit, saveLeft, rejoin, removeEntry, refreshPayDue };

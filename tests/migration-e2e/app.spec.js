@@ -142,13 +142,13 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
     await test.step('Outstanding: the opening dues with the "Old app" chip and their original ages', async () => {
         await showTab(page, 'due');
         await page.evaluate(() => window.app.outstanding.filterDue('retail'));
-        await expect(page.locator('#dueList .history-item')).toHaveCount(retailBills.length);
+        await expect(page.locator('#dueList [data-history-item]')).toHaveCount(retailBills.length);
         const buckets = BUCKETS.map(() => ({ total: 0, count: 0 }));
         retailBills.forEach(b => { const k = bucketOf(ageOf(b.time)); buckets[k].total = r2(buckets[k].total + b.due); buckets[k].count++; });
         const panel = await page.evaluate(() => ({
             total: document.querySelector('#dueAging .aging-total')?.textContent,
             buckets: [...document.querySelectorAll('#dueAging .aging-bucket')].map(b => [b.querySelector('.aging-bucket-amount').textContent, b.querySelector('.aging-bucket-count').textContent]),
-            rows: [...document.querySelectorAll('#dueList .history-item')].map(el => ({
+            rows: [...document.querySelectorAll('#dueList [data-history-item]')].map(el => ({
                 no: el.querySelector('.history-header span').textContent.trim().replace(/^#/, ''),
                 chip: el.querySelector('.old-app-chip')?.textContent.trim() || '',
                 age: el.querySelector('.aging-age')?.textContent.trim() || '',
@@ -164,10 +164,10 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
 
     await test.step('Outstanding › Sales › All (#125): retail and wholesale dues, the total Money shows', async () => {
         await page.evaluate(() => window.app.outstanding.filterDue('sale'));
-        await expect(page.locator('#dueList .history-item')).toHaveCount(retailBills.length + wholesaleBills.length);
+        await expect(page.locator('#dueList [data-history-item]')).toHaveCount(retailBills.length + wholesaleBills.length);
         const all = await page.evaluate(() => ({
             total: document.querySelector('#dueAging .aging-total')?.textContent,
-            chips: [...document.querySelectorAll('#dueList .history-item')].map(el => el.querySelector('.old-app-chip')?.textContent.trim() || '')
+            chips: [...document.querySelectorAll('#dueList [data-history-item]')].map(el => el.querySelector('.old-app-chip')?.textContent.trim() || '')
         }));
         expect(amount(all.total)).toBe(Math.round(expected.dues.receivable));
         expect(all.chips.every(c => c === 'Old app'), 'every carried due has the "Old app" chip').toBe(true);
@@ -177,7 +177,7 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         if (!wholesaleBills.length) return; // none in this backup
         await showTab(page, 'wholesale-sales');
         await page.evaluate(() => window.app.wholesaleSales.filterTab('outstanding'));
-        const rows = page.locator('#salesOutstandingSection .history-item');
+        const rows = page.locator('#salesOutstandingSection [data-history-item]');
         await expect(rows).toHaveCount(wholesaleBills.length);
         const got = await rows.evaluateAll(els => els.map(el => [el.querySelector('.history-header span span').textContent.trim().replace(/^#/, ''), el.querySelector('.history-header > span:last-child').textContent]));
         expect(multiset(got.map(([no, due]) => `${no}|${amount(due)}`))).toEqual(multiset(wholesaleBills.map(b => `${rowLabel(b)}|${Math.round(b.due)}`)));
@@ -187,12 +187,12 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         await showTab(page, 'history');
         await page.evaluate(() => window.app.history.filterHistory('sale'));
         const saleDues = retailBills.length + wholesaleBills.length;
-        const toggle = page.locator('#history .opening-toggle-chip');
+        const toggle = page.locator('#history [data-group-toggle="opening"]');
         await expect(toggle).toHaveText(`Show dues carried from old app (${saleDues})`);
         await expect(page.locator('#historyList .old-app-chip')).toHaveCount(0);
         await toggle.click();
         await expect(page.locator('#historyList .old-app-chip')).toHaveCount(saleDues);
-        await page.locator('#history .opening-toggle-chip').click();
+        await page.locator('#history [data-group-toggle="opening"]').click();
         await expect(page.locator('#historyList .old-app-chip')).toHaveCount(0);
     });
 
@@ -257,7 +257,7 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         let weeksWithKg = 0;
         for (const v of options) {
             await page.selectOption('#rtTrafficItem', v);
-            await expect(weekly.locator('table, .rt-empty, .rt-warn').first()).toBeVisible();
+            await expect(weekly.locator('table, .empty, .rt-warn').first()).toBeVisible();
             weeksWithKg = await weekly.locator('tbody tr').filter({ has: page.locator('strong') }).count();
             if (weeksWithKg) break;
         }
@@ -277,8 +277,8 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         await page.selectOption('#saleItem', value);
         await page.fill('#saleRate', '40');
         await page.fill('#saleWeight', '2');
-        await page.click('#saleSection .quick-add-btn-inline');
-        await page.click('#saleSection .add-to-bill-btn');
+        await page.click('#saleSection [data-add-weight]');
+        await page.click('#saleSection [data-add-line]');
         await page.fill('#saleCustomerName', customer);
         await page.check('#saleCashCheckbox');
         await page.click('#saveSaleBtn');
@@ -306,7 +306,7 @@ test('migrated member: original password, role gating holds', async ({ page }) =
         const out = {};
         document.querySelectorAll('.nav-menu a[data-onclick]').forEach(a => {
             const tab = a.getAttribute('data-onclick').match(/showTab\('([^']+)'/)?.[1];
-            if (tab) out[tab] = a.style.display === 'none';
+            if (tab) out[tab] = a.hidden;
         });
         return out;
     });

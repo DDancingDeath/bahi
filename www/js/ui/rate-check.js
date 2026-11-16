@@ -17,6 +17,7 @@ import { formatKg, formatRate, formatRupees, readLineItem } from '../utils/money
 import { AppState } from '../utils/state.js';
 import { lineItemIdentity } from '../utils/item-catalog.js';
 import { t } from '../i18n/index.js';
+import { buildSheet, openSheet, closeSheet } from './ui-manager.js';
 
 /**
  * A blocking question with two answers; "fix" is focused and is what Esc does.
@@ -25,53 +26,35 @@ import { t } from '../i18n/index.js';
  */
 function askFixOrConfirm({ kind, title, message, fix, confirm }) {
     return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.className = `modal-overlay active rate-check-dialog ${kind}-check-dialog`;
-        overlay.setAttribute('role', 'alertdialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-labelledby', `${kind}CheckTitle`);
-        overlay.setAttribute('aria-describedby', `${kind}CheckMessage`);
-
-        const box = document.createElement('div');
-        box.className = 'modal-box';
-        const header = document.createElement('div');
-        header.className = 'modal-header';
-        const h = document.createElement('h3');
-        h.id = `${kind}CheckTitle`;
-        h.textContent = title;
-        header.appendChild(h);
-
-        const body = document.createElement('div');
-        body.className = 'modal-body';
+        const { overlay, body, footer } = buildSheet({
+            role: 'alertdialog', labelId: `${kind}CheckTitle`, title, describedBy: `${kind}CheckMessage`, className: `rate-check-sheet ${kind}-check-dialog`
+        });
         const p = document.createElement('p');
         p.id = `${kind}CheckMessage`;
         p.textContent = message;
         body.appendChild(p);
 
-        const footer = document.createElement('div');
-        footer.className = 'modal-footer';
         const button = (/** @type {string} */ cls, /** @type {string} */ text, /** @type {'fix'|'confirm'} */ choice) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = cls;
             b.dataset.choice = choice;
-            // Esc (keyboard-shortcuts.js closes [data-dismiss]) is "Fix"
+            // Esc, Back and a scrim tap press [data-dismiss]: "Fix"
             if (choice === 'fix') b.dataset.dismiss = '';
             b.textContent = text;
             b.addEventListener('click', () => {
+                closeSheet(overlay);
                 overlay.remove();
                 resolve(choice);
             });
             footer.appendChild(b);
             return b;
         };
-        button('modal-btn rate-check-confirm', confirm, 'confirm');
-        const fixBtn = button('modal-btn modal-btn-confirm', fix, 'fix');
+        button('btn btn-danger-outline rate-check-confirm', confirm, 'confirm');
+        const fixBtn = button('btn btn-primary', fix, 'fix');
 
-        box.append(header, body, footer);
-        overlay.appendChild(box);
         document.body.appendChild(overlay);
-        fixBtn.focus();
+        openSheet(overlay, { focus: fixBtn });
     });
 }
 
@@ -157,6 +140,23 @@ export async function checkBagWeight(kg, unit, weightInputId) {
         return { ok: false, record: null };
     }
     return { ok: true, record: weightCheckRecord({ kg, ...who() }) };
+}
+
+/**
+ * Photo of weights (#374): the bag weights about to be added from one photo, each one above
+ * 100 kg asked as when it is typed. Stops at the first "Fix weight".
+ * @param {number[]} list
+ * @param {'bag'|'packet'} unit
+ * @returns {Promise<{ok: boolean, index: number, records: Array<Object>}>} index: the weight to fix
+ */
+export async function confirmBagWeights(list, unit) {
+    const records = [];
+    for (let i = 0; i < list.length; i++) {
+        if (!heavyBag(list[i])) continue;
+        if (await askBagCheck(list[i], unit) !== 'confirm') return { ok: false, index: i, records: [] };
+        records.push(weightCheckRecord({ kg: list[i], ...who() }));
+    }
+    return { ok: true, index: -1, records };
 }
 
 /**

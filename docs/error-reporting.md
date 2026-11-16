@@ -9,7 +9,7 @@ here is free on the Spark plan.
 |---|---|---|---|
 | Error telemetry | Uncaught errors and unhandled promise rejections (the `error` / `unhandledrejection` listeners in `main.js`) plus explicit `logError` / `logWarning` calls, grouped by fingerprint. Errors only written with `console.error` (most `catch` blocks) are **not** sent. Firestore quota errors are not sent (they would only fail again) | Diagnostics (owner), collection `telemetry` (create-only, owner read, field sizes capped by the rules) | `www/js/services/telemetry.js`, `firebase/repos/telemetry.js` |
 | Test in Production (TIP) | Bill save, payment, cash close and app start: failures, slow runs, runs with errors (`errors_seen`), and runs left open when the app was killed or crashed (`abandoned`). Watchdog (#83): `MainThread` fails `frozen` when a 1-second timer runs 5 s or more late while the app is on screen (a frozen screen). The timer runs only while the page is on screen; each 5 minutes on screen is one run, a shorter stretch counts once it lasted a minute, sleep is not judged, and it keeps at most 2 failure samples a day (`maxSamplesPerDay`) so the other tests keep theirs; a change still waiting to sync online after 5 minutes is `Sync` › `not_flushed` (#161). No reads | App health page; a daily job opens, updates and closes `tip-auto` GitHub issues (counts, reason codes and a few small samples: rounded bill totals, line counts, flags; no names) | `www/js/tip/`, `tools/tip/autobugs.js`, `.github/workflows/tip-autobugs.yml` |
-| Crash reports (Android app only, **off unless the user switches it on**) | Native crashes of the APK (a Java exception in a plugin, the app killed by an uncaught error): Firebase Crashlytics through the `@capacitor-firebase/crashlytics` plugin | Firebase console › Crashlytics (owner's Google account); the owner's test: Diagnostics › Status (below) | `www/js/services/crash-reports.js`, Settings › Crash reports, `android/app/src/main/AndroidManifest.xml` (`firebase_crashlytics_collection_enabled` false) |
+| Crash reports (Android app only, **off unless the user switches it on**) | Native crashes of the APK (a Java exception in a plugin, the app killed by an uncaught error): Firebase Crashlytics through the `@capacitor-firebase/crashlytics` plugin | Firebase console › Crashlytics (owner's Google account); the owner's test: Diagnostics › Status (below) | `www/js/services/crash-reports.js`, Settings › Help & about › Crash reports, `android/app/src/main/AndroidManifest.xml` (`firebase_crashlytics_collection_enabled` false) |
 | Startup and read meter | Startup step timings, document reads per session, quota-exhausted errors (one banner per session) | Diagnostics → "Startup timings", "Data reads this session" | `utils/startup-timings.js`, `firebase/firestore-meter.js`, `utils/quota-guard.js` |
 
 The Android APK is the same web app inside a Capacitor WebView, so all of the
@@ -42,7 +42,7 @@ one on the website.
 
 ## Crash reports: privacy, size, set-up
 
-**What is sent, and only after the user switches it on.** Settings › Crash reports
+**What is sent, and only after the user switches it on.** Settings › Help & about › Crash reports
 (shown only in the Android app) is off on every phone until its user turns it on;
 the APK's manifest keeps Crashlytics collection off (`firebase_crashlytics_collection_enabled`
 false) and Firebase Sessions off for good (`firebase_sessions_enabled` false: no event on each
@@ -91,7 +91,7 @@ grow about as much; turning on R8 would win most of it back.
 
 **Set-up (owner, once).** Until this is done the APK builds and runs as before
 and the switch says "Not set up in this version of the app yet":
-1. Firebase console › project `happa-bfc07` › Project settings › Add app ›
+1. Firebase console › project `bahi-happa` (the APK's project from rc14; `happa-bfc07` before) › Project settings › Add app ›
    Android, package name `com.happa` (no SHA-1 needed for Crashlytics; Google sign-in needs the
    release key's SHA-1 and SHA-256: [google-sign-in.md](google-sign-in.md), which uses the same file and secret).
 2. Download `google-services.json`. It is configuration, not a secret, but keep
@@ -101,13 +101,18 @@ and the switch says "Not set up in this version of the app yet":
 4. Build the next APK (tag, `android-release.yml`): with the secret present the
    workflow writes the file before the build and `android/app/build.gradle`
    applies the Google services and Crashlytics Gradle plugins.
-5. On a test phone: Settings › Crash reports on, then send a test crash (below). Crashlytics
+5. On a test phone: Settings › Help & about › Crash reports on, then send a test crash (below). Crashlytics
    shows the app once a crash has been sent (it sends on the next app start after a crash).
 
-The project moves to `happa-bahi` at the Firebase cutover (rename plan §8.G, #375): the Android app
-`com.happa` is registered there and its `google-services.json` becomes the `GOOGLE_SERVICES_JSON`
-secret, so from the first APK built after that the reports are in **happa-bahi**'s console, not
-`happa-bfc07`'s. Crash collection still stays off on every phone until its user switches it on.
+The APK moved to `bahi-happa` with **v1.0.0-rc14** (15 Nov 2026): the release workflow builds it for
+`config/targets/bahi-happa.json`, the Android app `com.happa` ("Bahi",
+`1:6046579556:android:4281bc2d303169b2fb9871`) is registered there with the release key's SHA-1 and
+SHA-256, and its `google-services.json` is the `GOOGLE_SERVICES_JSON` secret (set 15 Nov 2026; the
+build refuses a file for another project). So steps 1, 2 and 4 are done for `bahi-happa`, and reports
+from rc14 on are in **bahi-happa**'s console, not `happa-bfc07`'s. Still to do by the owner: step 3
+(enable Crashlytics in bahi-happa's console) and step 5. Crash collection stays off on every phone until
+its user switches it on. (The earlier target `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026;
+it never had crash data.)
 
 ## Check that reports arrive (owner)
 
@@ -126,9 +131,9 @@ Firebase, with no report); with the switch off, where to switch it on. Hide the 
 in Diagnostics › Errors.
 
 Steps for the owner after the cutover (and after any change to the Crashlytics set-up):
-1. Install the new APK; Settings › Crash reports on (the switch is per phone).
+1. Install the new APK; Settings › Help & about › Crash reports on (the switch is per phone).
 2. Diagnostics › Status › **Send a test error**; then **Send a test crash** and confirm.
-3. Open the app again, wait a few minutes, and check Firebase console › project **happa-bahi** ›
+3. Open the app again, wait a few minutes, and check Firebase console › project **bahi-happa** ›
    Crashlytics: the app `com.happa` shows one crash and one non-fatal, both starting with "Test".
 4. Turn crash reports off again on that phone if it should not send them.
 

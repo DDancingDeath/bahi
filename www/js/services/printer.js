@@ -9,6 +9,7 @@ import { track } from './usage.js';
 import { tip } from '../tip/index.js';
 import { printProps } from '../tip/scenarios/print.js';
 import { recordPrint } from '../utils/print-status.js';
+import { emit, PRINTER_CHANGED } from '../utils/events.js';
 import {
     currentPrinter, effectiveReceipt, hasOwnReceipt, logoSize, normalizeLogo, normalizePrinterSettings, normalizeSharedReceipt,
     paperDots, rasterThreshold, receiptLang
@@ -288,16 +289,23 @@ const PrinterService = {
         }
     },
 
+    /** True while a Connect (Settings or Billing's printer sheet) is running. */
+    connecting: false,
+
     async connect(deviceId, deviceName) {
+        this.connecting = true;
+        this.updateStatus();
         try {
             await this.manager.connect(deviceId, deviceName);
             localStorage.removeItem(STOPPED_KEY);
-            this.updateStatus();
             return true;
         } catch (error) {
             console.error('Printer connect error:', error);
             UIManager.showToast(t('msg.printer.failed_connect', { message: this.errorText(error) }));
             throw error;
+        } finally {
+            this.connecting = false;
+            this.updateStatus();
         }
     },
 
@@ -612,22 +620,22 @@ const PrinterService = {
         if (!banner) {
             banner = document.createElement('div');
             banner.id = 'printerPermissionBanner';
-            banner.className = 'printer-perm-banner';
+            banner.className = 'notice warn solid float printer-perm-notice';
             banner.setAttribute('role', 'alert');
             document.body.appendChild(banner);
         }
         banner.textContent = '';
         const text = document.createElement('span');
-        text.className = 'printer-perm-banner__text';
+        text.className = 'grow';
         text.textContent = t('ui.printer.permission_banner');
         const allow = document.createElement('button');
         allow.type = 'button';
-        allow.className = 'printer-perm-banner__allow';
+        allow.className = 'btn btn-sm btn-primary printer-perm-notice__allow';
         allow.textContent = t('ui.printer.permission_allow');
         allow.addEventListener('click', () => { this.requestBluetoothPermission().catch(e => console.warn('Permission request failed:', e)); });
         const close = document.createElement('button');
         close.type = 'button';
-        close.className = 'printer-perm-banner__close';
+        close.className = 'btn btn-sm btn-ghost btn-icon printer-perm-notice__close';
         close.setAttribute('aria-label', t('ui.common.close'));
         close.textContent = '×';
         close.addEventListener('click', () => {
@@ -673,19 +681,19 @@ const PrinterService = {
 
         const noPermission = available && this.permissionState === 'denied';
         let text;
-        let color = '#666';
+        let tone = 'tone-muted';
         if (!available) {
             text = t('ui.settings.printer_android_only');
         } else if (noPermission) {
             text = t('ui.settings.printer_permission_needed');
-            color = '#b45309';
+            tone = 'tone-warn';
         } else if (btOff) {
             text = t('ui.settings.printer_bluetooth_off');
         } else if (connected) {
             text = checkedAt
                 ? t('ui.settings.printer_connected_checked', { deviceName: name, time: clockTime(checkedAt) })
                 : t('ui.settings.printer_connected_to', { deviceName: name });
-            color = '#4CAF50';
+            tone = 'tone-pos';
         } else if (saved.deviceId && name) {
             text = t('ui.settings.printer_saved_not_connected', { deviceName: name });
         } else {
@@ -698,13 +706,15 @@ const PrinterService = {
             detail = t('ui.settings.printer_last_error', { message: this.errorText(lastError), time: clockTime(lastError.at) });
         }
         if (statusText) {
-            statusText.innerHTML = `<span style="color: ${color};">${connected ? '●' : '○'} ${Helpers.escapeHtml(text)}</span>`
+            statusText.innerHTML = `<span class="${tone}">${connected ? '●' : '○'} ${Helpers.escapeHtml(text)}</span>`
                 + (detail ? `<br><small class="printer-status-detail">${Helpers.escapeHtml(detail)}</small>` : '');
             statusText.dataset.state = !available ? 'unavailable' : noPermission ? 'permission' : btOff ? 'bluetooth_off' : connected ? 'connected' : 'disconnected';
         }
-        if (disconnectBtn) disconnectBtn.style.display = connected ? 'block' : 'none';
-        if (testPrintBtn) testPrintBtn.style.display = available && !btOff && (connected || saved.deviceId) ? 'block' : 'none';
-        if (scanBtn) scanBtn.style.display = available ? '' : 'none';
+        const show = (el, on) => { if (el) { el.hidden = !on; el.style.display = on ? '' : 'none'; } };
+        show(disconnectBtn, connected);
+        show(testPrintBtn, available && !btOff && (connected || saved.deviceId));
+        show(scanBtn, available);
+        emit(PRINTER_CHANGED);
     },
 
     /** Renders the status now, then again once the plugin has checked Bluetooth and the link. */

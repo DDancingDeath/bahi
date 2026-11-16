@@ -12,8 +12,9 @@
 import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
-import { formatRupees } from '../utils/money.js';
+import { formatRupees, moneyText } from '../utils/money.js';
 import { t, getLang, tn } from '../i18n/index.js';
+import { emptyState } from '../ui/components.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { setInsightsContext } from '../utils/insights-context.js';
 import { isQuotaExhaustedError } from '../utils/quota-guard.js';
@@ -50,13 +51,13 @@ const META_TTL_MS = 5 * 60 * 1000;
 const COLORS = { purchase: '#2563eb', retail: '#059669', wholesale: '#d97706', bought: '#93c5fd', sold: '#6ee7b7' };
 const YEAR_COLORS = ['#dc2626', '#2563eb', '#059669', '#7c3aed', '#d97706'];
 const DASH = [5, 4];
+/** Grid, axis text and marker greys come from the theme tokens, read at draw time (light: the same greys as before). */
+const token = (name) => (typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : '');
 const STOP_KEYS = { quota: 'ui.trends.stop_quota', budget: 'ui.trends.stop_budget', error: 'ui.trends.stop_error', save: 'ui.trends.stop_save' };
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const canSee = () => AppState.userRole === 'owner' || AppState.userRole === 'manager';
 const isOwner = () => AppState.userRole === 'owner';
-const rupees = (n) => (n === null || n === undefined ? '—' : formatRupees(n, { decimals: 2 }));
-const wholeRupees = (n) => (n === null || n === undefined ? '—' : formatRupees(n));
 const num = (n) => Math.round(Number(n) || 0).toLocaleString('en-IN');
 const kgText = (n) => `${num(n)} kg`;
 const pctText = (p) => (p === null || p === undefined ? '—' : `${p > 0 ? '+' : ''}${Math.round(p)}%`);
@@ -694,6 +695,14 @@ export const RateTrendsManager = {
         return { periods, bills, items, cut, rows };
     },
 
+    /** Theme or light / dark changed: redraw the open charts in the new colours (no reads). */
+    redrawCharts() {
+        if (!canSee() || this.view !== 'chart' || !document.getElementById('rtRateChart')?.offsetParent) return;
+        this.drawRateChart();
+        this.drawVolumeChart();
+        this.drawYearChart();
+    },
+
     render() {
         const chart = document.getElementById('rtChartView');
         const table = document.getElementById('rtTableView');
@@ -738,7 +747,7 @@ export const RateTrendsManager = {
         const el = document.getElementById('rtOutlook');
         if (!el) return;
         if (!this.monthB.length && !this.series) {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.no_history_item'))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.no_history_item') });
             return;
         }
         el.innerHTML = ITEM_RATE_KINDS.map(kind => {
@@ -771,20 +780,20 @@ export const RateTrendsManager = {
         const { periods, bills, items, cut, rows } = this.lineData();
         const byPeriod = new Map(rows.map(r => [r.period, r]));
         if (!periods.length) {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.no_data'))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.no_data') });
             return;
         }
         const body = periods.slice().reverse().map(p => {
             const r = byPeriod.get(p);
             const fromItems = cut && p > cut;
-            const rate = (k) => rupees(fromItems ? items[k][p] : bills[k][p]);
+            const rate = (k) => moneyText(fromItems ? items[k][p] : bills[k][p], 'rate');
             if (!r && !fromItems) return '';
             return `<tr><td>${esc(this.periodLabel(p))}</td><td>${rate('purchase')}</td><td>${rate('wholesale')}</td><td>${rate('retail')}</td>
                 <td class="rt-src">${esc(t(fromItems ? 'ui.trends.src_items' : 'ui.trends.src_bills'))}</td>
-                <td class="${r?.margin < 0 ? 'rt-neg' : ''}">${rupees(r ? r.margin : null)}</td>
+                <td class="${r?.margin < 0 ? 'rt-neg' : ''}">${moneyText(r ? r.margin : null, 'rate')}</td>
                 <td>${kgText(r?.kgBought)}</td><td>${kgText(r?.kgSold)}</td><td>${r ? r.bills : 0}</td></tr>`;
         }).join('');
-        el.innerHTML = `<table class="rt-table"><thead><tr>
+        el.innerHTML = `<table class="table" data-rt-table><thead><tr>
             <th>${esc(t(this.period === 'week' ? 'ui.trends.th_week' : 'ui.trends.th_month'))}</th><th>${esc(t('ui.trends.purchase'))}</th><th>${esc(t('ui.trends.wholesale'))}</th>
             <th>${esc(t('ui.trends.retail'))}</th><th>${esc(t('ui.trends.rate_source'))}</th><th>${esc(t('ui.trends.margin_kg'))}</th>
             <th>${esc(t('ui.trends.bought'))}</th><th>${esc(t('ui.trends.sold'))}</th><th>${esc(t('ui.trends.bills'))}</th></tr></thead>
@@ -796,19 +805,19 @@ export const RateTrendsManager = {
         if (!el) return;
         const cutoff = this.cutoffMs();
         if (!cutoff) {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.steps_after_history'))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.steps_after_history') });
             return;
         }
         const rows = rateChangeRows(this.series);
-        const current = ITEM_RATE_KINDS.map(k => `${esc(t(KIND_KEYS[k]))}: ${rupees(this.series?.[k]?.current ?? null)}`).join(' · ');
+        const current = ITEM_RATE_KINDS.map(k => `${esc(t(KIND_KEYS[k]))}: ${moneyText(this.series?.[k]?.current ?? null, 'rate')}`).join(' · ');
         const head = `<div class="rt-muted">${esc(t('ui.trends.current_items_rate'))} ${current}</div>`;
         if (!rows.length) {
-            el.innerHTML = `${head}<div class="rt-empty">${esc(t('ui.trends.no_items_changes', { date: dateText(cutoff) }))}</div>`;
+            el.innerHTML = `${head}${emptyState({ icon: 'trend', title: t('ui.trends.no_items_changes', { date: dateText(cutoff) }) })}`;
             return;
         }
-        el.innerHTML = `${head}<table class="rt-table"><thead><tr><th>${esc(t('ui.trends.th_date'))}</th><th>${esc(t('ui.trends.th_rate'))}</th>
+        el.innerHTML = `${head}<table class="table" data-rt-table><thead><tr><th>${esc(t('ui.trends.th_date'))}</th><th>${esc(t('ui.trends.th_rate'))}</th>
             <th>${esc(t('ui.trends.th_change'))}</th></tr></thead><tbody>
-            ${rows.map(r => `<tr><td>${esc(dateText(r.at))}</td><td>${esc(t(KIND_KEYS[r.kind]))}</td><td>${rupees(r.from)} → ${rupees(r.to)}</td></tr>`).join('')}
+            ${rows.map(r => `<tr><td>${esc(dateText(r.at))}</td><td>${esc(t(KIND_KEYS[r.kind]))}</td><td>${moneyText(r.from, 'rate')} → ${moneyText(r.to, 'rate')}</td></tr>`).join('')}
             </tbody></table>`;
     },
 
@@ -827,7 +836,7 @@ export const RateTrendsManager = {
 
     noData(c) {
         c.ctx.font = '14px Arial';
-        c.ctx.fillStyle = '#666';
+        c.ctx.fillStyle = token('--ink-3');
         c.ctx.textAlign = 'center';
         c.ctx.fillText(t('ui.trends.no_data'), c.canvas.width / 2, c.canvas.height / 2);
     },
@@ -857,9 +866,10 @@ export const RateTrendsManager = {
         const yAt = (v) => top + h - ((v - lo) / (hi - lo)) * h;
         const setDash = (d) => { if (ctx.setLineDash) ctx.setLineDash(d); };
 
-        ctx.strokeStyle = '#e5e7eb';
+        const axis = token('--ink-2');
+        ctx.strokeStyle = token('--line');
         ctx.lineWidth = 1;
-        ctx.fillStyle = '#4b5563';
+        ctx.fillStyle = axis;
         ctx.font = '10px Arial';
         ctx.textAlign = 'right';
         for (let g = 0; g <= 4; g++) {
@@ -882,7 +892,7 @@ export const RateTrendsManager = {
 
         if (marker && marker.index >= 0 && marker.index < labels.length) {
             const x = xAt(marker.index);
-            ctx.strokeStyle = '#4b5563';
+            ctx.strokeStyle = axis;
             ctx.lineWidth = 1.5;
             setDash([2, 3]);
             ctx.beginPath();
@@ -890,7 +900,7 @@ export const RateTrendsManager = {
             ctx.lineTo(x, top + h);
             ctx.stroke();
             setDash([]);
-            ctx.fillStyle = '#374151';
+            ctx.fillStyle = axis;
             ctx.textAlign = x > canvas.width - 90 ? 'right' : 'left';
             ctx.fillText(marker.label, x + (ctx.textAlign === 'right' ? -4 : 4), top + 2);
         }
@@ -956,7 +966,7 @@ export const RateTrendsManager = {
         const h = canvas.height - bottom - 8;
         const slot = (canvas.width - left - 12) / periods.length;
         const barW = Math.max(1, Math.min(14, slot / 2 - 1));
-        ctx.fillStyle = '#4b5563';
+        ctx.fillStyle = token('--ink-2');
         ctx.font = '10px Arial';
         ctx.textAlign = 'right';
         ctx.fillText(kgText(max), left - 4, 14);
@@ -985,7 +995,7 @@ export const RateTrendsManager = {
         const labels = Array.from({ length: 12 }, (_, i) => monthLabel(`2000-${String(i + 1).padStart(2, '0')}`, lang, false));
         this.drawLines(c, labels, years.map((y, i) => ({ values: overlay[y], color: YEAR_COLORS[i], width: y === thisYear ? 3.5 : 2 })));
         const legend = document.getElementById('rtYearLegend');
-        if (legend) legend.innerHTML = years.map((y, i) => `<span><i style="background:${YEAR_COLORS[i]}"></i>${y}</span>`).join('');
+        if (legend) legend.innerHTML = years.map((y, i) => `<span><i class="rt-sw-year" style="--c:${YEAR_COLORS[i]}"></i>${y}</span>`).join('');
     },
 
     // ---------- product traffic ----------
@@ -1100,7 +1110,7 @@ export const RateTrendsManager = {
         const el = document.getElementById('rtWeekly');
         if (!el) return;
         if (!itemId || this.metaError === 'denied' || !this.meta?.backfillDone) {
-            el.innerHTML = `<div class="rt-empty">${esc(t(this.meta?.backfillDone ? 'ui.trends.no_data' : 'ui.trends.traffic_needs_history'))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t(this.meta?.backfillDone ? 'ui.trends.no_data' : 'ui.trends.traffic_needs_history') });
             return;
         }
         let docs;
@@ -1121,13 +1131,13 @@ export const RateTrendsManager = {
         const now = Date.now();
         const rows = weeklyItemRows(weekBuckets(docs), weeksBackStart(now, this.trafficWeeks), istWeekStart(now));
         if (!rows.some(r => r.kg > 0)) {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.no_data'))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.no_data') });
             return;
         }
         const lang = getLang();
         const label = (w) => `${Number(w.slice(8, 10))} ${monthLabel(w.slice(0, 7), lang)}`;
         const cell = (s) => (s.kg > 0 ? `${kgText(s.kg)} <span class="rt-muted">(${s.bills})</span>` : '—');
-        el.innerHTML = `<table class="rt-table"><thead><tr><th>${esc(t('ui.trends.th_week'))}</th><th>${esc(t('ui.trends.th_total_kg'))}</th>
+        el.innerHTML = `<table class="table" data-rt-table><thead><tr><th>${esc(t('ui.trends.th_week'))}</th><th>${esc(t('ui.trends.th_total_kg'))}</th>
             ${TRAFFIC_KINDS.map(k => `<th>${esc(t(KIND_KEYS[k]))}</th>`).join('')}</tr></thead><tbody>
             ${rows.map(r => `<tr><td>${esc(t('ui.trends.week_of', { date: label(r.week) }))}</td><td>${r.kg > 0 ? `<strong>${kgText(r.kg)}</strong>` : '—'}</td>
                 ${TRAFFIC_KINDS.map(k => `<td>${cell(r[k])}</td>`).join('')}</tr>`).join('')}
@@ -1142,7 +1152,7 @@ export const RateTrendsManager = {
         if (!tr) {
             el.innerHTML = '';
         } else if (tr.state === 'loading') {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.loading'))}</div>`;
+            el.innerHTML = `<p class="empty">${esc(t('ui.trends.loading'))}</p>`;
         } else if (tr.state === 'denied') {
             el.innerHTML = `<div class="rt-note">${esc(t('ui.trends.rules_not_published'))}</div>`;
         } else if (tr.state === 'no-history') {
@@ -1150,7 +1160,7 @@ export const RateTrendsManager = {
         } else if (tr.state === 'error') {
             el.innerHTML = `<div class="rt-warn">${esc(t('ui.trends.traffic_error'))}</div>`;
         } else if (!tr.rows.length) {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.traffic_empty', { month: monthLabel(tr.month, lang) }))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.traffic_empty', { month: monthLabel(tr.month, lang) }) });
         } else {
             const { prev, lastYear } = comparisonMonths(tr.month);
             const cell = (s) => `${kgText(s.kg)}<div class="rt-muted">${esc(tn('ui.trends.n_bills', s.bills))}</div>`;
@@ -1158,10 +1168,10 @@ export const RateTrendsManager = {
                 data-onclick="rateTrends.setTrafficItem('${Helpers.escapeJsAttr(r.itemId)}')">
                 <td>${esc(itemName(r.itemId))}</td><td><strong>${kgText(r.kg)}</strong></td>
                 ${TRAFFIC_KINDS.map(k => `<td>${cell(r[k])}</td>`).join('')}
-                <td>${r.bills}</td><td>${esc(wholeRupees(r.amount))}</td>
+                <td>${r.bills}</td><td>${esc(moneyText(r.amount))}</td>
                 <td class="${r.vsPrev < 0 ? 'rt-neg' : ''}">${pctText(r.vsPrev)}</td>
                 <td class="${r.vsLastYear < 0 ? 'rt-neg' : ''}">${pctText(r.vsLastYear)}</td></tr>`).join('');
-            el.innerHTML = `<table class="rt-table"><thead><tr><th>${esc(t('ui.trends.th_item'))}</th><th>${esc(t('ui.trends.th_total_kg'))}</th>
+            el.innerHTML = `<table class="table" data-rt-table><thead><tr><th>${esc(t('ui.trends.th_item'))}</th><th>${esc(t('ui.trends.th_total_kg'))}</th>
                 ${TRAFFIC_KINDS.map(k => `<th>${esc(t(KIND_KEYS[k]))}</th>`).join('')}
                 <th>${esc(t('ui.trends.bills'))}</th><th>${esc(t('ui.trends.th_amount'))}</th>
                 <th>${esc(t('ui.trends.vs_month', { month: monthLabel(prev, lang) }))}</th>
@@ -1179,7 +1189,7 @@ export const RateTrendsManager = {
         const month = this.trafficMonth;
         const lang = getLang();
         if (!itemId || !month) {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.no_data'))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.no_data') });
             return;
         }
         document.querySelectorAll('#rtTrafficTable tr.rt-click').forEach(tr => tr.classList.toggle('rt-selected', tr.dataset.item === itemId));
@@ -1189,20 +1199,22 @@ export const RateTrendsManager = {
             const row = this.traffic?.month === month ? this.traffic.rows.find(r => r.itemId === itemId) : null;
             const total = row || { purchase: { kg: 0, bills: 0 }, wholesale: { kg: 0, bills: 0 }, retail: { kg: 0, bills: 0 } };
             el.innerHTML = `<div class="rt-note">${esc(t('ui.trends.daily_unavailable'))}</div>
-                <table class="rt-table"><thead>${head}</thead><tbody><tr><td>${esc(monthLabel(month, lang))}</td>${cells(total)}</tr></tbody></table>`;
+                <table class="table" data-rt-table><thead>${head}</thead><tbody><tr><td>${esc(monthLabel(month, lang))}</td>${cells(total)}</tr></tbody></table>`;
             return;
         }
         const d = dailyTraffic(loadedBills(), AppState.items || [], itemId, month);
         const moved = (x) => TRAFFIC_KINDS.some(k => x[k].kg > 0);
         if (!moved(d.total)) {
-            el.innerHTML = `<div class="rt-empty">${esc(t('ui.trends.no_movement', { month: monthLabel(month, lang) }))}</div>`;
+            el.innerHTML = emptyState({ icon: 'trend', title: t('ui.trends.no_movement', { month: monthLabel(month, lang) }) });
             return;
         }
         const weekRows = d.weeks.map(w => `<tr class="rt-week"><td>${esc(t('ui.trends.week_n', { n: w.week, from: w.from, to: w.to }))}</td>${cells(w)}</tr>`).join('');
         const dayRows = d.days.filter(moved).map(x => `<tr><td>${esc(`${Number(x.day.slice(8, 10))} ${monthLabel(month, lang, false)}`)}</td>${cells(x)}</tr>`).join('');
         el.innerHTML = `<div class="rt-muted">${esc(t('ui.trends.daily_hint'))}</div>
-            <table class="rt-table"><thead>${head}</thead><tbody>${weekRows}
+            <table class="table" data-rt-table><thead>${head}</thead><tbody>${weekRows}
             <tr class="rt-total"><td>${esc(t('ui.trends.total'))}</td>${cells(d.total)}</tr>
             ${dayRows}</tbody></table>`;
     }
 };
+
+if (typeof window !== 'undefined') window.addEventListener('aadhat:themechange', () => RateTrendsManager.redrawCharts());

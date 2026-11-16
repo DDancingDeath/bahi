@@ -5,11 +5,11 @@
  * Timezone is pinned to Asia/Kolkata in jest.config.js.
  */
 import {
-    AGING_BUCKETS, ageInDays, bucketIndex, buildAging, chaseFirst, dueRows, filterBillsByBucket,
+    AGING_BUCKETS, ageInDays, bucketIndex, buildAging, chaseFirst, dueRows, dueTone, filterBillsByBucket,
     normalizePartyName, sortParties
 } from '../utils/aging.js';
 import {
-    REMINDER_MAX_BILLS, buildReminderText, buildStatement, cleanText, formatINR, normalizePhone, whatsAppReminderUrl
+    REMINDER_MAX_BILLS, buildReminderText, buildStatement, cleanText, normalizePhone, whatsAppReminderUrl
 } from '../utils/due-reminder.js';
 import { OutstandingManager } from '../modules/outstanding.js';
 import { openExternal } from '../utils/open-external.js';
@@ -36,6 +36,13 @@ describe('#46 aging bucket math', () => {
         expect(bucketIndex(90)).toBe(2);
         expect(bucketIndex(91)).toBe(3);
         expect(bucketIndex(null)).toBe(AGING_BUCKETS.length - 1);
+    });
+
+    test('due colour: ink to 30 days, amber after 30, red after 90; ₹0 or no age is ink', () => {
+        expect([0, 30, 31, 90, 91].map(d => dueTone(d, 100))).toEqual(['', '', 'warn', 'warn', 'neg']);
+        expect(dueTone(200, 0)).toBe('');
+        expect(dueTone(200, 0.001)).toBe('');
+        expect(dueTone(null, 100)).toBe('');
     });
 
     test('age counts local (IST) calendar days, not 24 h blocks or UTC days', () => {
@@ -169,7 +176,6 @@ describe('#77 reminder message', () => {
         expect(normalizePhone('')).toBe('');
         expect(whatsAppReminderUrl('a & b\nc', '9876543210')).toBe('https://wa.me/919876543210?text=a%20%26%20b%0Ac');
         expect(whatsAppReminderUrl('hi', '')).toBe('https://wa.me/?text=hi');
-        expect(formatINR(1234567.4)).toBe('₹12,34,567');
     });
 
     test('statement model lists open bills with the right total label', () => {
@@ -214,16 +220,24 @@ describe('#46/#77 Outstanding panel', () => {
         expect(panel.querySelector('.aging-overdue').textContent).toBe('Overdue (> 30 days) ₹500');
         expect(panel.querySelector('.aging-chase li').textContent).toContain('₹500 overdue');
         expect(panel.textContent.toLowerCase()).not.toContain('staff');
-        expect(document.querySelectorAll('#dueList .history-item')).toHaveLength(2);
+        expect(document.querySelectorAll('#dueList [data-history-item]')).toHaveLength(2);
+    });
+
+    test('an age group with ₹0 is not coloured by its age', () => {
+        AppState.retailSalesHistory = AppState.retailSalesHistory.slice(1);
+        OutstandingManager.renderDue();
+        const old = document.querySelector('#dueAging .aging-bucket.aging-b3');
+        expect(old.classList.contains('is-zero')).toBe(true);
+        expect(document.querySelector('#dueAging .aging-bucket.aging-b0').classList.contains('is-zero')).toBe(false);
     });
 
     test('tapping a bucket filters the bill list; tapping again shows all', () => {
         OutstandingManager.renderDue();
         OutstandingManager.setAgingBucket('90+');
-        expect([...document.querySelectorAll('#dueList .history-item')].map(el => el.textContent)).toEqual([expect.stringContaining('#R1')]);
+        expect([...document.querySelectorAll('#dueList [data-history-item]')].map(el => el.textContent)).toEqual([expect.stringContaining('#R1')]);
         expect(document.querySelectorAll('#dueAgingParties .aging-party')).toHaveLength(1);
         OutstandingManager.setAgingBucket('90+');
-        expect(document.querySelectorAll('#dueList .history-item')).toHaveLength(2);
+        expect(document.querySelectorAll('#dueList [data-history-item]')).toHaveLength(2);
     });
 
     test('payables show no Remind button and no chase list', () => {
@@ -283,9 +297,9 @@ describe('#125 wholesale dues on Outstanding (All / Retail / Wholesale)', () => 
         AppState.purchaseHistory = [];
         AppState.currentDueFilter = 'purchase';
     });
-    const ids = () => [...document.querySelectorAll('#dueList .history-item')].map(el => el.querySelector('input[type="number"]').id.replace(/^(due)?[pP]ayment_/, '')).sort();
+    const ids = () => [...document.querySelectorAll('#dueList [data-history-item]')].map(el => el.querySelector('input[type="number"]').id.replace(/^(due)?[pP]ayment_/, '')).sort();
     const total = () => document.querySelector('#dueAging .aging-total').textContent;
-    const active = () => [...document.querySelectorAll('#due .filter-btn.active')].map(b => b.dataset.dueKind || b.className.match(/filter-(purchase|sale)/)[1]);
+    const active = () => [...document.querySelectorAll('#due .due-seg > .active, #dueSaleKinds > .active')].map(b => b.dataset.dueKind || b.className.match(/filter-(purchase|sale)/)[1]);
 
     test('Sales shows All by default: retail and open wholesale bills (not paid, voided, cleared or a few paise)', () => {
         OutstandingManager.filterDue('sale');
@@ -330,7 +344,7 @@ describe('#125 wholesale dues on Outstanding (All / Retail / Wholesale)', () => 
         OutstandingManager.filterDue('sale');
         // its own input ids: the Wholesale page lists the same bill with payment_w2
         expect(document.getElementById('payment_w2')).toBeNull();
-        const row = document.getElementById('duePayment_w2').closest('.history-item');
+        const row = document.getElementById('duePayment_w2').closest('[data-history-item]');
         expect(row.querySelector('#duePaymentOnline_w2')).not.toBeNull();
         const record = jest.spyOn(OutstandingManager, 'recordDuePayment').mockResolvedValue(true);
         document.body.insertAdjacentHTML('beforeend', '<div id="salesOutstandingList"><input id="payment_w2" value="7"></div>');

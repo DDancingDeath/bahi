@@ -77,7 +77,7 @@ function screen() {
     return {
         text: Object.fromEntries([...STATUS_IDS, ...SUMMARY_IDS].map(id => [id, text(id)])),
         shown: Object.fromEntries(CARD_IDS.map(id => [id, document.getElementById(id).style.display])),
-        diffColor: document.getElementById('statusDiff').style.color,
+        diffTone: [...document.getElementById('statusDiff').classList].filter(c => c.startsWith('tone-')).join(' '),
         signInAmount: document.getElementById('cashSignInAmount').value,
         signInHint: text('cashSignInSuggestion')
     };
@@ -87,7 +87,7 @@ function signOutCheck(counted) {
     setVal('cashSignOutAmount', counted);
     CashManagementManager.validateSignOut();
     const alert = document.getElementById('cashDifferenceAlert');
-    return { counted, text: alert.textContent, display: alert.style.display, background: alert.style.background, color: alert.style.color };
+    return { counted, text: alert.textContent, display: alert.style.display, tone: [...alert.classList].filter(c => ['pos', 'warn', 'neg'].includes(c)).join(' ') };
 }
 
 /** Everything the page shows and writes for one fixture day. */

@@ -9,9 +9,10 @@
  * Static utility helper class
  */
 import { t, getLang } from '../i18n/index.js';
-import { formatRupees, formatAmount } from './money.js';
+import { formatAmount } from './money.js';
 import { formatDay, formatDayTime, formatTimeOfDay } from './dates.js';
 import { dayCounter } from '../firebase/repos/counters.js';
+import { contactLabel, pickPhoneContact } from './contact-picker.js';
 
 export class Helpers {
     // -------------------- FORMATTING --------------------
@@ -161,16 +162,6 @@ export class Helpers {
         return null;
     }
 
-    /**
-     * Format amount as Indian Rupee currency
-     * @param {number} amount - Amount to format
-     * @param {{decimals?: number, small?: boolean}} [opts]
-     * @returns {string} Formatted currency string
-     */
-    static formatCurrency(amount, opts) {
-        return formatRupees(amount, opts);
-    }
-
     // -------------------- GENERATORS --------------------
 
     /**
@@ -264,33 +255,39 @@ export class Helpers {
     // -------------------- DEVICE HELPERS --------------------
 
     /**
-     * Pick a contact from the device's contact list
-     * @param {string} inputElementId - ID of input element to populate with contact name
-     * @returns {Promise<void>}
+     * Pick a contact from the phone (Android app: native picker; Chrome on Android: Contact Picker API)
+     * and put "Name - Number" in the input (owner, v730): the first mobile number, normalised; the name
+     * alone without a number, the number alone without a name. The due line and suggestions still find
+     * older bills saved under the plain name (utils/parties.js nameWithoutPhone).
+     * @param {string} inputElementId - ID of input element to populate
+     * @returns {Promise<{ name: string, phone: string } | null>}
      */
     static async pickContact(inputElementId) {
         // Roles & access › Phone contacts (Q52 of #111): sign-in adds this class when the owner turned it off for the role
-        if (typeof document !== 'undefined' && document.body?.classList.contains('no-perm-contacts')) return;
-        try {
-            if ('contacts' in navigator && 'ContactsManager' in window) {
-                const contacts = await /** @type {any} */ (navigator).contacts.select(['name', 'tel'], { multiple: false });
-                if (contacts && contacts.length > 0) {
-                    const contact = contacts[0];
-                    const nameInput = /** @type {HTMLInputElement|null} */ (document.getElementById(inputElementId));
-                    if (nameInput && contact.name && contact.name.length > 0) {
-                        nameInput.value = contact.name[0];
-                        // Let live listeners (bill checks, existing-due line #166) see the new name
-                        nameInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        nameInput.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                }
-            } else {
-                const { UIManager } = await import('../ui/ui-manager.js');
-                UIManager.showToast(t('msg.common.contact_picker_not_supported'));
+        if (typeof document !== 'undefined' && document.body?.classList.contains('no-perm-contacts')) return null;
+        const nameInput = /** @type {HTMLInputElement|null} */ (document.getElementById(inputElementId));
+        const res = await pickPhoneContact(window);
+        if (res.status === 'picked') {
+            const label = contactLabel(res.name, res.phone);
+            if (nameInput && label) {
+                nameInput.value = label;
+                // Let live listeners (bill checks, existing-due line #166) see the new name
+                nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                nameInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
-        } catch (error) {
-            console.error('Pick contact error:', error);
+            return { name: res.name, phone: res.phone };
         }
+        const toast = /** @type {Record<string, string>} */ ({
+            unsupported: 'msg.common.contact_picker_not_supported',
+            denied: 'msg.common.contact_picker_denied',
+            error: 'msg.common.contact_picker_failed',
+        })[res.status];
+        if (toast) {
+            const { UIManager } = await import('../ui/ui-manager.js');
+            UIManager.showToast(t(toast), res.status === 'unsupported' ? 'info' : 'error', 5000);
+            if (res.status === 'unsupported') nameInput?.focus();
+        }
+        return null;
     }
 
     // -------------------- BILL NUMBER GENERATION --------------------
@@ -429,16 +426,18 @@ export class Helpers {
     static showSplitRemaining(elementId, check) {
         const el = typeof document !== 'undefined' ? document.getElementById(elementId) : null;
         if (!el || !check) return;
+        const row = /** @type {?HTMLElement} */ (el.closest('.pay-rest'));
+        if (row) row.hidden = !!check.ok;
         const amount = formatAmount(Math.abs(check.difference), { exact: true });
         if (check.ok) {
             el.textContent = '✓ ₹0';
-            el.style.color = 'var(--success-color)';
+            el.dataset.split = 'ok';
         } else if (check.difference > 0) {
             el.textContent = t('ui.billing.split_left', { amount });
-            el.style.color = 'var(--danger-color)';
+            el.dataset.split = 'off';
         } else {
             el.textContent = t('ui.billing.split_extra', { amount });
-            el.style.color = 'var(--danger-color)';
+            el.dataset.split = 'off';
         }
     }
 
@@ -476,19 +475,19 @@ export class Helpers {
         const buttons = (typeof document !== 'undefined' && buttonSelector)
             ? Array.from(/** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll(buttonSelector)))
             : [];
-        const previous = buttons.map(btn => ({ btn, disabled: btn.disabled, opacity: btn.style.opacity }));
+        const previous = buttons.map(btn => ({ btn, disabled: btn.disabled }));
         buttons.forEach(btn => {
             btn.disabled = true;
-            btn.style.opacity = '0.6';
+            btn.dataset.locked = '';
             btn.setAttribute('aria-busy', 'true');
         });
         try {
             return await fn();
         } finally {
             inFlightLocks.delete(key);
-            previous.forEach(({ btn, disabled, opacity }) => {
+            previous.forEach(({ btn, disabled }) => {
                 btn.disabled = disabled;
-                btn.style.opacity = opacity;
+                delete btn.dataset.locked;
                 btn.removeAttribute('aria-busy');
             });
         }

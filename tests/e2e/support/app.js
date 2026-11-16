@@ -21,6 +21,13 @@ const test = base.test.extend({
             if (/googleapis\.com/.test(r.url()) && !/127\.0\.0\.1|localhost/.test(r.url())) problems.prodRequests.push(r.url());
         });
         page.on('dialog', d => d.accept());
+        // /download asks GitHub for the latest release; CI runners are often rate limited (403). A spec's own route wins.
+        await page.route('https://api.github.com/**', (route) => route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: { 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ tag_name: 'v1.0.0-rc1', published_at: '2026-11-15T00:00:00Z' })
+        }));
         await use(problems);
         base.expect(problems.prodRequests, 'no request may reach production Firebase').toEqual([]);
         base.expect(problems.cspReports, 'the CSP in firebase.json must not block anything (#89)').toEqual([]);
@@ -107,4 +114,16 @@ async function clickAfterTyping(page, selector) {
     await page.click(selector);
 }
 
-module.exports = { test, expect: base.expect, isReady, login, openApp, showTab, settle, expectToast, confirmModalIfOpen, clickAfterTyping };
+/**
+ * Opens a closed disclosure card (ui/disclosure.js; Today's Reminders `todayReminders`, Day report `dayReport`)
+ * by tapping its row, as a person would. Already open: nothing.
+ */
+async function openDisclosure(page, id) {
+    const toggle = page.locator(`#${id}Toggle`);
+    await base.expect(toggle).toBeVisible();
+    if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
+    await base.expect(page.locator(`#${id}Toggle`)).toHaveAttribute('aria-expanded', 'true');
+    await base.expect(page.locator(`#${id}Body`)).toBeVisible();
+}
+
+module.exports = { test, expect: base.expect, isReady, login, openApp, showTab, settle, expectToast, confirmModalIfOpen, clickAfterTyping, openDisclosure };

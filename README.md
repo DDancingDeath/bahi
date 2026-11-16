@@ -176,17 +176,42 @@ The version lives in four places that must agree: `www/changelog.json` (top entr
 4. Owner tags the merged commit: `git tag v<ver> && git push origin v<ver>`.
 5. The workflow runs the tests and `check:release`, checks the tag equals `package.json` `version`, builds the signed
    APK, verifies its signing certificate and package id, and creates the GitHub Release "happa v<ver>" (marked latest)
-   with notes from `www/changelog.json` and two assets: `happa.apk` (stable name used by
-   `releases/latest/download/happa.apk`, the app and the download page) and `happa-v<ver>.apk`.
+   with notes from `www/changelog.json` and the assets `bahi.apk` (stable name used by
+   `releases/latest/download/bahi.apk`, the app and the download page), `bahi-v<ver>.apk`, and the same file
+   as `happa.apk` (the name up to rc14, kept for old links, bookmarks and old apps; rc14 also got a `bahi.apk` copy).
    A release-candidate tag `v<ver>-rc<n>` (same commit) is published the same way, also marked latest.
    The APK's versionCode comes from the tag (`scripts/android-version-code.js`, e.g. 1.0.0-rc11 → 10000011,
    1.0.0 → 10000999) and its versionName is the tag without `v`; `androidVersionCode` only applies to local builds.
    Tag builds also run `npm run check:happa-config` (no placeholders left in `happa.config.json`).
    The web app still deploys on merge to `main` as before.
 
+**Which Firebase project the APK uses.** The committed `happa.config.json` is the web deploy's project
+(`happa-bfc07`, myhappa.web.app). The APK is built for a *target* instead: the workflow runs
+`node scripts/happa-config.js target <name>` (input `target`, default `bahi-happa`), which puts
+`config/targets/<name>.json` (that project's public web config) over `happa.config.json` and re-applies it
+in the runner only, before the release notes and `cap sync`. So the APK, its download links and its
+release notes point at that project and its site (bahi-happa.web.app) while `main` and the web deploy stay
+on `happa-bfc07`. A target may only swap the `firebase`, `googleSignIn` and `appCheck` blocks, never the
+package or app name, except a side-by-side test app (below). The `GOOGLE_SERVICES_JSON` secret must be the same project's Android app config:
+the build stops when it isn't, and the signed APK's bundled `firebaseConfig.js` is checked too. Never
+run `target` in a checkout you commit from.
+
+**Test app "Bahi Dev"** (`config/targets/bahi-happa-dev.json`): project `bahi-happa-dev`, package
+`com.happa.dev`, so it installs next to the shop's Bahi app. A target may give the app such a whole
+identity (`appName`, `appNameHi`, `androidPackage` under the app's own package, `apkName`); the Java
+namespace stays `com.happa`. Run the workflow by hand with `target` = `bahi-happa-dev` (tag empty): it
+builds from the chosen branch, signs with the same key, uses the `GOOGLE_SERVICES_JSON_DEV` secret, puts a
+DEV badge on the launcher icon (`android/dev-icon`), checks the package, name and bundled project, and
+publishes a GitHub **pre-release** `dev-YYYYMMDD-N` with only `bahi-dev.apk`. It is never marked latest,
+so `releases/latest`, the update banner and /download stay on the shop's APK (the run fails if latest moved).
+It also moves the rolling pre-release **`dev-latest`** to the same commit (asset and notes replaced): the
+target's optional `download` block (`apkDownloadUrl`, `latestReleaseApi`, page `name` en/hi) points the test
+app's update check and the bahi-happa-dev site's /download at it, so that page offers "Bahi Dev (test app)",
+its version and its notes. Without the block, /download and the app use `releases/latest`.
+
 Installed Android apps check `releases/latest` (at most every 12 h) and show an "Update available" banner;
 https://myhappa.web.app/download (site from `happa.config.json`; happaapp.web.app and happa-bfc07.web.app redirect there) always links to the latest APK. After updating, each user sees a one-time
-"What's new" sheet (Settings → App updates reopens it and has "Share on WhatsApp" for sending the download link).
+"What's new" sheet (Settings › Help & about › App updates reopens it and has "Share on WhatsApp" for sending the download link).
 
 To re-publish an existing tag (e.g. after fixing a secret), run the workflow manually (Actions → Android release →
 Run workflow) with `tag` = `v<ver>`; assets are replaced (`--clobber`).
@@ -324,7 +349,7 @@ The app includes a service worker (`www/service-worker.js`) that:
 
 `www/manifest.webmanifest` plus the icons in `www/icons/` make the web app
 installable on desktop (Chrome/Edge) and Android/iOS home screens. In a
-browser tab, **Settings → Install App / ऐप इंस्टॉल करें** shows an install
+browser tab, **Settings › Help & about › Install app** shows an install
 button when the browser offers one, or a short hint otherwise (Safari/Firefox).
 The card is hidden inside the Capacitor Android app and when already running
 installed. New icons/manifest changes must stay in `STATIC_ASSETS`

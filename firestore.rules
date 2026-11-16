@@ -802,13 +802,54 @@ service cloud.firestore {
         && d.get('createdAt', null) == request.time;
     }
 
+    function activeOwnerData(p) {
+      return p.get('role', '') == 'owner' && !(p.get('status', '') in ['pending', 'rejected', 'disabled']);
+    }
+
+    function ownerAfter(usersCol, uid) {
+      let p = /databases/$(database)/documents/$(usersCol)/$(uid);
+      return uid is string && existsAfter(p) && activeOwnerData(getAfter(p).data);
+    }
+
+    function profileRoleChangeOk(usersCol, userId) {
+      let d = request.resource.data;
+      let was = activeOwnerData(resource.data);
+      let now = activeOwnerData(d);
+      let t = /databases/$(database)/documents/$(usersCol == 'users' ? 'settings' : 'dev_settings')/team;
+      let before = exists(t) ? get(t).data.get('ownerUids', []) : [];
+      let after = existsAfter(t) ? getAfter(t).data.get('ownerUids', []) : [];
+      return d.get('role', '') in ['owner', 'manager', 'staff', 'none', ''] && (d.get('role', '') != 'owner' || now)
+        && (request.auth.uid != userId
+            || (was && !now && d.role in ['manager', 'staff'] && d.diff(resource.data).affectedKeys().hasOnly(['role'])))
+        && (was == now
+            || (now
+                ? resource.data.get('role', '') in ['manager', 'staff', 'none']
+                  && !(resource.data.get('status', '') in ['pending', 'rejected', 'disabled'])
+                  && after is list && userId in after && !(before is list && userId in before)
+                : before is list && before.size() >= 2 && userId in before
+                  && after is list && !(userId in after)));
+    }
+
+    // Owner list (docs/security.md, "Owners").
+    function teamOwnersOk(collection, docId) {
+      let d = request.resource.data;
+      let b = resource == null ? [] : resource.data.get('ownerUids', []);
+      let a = d.get('ownerUids', []);
+      return docId != 'team' || !('ownerUids' in d) || a == b
+        || (a is list && b is list && a.size() <= 20 && a.toSet().size() == a.size()
+            && (a.size() == b.size() + 1
+                ? b.removeAll(a).size() == 0 && ownerAfter(usersOf(collection), a.removeAll(b)[0])
+                : a.size() == b.size() - 1 && a.size() >= 1 && a.removeAll(b).size() == 0
+                  && !ownerAfter(usersOf(collection), b.removeAll(a)[0])));
+    }
+
     function canUpdateProfile(usersCol, userId) {
       let d = request.resource.data;
       let p = '(this-month|last-month|this-year|last-year|this-fy|last-fy|last-30|all|month:[0-9]{4}-[0-9]{2}|range:[0-9]{4}-[0-9]{2}-[0-9]{2}:[0-9]{4}-[0-9]{2}-[0-9]{2})';
       let e = p + '[|]' + p + '?';
       return (isOwnerIn(usersCol)
               && (!d.diff(resource.data).affectedKeys().hasAny(['role', 'status'])
-                  || (request.auth.uid != userId && resource.data.get('role', '') != 'owner')))
+                  || profileRoleChangeOk(usersCol, userId)))
         || (request.auth != null
             && request.auth.uid == userId
             && !(resource.data.get('status', '') in ['disabled', 'rejected'])
@@ -1643,20 +1684,49 @@ service cloud.firestore {
         && s.get('amount', null) is int && s.amount >= 0 && s.amount <= 10000000;
     }
 
+    // Worker pay and recurring bills: created with no entries; an update keeps them, appends one with
+    // the earlier ones unchanged (arrayUnion), or removes exactly one (arrayRemove). At most 3,000.
+    function keptEntriesOk(isNew, e, n) {
+      let o = isNew ? 0 : resource.data.entries.size();
+      return n >= 0 && n <= 3000
+        && (isNew ? n == 0 : (n == o - 1 && resource.data.entries.hasAll(e) && e.toSet().size() == n)
+            || (n == o && e == resource.data.entries)
+            || (n == o + 1 && (o == 0 || e[0:o] == resource.data.entries)))
+        && request.resource.data.get('updatedAt', null) == request.time;
+    }
+
     function wpOk(isNew) {
       let d = request.resource.data;
       let p = d.get('pays', null);
       let e = d.get('entries', null);
       let n = e is list ? e.size() : -1;
-      let o = isNew ? 0 : resource.data.entries.size();
       return d.keys().hasOnly(['name', 'startMonth', 'active', 'pays', 'entries', 'updatedAt'])
         && rentStr(d, 'name', 1, 60) && rentMonth(d.get('startMonth', '')) && d.get('active', null) is bool
         && p is list && p.size() >= 1 && p.size() <= 24 && wpStepOk(p[0]) && p[0].from == d.startMonth && wpStepOk(p[p.size() - 1])
-        && n >= 0 && n <= 3000 && (n == 0 || wpEntryOk(e[n - 1]))
-        && (isNew ? n == 0 : (n == o - 1 && resource.data.entries.hasAll(e) && e.toSet().size() == n)
-            || (n == o && e == resource.data.entries)
-            || (n == o + 1 && (o == 0 || e[0:o] == resource.data.entries)))
-        && d.get('updatedAt', null) == request.time;
+        && keptEntriesOk(isNew, e, n) && (n == 0 || wpEntryOk(e[n - 1]));
+    }
+
+    // Recurring bills (#437): owner only; one doc per bill item; entries are bill amounts (kind 'bill',
+    // the newest for a period counts) and payments, append-only or one removed.
+    function rbEntryOk(e) {
+      return e is map && e.keys().hasOnly(['id', 'kind', 'period', 'date', 'amount', 'mode', 'note'])
+        && rentStr(e, 'id', 1, 40) && rentMonth(e.get('period', '')) && rentDate(e.get('date', ''))
+        && e.get('amount', null) is int && e.amount <= 10000000 && rentStr(e, 'note', 0, 120)
+        && (e.get('kind', '') == 'bill' ? e.amount >= 0 && !('mode' in e)
+            : e.get('kind', '') == 'pay' && e.amount > 0 && e.get('mode', '') in ['cash', 'online']);
+    }
+
+    function rbOk(isNew) {
+      let d = request.resource.data;
+      let e = d.get('entries', null);
+      let n = e is list ? e.size() : -1;
+      return d.keys().hasOnly(['name', 'cadence', 'dueDay', 'startMonth', 'expected', 'active', 'endMonth', 'note', 'entries', 'updatedAt'])
+        && rentStr(d, 'name', 1, 60) && d.get('cadence', 0) is int && d.cadence in [1, 2, 3, 6, 12]
+        && d.get('dueDay', 0) is int && d.dueDay >= 1 && d.dueDay <= 28 && rentMonth(d.get('startMonth', ''))
+        && d.get('expected', null) is int && d.expected >= 0 && d.expected <= 10000000 && d.get('active', null) is bool
+        && (d.get('endMonth', '') == '' || rentMonth(d.endMonth)) && rentStr(d, 'note', 0, 120)
+        && keptEntriesOk(isNew, e, n) && (n == 0 || (rbEntryOk(e[0]) && rbEntryOk(e[n - 1])))
+        && (isNew || resource.data.entries.size() == 0 || (d.cadence == resource.data.cadence && d.startMonth == resource.data.startMonth));
     }
 
     // Shared business collections (prod and dev_). Create and update dispatch on the collection
@@ -1682,7 +1752,7 @@ service cloud.firestore {
               && (isOwnerIn(usersOf(collection))
                   || (personalOn(usersOf(collection)) && validPersonalCreate() && expenseDayInWindow(usersOf(collection))))
           : collection in ['settings', 'dev_settings']
-            ? appSettingsGuard(collection, docId) && settingsReceiptOk() && settingsStampsOk(docId)
+            ? appSettingsGuard(collection, docId) && settingsReceiptOk() && settingsStampsOk(docId) && teamOwnersOk(collection, docId)
               && (isOwnerIn(usersOf(collection)) || (docId == 'accounts' && worthAccountsWriteOk(usersOf(collection))))
           : isOwnerIn(usersOf(collection))
             || (collection in ['withdrawals', 'dev_withdrawals']
@@ -1706,7 +1776,7 @@ service cloud.firestore {
                    request.resource.data.diff(resource.data).affectedKeys())
           : collection in ['settings', 'dev_settings']
             ? (appSettingsGuard(collection, docId) || managerShopSettingsOk(collection, docId))
-              && settingsReceiptOk() && settingsStampsOk(docId)
+              && settingsReceiptOk() && settingsStampsOk(docId) && teamOwnersOk(collection, docId)
               && (docId == 'app' || isOwnerIn(usersOf(collection))
                   || (docId == 'accounts' && worthAccountsWriteOk(usersOf(collection))))
           : collection in ['autoSaves', 'dev_autoSaves'] ? ownAutoSaveWrite(docId)
@@ -1777,7 +1847,9 @@ service cloud.firestore {
     function reminderFieldsOk(d) {
       let r = d.get('repeat', null);
       let day = d.get('repeatDay', null);
+      let tm = d.get('dueTime', null);
       return d.title is string && d.title.size() >= 1 && d.title.size() <= 120
+        && (tm == null || (tm is string && tm.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
         && shortStringOrAbsent(d, 'party', 80)
         && (r == null || r in ['daily', 'weekly', 'monthly'])
         && (day == null || (r == 'monthly' && day is int && day >= 1 && day <= 31));
@@ -1796,7 +1868,7 @@ service cloud.firestore {
     function validReminderCreate(usersCol) {
       let d = request.resource.data;
       return isManagerIn(usersCol)
-        && d.keys().hasOnly(['title', 'dueDate', 'party', 'repeat', 'repeatDay', 'status', 'createdBy', 'createdByName', 'createdAt'])
+        && d.keys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'status', 'createdBy', 'createdByName', 'createdAt'])
         && reminderCreatedOk(d);
     }
 
@@ -1818,7 +1890,7 @@ service cloud.firestore {
       let prev = get(prevPath).data;
       let after = getAfter(prevPath).data;
       return isApprovedIn(usersCol)
-        && d.keys().hasOnly(['title', 'dueDate', 'party', 'repeat', 'repeatDay', 'repeatOf', 'status', 'createdBy', 'createdByName', 'createdAt'])
+        && d.keys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'repeatOf', 'status', 'createdBy', 'createdByName', 'createdAt'])
         && d.repeatOf is string
         && reminderCreatedOk(d)
         && prev.status == 'open'
@@ -1829,6 +1901,7 @@ service cloud.firestore {
         && d.get('party', null) == prev.get('party', null)
         && d.get('repeat', null) == prev.get('repeat', null)
         && d.get('repeatDay', null) == prev.get('repeatDay', null)
+        && d.get('dueTime', null) == prev.get('dueTime', null)
         && d.dueDate > prev.dueDate
         && reminderNextDateOk(d.dueDate, prev);
     }
@@ -1852,7 +1925,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return isManagerIn(usersCol)
         && resource.data.status == 'open'
-        && d.diff(resource.data).affectedKeys().hasOnly(['title', 'dueDate', 'party', 'repeat', 'repeatDay', 'updatedBy', 'updatedByName', 'updatedAt'])
+        && d.diff(resource.data).affectedKeys().hasOnly(['title', 'dueDate', 'dueTime', 'party', 'repeat', 'repeatDay', 'updatedBy', 'updatedByName', 'updatedAt'])
         && d.status == 'open'
         && reminderFieldsOk(d)
         && (d.dueDate == resource.data.dueDate || reminderDateInRange(d.dueDate))
@@ -2154,6 +2227,11 @@ service cloud.firestore {
       allow create: if isOwnerIn('users') && wpOk(true);
       allow update: if isOwnerIn('users') && wpOk(false);
     }
+    match /recurringBills/{docId} {
+      allow read, delete: if isOwnerIn('users');
+      allow create: if isOwnerIn('users') && rbOk(true);
+      allow update: if isOwnerIn('users') && rbOk(false);
+    }
 
     match /dev_stockCheckpoints/{docId} {
       allow read: if isApprovedIn('dev_users');
@@ -2307,6 +2385,11 @@ service cloud.firestore {
       allow read, delete: if isOwnerIn('dev_users');
       allow create: if isOwnerIn('dev_users') && wpOk(true);
       allow update: if isOwnerIn('dev_users') && wpOk(false);
+    }
+    match /dev_recurringBills/{docId} {
+      allow read, delete: if isOwnerIn('dev_users');
+      allow create: if isOwnerIn('dev_users') && rbOk(true);
+      allow update: if isOwnerIn('dev_users') && rbOk(false);
     }
   }
 }

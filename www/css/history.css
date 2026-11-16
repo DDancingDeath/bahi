@@ -1,95 +1,47 @@
-.history-item {
-  background: var(--card-bg);
-  padding: 18px;
-  border-radius: var(--radius-lg);
-  margin-bottom: 16px;
-  box-shadow: var(--shadow);
-  border-left: 4px solid var(--primary-color);
-  transition: all var(--transition);
-}
-
-.history-item:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateX(4px);
-}
-
-.history-item[data-type="purchase"] {
-  border-left-color: var(--purchase-color);
-}
-
-.history-item[data-type="sale"] {
-  border-left-color: var(--sale-color);
-}
-
+/* [data-history-item] is a hook (tests, oracle, Outstanding, Stock); the look comes from .row / .due-bill / .stock-adj */
 .history-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-3);
   font-weight: var(--w-strong);
-  font-size: 16px;
-  color: var(--text-primary);
+  font-size: var(--fs-body);
+  color: var(--ink);
 }
 
 .history-date {
-  color: var(--text-secondary);
-  font-size: 14px;
-  margin-bottom: 8px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-2);
 }
 
-.history-summary {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  font-weight: var(--w-strong);
-}
-
-.history-labor {
-  font-size: 14px;
-  color: var(--warning-dark);
-  margin: 8px 0;
+.bill-row__items {
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  margin-bottom: var(--sp-2);
   font-weight: var(--w-strong);
 }
 
 .history-payment {
-  font-size: 14px;
-  margin: 8px 0;
+  font-size: var(--fs-sm);
+  margin: var(--sp-2) 0;
   display: flex;
-  gap: 8px;
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
+/* Online / cash / due: .tag; a due is ink, amber after 30 days and red after 90 (DIRECTION 3.1) */
 .payment-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  font-weight: var(--w-strong);
-  font-size: 14px;
-}
-
-.payment-online {
-  background: var(--info-light);
-  color: var(--info-dark);
-}
-
-.payment-cash {
-  background: var(--success-light);
-  color: var(--success-dark);
-}
-
-.payment-due {
-  background: var(--warning-light);
-  color: var(--warning-dark);
+  font-variant-numeric: tabular-nums;
 }
 
 .old-app-chip {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 11px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-caption);
   font-weight: var(--w-label);
-  background: var(--primary-soft);
-  color: var(--on-primary-soft);
+  background: var(--accent-soft);
+  color: var(--accent-text);
   vertical-align: middle;
 }
 
@@ -97,58 +49,74 @@
 .print-chip {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 11px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-caption);
   font-weight: var(--w-label);
   vertical-align: middle;
-  background: var(--seg-bg);
-  color: var(--text-secondary);
+  background: var(--seg-track);
+  color: var(--ink-2);
 }
 
-.print-chip--failed { background: var(--danger-soft); color: var(--on-danger-soft); }
-.print-chip--uncertain { background: var(--warning-soft); color: var(--on-warning-soft); }
+.print-chip--failed { background: var(--negative-soft); color: var(--negative); }
+.print-chip--uncertain { background: var(--warning-soft); color: var(--warning); }
 
 .bill-print-status {
-  margin: 0 16px 16px;
-  padding: 10px;
-  background: var(--surface-muted);
-  border-radius: 8px;
+  margin: 0 var(--sp-4) var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--surface-2);
+  border-radius: var(--r-control);
   font-size: var(--fs-sm);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--sp-2);
   align-items: center;
 }
 
 .bill-print-status__text { flex: 1 1 180px; }
 
-.history-items-detail {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 2px solid var(--border-color);
+/* History bill details (with billing.css .bill-view) */
+.bill-view-no {
+  color: var(--accent-text);
 }
 
-.history-item-detail {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 14px;
-  line-height: 1.6;
+.bill-view.is-sale .bill-view-no {
+  color: var(--positive);
 }
 
-.history-item-detail:last-child {
-  border-bottom: none;
+.bill-view-weights {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
 }
 
-.history-item-detail strong {
-  color: var(--text-primary);
+.bill-view-packets {
+  padding: var(--sp-2) 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+
+.bill-view-packets > strong {
+  color: var(--ink);
   font-size: var(--fs-body);
 }
 
-.history-item-detail small {
-  color: var(--text-secondary);
-  display: block;
-  margin-top: 4px;
-  line-height: 1.5;
+.bill-view-grand {
+  background: var(--accent-soft);
+}
+
+.bill-trace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.bill-trace > code {
+  font-size: var(--fs-caption);
+}
+
+.bill-window-note {
+  margin: 0 var(--sp-4) var(--sp-4);
 }
 
 /* ==================== OLDER HISTORY (windowed loading) ==================== */
@@ -156,8 +124,8 @@
   min-height: 1px;
   padding: 10px 0 16px;
   text-align: center;
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
 }
 
 .infinite-scroll-sentinel[data-state="idle"] {
@@ -165,52 +133,38 @@
 }
 
 .infinite-scroll-more,
-.history-range-retry,
-.history-search-older-btn {
+.history-range-retry {
   margin-left: 6px;
   padding: 6px 14px;
-  border: 1px solid var(--primary-border);
-  border-radius: 6px;
-  background: var(--card-bg);
-  color: var(--on-primary-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-sm);
+  background: var(--panel-bg);
+  color: var(--accent-text);
   font-weight: var(--w-strong);
-  font-size: 14px;
+  font-size: var(--fs-sm);
   cursor: pointer;
 }
 
-.history-search-older-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .history-search-footer {
-  margin: 8px 0 16px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--primary-soft);
-  color: var(--text-secondary);
+  margin: var(--sp-2) 0 var(--sp-4);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-control);
+  background: var(--accent-soft);
+  color: var(--ink-2);
   font-size: var(--fs-sm);
   text-align: center;
 }
 
-.history-range-notice {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--primary-soft);
-  color: var(--on-primary-soft);
-  font-size: 14px;
-  font-weight: var(--w-regular);
+.history-show-more {
+  padding: var(--sp-3);
+  text-align: center;
 }
 
-.history-range-notice.is-error {
-  background: var(--warning-soft);
-  color: var(--on-warning-soft);
+.history-range-note {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  margin: var(--sp-2) 0 var(--sp-3);
 }
 
 .history-range-loading {
@@ -227,7 +181,7 @@
   vertical-align: -2px;
   border: 2px solid currentColor;
   border-right-color: transparent;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   animation: historyRangeSpin 0.8s linear infinite;
 }
 
@@ -236,40 +190,47 @@
 }
 
 /* ==================== TYPE + DATE FILTERS (#160) ==================== */
-.filter-buttons.history-type-filter .filter-btn {
-  min-width: 0;
-  padding: 12px 6px;
+.history-type-filter {
+  margin-bottom: var(--sp-3);
 }
 
+.history-type-filter > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Date filter: History and Wholesale › History */
 .history-date-filter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
 }
 
+/* Label above the select, as in the shared .field */
 .history-date-label {
-  font-size: 14px;
+  flex: 1 1 100%;
+  font-size: var(--fs-sm);
   font-weight: var(--w-label);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
-#historyDatePreset {
+.history-date-filter > select {
   flex: 1 1 180px;
+  width: auto;
   min-width: 0;
-  padding: 10px 36px 10px 12px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: var(--fs-body);
-  background-color: var(--card-bg);
 }
 
 .history-custom-range {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-2);
   flex: 1 1 100%;
 }
 
@@ -278,38 +239,27 @@
   display: none;
 }
 
-.history-custom-range input[type="date"] {
+.history-custom-range > .input {
   flex: 1 1 0;
+  width: auto;
   min-width: 0;
-  padding: 8px 10px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: var(--fs-body);
 }
 
 .history-range-label {
   flex: 1 1 100%;
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
 }
 
 .history-apply-range {
-  flex: 0 0 auto;
-  padding: 9px 12px;
-  border: none;
-  border-radius: 8px;
-  background: var(--btn-primary);
-  color: var(--btn-primary-ink);
-  font-weight: var(--w-strong);
-  font-size: 14px;
-  cursor: pointer;
+  flex: none;
   white-space: nowrap;
 }
 
 .history-range-hint {
   flex: 1 1 100%;
-  font-size: 14px;
-  color: var(--on-danger-soft);
+  font-size: var(--fs-sm);
+  color: var(--negative);
 }
 
 .history-range-hint[hidden] {
@@ -319,7 +269,7 @@
 /* ==================== BILL ROW (History + Wholesale › History) ==================== */
 /* Phone: two lines. Line 1: bill no · party · amount (right). Line 2: date · items · chips.
    Desktop columns are in desktop.css. */
-.history-item.bill-row {
+[data-history-item][data-bill-row] {
   display: grid;
   grid-template-columns: 8.5rem minmax(0, 1fr) auto;
   grid-template-areas:
@@ -327,18 +277,27 @@
     "meta meta meta";
   align-items: baseline;
   column-gap: 10px;
-  row-gap: 4px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  row-gap: var(--sp-1);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--r-panel);
+  background: var(--panel-bg);
 }
 
-.history-item.bill-row:hover {
-  transform: none;
+/* Consecutive rows join into one panel; .row + .row::before draws the hairline */
+[data-history-item][data-bill-row] + [data-history-item][data-bill-row] {
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
-.history-item.bill-row[data-type="retail"],
-.history-item.bill-row[data-type="wholesale"] {
-  border-left-color: var(--sale-color);
+[data-history-item][data-bill-row]:has(+ [data-history-item][data-bill-row]) {
+  border-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+[data-history-item][data-bill-row] + :not([data-history-item]) {
+  margin-top: var(--sp-3);
 }
 
 .bill-row__no,
@@ -357,25 +316,28 @@
   font-size: var(--fs-body);
 }
 
-.bill-row[role="button"] {
+.bill-row__no > .mode-dot {
+  display: inline-block;
+  margin-right: var(--sp-2);
+  vertical-align: 0.1em;
+}
+
+[data-bill-row][role="button"] {
   cursor: pointer;
+}
+
+[data-bill-row][role="button"]:hover {
+  background: var(--surface-2);
 }
 
 .bill-row__link {
   cursor: pointer;
-  text-decoration: underline;
-  color: var(--purchase-dark);
-}
-
-.bill-row[data-type="retail"] .bill-row__link,
-.bill-row[data-type="wholesale"] .bill-row__link {
-  color: var(--sale-color);
 }
 
 .bill-row__party {
   grid-area: party;
   font-size: var(--fs-body);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .bill-row__amount {
@@ -385,12 +347,7 @@
   font-weight: var(--w-strong);
   font-size: var(--fs-body);
   font-variant-numeric: tabular-nums;
-  color: var(--purchase-dark);
-}
-
-.bill-row[data-type="retail"] .bill-row__amount,
-.bill-row[data-type="wholesale"] .bill-row__amount {
-  color: var(--sale-color);
+  color: var(--ink);
 }
 
 .bill-row__meta {
@@ -400,8 +357,8 @@
   align-items: center;
   gap: 4px 6px;
   min-width: 0;
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
 }
 
 .bill-row__date {
@@ -413,116 +370,60 @@
   display: none;
 }
 
-.bill-row .bill-row__items {
+[data-bill-row] .bill-row__items {
   flex: 1 1 4.5rem;
   min-width: 0;
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   font-weight: var(--w-regular);
 }
 
 /* Chips wrap inside the card instead of running off a narrow phone (#68: 14 px text) */
-.bill-row .bill-row__chips {
+[data-bill-row] .bill-row__chips {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
   margin: 0;
-  gap: 4px;
+  gap: var(--sp-1);
   font-size: var(--fs-caption);
 }
 
-.bill-row .payment-badge {
-  padding: 2px 6px;
-  font-size: 14px;
+.payment-due:not(.warn, .neg) {
+  color: var(--ink);
 }
 
-.bill-row .old-app-chip {
+[data-bill-row] .old-app-chip {
   align-self: center;
 }
 
 /* Old-app carried dues: hidden by default, a separate group when shown */
-.opening-toggle-chip {
-  display: inline-flex;
-  align-items: center;
-  margin: 0 0 10px;
-  padding: 4px 12px;
-  border: 1px solid var(--primary-border);
-  border-radius: 999px;
-  background: var(--card-bg);
-  color: var(--on-primary-soft);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-label);
-  cursor: pointer;
-}
-
-.opening-toggle-chip.active {
-  background: var(--primary-soft);
+.chip[data-group-toggle] {
+  margin: 0 var(--sp-2) var(--sp-2) 0;
 }
 
 .bill-group--opening {
   margin: 0 0 14px;
   padding: 8px 0 2px;
-  border: 1px dashed var(--primary-border);
-  border-radius: var(--radius-lg);
-  background: var(--primary-soft);
+  border: 1px dashed var(--accent-line);
+  border-radius: var(--r-panel);
+  background: var(--accent-soft);
 }
 
 .bill-group__title {
-  margin: 0 12px 8px;
+  margin: 0 var(--sp-3) var(--sp-2);
   font-size: var(--fs-caption);
   font-weight: var(--w-strong);
-  color: var(--on-primary-soft);
-}
-
-.bill-group--opening .history-item.bill-row {
-  border-left-color: var(--primary-light);
-  box-shadow: none;
-}
-
-/* Search row + Table View (standard secondary button) */
-.history-search-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  align-items: center;
-}
-
-.history-search-input {
-  flex: 1;
-  min-width: 0;
-  padding: 12px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-.history-view-toggle {
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--card-bg);
-  color: var(--text-primary);
-  font-weight: var(--w-strong);
-  font-size: 14px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.history-view-toggle:hover {
-  border-color: var(--primary-dark);
-  color: var(--primary-dark);
+  color: var(--accent-text);
 }
 
 /* "Bills older than … aren't updated live" — one subtle line */
 .history-stale-hint {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   margin: 2px 0 8px;
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
 }
 
 .history-stale-text {
@@ -530,50 +431,22 @@
   min-width: 0;
 }
 
-.history-stale-refresh {
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 4px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--card-bg);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: var(--w-strong);
-  cursor: pointer;
-}
-
 /* Table View: one row per bill, same columns as the row */
-.bill-table-wrap {
+.bill-table-scroll {
   overflow-x: auto;
 }
 
-.bill-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--card-bg);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  font-size: 14px;
+[data-bill-table] {
+  font-size: var(--fs-sm);
 }
 
-.bill-table thead th {
-  padding: 10px 8px;
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-  font-weight: var(--w-label);
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
+[data-bill-table] thead th {
   white-space: nowrap;
-  font-size: var(--fs-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
-.bill-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--border-color);
+[data-bill-table] td {
+  padding-top: var(--sp-2);
+  padding-bottom: var(--sp-2);
   vertical-align: top;
 }
 
@@ -581,16 +454,12 @@
   cursor: pointer;
 }
 
-.bill-table__row:hover {
-  background: var(--light-bg);
-}
-
 .bill-table__no {
   white-space: nowrap;
   font-weight: var(--w-strong);
 }
 
-.bill-table .bill-table__amount {
+[data-bill-table] .bill-table__amount {
   text-align: right;
   white-space: nowrap;
   font-weight: var(--w-strong);
@@ -602,170 +471,116 @@
 }
 
 .bill-table__by {
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
 }
 
 .bill-table__chips .payment-badge {
-  margin: 0 4px 4px 0;
-  padding: 2px 8px;
-  font-size: 14px;
+  margin: 0 var(--sp-1) var(--sp-1) 0;
 }
 
 .bill-table__group th {
   padding: 6px 8px;
-  background: var(--primary-soft);
-  color: var(--on-primary-soft);
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font-size: var(--fs-caption);
   text-align: left;
 }
 
 .bill-table__row.is-opening {
-  background: var(--primary-soft);
+  background: var(--accent-soft);
 }
 
 /* Wholesale › History controls */
 .wholesale-history-controls {
-  margin-bottom: 4px;
-}
-
-/* ==================== REPRINT / SHARE (#136) ==================== */
-.bill-action-btn.btn-reprint {
-  background: var(--primary-soft);
-  color: var(--on-primary-soft);
-  box-shadow: inset 0 0 0 1px var(--primary-border);
-}
-
-.bill-action-btn.btn-reprint:hover {
-  background: var(--primary-soft);
-}
-
-.bill-action-btn.btn-share {
-  background: var(--btn-success);
-  color: var(--btn-sale-ink);
-}
-
-.bill-action-btn.btn-share:hover {
-  background-image: linear-gradient(var(--state-hover), var(--state-hover));
+  margin-bottom: var(--sp-1);
 }
 
 @media (max-width: 480px) {
   .history-apply-range {
     flex: 1 1 100%;
-    background: var(--btn-primary);
-  }
-
-  .bill-details-footer .bill-action-btn {
-    padding: 10px 4px;
-    font-size: var(--fs-sm);
   }
 }
 /* Voided bills (#75): hidden by default, greyed with a chip and the reason when shown */
 .voided-chip {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 11px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-caption);
   font-weight: var(--w-strong);
-  background: var(--surface-muted);
-  color: var(--text-secondary);
+  background: var(--surface-2);
+  color: var(--ink-2);
   vertical-align: middle;
 }
 
 .voided-reason {
   margin-left: 6px;
   font-size: var(--fs-caption);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-style: italic;
 }
 
-.history-item.bill-row.is-voided,
+[data-history-item][data-bill-row].is-voided,
 .bill-table__row.is-voided {
   opacity: 0.6;
 }
 
-.history-item.bill-row.is-voided .bill-row__amount,
+[data-history-item][data-bill-row].is-voided .bill-row__amount,
 .bill-table__row.is-voided .bill-table__amount {
   text-decoration: line-through;
-}
-
-.voided-toggle-chip {
-  display: inline-flex;
-  align-items: center;
-  margin: 0 8px 10px 0;
-  padding: 4px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--card-bg);
-  color: var(--text-secondary);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-label);
-  cursor: pointer;
-}
-
-.voided-toggle-chip.active {
-  background: var(--surface-muted);
 }
 
 .bill-group--voided {
   margin: 0 0 14px;
   padding: 8px 0 2px;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--surface-muted);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  background: var(--surface-2);
 }
 
 .bill-group--voided .bill-group__title {
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
-/* Bill details: voided banner, edit history (#121), reason dialog */
-.bill-voided-banner {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border-left: 4px solid var(--border-strong);
-  background: var(--surface-muted);
-  font-size: 14px;
-  color: var(--text-primary);
+/* Bill details: voided notice, edit history (#121), reason dialog */
+.bill-voided-notice {
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-3);
+  color: var(--ink);
 }
 
-.bill-voided-banner__reason {
-  margin-top: 6px;
-}
-
-.bill-voided-banner__by {
-  margin-top: 2px;
+.bill-voided-notice__by {
   font-size: var(--fs-caption);
-  color: var(--text-secondary);
+  color: var(--ink-3);
 }
 
 .bill-edits {
-  margin-top: 12px;
+  margin-top: var(--sp-3);
   font-size: var(--fs-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .bill-edits__view {
   border: none;
   background: none;
   padding: 0;
-  color: var(--primary-color);
+  color: var(--accent-text);
   font-size: var(--fs-sm);
   text-decoration: underline;
   cursor: pointer;
 }
 
 .bill-edits__list {
-  margin-top: 8px;
+  margin-top: var(--sp-2);
 }
 
 .bill-edit {
-  margin-bottom: 8px;
+  margin-bottom: var(--sp-2);
   padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--surface-muted);
-  color: var(--text-primary);
+  border-radius: var(--r-control);
+  background: var(--surface-2);
+  color: var(--ink);
 }
 
 .bill-edit__head {
@@ -774,128 +589,172 @@
 
 .bill-edit__reason {
   margin-top: 2px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .bill-edit__changes {
-  margin: 4px 0 0;
+  margin: var(--sp-1) 0 0;
   padding-left: 18px;
 }
 
-.reason-dialog {
-  text-align: left;
-}
-
-.reason-dialog__explain {
-  margin: 0 0 10px;
-}
-
-.reason-dialog__label {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: var(--w-label);
-}
-
-.reason-dialog__input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px;
-}
-
 /* #124: Edit / Void past the edit window: shown, greyed, with the reason */
-.bill-action-btn.bill-action-locked {
-    opacity: 0.55;
+.bill-action-locked {
     filter: grayscale(1);
 }
 
-.bill-action-btn.bill-action-locked::before {
+.bill-action-locked::before {
     content: '\1F512  ';
 }
 
-.bill-action-btn.bill-action-locked::after {
+.bill-action-locked::after {
     content: ' · ' attr(data-locked-label);
     font-size: 0.85em;
 }
 
-/* Expense cards: lift on hover (was inline onmouseover/onmouseout, #89) */
-.expense-card {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Expenses (redesign 5.4b): a form panel, then each section's totals, search and list of rows */
+.exp-seg,
+.exp-form,
+.exp-voided {
+  margin-bottom: var(--sp-4);
 }
 
-.expense-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transform: translateY(-2px);
+.exp-form {
+  display: grid;
+  gap: var(--sp-3);
 }
 
-/* Voided expenses (#99): kept in the list, struck through */
-.expense-card--voided {
-  opacity: 0.7;
-}
-
-.expense-card--voided .expense-card__amount {
-  text-decoration: line-through;
-}
-
-.expenses-voided-toggle {
+.exp-actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 0 12px;
-  font-size: 14px;
-  color: var(--text-secondary);
+  gap: var(--sp-3);
+  margin-top: var(--sp-1);
 }
 
-/* Expenses: totals, search and template chips (#90) */
-.expense-totals {
-  margin: 4px 0 8px;
-  font-size: 14px;
-  color: var(--text-secondary);
+.exp-actions > .btn {
+  flex: 1;
 }
-.expense-search {
+
+.exp-title {
+  margin: var(--sp-5) 0 var(--sp-2);
+  font-size: var(--fs-lead);
+}
+
+.exp-totals {
+  margin-bottom: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.exp-search {
   display: flex;
-  gap: 8px;
-  margin: 0 0 8px;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
 }
-.expense-search input {
+
+.exp-search > input {
   flex: 1 1 auto;
   min-width: 0;
 }
-.expense-search select {
+
+.exp-search > select {
   flex: 0 1 40%;
   min-width: 0;
 }
-.expense-templates {
+
+.exp-templates {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin: 0 0 12px;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
 }
-.expense-templates__label {
+
+.exp-templates-label {
+  color: var(--ink-3);
   font-size: var(--fs-sm);
-  color: var(--text-secondary);
 }
-.expense-template-chip {
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--text-primary);
-  padding: 6px 12px;
+
+.exp-voided {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--ink-2);
   font-size: var(--fs-sm);
-  min-height: 36px;
+}
+
+.exp-row {
+  align-items: flex-start;
   cursor: pointer;
+}
+
+.exp-row:hover {
+  background: var(--surface-2);
+}
+
+.exp-row-type {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.exp-row-note {
+  font-style: italic;
+}
+
+.exp-row .row-meta > .i {
+  vertical-align: -2px;
+}
+
+.exp-row-amt {
+  font-size: var(--fs-lead);
+}
+
+/* Voided expenses (#99): kept in the list, struck through */
+.exp-row.is-voided {
+  opacity: 0.7;
+}
+
+.exp-row.is-voided .exp-row-amt {
+  text-decoration: line-through;
+}
+
+.exp-detail-figure {
+  margin-bottom: var(--sp-4);
+  text-align: center;
+}
+
+.exp-field-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.exp-field > .row-trail {
+  font-weight: var(--w-strong);
+  overflow-wrap: anywhere;
+}
+
+.exp-detail-note {
+  margin-top: var(--sp-4);
+}
+
+.exp-detail-note b {
+  display: block;
+}
+
+.exp-dialog-actions > .btn {
+  flex: 1;
+  min-width: 0;
 }
 
 /* A bill date that can't be read (#80) */
 .bad-date-badge {
   display: inline-block;
-  margin-left: 4px;
+  margin-left: var(--sp-1);
   padding: 1px 6px;
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-caption);
   font-weight: var(--w-strong);
-  background: var(--danger-soft);
-  color: var(--on-danger-soft);
+  background: var(--negative-soft);
+  color: var(--negative);
 }

@@ -23,6 +23,7 @@ import { hidePartyDue, renderPartyDue } from './party-due-line.js';
 import { closeSuggestions, hideNameHint, renderNameHint } from './party-suggest.js';
 import { confirmLineRates } from './rate-check.js';
 import { lineItemIdentity } from '../utils/item-catalog.js';
+import { screenRateText } from '../utils/money.js';
 import { getLang, t } from '../i18n/index.js';
 import { tip } from '../tip/index.js';
 import { AUTO_ROLLBACK_REASON } from '../tip/scenarios/bill-save.js';
@@ -40,6 +41,7 @@ export { AUTO_ROLLBACK_REASON };
 
 const ICON = { block: '⛔', warn: '⚠️' };
 const CLASS = { block: 'bill-check-block', warn: 'bill-check-warn' };
+const TONE = { block: 'neg', warn: 'warn' };
 
 /** @type {Object<string, Object>} kind -> registered form config */
 const forms = {};
@@ -61,7 +63,55 @@ export function readTypedNumber(id) {
     const n = parseFloat(raw);
     return Number.isFinite(n) ? n : null;
 }
-const text = (i) => (getLang() === 'hi' ? i.hi : i.en);
+/** Rules whose text carries rates (stored with paise, "₹2,400.00"); the screen shows them as rates ("₹2,400"). */
+const RATE_RULES = new Set(['rate-high', 'rate-low', 'below-cost']);
+const text = (i) => {
+    const s = getLang() === 'hi' ? i.hi : i.en;
+    return RATE_RULES.has(i.id) ? screenRateText(s) : s;
+};
+
+/**
+ * Clear the field error set by showFieldError().
+ * @param {string} inputId
+ */
+export function clearFieldError(inputId) {
+    const el = byId(inputId);
+    const msgId = `${inputId}-error`;
+    byId(msgId)?.remove();
+    if (!el) return;
+    if (!el.dataset.billCheck) el.removeAttribute('aria-invalid');
+    const rest = (el.getAttribute('aria-describedby') || '').split(' ').filter(id => id && id !== msgId).join(' ');
+    if (rest) el.setAttribute('aria-describedby', rest);
+    else el.removeAttribute('aria-describedby');
+}
+
+/**
+ * A field error under an input (Field pattern: negative border and a message under it), focused and
+ * cleared on the next edit of that input. False when the input is not on the page.
+ * @param {string} inputId
+ * @param {string} message
+ * @returns {boolean}
+ */
+export function showFieldError(inputId, message) {
+    const el = byId(inputId);
+    if (!el) return false;
+    clearFieldError(inputId);
+    const msgId = `${inputId}-error`;
+    const msg = document.createElement('div');
+    msg.className = `bill-check-msg ${CLASS.block}`;
+    msg.id = msgId;
+    msg.dataset.fieldError = '';
+    msg.setAttribute('role', 'alert');
+    msg.textContent = message;
+    (el.closest('.bill-form-field, .field-float, .field') || el).insertAdjacentElement('afterend', msg);
+    el.setAttribute('aria-invalid', 'true');
+    const ids = new Set((el.getAttribute('aria-describedby') || '').split(' ').filter(Boolean));
+    ids.add(msgId);
+    el.setAttribute('aria-describedby', [...ids].join(' '));
+    el.addEventListener('input', () => clearFieldError(inputId), { once: true });
+    el.focus?.();
+    return true;
+}
 
 function sectionOf(kind) {
     const cfg = forms[kind];
@@ -73,7 +123,7 @@ function bind(kind) {
     if (!section || section.dataset.billChecksBound) return section;
     section.dataset.billChecksBound = '1';
     const onEdit = (e) => {
-        if (e.target?.closest?.('.bill-check-banner')) return;
+        if (e.target?.closest?.('.bill-check-notice')) return;
         BillChecksUI.schedule(kind);
     };
     section.addEventListener('input', onEdit);
@@ -82,10 +132,10 @@ function bind(kind) {
 }
 
 function clearMarks(section) {
-    section.querySelectorAll('.bill-check-msg, .bill-check-row').forEach(el => el.remove());
+    section.querySelectorAll('.bill-check-msg:not([data-field-error]), .bill-check-line').forEach(el => el.remove());
     section.querySelectorAll('[data-bill-check]').forEach(el => {
         el.classList.remove(CLASS.block, CLASS.warn);
-        el.removeAttribute('aria-invalid');
+        if (!(el.id && byId(`${el.id}-error`)?.hasAttribute('data-field-error'))) el.removeAttribute('aria-invalid');
         const describedBy = (el.getAttribute('aria-describedby') || '').split(' ')
             .filter(id => id && !id.startsWith('billcheck-')).join(' ');
         if (describedBy) el.setAttribute('aria-describedby', describedBy);
@@ -119,7 +169,7 @@ function messageEl(issue, msgId) {
 
 function itemRows(cfg) {
     const tbody = cfg.tableSelector ? document.querySelector(`${cfg.tableSelector} tbody`) : null;
-    return tbody ? [...tbody.children].filter(tr => !tr.classList.contains('bill-check-row')) : [];
+    return tbody ? [...tbody.children].filter(tr => !tr.classList.contains('bill-check-line')) : [];
 }
 
 function placeFieldIssue(cfg, issue, n) {
@@ -130,7 +180,7 @@ function placeFieldIssue(cfg, issue, n) {
     if (!anchor) return null;
     const msgId = `billcheck-${cfg.kind}-${n}`;
     inputs.forEach(el => mark(el, issue.severity, msgId));
-    const row = anchor.closest('.form-row, .payment-row') || anchor;
+    const row = anchor.closest('.bill-form-field, .field-float, .pay-line') || anchor;
     let after = row;
     while (after.nextElementSibling?.classList.contains('bill-check-msg')) after = after.nextElementSibling;
     after.insertAdjacentElement('afterend', messageEl(issue, msgId));
@@ -149,23 +199,23 @@ function placeLineIssue(cfg, issue, n) {
         first = first || tr;
         if (k !== lines.length - 1) return;
         const msgRow = document.createElement('tr');
-        msgRow.className = 'bill-check-row';
+        msgRow.className = 'bill-check-line';
         const td = document.createElement('td');
         td.colSpan = tr.children.length || 5;
         td.appendChild(messageEl(issue, msgId));
         msgRow.appendChild(td);
         let after = tr;
-        while (after.nextElementSibling?.classList.contains('bill-check-row')) after = after.nextElementSibling;
+        while (after.nextElementSibling?.classList.contains('bill-check-line')) after = after.nextElementSibling;
         after.insertAdjacentElement('afterend', msgRow);
     });
     return first;
 }
 
 function ensureBanner(section) {
-    let banner = section.querySelector(':scope > .bill-check-banner');
+    let banner = section.querySelector(':scope > .bill-check-notice');
     if (!banner) {
         banner = document.createElement('div');
-        banner.className = 'bill-check-banner';
+        banner.className = 'notice solid bill-check-notice';
         banner.setAttribute('role', 'status');
         banner.setAttribute('aria-live', 'polite');
         banner.hidden = true;
@@ -178,7 +228,7 @@ function renderBanner(cfg, section, issues, unplaced, firstTarget) {
     const banner = ensureBanner(section);
     if (issues.length === 0) {
         banner.hidden = true;
-        banner.className = 'bill-check-banner';
+        banner.className = 'notice solid bill-check-notice';
         banner.replaceChildren();
         return;
     }
@@ -186,10 +236,10 @@ function renderBanner(cfg, section, issues, unplaced, firstTarget) {
     // The rate still in the entry box can repeat a line's warning: count each problem once
     const { en, hi } = bannerText(new Set(issues.map(i => `${i.id}|${i.en}`)).size);
     banner.hidden = false;
-    banner.className = `bill-check-banner ${CLASS[severity]}`;
+    banner.className = `notice solid ${TONE[severity]} bill-check-notice ${CLASS[severity]}`;
     const head = document.createElement('button');
     head.type = 'button';
-    head.className = 'bill-check-banner-head';
+    head.className = 'bill-check-notice-head';
     head.textContent = `${ICON[severity]} ${getLang() === 'hi' ? hi : en}`;
     head.onclick = () => {
         if (!firstTarget) return;
@@ -423,11 +473,12 @@ export const BillChecksUI = {
 
         const confirmList = [...autoOverride, ...warns];
         if (confirmList.length) {
-            const list = confirmList.map(w => `${ICON.warn} ${text(w)}`).join('\n');
+            const list = confirmList.map(w => text(w)).join('\n');
             const ok = await UIManager.showModal(
                 t('msg.checks.save_anyway_list', { list }),
                 t('msg.checks.check_before_saving'),
-                true
+                true,
+                { confirmLabel: t('ui.confirm.save_anyway') }
             );
             if (!ok) return stop;
         }
@@ -465,10 +516,10 @@ function showLine(kind, index) {
  */
 async function askOverrideReason(blocks) {
     const list = blocks.map(b => `<li>${ICON.block} ${Helpers.escapeHtml(text(b))}</li>`).join('');
-    const html = `<ul class="bill-check-modal-list">${list}</ul>
+    const html = `<ul class="bill-check-list">${list}</ul>
         <label for="billCheckOverrideReason">${Helpers.escapeHtml(t('ui.checks.reason_to_save_anyway'))}</label>
         <input type="text" id="billCheckOverrideReason" class="bill-check-reason" maxlength="200" autocomplete="off" />`;
-    const ok = await UIManager.showModalWithHtml(html, t('msg.checks.save_anyway'), true);
+    const ok = await UIManager.showModalWithHtml(html, t('msg.checks.save_anyway'), true, { confirmLabel: t('ui.confirm.save_anyway') });
     if (!ok) return null;
     const reason = (byId('billCheckOverrideReason')?.value || '').trim();
     if (!reason) {

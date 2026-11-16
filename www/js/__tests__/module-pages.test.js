@@ -21,6 +21,7 @@ import { Helpers } from '../utils/helpers.js';
 import { AppState } from '../utils/state.js';
 import { createFakeFirestore } from './__mocks__/fake-firestore.js';
 import { SAMPLE_ITEMS, sampleItems } from '../../../tests/fixtures/sample-items.js';
+import { formatRupees } from '../utils/money.js';
 
 let toast;
 beforeEach(() => {
@@ -80,7 +81,7 @@ describe('Rates page (items list)', () => {
         expect(document.getElementById('itemsActionButtons').style.display).toBe('none');
         expect(document.querySelector('#itemsViewTableBody tr').cells).toHaveLength(3);
         document.querySelector('#itemsViewTableBody tr').click();
-        expect(document.getElementById('itemEditOverlay').style.display).toBe('none');
+        expect(document.getElementById('itemEditOverlay').classList.contains('active')).toBe(false);
     });
 
     test('clicking a sorted row edits that item (by id, not list position)', async () => {
@@ -226,7 +227,7 @@ describe('Rates page (items list)', () => {
 describe('Stock', () => {
     beforeEach(() => {
         document.body.innerHTML = `
-          <div id="stock"><button class="filter-btn"></button><button class="filter-btn"></button></div>
+          <div id="stock"><button></button><button></button></div>
           <input id="stockSearchInput"><div id="stockList"></div>
           <select id="adjustItem"></select><select id="adjustType"><option>add</option><option>remove</option><option>set</option></select>
           <input id="adjustQuantity"><input id="adjustRate" value="0"><input id="adjustReason">
@@ -243,7 +244,7 @@ describe('Stock', () => {
         'Old Bajra': { quantity: -5, rate: 0 }        // no catalogue item
     };
     const cloneStock = () => JSON.parse(JSON.stringify(STOCK));
-    const rows = () => [...document.querySelectorAll('#stockList .stock-item')];
+    const rows = () => [...document.querySelectorAll('#stockList [data-stock-item]')];
 
     test('merges id + legacy name buckets with a weighted rate; hides empty items; flags unmatched', async () => {
         jest.spyOn(FirebaseService, 'getStock').mockResolvedValue(cloneStock());
@@ -251,7 +252,7 @@ describe('Stock', () => {
         const text = rows().map(r => r.textContent.replace(/\s+/g, ' ').trim());
         expect(text).toHaveLength(3);
         expect(text[0]).toContain('Rice');
-        expect(text[0]).toContain('Rate: ₹32.00/kg');   // (100×30 + 50×36) / 150
+        expect(text[0]).toContain('Rate ₹32/kg');   // (100×30 + 50×36) / 150
         expect(text[0]).toContain('150 kg');
         expect(text[0]).toContain('≈ ₹4,800');
         expect(text[1]).toContain('Wheat');
@@ -358,7 +359,7 @@ describe('Today (day.js)', () => {
         'todayCashFlowLabel', 'todayCashReceived', 'todayOnlineReceived', 'todayCashPaid', 'todayOnlinePaid',
         'todayDueReceived', 'todayDuePaid', 'todayDueToReceive', 'todayDueToPay', 'todayPurchaseItems', 'todaySaleItems'];
     const val = (id) => document.getElementById(id).textContent;
-    const money = (n) => Helpers.formatCurrency(n);
+    const money = (n) => formatRupees(n);
 
     beforeEach(() => {
         jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
@@ -403,7 +404,7 @@ describe('Today (day.js)', () => {
         expect(val('todayCashPaid')).toBe(money(1000 + 230));
         expect(val('todayTotalIn')).toBe(money(3300));
         expect(val('todayTotalOut')).toBe(money(1730));
-        expect(val('todayCashFlowLabel')).toBe('Net Inflow:');
+        expect(val('todayCashFlowLabel')).toBe('Net inflow');
         expect(val('todayNetCashFlow')).toBe(money(1570));
         expect(val('todayDueToReceive')).toBe(money(2495));
         expect(val('todayDueToPay')).toBe(money(1068));
@@ -592,7 +593,7 @@ describe('Settings', () => {
         ];
         DiagnosticsManager.filterAuditLogs('DELETE_BILL');
         const list = document.getElementById('diagnosticsContainer');
-        expect(list.textContent).toContain('Delete Bill');
+        expect(list.textContent).toContain('Delete bill');
         expect(list.textContent).toContain('Bill: P1 • Amount: ₹50');
         expect(list.textContent).not.toContain('Asha');
         expect(list.querySelector('b')).toBeNull();
