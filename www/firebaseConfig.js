@@ -75,7 +75,7 @@ const firebaseConfig = {
   "messagingSenderId": "6046579556",
   "appId": "1:6046579556:web:ce3a9215b01c41c3fb9871"
 };
-const appCheckSiteKey = "";
+const appCheckSiteKey = "6LeLOiMuAAAAAFwG1zM7ElYJWZlvqpxROKr2qpCp";
 const googleSignInWeb = false;
 // </happa-config>
 

@@ -93,7 +93,9 @@ describe('happa.config.json', () => {
     });
 
     test('App Check (#89) is off without a site key; appCheck.siteKey reaches firebaseConfig.js', () => {
-        const off = Object.fromEntries(plan(ROOT, filled()).map((p) => [p.file, p.wanted]));
+        const offRaw = filled();
+        offRaw.appCheck = { siteKey: '' };
+        const off = Object.fromEntries(plan(ROOT, offRaw).map((p) => [p.file, p.wanted]));
         expect(off['www/firebaseConfig.js']).toContain('const appCheckSiteKey = "";');
         const raw = filled();
         delete raw.appCheck;
@@ -205,13 +207,21 @@ describe('Android build target (config/targets)', () => {
     const workflow = (name) => fs.readFileSync(path.join(ROOT, '.github', 'workflows', name), 'utf8');
     const bahi = () => withTarget(loadConfig(ROOT), loadTarget('bahi-happa', ROOT));
 
-    test('the web deploy keeps happa-bfc07; previews build for bahi-happa-dev; the APK build switches to bahi-happa', () => {
-        expect(derive(loadConfig(ROOT))).toMatchObject({ projectId: 'happa-bfc07', hostingSite: 'myhappa' });
-        expect(JSON.parse(fs.readFileSync(path.join(ROOT, '.firebaserc'), 'utf8')).projects.default).toBe('happa-bfc07');
+    test('the web deploy is bahi-happa; dev deploys and previews build for bahi-happa-dev; no workflow reaches happa-bfc07', () => {
+        expect(derive(loadConfig(ROOT))).toMatchObject({ projectId: 'bahi-happa', hostingSite: 'bahi-happa', redirectSites: [] });
+        expect(JSON.parse(fs.readFileSync(path.join(ROOT, '.firebaserc'), 'utf8')).projects.default).toBe('bahi-happa');
         for (const name of ['firebase-hosting-merge.yml', 'firestore-rules-deploy.yml']) {
             expect({ name, target: /happa-config\.js target|config\/targets/.test(workflow(name)) }).toEqual({ name, target: false });
+            expect(workflow(name)).toContain('secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}');
         }
-        // PR previews (deploy and channel clean-up) run on the test project only, with its own key.
+        for (const name of fs.readdirSync(path.join(ROOT, '.github', 'workflows'))) {
+            expect({ name, legacy: workflow(name).includes('FIREBASE_SERVICE_ACCOUNT_HAPPA }}') }).toEqual({ name, legacy: false });
+        }
+        // The dev deploy, PR previews and their channel clean-up run on the test project only, with its own key.
+        const dev = workflow('bahi-dev-deploy.yml');
+        expect(dev.indexOf('target bahi-happa-dev')).toBeLessThan(dev.indexOf('guard --require-ready --require-sa --sa-env SA_JSON'));
+        expect(dev).toContain('secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV }}');
+        expect(dev).not.toContain('secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA }}');
         const preview = workflow('firebase-hosting-pull-request.yml');
         expect(preview.match(/node scripts\/happa-config\.js target bahi-happa-dev/g)).toHaveLength(2);
         expect(preview).not.toContain('FIREBASE_SERVICE_ACCOUNT_HAPPA }}');
