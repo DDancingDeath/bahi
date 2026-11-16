@@ -172,6 +172,8 @@ export class RolesAccessManager {
 
     /** Approved users, loaded only when the owner asks (one users read). */
     static people = null;
+    /** settings/team.firstOwnerUid, read with the people. */
+    static firstOwnerUid = null;
 
     static async loadPeople() {
         if (AppState.userRole !== 'owner') return false;
@@ -179,6 +181,7 @@ export class RolesAccessManager {
         if (box) box.innerHTML = `<p class="setting-description">${Helpers.escapeHtml(t('ui.navigation.loading'))}</p>`;
         try {
             this.people = await FirebaseService.loadUsers();
+            this.firstOwnerUid = await Promise.resolve().then(() => FirebaseService.loadFirstOwner()).catch(() => null);
         } catch (error) {
             console.warn('Roles & access: users not loaded', error?.code || error);
             this.people = null;
@@ -204,7 +207,8 @@ export class RolesAccessManager {
                 const owner = u.role === 'owner';
                 const rent = owner ? e(t('ui.role.owner'))
                     : `<select aria-label="${e(t('ui.roles.rentals_role'))}" data-onchange="roles.setRentRole('${Helpers.escapeJsAttr(u.id)}', this.value)">${rentOptions.map(([v, k]) => `<option value="${v}"${(u.rentRole || '') === v ? ' selected' : ''}>${e(t(k))}</option>`).join('')}</select>`;
-                return `<tr><td>${e(u.name || u.email || '')}</td><td>${e(shopRole(u.role))}</td><td>${rent}</td></tr>`;
+                const founder = owner && u.id === this.firstOwnerUid ? ` <span class="tag">${e(t('ui.owners.founder'))}</span>` : '';
+                return `<tr><td>${e(u.name || u.email || '')}${founder}</td><td>${e(shopRole(u.role))}</td><td>${rent}</td></tr>`;
             }).join('');
         box.innerHTML = `<table class="table role-table role-people">
                 <thead><tr><th>${e(t('ui.roles.person'))}</th><th>${e(t('ui.roles.shop_role'))}</th><th>${e(t('ui.roles.rentals_role'))}</th></tr></thead>
