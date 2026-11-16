@@ -286,9 +286,10 @@ that covers the APK:** a Play Integrity provider through a native Capacitor plug
 localhost; the APK's WebView is `https://localhost`) registered as the Enterprise provider of its web
 app, AI Logic (`firebaseml.googleapis.com`) ENFORCED, Firestore and Auth unenforced (monitor). It is
 set only in the local bahi-happa-dev config branch and in `config/targets/bahi-happa-dev.json` (the "Bahi
-Dev" test APK). `bahi-happa` (prod, and the APK target) and
-`happa-bfc07` have no key yet: prod gets its own key in project "Bahi", then
-`config/targets/bahi-happa.json` gets `appCheck.siteKey` for rc15.
+Dev" test APK). `bahi-happa` (16 Nov 2026): its own key `6LeLOiMuAAAAAFwG1zM7ElYJWZlvqpxROKr2qpCp`
+(project bahi-happa; domains bahi-happa.web.app, bahi-happa.firebaseapp.com, localhost) registered for
+its web app, AI Logic ENFORCED, Firestore and Auth unenforced; set in the local prod config branch and
+in `config/targets/bahi-happa.json` (the APK from rc15). `happa-bfc07` has no key yet.
 
 **403 "App attestation failed" on bahi-happa-dev (16 Nov 2026).** The token exchange (`content-firebaseappcheck.googleapis.com/.../exchangeRecaptchaEnterpriseToken`) returns 403 for scripted browsers. The set-up is right (key, domains, both APIs on, the key registered for the web app); an assessment of such a token shows it valid for `bahi-happa-dev.web.app` with score 0.1, under the app's `minValidScore` 0.5. reCAPTCHA scores headless / automated browsers and data-centre IPs low, so review probes and E2E always see it. After a 403 the SDK waits a day before trying again in that browser. Check real phones in App Check › APIs and the key's score metrics before lowering the threshold.
 
