@@ -1,9 +1,10 @@
-# Deploys a Happa preview channel on PR (test data, see firebaseConfig.js). The app
-# site (myhappa) gets www/; the redirect sites' previews only 301 to production myhappa.
-# Channels expire after 2 days and are deleted on all sites when the PR closes, so the
-# per-site channel limit isn't reached.
-# Skipped until happa.config.json has the real project and the
-# FIREBASE_SERVICE_ACCOUNT_HAPPA secret exists; never targets aadhat-management.
+# Deploys a preview channel on PR to the TEST project bahi-happa-dev (#72). The
+# runner builds with config/targets/bahi-happa-dev.json (scripts/happa-config.js
+# target), so a preview reads and writes only dev data, never the shop's.
+# Channels (bahi-happa-dev--pr<N>-<branch>-<hash>.web.app) expire after 2 days and
+# are deleted when the PR closes, so the per-site channel limit isn't reached.
+# Skipped until the FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV secret exists; the guard
+# refuses a key from another project and never targets aadhat-management.
 
 name: Deploy to Firebase Hosting on PR
 on:
@@ -31,16 +32,18 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm test
-      - name: Resolve Happa project (refuses aadhat-management)
+      - name: Build for the test project (bahi-happa-dev)
+        run: node scripts/happa-config.js target bahi-happa-dev
+      - name: Resolve the test project (refuses aadhat-management)
         id: project
         env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV }}
         run: node scripts/happa-config.js guard --sa-env SA_JSON
       - uses: FirebaseExtended/action-hosting-deploy@v0
         if: steps.project.outputs.ready == 'true'
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV }}
           projectId: ${{ steps.project.outputs.project_id }}
           expires: 2d
 
@@ -55,17 +58,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Resolve Happa project (refuses aadhat-management)
+      - name: Install dependencies
+        run: npm ci
+      - name: Point at the test project (bahi-happa-dev)
+        run: node scripts/happa-config.js target bahi-happa-dev
+      - name: Resolve the test project (refuses aadhat-management)
         id: project
         env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV }}
         run: node scripts/happa-config.js guard --sa-env SA_JSON
-      # Every site in firebase.json (myhappa, happaapp, happa-bfc07) has its own channel.
+      # Every site in the built firebase.json (bahi-happa-dev) has its own channel.
       # Channel ids are pr<number>-<branch>; the trailing '-' keeps pr21- from matching pr210-.
+      # Channels made on myhappa before previews moved to dev expire on their own (2 days).
       - name: Delete this PR's channels on every site
         if: steps.project.outputs.ready == 'true'
         env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAPPA }}
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV }}
           PROJECT: ${{ steps.project.outputs.project_id }}
           SITES: ${{ steps.project.outputs.sites }}
           # Not PREFIX: npm reads that as its install prefix
