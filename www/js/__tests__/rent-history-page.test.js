@@ -44,7 +44,8 @@ describe('page budget and isolation', () => {
     });
 
     test('hosting serves /r/** from r.html (before the app rewrite) with noindex headers', () => {
-        const hosting = JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.json'), 'utf8')).hosting[0];
+        const all = JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.json'), 'utf8')).hosting;
+        const hosting = Array.isArray(all) ? all[0] : all;
         const idx = hosting.rewrites.findIndex(r => r.source === '/r/**' && r.destination === '/r.html');
         expect(idx).toBeGreaterThanOrEqual(0);
         expect(idx).toBeLessThan(hosting.rewrites.findIndex(r => r.source === '**'));

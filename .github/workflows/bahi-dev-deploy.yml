@@ -1,0 +1,102 @@
+# Deploys main to the TEST project bahi-happa-dev on every push (#72 cut-over),
+# next to firebase-hosting-merge.yml (the shop's bahi-happa). The runner builds
+# with config/targets/bahi-happa-dev.json (scripts/happa-config.js target: the
+# "Bahi Dev" identity, its App Check key and the dev-latest /download), then
+# publishes firestore.rules through the Rules REST API (the Firebase Admin SDK
+# key in FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV may publish rules and Hosting
+# but has no Service Usage / Index Admin role), checks the indexes are live,
+# deploys Hosting and checks the site serves this build. A re-run of an old run
+# skips (tools/ci/current-head.sh), so it cannot roll dev back.
+name: Deploy to bahi-happa-dev on merge
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: bahi-happa-dev (rules + Hosting)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is this commit still the head of main?
+        id: head
+        env:
+          JOB_LABEL: dev deploy
+        run: bash tools/ci/current-head.sh
+      - uses: actions/setup-node@v4
+        if: steps.head.outputs.current == 'true'
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        if: steps.head.outputs.current == 'true'
+        run: npm ci
+      - name: Build for the test project (bahi-happa-dev)
+        if: steps.head.outputs.current == 'true'
+        run: node scripts/happa-config.js target bahi-happa-dev
+      - name: Resolve the test project (refuses a key from another project)
+        if: steps.head.outputs.current == 'true'
+        id: project
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV }}
+        run: node scripts/happa-config.js guard --require-ready --require-sa --sa-env SA_JSON
+      - name: Write service account key
+        if: steps.head.outputs.current == 'true'
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BAHI_HAPPA_DEV }}
+        run: |
+          umask 077
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Publish firestore.rules (Rules REST API)
+        if: steps.head.outputs.current == 'true'
+        env:
+          PROJECT_ID: ${{ steps.project.outputs.project_id }}
+        run: node tools/ci/rules-rest-deploy.js --project "$PROJECT_ID" --rules firestore.rules --commit "$GITHUB_SHA"
+      - name: Verify the live ruleset equals firestore.rules
+        if: steps.head.outputs.current == 'true'
+        env:
+          PROJECT_ID: ${{ steps.project.outputs.project_id }}
+        run: node tools/ci/live-rules.js verify --project "$PROJECT_ID" --rules firestore.rules
+      - name: Indexes live (deploy only the missing ones)
+        if: steps.head.outputs.current == 'true'
+        env:
+          PROJECT_ID: ${{ steps.project.outputs.project_id }}
+        run: |
+          if node tools/ci/indexes-live.js check --project "$PROJECT_ID" --indexes firestore.indexes.json; then exit 0; fi
+          node tools/ci/deploy-with-retry.js \
+            --log "$RUNNER_TEMP/deploy-indexes.log" --project "$PROJECT_ID" \
+            --sa-email "$(jq -r .client_email "$GOOGLE_APPLICATION_CREDENTIALS")" \
+            -- npx --yes firebase-tools@latest deploy --only firestore:indexes --project "$PROJECT_ID" --non-interactive
+      - name: Deploy Hosting
+        if: steps.head.outputs.current == 'true'
+        env:
+          PROJECT_ID: ${{ steps.project.outputs.project_id }}
+        run: npx --yes firebase-tools@latest deploy --only hosting --project "$PROJECT_ID" --non-interactive
+      - name: Check the site serves this build
+        if: steps.head.outputs.current == 'true'
+        env:
+          SITE: ${{ steps.project.outputs.site }}
+        run: |
+          want=$(grep -oP "const BUILD_ID = '\K[^']+" www/js/main.js)
+          got=''
+          for i in 1 2 3 4 5 6; do
+            got=$(curl -fsS "https://$SITE.web.app/js/main.js?cb=$GITHUB_RUN_ID-$i" | grep -oP "const BUILD_ID = '\K[^']+" || true)
+            [ "$got" = "$want" ] && break
+            sleep 10
+          done
+          echo "$SITE.web.app serves $got (want $want)"
+          [ "$got" = "$want" ] || { echo "::error::$SITE.web.app does not serve $want"; exit 1; }
+      - name: Remove service account key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json" "$RUNNER_TEMP/deploy-indexes.log"

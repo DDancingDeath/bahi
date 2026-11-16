@@ -75,6 +75,8 @@ function servedText(rel, text, t) {
         let out = replaceOne(text, /("projectId"\s*:\s*")[^"]*(")/, `$1${t.project}$2`, rel);
         out = replaceOne(out, /useEmulator\('http:\/\/127\.0\.0\.1:\d+'/, `useEmulator('http://127.0.0.1:${t.authPort}'`, rel);
         out = replaceOne(out, /useEmulator\('127\.0\.0\.1', \d+\)/, `useEmulator('127.0.0.1', ${t.firestorePort})`, rel);
+        // The emulators have no App Check: with a site key the app would wait on tokens it can never get.
+        out = replaceOne(out, /const appCheckSiteKey = "[^"]*";/, 'const appCheckSiteKey = "";', rel);
         return out.replace(/auth:\d+, firestore:\d+/, `auth:${t.authPort}, firestore:${t.firestorePort}`);
     }
     if (rel === 'r/rent-history.js') {
