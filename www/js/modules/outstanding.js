@@ -130,6 +130,8 @@ export class OutstandingManager {
             }
         });
         
+        const billsPanel = container.querySelector('.due-bills');
+        if (billsPanel) billsPanel.hidden = visibleCount === 0;
         let noResultsMsg = container.querySelector('.no-results-message');
         if (visibleCount === 0 && partiesShown === 0 && searchTerm !== '') {
             if (!noResultsMsg) {
@@ -259,6 +261,10 @@ export class OutstandingManager {
         }
 
         container.innerHTML = "";
+        // One panel of bill rows (F19)
+        const list = document.createElement('div');
+        list.className = 'panel due-bills';
+        container.appendChild(list);
         
         const isPurchase = currentDueFilter === 'purchase';
         const tt = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -317,7 +323,7 @@ export class OutstandingManager {
                 </details>
             `;
             
-            container.appendChild(div);
+            list.appendChild(div);
         });
     }
 
@@ -1029,26 +1035,25 @@ export class OutstandingManager {
             <div class="due-dlg">
                 <div>${esc(t('ui.outstanding.bill_no', { billNumber: transaction.billNumber || String(transaction.id).slice(0, 8) }))}${party}<br>
                     ${esc(t('ui.outstanding.remaining_due'))} <strong>${moneyHtml(due, { exact: true })}</strong></div>
-                <div class="due-dlg-head">${esc(t('ui.outstanding.how_settled'))}</div>
-                <label class="due-dlg-opt"><input type="radio" name="clearMethod" value="cash"> ${esc(t(isPurchase ? 'ui.outstanding.paid_in_cash' : 'ui.outstanding.received_in_cash', { amount: formatAmount(due, { exact: true }) }))}</label>
-                <label class="due-dlg-opt"><input type="radio" name="clearMethod" value="online"> ${esc(t(isPurchase ? 'ui.outstanding.paid_online' : 'ui.outstanding.received_online', { amount: formatAmount(due, { exact: true }) }))}</label>
-                <label class="due-dlg-opt"><input type="radio" name="clearMethod" value="writeOff"> ${esc(t(isPurchase ? 'ui.outstanding.write_off_not_paid' : 'ui.outstanding.write_off_not_received'))}</label>
-                <label for="clearReason">${esc(t('ui.outstanding.write_off_reason'))}</label>
-                <textarea id="clearReason" class="input" rows="2" maxlength="300"></textarea>
+                <fieldset class="radio-rows" id="clearMethodSet" aria-describedby="clearMethodError" data-onchange="outstanding.clearFieldError('clearMethodError')">
+                    <legend>${esc(t('ui.outstanding.how_settled'))}</legend>
+                    <label><input type="radio" name="clearMethod" value="cash"> ${esc(t(isPurchase ? 'ui.outstanding.paid_in_cash' : 'ui.outstanding.received_in_cash', { amount: formatAmount(due, { exact: true }) }))}</label>
+                    <label><input type="radio" name="clearMethod" value="online"> ${esc(t(isPurchase ? 'ui.outstanding.paid_online' : 'ui.outstanding.received_online', { amount: formatAmount(due, { exact: true }) }))}</label>
+                    <label><input type="radio" name="clearMethod" value="writeOff"> ${esc(t(isPurchase ? 'ui.outstanding.write_off_not_paid' : 'ui.outstanding.write_off_not_received'))}</label>
+                </fieldset>
+                <div class="field-error" id="clearMethodError" role="alert" hidden></div>
+                <div class="field">
+                    <label for="clearReason">${esc(t('ui.outstanding.write_off_reason'))}</label>
+                    <textarea id="clearReason" class="input" rows="2" maxlength="300" aria-describedby="clearReasonError" data-oninput="outstanding.clearFieldError('clearReasonError', 'clearReason')"></textarea>
+                    <div class="field-error" id="clearReasonError" role="alert" hidden></div>
+                </div>
             </div>`;
-        const confirmed = await UIManager.showModalWithHtml(html, t('msg.outstanding.mark_as_cleared'), true, { confirmLabel: t('ui.confirm.mark_cleared') });
-        if (!confirmed) return false;
+        const confirmed = await UIManager.showModalWithHtml(html, t('msg.outstanding.mark_as_cleared'), true,
+            { confirmLabel: t('ui.confirm.mark_cleared'), validate: () => this.markClearedValidate() });
+        if (!confirmed || !this.markClearedValidate()) return false;
 
         const method = document.querySelector('input[name="clearMethod"]:checked')?.value || '';
         const reason = (document.getElementById('clearReason')?.value || '').trim();
-        if (!method) {
-            UIManager.showToast(t('msg.outstanding.choose_how_due_was_settled'));
-            return false;
-        }
-        if (method === 'writeOff' && reason.length < 3) {
-            UIManager.showToast(t('msg.outstanding.write_reason_write_off'));
-            return false;
-        }
 
         if (method === 'cash' || method === 'online') {
             return this.recordDuePayment({
@@ -1061,6 +1066,38 @@ export class OutstandingManager {
             });
         }
         return this.confirmWriteOff(transactionType, transaction, reason);
+    }
+
+    /**
+     * Mark as cleared (F52): a missing choice or write-off reason is said under its field, and the dialog stays open.
+     * @returns {boolean} true when the answers can be saved
+     */
+    static markClearedValidate() {
+        const show = (id, text, input) => {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = text; el.hidden = !text; }
+            const field = input && document.getElementById(input);
+            if (field) {
+                if (text) field.setAttribute('aria-invalid', 'true');
+                else field.removeAttribute('aria-invalid');
+            }
+        };
+        const method = document.querySelector('input[name="clearMethod"]:checked')?.value || '';
+        const reason = (document.getElementById('clearReason')?.value || '').trim();
+        const methodText = method ? '' : t('msg.outstanding.choose_how_due_was_settled');
+        const reasonText = method === 'writeOff' && reason.length < 3 ? t('msg.outstanding.write_reason_write_off') : '';
+        show('clearMethodError', methodText, null);
+        show('clearReasonError', reasonText, 'clearReason');
+        if (methodText) document.querySelector('input[name="clearMethod"]')?.focus();
+        else if (reasonText) document.getElementById('clearReason')?.focus();
+        return !methodText && !reasonText;
+    }
+
+    /** Hides a dialog field's error once it is answered. */
+    static clearFieldError(errorId, inputId) {
+        const el = document.getElementById(errorId);
+        if (el) el.hidden = true;
+        if (inputId) document.getElementById(inputId)?.removeAttribute('aria-invalid');
     }
 
     /**

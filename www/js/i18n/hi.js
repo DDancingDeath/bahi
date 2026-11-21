@@ -876,6 +876,7 @@ export default {
     'ui.history.badge_cash': "नकद ₹{amount}",
     'ui.history.badge_due': "बकाया ₹{amount}",
     'ui.history.chip_paid': "चुकाया ₹{amount}",
+    'ui.history.labour': "मज़दूरी",
     'ui.history.record_details': "जानकारी: बिल नंबर, किसने बनाया, समय",
     'ui.history.old_app_chip': "पुराना ऐप",
     'ui.history.bad_date': "तारीख?",

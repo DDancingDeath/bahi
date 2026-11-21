@@ -276,14 +276,25 @@
     margin-bottom: var(--sp-3);
 }
 
-/* ---------- Bills: one panel per open bill (BILL-DUE); [data-history-item] is the hook (tests, search) ---------- */
-[data-history-item].due-bill {
+/* ---------- Bills: one panel of bill rows (F19); [data-history-item] is the hook (tests, search) ---------- */
+.due-bills {
     margin-bottom: var(--sp-3);
-    padding: var(--sp-4);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--r-panel);
-    background: var(--panel-bg);
-    box-shadow: var(--panel-shadow);
+    overflow: hidden;
+}
+
+[data-history-item].due-bill {
+    position: relative;
+    padding: var(--sp-3) var(--sp-4);
+}
+
+/* A hairline between rows; the first row's sits above the panel and is clipped */
+.due-bills > .due-bill::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: var(--sp-4);
+    right: 0;
+    border-top: 1px var(--rule-style) var(--line);
 }
 
 .due-bill .history-header {
@@ -295,8 +306,16 @@
 }
 
 .due-bill-title {
+    flex: 1;
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+}
+
+.due-bill-due {
+    flex: none;
+    margin-left: auto;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .due-bill-link {
@@ -305,7 +324,7 @@
     background: none;
     color: var(--accent-text);
     font: inherit;
-    text-decoration: underline;
+    text-decoration: none;
     cursor: pointer;
 }
 
@@ -363,8 +382,9 @@
     margin-top: var(--sp-3);
 }
 
+/* The label sits above its Cash / Online pair (F19) */
 .due-bill-pay > label {
-    flex: none;
+    flex: 0 0 100%;
     color: var(--ink-2);
     font-size: var(--fs-sm);
     font-weight: var(--w-label);

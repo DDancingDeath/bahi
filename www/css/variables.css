@@ -357,6 +357,14 @@ html[lang="hi"] [data-theme] {
   box-sizing: border-box;
 }
 
+/* Form controls take the app's font, not the browser's Arial (N1) */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 html {
   height: 100%;
   overflow: hidden;

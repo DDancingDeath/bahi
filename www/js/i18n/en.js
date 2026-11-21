@@ -876,6 +876,7 @@ export default {
     'ui.history.badge_cash': "Cash ₹{amount}",
     'ui.history.badge_due': "Due ₹{amount}",
     'ui.history.chip_paid': "Paid ₹{amount}",
+    'ui.history.labour': "Labour",
     'ui.history.record_details': "Details: bill no., who saved it, times",
     'ui.history.old_app_chip': "Old app",
     'ui.history.bad_date': "Date?",
