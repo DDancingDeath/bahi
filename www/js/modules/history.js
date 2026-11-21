@@ -172,11 +172,32 @@ export class HistoryManager {
 
     static setFilter(patch) {
         this.filter = normalizeHistoryFilter({ ...this.getFilter(), ...patch });
-        try { sessionStorage.setItem(HISTORY_FILTER_KEY, JSON.stringify(this.filter)); } catch { /* storage blocked */ }
+        const saved = this.homeTab ? { ...this.filter, type: this.homeTab } : this.filter;
+        try { sessionStorage.setItem(HISTORY_FILTER_KEY, JSON.stringify(saved)); } catch { /* storage blocked */ }
         if (patch.type !== undefined) {
             try { localStorage.setItem(HISTORY_TAB_KEY, this.filter.type); } catch { /* storage blocked */ }
         }
         return this.filter;
+    }
+
+    /** Tab the user picked, while a link's tab (Wholesale bills) is shown for one visit; null otherwise. */
+    static homeTab = null;
+
+    /**
+     * History opened from the menu or tab bar: the remembered tab. 'wholesale' (Wholesale bills)
+     * shows the Wholesale tab for this visit only; the next plain visit is back on the remembered tab.
+     * @param {?string} [section]
+     */
+    static open(section) {
+        const filter = this.getFilter();
+        if (section === 'wholesale') {
+            if (this.homeTab === null) this.homeTab = filter.type;
+            this.filter = { ...filter, type: 'wholesale' };
+        } else if (this.homeTab !== null) {
+            this.filter = { ...filter, type: this.homeTab };
+            this.homeTab = null;
+        }
+        this.refreshHistory();
     }
 
     /** Wholesale bills (Sale and Wholesale tabs) only for a role that may open Wholesale. */
@@ -897,6 +918,7 @@ export class HistoryManager {
      * @param {string} type
      */
     static filterHistory(type) {
+        this.homeTab = null;
         this.setFilter({ type: normalizeHistoryTab(type) });
         this.refreshHistory();
     }

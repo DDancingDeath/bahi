@@ -155,13 +155,18 @@ export class OutstandingManager {
         this.searchOutstanding();
     }
 
+    /** Outstanding list the user last picked here; plain visits open it (a link's list is for that visit only). */
+    static homeFilter = 'sale';
+
     /**
      * Filter outstanding payments by type (#125): Purchases, or Sales with All /
      * Retail / Wholesale (wholesale only for roles that may open Wholesale).
      * @param {'purchase'|'sale'|'retail'|'wholesale'} filter
+     * @param {{once?: boolean}} [opts] once: a link's list, shown this visit only (not remembered)
      */
-    static filterDue(filter) {
+    static filterDue(filter, opts) {
         AppState.currentDueFilter = DUE_FILTERS.includes(filter) ? filter : 'sale';
+        if (opts?.once !== true) this.homeFilter = AppState.currentDueFilter;
         this.agingBucket = null;
         this.partyFilter = null;
         
@@ -169,6 +174,16 @@ export class OutstandingManager {
         if (searchInput) searchInput.value = '';
         
         this.renderDue();
+    }
+
+    /**
+     * Outstanding opened from the menu or tab bar: the list last picked here (Sales at first, U-69).
+     * 'wholesale' (Wholesale dues, Today's wholesale reminder) shows the Wholesale list for this visit only.
+     * @param {?string} [section]
+     */
+    static open(section) {
+        if (section === 'wholesale') this.filterDue('wholesale', { once: true });
+        else this.filterDue(this.homeFilter, { once: true });
     }
 
     /** Whether this role sees wholesale dues here (the Wholesale page's switch). */
@@ -201,18 +216,21 @@ export class OutstandingManager {
         }
     }
 
-    /** Both totals on the Purchases | Sales buttons, so neither needs a switch to be seen (U-69). */
-    static renderSegTotals() {
+    /**
+     * Both totals on the Purchases | Sales buttons, so neither needs a switch to be seen (U-69).
+     * The Sales total follows the Retail / Wholesale chip under it, so it always matches the list shown.
+     */
+    static renderSegTotals(filter = this.dueFilter()) {
         const lists = { purchases: AppState.purchaseHistory, retailSales: AppState.retailSalesHistory, wholesaleSales: AppState.salesHistory };
-        const total = (filter) => sumMoney(dueRows(lists, filter, { wholesale: this.seesWholesale() }), b => b.outstanding);
-        const set = (id, filter) => {
+        const total = (f) => sumMoney(dueRows(lists, f, { wholesale: this.seesWholesale() }), b => b.outstanding);
+        const set = (id, f) => {
             const el = document.getElementById(id);
             if (!el) return;
-            const v = total(filter);
+            const v = total(f);
             el.textContent = v > 0 ? formatRupees(v) : '';
         };
         set('dueSegTotalPurchase', 'purchase');
-        set('dueSegTotalSale', 'sale');
+        set('dueSegTotalSale', filter === 'purchase' ? 'sale' : filter);
     }
 
     /**
@@ -225,7 +243,7 @@ export class OutstandingManager {
         const currentDueFilter = this.dueFilter();
         const container = document.getElementById("dueList");
         this.syncFilterButtons(currentDueFilter);
-        this.renderSegTotals();
+        this.renderSegTotals(currentDueFilter);
         // BILL-DUE of each open bill (voided and cleared bills owe nothing, #75)
         const dueTransactions = dueRows({
             purchases: AppState.purchaseHistory, retailSales: AppState.retailSalesHistory, wholesaleSales: AppState.salesHistory
@@ -498,7 +516,7 @@ export class OutstandingManager {
      */
     static showParty(filter, name) {
         const key = partyNameKey(name);
-        this.filterDue(DUE_FILTERS.includes(filter) ? filter : 'sale');
+        this.filterDue(DUE_FILTERS.includes(filter) ? filter : 'sale', { once: true });
         if (!key) return;
         this.partyFilter = { key, name: String(name).trim() };
         this.renderDue();

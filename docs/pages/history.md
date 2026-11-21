@@ -5,7 +5,7 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [histor
 Every saved bill, newest first, with its total, paid and due. **Sale** lists retail and
 wholesale bills together, each with a Retail / Wholesale tag (wholesale only for a role that
 may open Wholesale). **Wholesale** lists only wholesale bills; the Wholesale page's **Wholesale bills** link opens it
-(the Wholesale page has no History tab of its own any more). With a date range or a search, the line under the filters gives the
+for that visit only (the Wholesale page has no History tab of its own any more); the tab bar or menu opens History on the tab you last picked. With a date range or a search, the line under the filters gives the
 number of bills and their ₹ total (H-TOTAL; for you, the same as Money's sales or purchases for
 that period; a role without Wholesale or with a history limit sees fewer bills). Tap anywhere on a row to open the bill. Bill details show
 the lines, labour and payable, how it was paid, later payments, write-offs and

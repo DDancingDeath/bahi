@@ -79,30 +79,35 @@ describe('pages', () => {
 describe('Old Wholesale History / Outstanding tabs open the global pages with Wholesale picked (F14)', () => {
     beforeEach(() => {
         document.body.insertAdjacentHTML('beforeend', '<div class="tab" id="history"></div><div class="tab" id="due"></div><div class="tab" id="wholesale-sales"></div>');
-        jest.spyOn(window.app.history, 'filterHistory').mockImplementation(() => {});
-        jest.spyOn(window.app.history, 'refresh').mockImplementation(() => {});
-        jest.spyOn(window.app.outstanding, 'filterDue').mockImplementation(() => {});
+        jest.spyOn(window.app.history, 'open').mockImplementation(() => {});
+        jest.spyOn(window.app.outstanding, 'open').mockImplementation(() => {});
     });
 
     test('wholesale-history opens History on its Wholesale tab', () => {
         open('wholesale-history');
         expect(activeTab()).toBe('history');
-        expect(window.app.history.filterHistory).toHaveBeenCalledWith('wholesale');
-        expect(window.app.history.refresh).not.toHaveBeenCalled();
+        expect(window.app.history.open).toHaveBeenCalledWith('wholesale');
     });
 
     test('wholesale-outstanding opens Outstanding with the Wholesale chip', () => {
         open('wholesale-outstanding');
         expect(activeTab()).toBe('due');
-        expect(window.app.outstanding.filterDue).toHaveBeenCalledWith('wholesale');
+        expect(window.app.outstanding.open).toHaveBeenCalledWith('wholesale');
     });
 
-    test('plain History / Outstanding keep the remembered list', () => {
+    test('plain History / Outstanding open without the Wholesale filter', () => {
         open('history');
-        expect(window.app.history.refresh).toHaveBeenCalled();
-        expect(window.app.history.filterHistory).not.toHaveBeenCalled();
+        expect(window.app.history.open).toHaveBeenCalledWith(null);
         open('due');
-        expect(window.app.outstanding.filterDue).not.toHaveBeenCalledWith('wholesale');
+        expect(window.app.outstanding.open).toHaveBeenCalledWith(null);
+    });
+
+    test('Today\'s collect / pay reminders open their list for that visit only', async () => {
+        const filterDue = jest.spyOn(window.app.outstanding, 'filterDue').mockImplementation(() => {});
+        await window.app.day.openDues('retail');
+        jest.runAllTimers();
+        expect(activeTab()).toBe('due');
+        expect(filterDue).toHaveBeenCalledWith('retail', { once: true });
     });
 
     test('a member without Wholesale is told so and gets History / Outstanding unfiltered', () => {
@@ -110,10 +115,10 @@ describe('Old Wholesale History / Outstanding tabs open the global pages with Wh
         open('wholesale-history');
         expect(toast).toHaveBeenCalledWith(en['msg.roles.tab_role_only']);
         expect(activeTab()).toBe('history');
-        expect(window.app.history.filterHistory).not.toHaveBeenCalled();
+        expect(window.app.history.open).not.toHaveBeenCalledWith('wholesale');
         open('wholesale-outstanding');
         expect(activeTab()).toBe('due');
-        expect(window.app.outstanding.filterDue).not.toHaveBeenCalledWith('wholesale');
+        expect(window.app.outstanding.open).not.toHaveBeenCalledWith('wholesale');
     });
 
     test('a wholesale bill\'s "Already owes" line opens Outstanding › Wholesale for that party', () => {
