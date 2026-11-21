@@ -359,6 +359,14 @@ html[lang="hi"] [data-theme] {
   box-sizing: border-box;
 }
 
+/* Form controls take the app's font, not the browser's Arial (N1) */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 html {
   height: 100%;
   overflow: hidden;
@@ -1912,6 +1920,41 @@ input[type="radio"] {
 :where(label):has(> input[type="checkbox"], > input[type="radio"]) {
   min-height: var(--tap-min);
   align-items: center;
+}
+
+/* Radio rows: a fieldset whose legend asks the question, one 48 px row per choice with hairlines between (F52) */
+.radio-rows {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.radio-rows > legend {
+  margin-bottom: var(--sp-1);
+  padding: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+}
+
+.radio-rows > label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.radio-rows > label + label {
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.radio-rows > label > input {
+  flex: none;
+  margin: 0;
 }
 
 /* The switch draws 36 × 22 but takes taps on 62 × 48: a clear border around the track that the negative margin
@@ -6818,9 +6861,17 @@ tr.bill-check-line .bill-check-msg {
 }
 
 .bill-view-weights {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--sp-3);
   color: var(--ink-2);
   font-size: var(--fs-sm);
-  overflow-wrap: anywhere;
+}
+
+/* A weight never breaks inside the number (F49) */
+.bill-view-w {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .bill-view-packets {
@@ -7586,14 +7637,32 @@ tr.bill-check-line .bill-check-msg {
   overflow-wrap: anywhere;
 }
 
-.bill-view-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+.bill-view-paid {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
 }
 
-.bill-view-chips:empty {
-  display: none;
+/* One panel (F49): the head, then each section under a hairline */
+.bill-view-sheet > .bill-view-head {
+  margin-bottom: 0;
+}
+
+.bill-view-sec {
+  padding-bottom: var(--sp-2);
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.bill-view-sec > .bill-view-title {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4) var(--sp-1);
+}
+
+.bill-view-sec > .bill-view-items {
+  margin-bottom: 0;
+}
+
+.bill-view-sec > .bill-view-packets {
+  padding-right: var(--sp-4);
 }
 
 .bill-view-more {
@@ -7884,14 +7953,25 @@ tr.bill-check-line .bill-check-msg {
     margin-bottom: var(--sp-3);
 }
 
-/* ---------- Bills: one panel per open bill (BILL-DUE); [data-history-item] is the hook (tests, search) ---------- */
-[data-history-item].due-bill {
+/* ---------- Bills: one panel of bill rows (F19); [data-history-item] is the hook (tests, search) ---------- */
+.due-bills {
     margin-bottom: var(--sp-3);
-    padding: var(--sp-4);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--r-panel);
-    background: var(--panel-bg);
-    box-shadow: var(--panel-shadow);
+    overflow: hidden;
+}
+
+[data-history-item].due-bill {
+    position: relative;
+    padding: var(--sp-3) var(--sp-4);
+}
+
+/* A hairline between rows; the first row's sits above the panel and is clipped */
+.due-bills > .due-bill::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: var(--sp-4);
+    right: 0;
+    border-top: 1px var(--rule-style) var(--line);
 }
 
 .due-bill .history-header {
@@ -7903,8 +7983,16 @@ tr.bill-check-line .bill-check-msg {
 }
 
 .due-bill-title {
+    flex: 1;
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+}
+
+.due-bill-due {
+    flex: none;
+    margin-left: auto;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .due-bill-link {
@@ -7913,7 +8001,7 @@ tr.bill-check-line .bill-check-msg {
     background: none;
     color: var(--accent-text);
     font: inherit;
-    text-decoration: underline;
+    text-decoration: none;
     cursor: pointer;
 }
 
@@ -7971,8 +8059,9 @@ tr.bill-check-line .bill-check-msg {
     margin-top: var(--sp-3);
 }
 
+/* The label sits above its Cash / Online pair (F19) */
 .due-bill-pay > label {
-    flex: none;
+    flex: 0 0 100%;
     color: var(--ink-2);
     font-size: var(--fs-sm);
     font-weight: var(--w-label);
@@ -11476,16 +11565,6 @@ div.ins-wide,
     grid-row: 1;
     grid-column: 4;
     align-self: center;
-  }
-
-  .due-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 var(--sp-3);
-  }
-
-  .due-list > :not(.due-bill) {
-    grid-column: 1 / -1;
   }
 
   /* ---------- History / Wholesale › History: one aligned row per bill ---------- */

@@ -1189,6 +1189,9 @@ export class WholesaleSalesManager {
         }
 
         container.innerHTML = partyNote;
+        const list = document.createElement('div');
+        list.className = 'panel due-bills';
+        container.appendChild(list);
 
         outstandingSales.forEach(sale => {
                 const div = document.createElement("div");
@@ -1234,7 +1237,7 @@ export class WholesaleSalesManager {
                     </div>
                 `;
                 
-                container.appendChild(div);
+                list.appendChild(div);
         });
     }
     /** Re-render the recent bills under the entry form and Wholesale › History. */

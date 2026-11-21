@@ -270,10 +270,21 @@ describe('#46/#77 Outstanding panel', () => {
         expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(true);
         expect(document.getElementById('dueList').hidden).toBe(false);
         expect(document.querySelector('#dueList .no-results-message').textContent).toContain('Nothing matches “zzz”');
+        expect(document.querySelector('#dueList .due-bills').hidden).toBe(true);
         OutstandingManager.clearSearch();
         expect(input.value).toBe('');
         expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(false);
         expect(document.querySelector('#dueList .no-results-message')).toBeNull();
+    });
+
+    test('F19: the bills are rows in one panel, with the Received label first in the Cash / Online line', () => {
+        OutstandingManager.renderDue();
+        const panels = document.querySelectorAll('#dueList > .panel.due-bills');
+        expect(panels).toHaveLength(1);
+        expect([...panels[0].children].map(el => el.matches('.due-bill[data-history-item]'))).toEqual([true, true]);
+        const pay = panels[0].querySelector('.due-bill-pay');
+        expect([...pay.children].map(el => el.tagName)).toEqual(['LABEL', 'INPUT', 'INPUT', 'BUTTON']);
+        expect(pay.firstElementChild.textContent).toBe('Received');
     });
 
     test('payables show no Remind button and no chase list', () => {

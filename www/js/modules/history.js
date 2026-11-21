@@ -40,9 +40,12 @@ import { track } from '../services/usage.js';
 import { t, tn, loadAllCatalogues } from '../i18n/index.js';
 import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
+import { lineItemIdentity } from '../utils/item-catalog.js';
 import { billLabour, billLineTotal, billTotal, hasBillAmount, isActiveBill, isOpeningRecord, readPayment, UNKNOWN_AMOUNT, formatRupees, formatAmount, formatKg, toMoney } from '../utils/money.js';
 
 const L = (key, params) => Helpers.escapeHtml(t(key, params));
+/** A bill line's item name in the language item names are shown in (F58). */
+const lineName = (line) => lineItemIdentity({ itemId: line?.itemId || line?.id, name: line?.name || line?.item }, AppState.items, !!AppState.settings?.showHindi).label;
 const NOUN_KEYS = { purchase: 'ui.history.noun_purchase', sale: 'ui.history.noun_sale' };
 /** Bill type → Firestore collection key and AppState list. */
 const BILL_COLLECTION = { purchase: 'purchases', retail: 'retailSales', wholesale: 'wholesaleSales' };
@@ -518,11 +521,11 @@ export class HistoryManager {
         bill.items.forEach(item => {
             // Only show weight breakdown if there are 2 or more packets
             if (item.weights && item.weights.length >= 2) {
-                const weightsDisplay = item.weights.map(w => formatKg(w)).join('&nbsp;&nbsp;');
+                const weightsDisplay = item.weights.map(w => `<span class="bill-view-w">${Helpers.escapeHtml(formatKg(w))}</span>`).join(' ');
                 weightBreakdownHTML += `
                     <div class="row bill-view-row bill-view-weight">
                         <div class="row-main">
-                            <div class="row-title">${Helpers.escapeHtml(item.name)} (${Helpers.escapeHtml(tn('ui.history.packets_kg', item.weights.length, { packets: item.weights.length, kg: formatKg(item.qty) }))})</div>
+                            <div class="row-title">${Helpers.escapeHtml(lineName(item))} (${Helpers.escapeHtml(tn('ui.history.packets_kg', item.weights.length, { packets: item.weights.length, kg: formatKg(item.qty) }))})</div>
                             <div class="bill-view-weights">${weightsDisplay}</div>
                         </div>
                     </div>
@@ -533,7 +536,7 @@ export class HistoryManager {
         // Build items table
         const itemsHTML = bill.items.map(item => `
             <tr>
-                <td>${Helpers.escapeHtml(item.name)}</td>
+                <td>${Helpers.escapeHtml(lineName(item))}</td>
                 <td class="num">${toMoney(item.rate) === null ? '—' : formatAmount(item.rate, 'rate')}</td>
                 <td class="num">${formatKg(item.qty || item.quantity)}</td>
                 <td class="num"><strong>${(toMoney(item.total) ?? toMoney(item.amount)) === null ? '—' : formatAmount(toMoney(item.total) ?? toMoney(item.amount), { exact: true })}</strong></td>
@@ -556,14 +559,14 @@ export class HistoryManager {
                         ${payAmountHtml(bill, value, due)}
                     </div>`;
         const paymentHTML = (parts.atSave.online > 0 || parts.atSave.cash > 0 || afterSave || parts.due > 0) ? `
-            <div class="panel bill-view-panel">
+            <section class="bill-view-sec">
                 <h3 class="bill-view-title">${L('ui.history.payment_details')}</h3>
                 ${parts.atSave.online > 0 ? payRow(afterSave ? 'ui.history.online_at_save' : 'ui.history.online', parts.atSave.online) : ''}
                 ${parts.atSave.cash > 0 ? payRow(afterSave ? 'ui.history.cash_at_save' : 'ui.history.cash', parts.atSave.cash) : ''}
                 ${parts.later.total > 0 ? payRow('ui.history.paid_later', parts.later.total, true) : ''}
                 ${parts.writtenOff > 0 ? payRow('ui.history.written_off', parts.writtenOff) : ''}
                 ${parts.due > 0 ? payRow('ui.history.due', parts.due, false, true) : ''}
-            </div>
+            </section>
         ` : '';
         const billNumber = bill.billNumber || (typeof bill.id === 'string' ? bill.id.substring(0, 8) : bill.id);
         // A bill that stores no amount shows "—", not ₹0 (#80)
@@ -573,28 +576,31 @@ export class HistoryManager {
         const content = `
             <div class="bill-view${isPurchase ? '' : ' is-sale'}">
                 ${voidedBannerHtml(bill)}
-                <div class="panel panel-pad bill-view-head">
-                    ${bill.customerName ? `<div class="bill-view-party"><span class="row-meta">${L(isPurchase ? 'ui.common.supplier' : 'ui.common.customer')}</span> <strong>${Helpers.escapeHtml(bill.customerName)}</strong></div>` : ''}
-                    <div class="bill-view-sum hero-num">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</div>
-                    <div class="bill-view-chips">
-                        ${paidSoFar(parts) > 0 ? `<span class="tag pos">${L('ui.history.chip_paid', { amount: formatAmount(paidSoFar(parts)) })}</span>` : ''}
-                        ${parts.due > 0 ? `<span class="tag warn">${L('ui.history.badge_due', { amount: formatAmount(parts.due) })}</span>` : ''}
-                    </div>
-                    <div class="row-meta">${Helpers.escapeHtml(shownDate.text)}${shownDate.bad ? badDateBadgeHtml() : ''}</div>
-                </div>
-                
                 ${bill.comments ? `
                     <div class="notice warn bill-view-note">
                         <span>${L('ui.wholesale.comments')}</span>
                         <div class="bill-view-note-text">${Helpers.escapeHtml(bill.comments)}</div>
                     </div>
                 ` : ''}
+                <div class="panel bill-view-sheet">
+                <div class="panel-pad bill-view-head">
+                    ${bill.customerName ? `<div class="bill-view-party"><span class="row-meta">${L(isPurchase ? 'ui.common.supplier' : 'ui.common.customer')}</span> <strong>${Helpers.escapeHtml(bill.customerName)}</strong></div>` : ''}
+                    <div class="bill-view-sum hero-num">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</div>
+                    ${paidSoFar(parts) > 0 || parts.due > 0 ? `<div class="bill-view-paid">${[
+                        paidSoFar(parts) > 0 ? `<span>${L('ui.history.chip_paid', { amount: formatAmount(paidSoFar(parts)) })}</span>` : '',
+                        parts.due > 0 ? `<span>${L('ui.history.badge_due', { amount: formatAmount(parts.due) })}</span>` : ''
+                    ].filter(Boolean).join('<span aria-hidden="true"> · </span>')}</div>` : ''}
+                    <div class="row-meta">${Helpers.escapeHtml(shownDate.text)}${shownDate.bad ? badDateBadgeHtml() : ''}</div>
+                </div>
                 
                 ${weightBreakdownHTML ? `
+                    <section class="bill-view-sec">
                     <h3 class="bill-view-title">${L('ui.history.weight_breakdown')}</h3>
-                    <div class="panel">${weightBreakdownHTML}</div>
+                    ${weightBreakdownHTML}
+                    </section>
                 ` : ''}
                 
+                <section class="bill-view-sec">
                 <h3 class="bill-view-title">${L(isPurchase ? 'ui.common.bill_items' : 'ui.history.sale_items')}</h3>
                 <table class="table bill-view-items">
                     <thead>
@@ -613,8 +619,9 @@ export class HistoryManager {
                 <div class="bill-view-packets">
                     ${L('ui.billing.total_packets')} <strong>${Helpers.escapeHtml(totalPackets)}</strong>
                 </div>
+                </section>
                 
-                <div class="panel bill-view-panel">
+                <section class="bill-view-sec">
                     ${isPurchase ? `
                         <div class="row bill-view-row bill-view-total">
                             <span class="row-main">${L('ui.billing.purchase_total')}</span>
@@ -623,8 +630,8 @@ export class HistoryManager {
                         
                         ${billLabour(bill) > 0 ? `
                             <div class="row bill-view-row bill-view-total">
-                                <span class="row-main">${L('ui.billing.labor')}</span>
-                                <strong class="row-amt tone-warn">${moneyHtml(billLabour(bill))}</strong>
+                                <span class="row-main">${L('ui.history.labour')}</span>
+                                <strong class="row-amt">${moneyHtml(billLabour(bill))}</strong>
                             </div>
                             
                             <div class="row bill-view-row bill-view-total bill-view-grand">
@@ -638,9 +645,10 @@ export class HistoryManager {
                             <strong class="row-amt">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</strong>
                         </div>
                     `}
-                </div>
+                </section>
                 
                 ${paymentHTML}
+                </div>
                 ${editsRowHtml(bill, 'history.showEdits()')}
                 <details class="panel bill-view-more">
                     <summary class="row bill-view-row">${L('ui.history.record_details')}</summary>
