@@ -54,7 +54,7 @@
 - [कारोबार (करना है, आइटम, पार्टी, मौसम)](pages/insights.hi.md)
 - [बही-खाता](pages/statements.hi.md)
 - [पूछें](pages/ask.hi.md)
-- [रेट](pages/rates.hi.md)
+- [आइटम और रेट](pages/rates.hi.md)
 - [किराया](pages/rentals.hi.md)
 - [कर्मचारी / वेतन (मालिक)](pages/workers.hi.md)
 - [नियमित बिल (मालिक)](pages/recurring.hi.md)

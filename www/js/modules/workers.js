@@ -10,7 +10,7 @@ import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { AppState } from '../utils/state.js';
 import { t, getLang } from '../i18n/index.js';
-import { emptyState } from '../ui/components.js';
+import { emptyState, skeleton } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { formatRupees, moneyText } from '../utils/money.js';
 import { formatMonth, formatDay, todayLocalISO } from '../utils/dates.js';
@@ -87,7 +87,10 @@ function renderSummary(sum) {
             ${metric('WP-9', 'ui.workers.to_pay', sum.toPay)}
             ${metric('WP-10', 'ui.workers.advances', sum.advances)}
         </div>
-        <p class="tone-muted wp-counts">${et('ui.workers.counts', sum.counts)}</p>`;
+        <div class="wp-actions wp-list-head">
+            <p class="tone-muted wp-counts">${et('ui.workers.counts', sum.counts)}</p>
+            <button type="button" class="btn btn-tonal wp-add" data-onclick="workers.showForm('add')">${icon('plus', 'i-sm')} ${et('ui.workers.add')}</button>
+        </div>`;
 }
 
 function renderRow({ worker, row, balance }) {
@@ -221,7 +224,7 @@ export function render() {
     if (!state.loaded) {
         root.innerHTML = state.error
             ? `<p class="notice neg">${et('msg.workers.not_loaded')}</p>`
-            : `<p class="empty">${et('ui.workers.loading')}</p>`;
+            : skeleton({ label: t('ui.workers.loading') });
         return;
     }
     const sum = paySummary(state.workers, state.month);
@@ -231,7 +234,6 @@ export function render() {
         ? `<div class="panel wp-list">${items.map(renderRow).join('')}</div>`
         : emptyState({ icon: 'users', title: t('ui.workers.none') });
     root.innerHTML = `${renderSummary(sum)}
-        <div class="wp-actions"><button type="button" class="btn btn-tonal" data-onclick="workers.showForm('add')">${et('ui.workers.add')}</button></div>
         ${state.form === 'add' ? renderAddForm() : ''}
         ${list}
         ${open ? renderDetail(open) : ''}`;

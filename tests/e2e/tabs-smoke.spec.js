@@ -268,9 +268,9 @@ for (const role of A) {
                             expect(await activeTab(page)).toBe(tab);
                         });
                     }
-                    await test.step('Rates has no Trends; Insights › Seasons hosts it', async () => {
+                    await test.step('Items & rates has no Trends; Insights › Seasons hosts it', async () => {
                         const nav = await page.locator('.nav-menu').first().textContent();
-                        expect(nav).toContain('Rates');
+                        expect(nav).toContain('Items & rates');
                         expect(nav).not.toContain('Rate trends');
                         await expect(page.locator('#items .rates-subtabs')).toHaveCount(0);
                         await expect(page.locator('#insights #rate-trends')).toHaveCount(1);

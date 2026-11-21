@@ -7,6 +7,9 @@
 .wp-month { display: flex; align-items: center; gap: var(--sp-2); }
 .wp-counts { margin: 0; font-size: var(--fs-sm); }
 .wp-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+/* Counts on the left, Add worker on the right above the list (as Rentals' toolbars) */
+.wp-list-head { align-items: center; justify-content: space-between; }
+.wp-list-head .wp-add { margin-left: auto; }
 .wp-list .row-trail { display: grid; justify-items: end; gap: var(--sp-1); }
 .wp-list .row-trail .row-meta, .wp-detail .row-meta { white-space: normal; }
 .wp-form, .wp-detail { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }

@@ -56,7 +56,7 @@ Each page has its own short file in `docs/pages/` (English and Hindi): what it s
 - [Insights (To do, Items, Parties, Seasons)](pages/insights.md)
 - [Statements](pages/statements.md)
 - [Ask](pages/ask.md)
-- [Rates](pages/rates.md)
+- [Items & rates](pages/rates.md)
 - [Rentals](pages/rentals.md)
 - [Workers / Salaries (owner)](pages/workers.md)
 - [Recurring bills (owner)](pages/recurring.md)

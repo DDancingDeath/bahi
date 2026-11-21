@@ -10,7 +10,8 @@ import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { AppState } from '../utils/state.js';
 import { t, getLang } from '../i18n/index.js';
-import { emptyState } from '../ui/components.js';
+import { emptyState, skeleton } from '../ui/components.js';
+import { icon } from '../ui/icons.js';
 import { formatRupees, moneyText } from '../utils/money.js';
 import { formatMonth, formatDay, todayLocalISO } from '../utils/dates.js';
 import * as repo from '../firebase/repos/recurring-bills.js';
@@ -72,7 +73,10 @@ function renderSummary(sum) {
             ${metric('RB-9', 'ui.rbills.paid_month', sum.paidMonth)}
             ${metric('RB-5', 'ui.rbills.credit_total', sum.credit)}
         </div>
-        <p class="tone-muted rb-counts">${et('ui.rbills.counts', sum.counts)}</p>`;
+        <div class="rb-actions rb-list-head">
+            <p class="tone-muted rb-counts">${et('ui.rbills.counts', sum.counts)}</p>
+            <button type="button" class="btn btn-tonal rb-add" data-onclick="recurring.showForm('add')">${icon('plus', 'i-sm')} ${et('ui.rbills.add')}</button>
+        </div>`;
 }
 
 function rowMeta(v) {
@@ -235,7 +239,7 @@ export function render() {
     if (!state.loaded) {
         root.innerHTML = state.error
             ? `<p class="notice neg">${et('msg.rbills.not_loaded')}</p>`
-            : `<p class="empty">${et('ui.rbills.loading')}</p>`;
+            : skeleton({ label: t('ui.rbills.loading') });
         return;
     }
     const sum = billsSummary(state.items, today());
@@ -246,7 +250,6 @@ export function render() {
         ? `<div class="panel rb-list">${rows.map(renderRow).join('')}</div>`
         : emptyState({ icon: 'receipt', title: t('ui.rbills.none') });
     root.innerHTML = `${renderSummary(sum)}
-        <div class="rb-actions"><button type="button" class="btn btn-tonal" data-onclick="recurring.showForm('add')">${et('ui.rbills.add')}</button></div>
         ${state.form === 'add' ? renderItemForm(null) : ''}
         ${list}
         ${open ? renderDetail(open) : ''}`;

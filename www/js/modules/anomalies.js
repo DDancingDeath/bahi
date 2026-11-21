@@ -28,7 +28,7 @@ import { moneyText } from '../utils/money.js';
 import { numberCheckFlags } from '../utils/number-check-flags.js';
 import { safeSetItem } from '../utils/storage-full.js';
 import { icon } from '../ui/icons.js';
-import { moneyHtml, emptyState } from '../ui/components.js';
+import { moneyHtml, emptyState, skeleton } from '../ui/components.js';
 import { formatDate, formatDay } from '../utils/dates.js';
 import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
 
@@ -892,7 +892,7 @@ export const AnomaliesManager = {
         }
         if (this.page.view === 'list') {
             listEl.innerHTML = this.page.loading && !list.length
-                ? `<p class="empty">${esc(t('ui.anom.loading'))}</p>`
+                ? skeleton({ label: t('ui.anom.loading'), panel: false })
                 : list.length ? list.map(a => this.rowHtml(a)).join('') : emptyState({ icon: 'search', title: t('ui.anom.none_for_filters') });
         } else {
             this.renderPatterns(list);

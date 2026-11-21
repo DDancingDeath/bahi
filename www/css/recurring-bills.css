@@ -3,6 +3,9 @@
 .recurring-page h2, .recurring-page h3, .recurring-page h4 { margin: 0; }
 .rb-counts { margin: 0; font-size: var(--fs-sm); }
 .rb-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+/* Counts on the left, Add bill on the right above the list (as Rentals' toolbars) */
+.rb-list-head { justify-content: space-between; }
+.rb-list-head .rb-add { margin-left: auto; }
 .recurring-page .row-title, .recurring-page .row-meta { display: block; }
 /* The open bill is marked with a bar: on the soft accent fill some themes' tags and meta text lose contrast */
 .rb-list .row.selected { background: none; box-shadow: var(--stripe-sm) var(--accent); }

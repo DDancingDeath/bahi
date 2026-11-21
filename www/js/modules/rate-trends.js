@@ -53,6 +53,8 @@ const YEAR_COLORS = ['#dc2626', '#2563eb', '#059669', '#7c3aed', '#d97706'];
 const DASH = [5, 4];
 /** Grid, axis text and marker greys come from the theme tokens, read at draw time (light: the same greys as before). */
 const token = (name) => (typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : '');
+/** A series colour: the --chart-* token (the legend swatches use the same), the fixed colour without CSS. */
+const chartColor = (k) => token(`--chart-${k}`) || COLORS[k];
 const STOP_KEYS = { quota: 'ui.trends.stop_quota', budget: 'ui.trends.stop_budget', error: 'ui.trends.stop_error', save: 'ui.trends.stop_save' };
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
@@ -965,8 +967,8 @@ export const RateTrendsManager = {
         const { periods, bills, items, cut } = this.lineData();
         const series = [];
         ITEM_RATE_KINDS.forEach(k => {
-            series.push({ values: periods.map(p => bills[k][p] ?? null), color: COLORS[k], dash: DASH, width: 2, endLabel: cut ? '' : t(KIND_KEYS[k]) });
-            if (cut) series.push({ values: periods.map(p => items[k][p] ?? null), color: COLORS[k], endLabel: t(KIND_KEYS[k]) });
+            series.push({ values: periods.map(p => bills[k][p] ?? null), color: chartColor(k), dash: DASH, width: 2, endLabel: cut ? '' : t(KIND_KEYS[k]) });
+            if (cut) series.push({ values: periods.map(p => items[k][p] ?? null), color: chartColor(k), endLabel: t(KIND_KEYS[k]) });
         });
         const marker = cut ? { index: periods.indexOf(cut), label: t('ui.trends.cutoff_marker') } : null;
         this.drawLines(c, periods.map(p => this.axisLabel(p)), series, marker);
@@ -997,9 +999,9 @@ export const RateTrendsManager = {
             const x = left + i * slot + slot / 2 - barW;
             const hb = r ? (r.kgBought / max) * h : 0;
             const hs = r ? (r.kgSold / max) * h : 0;
-            ctx.fillStyle = COLORS.bought;
+            ctx.fillStyle = chartColor('bought');
             ctx.fillRect(x, canvas.height - bottom - hb, barW, hb);
-            ctx.fillStyle = COLORS.sold;
+            ctx.fillStyle = chartColor('sold');
             ctx.fillRect(x + barW + 1, canvas.height - bottom - hs, barW, hs);
         });
         return undefined;

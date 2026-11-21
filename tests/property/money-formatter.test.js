@@ -84,6 +84,12 @@ describe('F0: replaced money wrappers keep their text', () => {
         expect(Object.isFrozen(MONEY_PRESETS)).toBe(true);
     });
 
+    test('F23/F25: per ₹100 figures (preset per100) show at most one decimal and no trailing zero', () => {
+        expect([8.9, 8.90, 12, 11.6, -1.5, 0.04, -0.04, 125.44, 1234.5].map(n => moneyText(n, 'per100')))
+            .toEqual(['₹8.9', '₹8.9', '₹12', '₹11.6', '−₹1.5', '₹0', '₹0', '₹125.4', '₹1,234.5']);
+        fc.assert(fc.property(amounts, (n) => !/\.\d{2}|\.0(?!\d)/.test(formatRupees(n, 'per100'))), { numRuns: RUNS });
+    });
+
     test('moneyHtml text is moneyText text, ₹1,24,56,789 included; one on-screen minus', () => {
         fc.assert(fc.property(amounts, (n) => textOf(moneyHtml(n)) === moneyText(n) && moneyText(n) === onScreen(formatRupees(n))), { numRuns: RUNS });
         expect(textOf(moneyHtml(12456789))).toBe('₹1,24,56,789');

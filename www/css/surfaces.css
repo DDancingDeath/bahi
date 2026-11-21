@@ -498,6 +498,16 @@ a.row:active {
   to { background-position: -100% 0; }
 }
 
+/* skeleton() in ui/components.js: a few bars in a panel while a page loads */
+.skel-list {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.skel-list .skel-short {
+  width: 60%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skel {
     animation: none;

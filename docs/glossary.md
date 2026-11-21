@@ -31,7 +31,7 @@ the simple shop Hindi workers speak: short words, English loan words where shops
 
 | Idea | English | Hindi | Notes |
 |---|---|---|---|
-| The price list page | **Rates** | **रेट** | |
+| The price list page | **Items & rates** | **आइटम और रेट** | One name in the menu, the page title and its search. |
 | One entry on it (names + three rate lists) | **item** — **Add item**, **Edit item** | **आइटम** — आइटम जोड़ें, आइटम बदलें | Not "Add rate" for a whole item. |
 | Goods in general | **stock**, **goods** | **स्टॉक**, **माल** | |
 | Stock value per kg (average purchase cost) | **Avg cost ₹…/kg** | **औसत लागत ₹…/kg** | Not "Rate" on Stock. |
