@@ -178,7 +178,7 @@ export class OutstandingManager {
 
     /**
      * Outstanding opened from the menu or tab bar: the list last picked here (Sales at first, U-69).
-     * 'wholesale' (Wholesale dues, Today's reminder) shows the Wholesale list for this visit only.
+     * 'wholesale' (Wholesale dues, Today's wholesale reminder) shows the Wholesale list for this visit only.
      * @param {?string} [section]
      */
     static open(section) {

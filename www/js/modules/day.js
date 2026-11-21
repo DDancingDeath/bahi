@@ -477,11 +477,11 @@ export const DayManager = {
         setTimeout(() => window.app?.admin?.showTab('data'), 150);
     },
 
-    /** Outstanding on its Purchases or Sales list (navigation opens it on Purchases first). */
+    /** Outstanding on its Purchases or Sales list for this visit (navigation opens it on the remembered list first). */
     openDues(kind) {
         // After the page is in and its own first render (#66: it may load on first visit)
         return Promise.resolve(window.app?.nav?.showTab?.('due')).then(ok => {
-            if (ok !== false) setTimeout(() => window.app?.outstanding?.filterDue(kind), 150);
+            if (ok !== false) setTimeout(() => window.app?.outstanding?.filterDue(kind, { once: true }), 150);
         });
     },
 

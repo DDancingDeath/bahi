@@ -102,6 +102,14 @@ describe('Old Wholesale History / Outstanding tabs open the global pages with Wh
         expect(window.app.outstanding.open).toHaveBeenCalledWith(null);
     });
 
+    test('Today\'s collect / pay reminders open their list for that visit only', async () => {
+        const filterDue = jest.spyOn(window.app.outstanding, 'filterDue').mockImplementation(() => {});
+        await window.app.day.openDues('retail');
+        jest.runAllTimers();
+        expect(activeTab()).toBe('due');
+        expect(filterDue).toHaveBeenCalledWith('retail', { once: true });
+    });
+
     test('a member without Wholesale is told so and gets History / Outstanding unfiltered', () => {
         AppState.userRole = 'staff';
         open('wholesale-history');
