@@ -8,7 +8,8 @@
 
 import { billLabour, billLineTotal, billTotal, outstandingDue, readPayment, readLineItem, formatKg, formatRupees } from './money.js';
 import { billDateOf } from './history-filters.js';
-import { t } from '../i18n/index.js';
+import { getLang, t } from '../i18n/index.js';
+import { formatDay } from './dates.js';
 
 /**
  * "COPY" mark on a reprinted slip / shared text, in the app language (or `lang`).
@@ -175,7 +176,7 @@ export function buildDraftShareText({ kind, customer, date = new Date(), note, i
     // Not saved yet: says so, so nobody takes it for a recorded bill (S-10)
     const lines = [`*${t(TITLES[kind] || TITLES.retail)}* (${t('ui.bill.draft_mark')})`, ''];
     lines.push(`${partyLabel(kind)}: ${customer || partyLabel(kind)}`);
-    lines.push(`${t('ui.bill.date')}: ${date.toLocaleDateString('en-IN')}`);
+    lines.push(`${t('ui.bill.date')}: ${formatDay(date, { lang: getLang() })}`);
     if (note) lines.push(`${t('ui.bill.note')}: ${note}`);
     lines.push('', `*${t('ui.bill.items')}:*`);
     items.forEach(item => {

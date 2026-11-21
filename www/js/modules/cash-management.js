@@ -822,7 +822,8 @@ export class CashManagementManager {
                     const confirmed = await UIManager.showModal(
                         t('msg.cash.last_counted_closing_was_but', { date: lastCounted.date, lastClosing: formatAmount(lastClosing, { exact: true }), amount: formatAmount(amount, { exact: true }), diff: formatAmount(opening.difference, { decimals: 2 }) }),
                         t('msg.cash.cash_mismatch_warning'),
-                        true
+                        true,
+                        { confirmLabel: t('ui.confirm.open_cash') }
                     );
                     if (!confirmed) return;
                 }

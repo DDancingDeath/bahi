@@ -338,7 +338,7 @@ export const RateTrendsManager = {
         const msg = !est ? t('msg.trends.backfill_confirm')
             : days > 1 ? t('msg.trends.backfill_confirm_days', { reads, days, perDay: budget.toLocaleString('en-IN') })
             : t('msg.trends.backfill_confirm_reads', { reads });
-        const ok = await UIManager.showModal(msg, t('msg.trends.build_rate_history'), true);
+        const ok = await UIManager.showModal(msg, t('msg.trends.build_rate_history'), true, { confirmLabel: t('ui.confirm.build_history') });
         if (!ok) return;
         const now = Date.now();
         const cursor = newCursor(now);

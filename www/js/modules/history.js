@@ -957,7 +957,8 @@ export class HistoryManager {
         return !!(await UIManager.showModal(
             t('msg.history.will_load_months_older_bills', { months }),
             t('msg.history.load_older_bills'),
-            true
+            true,
+            { confirmLabel: t('ui.confirm.load_bills') }
         ));
     }
 

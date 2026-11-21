@@ -60,6 +60,7 @@ import { chooseStartPage, routeFromHash } from './utils/start-page.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
+import { installDateCaptions } from './ui/date-caption.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
 import { friendlyError } from './utils/friendly-error.js';
 
@@ -71,7 +72,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261121a-history-due-ux';
+const BUILD_ID = '20261121b-bill-edit-dialogs';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -832,6 +833,7 @@ async function initializeUserData() {
 // data-on* attributes (delegated handlers, #89) work from the first template on
 installActions();
 installTablistKeys();
+installDateCaptions();
 
 // Before the templates go in, so their text never changes weight (variables.css: --w-strong)
 if (window.Capacitor?.getPlatform?.() === 'android') document.documentElement.classList.add('platform-android');

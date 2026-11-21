@@ -113,7 +113,7 @@ async function changeDialog(c, { d, ix, from, unit, occ, defs, mgr, on, typed })
                     : t('msg.rent.change_unit_split', { month, from: place, old: formatRupees(oldRent === 'auto' ? s.old : oldRent), to, new: formatRupees(lease.firstRent) })}`)
         // RENT-16: an advance carried on the old lease pays the new unit's first month.
         + (advanceLeft(d.charges, from.id, s.endMonth) > 0 ? ` ${t('msg.rent.change_unit_adv', { amount: formatRupees(advanceLeft(d.charges, from.id, s.endMonth)) })}` : '');
-    if (!await UIManager.showModal(ask, t('ui.rent.change_unit'), true)) return;
+    if (!await UIManager.showModal(ask, t('ui.rent.change_unit'), true, { confirmLabel: t('ui.rent.change_unit') })) return;
     return c.saveMoveIn({
         unit, newUnit: false, occ, defs, from,
         save: (tenantName) => changeUnit({

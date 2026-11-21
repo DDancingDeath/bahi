@@ -651,3 +651,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     font-size: var(--fs-input) !important;
   }
 }
+
+/* ---------- Date caption (F54) ---------- */
+/* The day in the app's format under a native date box (js/ui/date-caption.js) */
+.date-caption {
+  display: block;
+  flex-basis: 100%;
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+}
+
+.date-caption[hidden],
+input[hidden] + .date-caption {
+  display: none;
+}

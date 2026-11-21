@@ -206,7 +206,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         AppState.stock = { rice: { quantity: 500, rate: 0 } };
         AppState.userRole = 'staff';
         setVal('wholesaleCashPayment', 4025);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValueOnce(false);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValueOnce(false);
         expect(await WholesaleSalesManager.completeSale()).toBeUndefined();
         expect(modal).toHaveBeenCalledWith(expect.stringContaining('Rice: average cost not known (its stock has no rate)'), expect.any(String), true, { confirmLabel: 'Save anyway' });
         expect(saved).toHaveLength(0);
@@ -223,7 +223,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         WholesaleSalesManager.updateProfitCalculation();
         expect(document.getElementById('salesProfitAmount').textContent).toBe('—');
         setVal('wholesaleCashPayment', 4025);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         const sale = await WholesaleSalesManager.completeSale();
         expect(modal).toHaveBeenCalledWith(expect.stringContaining('stock is still loading'), expect.any(String), true, { confirmLabel: 'Save anyway' });
         expect(sale).toMatchObject({ profit: null, profitPercent: null, costUnknown: true });
@@ -259,7 +259,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         setVal('sellQuantity', ''); // the refused line is cleared (else Save asks about it, BF-PENDING)
 
         setVal('wholesaleCashPayment', 4267);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         const sale = await WholesaleSalesManager.completeSale();
         expect(modal).toHaveBeenCalledWith(expect.stringContaining('short 3 kg'), expect.any(String), true, { confirmLabel: 'Save anyway' });
         expect(sale.flags).toEqual([expect.objectContaining({ rule: 'oversell', by: 'owner1' })]);
@@ -283,7 +283,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         setVal('sellQuantity', 30);
         await WholesaleSalesManager.addToWholesaleBill(); // 1200
         setVal('wholesaleCashPayment', 1200);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         FirebaseService.saveWholesaleSale = jest.fn(async (sale) => {
             AppState.salesHistory.unshift(sale);
             AppState.stock = { rice: { quantity: 20, rate: 30.5 } };

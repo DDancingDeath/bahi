@@ -299,7 +299,7 @@ describe('PrinterService with the fake transport', () => {
         modal.mockClear();
         modal.mockResolvedValueOnce(false);
         expect(await PrinterService.printBill(bill)).toBe(false);
-        expect(modal).toHaveBeenCalledWith('This may have printed already. Check the paper. Print it again?', 'May have printed', true);
+        expect(modal).toHaveBeenCalledWith('This may have printed already. Check the paper. Print it again?', 'May have printed', true, { confirmLabel: 'Print again' });
         expect(transport.calls.write).toBe(1);
 
         expect(await PrinterService.printBill(bill)).toBe(true);
@@ -316,7 +316,7 @@ describe('PrinterService with the fake transport', () => {
 
         modal.mockResolvedValueOnce(false);
         expect(await PrinterService.printBill(bill)).toBe(false);
-        expect(modal).toHaveBeenCalledWith('This may have printed already. Check the paper. Print it again?', 'May have printed', true);
+        expect(modal).toHaveBeenCalledWith('This may have printed already. Check the paper. Print it again?', 'May have printed', true, { confirmLabel: 'Print again' });
         expect(transport.calls.write).toBe(2);
     });
 
@@ -340,7 +340,7 @@ describe('PrinterService with the fake transport', () => {
         const second = PrinterService.printBill(bill);
         expect(await first).toBe(false);
         expect(await second).toBe(false);
-        expect(modal).toHaveBeenCalledWith('This may have printed already. Check the paper. Print it again?', 'May have printed', true);
+        expect(modal).toHaveBeenCalledWith('This may have printed already. Check the paper. Print it again?', 'May have printed', true, { confirmLabel: 'Print again' });
         expect(transport.calls.write).toBe(1);
     });
 

@@ -379,7 +379,7 @@ const DiagnosticsManager = {
             if (this.activeTab === 'status') this.renderStatus();
             return false;
         }
-        const ok = await UIManager.showModal(t('msg.diag.test_crash_confirm'), t('ui.diag.test_crash_confirm_title'), true);
+        const ok = await UIManager.showModal(t('msg.diag.test_crash_confirm'), t('ui.diag.test_crash_confirm_title'), true, { confirmLabel: t('ui.confirm.send_test_crash') });
         if (!ok) return false;
         return CrashReports.sendTestCrash();
     },
@@ -831,7 +831,7 @@ const DiagnosticsManager = {
      * @param {string} errorId - Error ID
      */
     async deleteError(errorId) {
-        const confirmed = await UIManager.showModal(t('msg.diagnostics.delete_error'), t('msg.diagnostics.hide_error_title'), true);
+        const confirmed = await UIManager.showModal(t('msg.diagnostics.delete_error'), t('msg.diagnostics.hide_error_title'), true, { confirmLabel: t('ui.confirm.hide_error') });
         if (!confirmed) return;
 
         try {
@@ -853,7 +853,8 @@ const DiagnosticsManager = {
         const confirmed = await UIManager.showModal(
             t('msg.diagnostics.will_delete_all_telemetry_data'),
             t('msg.diagnostics.clear_all_diagnostics'),
-            true
+            true,
+            { confirmLabel: t('ui.confirm.hide_all') }
         );
         if (!confirmed) return;
 

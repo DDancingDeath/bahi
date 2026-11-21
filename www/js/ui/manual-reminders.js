@@ -291,7 +291,7 @@ export const ManualReminders = {
 
     async cancelReminderNow(id) {
         if (!this.canManage() || Helpers.isBusy?.(`reminder-${id}`)) return false;
-        if (!(await UIManager.showModal(t('msg.reminders.cancel_confirm'), t('ui.reminders.cancel'), true))) return false;
+        if (!(await UIManager.showModal(t('msg.reminders.cancel_confirm'), t('ui.reminders.cancel'), true, { confirmLabel: t('ui.confirm.cancel_reminder'), danger: true }))) return false;
         return this.closeReminder(id, () => FirebaseService.cancelReminder(id, this.by()));
     }
 };
