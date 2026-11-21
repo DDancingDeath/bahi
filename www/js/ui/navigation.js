@@ -278,15 +278,14 @@ const NavigationManager = {
             setTimeout(() => window.app.items.renderTable(), 100);
         }
         
-        // Render history when History tab is shown (keeps the session's filter, #160; 'wholesale-history' picks Wholesale)
+        // History: the remembered tab (#160); 'wholesale-history' shows Wholesale for this visit only
         if (route.tab === 'history' && window.app?.history) {
-            setTimeout(() => (route.section === 'wholesale' ? window.app.history.filterHistory('wholesale') : window.app.history.refresh()), 100);
+            setTimeout(() => window.app.history.open(route.section), 100);
         }
         
-        // Render outstanding when Due tab is shown
+        // Outstanding: the list last picked here (Sales first, U-69); 'wholesale-outstanding' shows Wholesale for this visit only
         if (route.tab === 'due' && window.app?.outstanding) {
-            // Sales first (collecting is the daily job, U-69), or the list last opened this session; 'wholesale-outstanding' picks Wholesale
-            setTimeout(() => window.app.outstanding.filterDue(route.section === 'wholesale' ? 'wholesale' : (window.app.outstanding.currentFilter?.() || 'sale')), 100);
+            setTimeout(() => window.app.outstanding.open(route.section), 100);
         }
         
         // Render stock when Stock tab is shown

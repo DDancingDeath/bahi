@@ -46,6 +46,9 @@ const STEPS = [
     // Wholesale has no History / Outstanding tabs of its own (F14): its links open the global pages with Wholesale picked
     { name: 'Wholesale › Wholesale bills', route: 'wholesale-sales', page: 'history', act: "document.querySelector('#wholesale-sales .ws-links [data-onclick*=\"wholesale-history\"]').click()", timers: 150, roles: OM, expect: '#history .filter-wholesale.active' },
     { name: 'Wholesale › Wholesale dues', route: 'wholesale-sales', page: 'due', act: "document.querySelector('#wholesale-sales .ws-links [data-onclick*=\"wholesale-outstanding\"]').click()", timers: 150, roles: OM, expect: '#dueSaleKinds [data-due-kind="wholesale"].active' },
+    // NEW-01: the links' Wholesale filter is for that visit only; the tab bar opens the pages as usual
+    { name: 'History from the tab bar after Wholesale bills', route: 'history', page: 'history', roles: OM, expect: '#history .filter-purchase.active', hidden: ['#history .filter-wholesale.active'] },
+    { name: 'Outstanding from the tab bar after Wholesale dues', route: 'due', page: 'due', roles: OM, expect: '#dueSaleKinds [data-due-kind="sale"].active', hidden: ['#dueSaleKinds [data-due-kind="wholesale"].active'] },
     { name: 'Expenses › Business', route: 'expenses', page: 'expenses', roles: A, expect: '#businessExpenseSection' },
     // Off for managers and members until the owner turns it on (#98)
     { name: 'Expenses › Personal', route: 'expenses', page: 'expenses', act: "window.app.expenses.filterExpenseTab('personal')", roles: O, expect: '#personalExpenseSection' },

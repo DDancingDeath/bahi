@@ -376,6 +376,43 @@ describe('#125 wholesale dues on Outstanding (All / Retail / Wholesale)', () => 
         expect(document.getElementById('dueList').textContent).toContain('No outstanding wholesale amounts');
     });
 
+    test('NEW-01: the Sales total follows the Retail / Wholesale chip, so it matches the list', () => {
+        const seg = (id) => document.getElementById(id).textContent;
+        OutstandingManager.filterDue('sale');
+        expect([seg('dueSegTotalPurchase'), seg('dueSegTotalSale')]).toEqual(['₹70', '₹1,780']);
+        OutstandingManager.filterDue('wholesale');
+        expect([seg('dueSegTotalPurchase'), seg('dueSegTotalSale'), total()]).toEqual(['₹70', '₹1,200', '₹1,200']);
+        OutstandingManager.filterDue('retail');
+        expect(seg('dueSegTotalSale')).toBe('₹580');
+        OutstandingManager.filterDue('purchase');
+        expect(seg('dueSegTotalSale')).toBe('₹1,780');
+        AppState.salesHistory = [];
+        OutstandingManager.filterDue('wholesale');
+        expect(seg('dueSegTotalSale')).toBe('');
+    });
+
+    test('NEW-01: Wholesale dues (and a party link) pick the list for that visit only', () => {
+        OutstandingManager.homeFilter = 'sale';
+        OutstandingManager.open('wholesale');
+        expect(active()).toEqual(['sale', 'wholesale']);
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'sale']);
+        expect(ids()).toEqual(['r1', 'r2', 'w1', 'w2']);
+        OutstandingManager.filterDue('retail');
+        OutstandingManager.open('wholesale');
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'retail']);
+        OutstandingManager.showParty('purchase', 'Supplier');
+        expect(active()).toEqual(['purchase']);
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'retail']);
+        // A chip the user taps is remembered, as before
+        OutstandingManager.filterDue('wholesale');
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'wholesale']);
+        OutstandingManager.homeFilter = 'sale';
+    });
+
     test('a role without Wholesale: Sales is retail only, no choice, no chips', () => {
         AppState.userRole = 'staff';
         OutstandingManager.filterDue('wholesale');

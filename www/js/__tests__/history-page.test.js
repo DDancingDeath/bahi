@@ -62,7 +62,7 @@ beforeEach(() => {
     document.body.innerHTML = html;
     sessionStorage.clear();
     localStorage.clear();
-    Object.assign(HistoryManager, { filter: null, pageKey: '', viewMode: 'card', showOpening: { purchase: false, sale: false, wholesale: false } });
+    Object.assign(HistoryManager, { filter: null, homeTab: null, pageKey: '', viewMode: 'card', showOpening: { purchase: false, sale: false, wholesale: false } });
     delete window.FirebaseService;
     window.app = { nav: { showTab: jest.fn() } };
     AppState.historyLoadedFrom = 0;
@@ -134,6 +134,34 @@ describe('History tabs: Purchase | Sale (retail + wholesale) | Wholesale', () =>
         HistoryManager.refreshHistory();
         expect(historyNos()).toEqual(['W1', 'W2']);
         expect(resolveRoute('wholesale-history')).toEqual({ id: 'wholesale-history', tab: 'history', section: 'wholesale', needs: 'wholesale-sales', nav: 'history' });
+    });
+
+    test('NEW-01: Wholesale bills shows the Wholesale tab for that visit only; a plain visit is back on the remembered tab', () => {
+        AppState.userRole = 'owner';
+        const shown = () => document.querySelector('.history-type-filter [aria-pressed="true"]')?.dataset.type;
+        HistoryManager.open('wholesale');
+        expect(shown()).toBe('wholesale');
+        expect(historyNos()).toEqual(['W1', 'W2']);
+        expect(localStorage.getItem(HISTORY_TAB_KEY)).toBeNull();
+        HistoryManager.setDatePreset('all');
+        expect(JSON.parse(sessionStorage.getItem(HISTORY_FILTER_KEY)).type).toBe('purchase');
+        HistoryManager.open(null);
+        expect(shown()).toBe('purchase');
+        expect(historyNos()).toEqual(['P1']);
+
+        HistoryManager.filterHistory('sale');
+        HistoryManager.open('wholesale');
+        HistoryManager.filter = null; // app reopened during the link's visit
+        HistoryManager.homeTab = null;
+        HistoryManager.open(null);
+        expect(shown()).toBe('sale');
+
+        // The Wholesale tab tapped on History itself is remembered, as before
+        HistoryManager.open('wholesale');
+        HistoryManager.filterHistory('wholesale');
+        HistoryManager.open(null);
+        expect(shown()).toBe('wholesale');
+        expect(localStorage.getItem(HISTORY_TAB_KEY)).toBe('wholesale');
     });
 
     test('a member without Wholesale gets Sale (retail only) for a remembered Wholesale tab, and no Wholesale button', () => {

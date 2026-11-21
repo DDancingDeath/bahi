@@ -72,7 +72,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261121d-one-home-nav';
+const BUILD_ID = '20261121e-wholesale-link-once';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1406,6 +1406,8 @@ window.app = {
         render: () => HistoryManager.renderHistory(),
         // Re-render keeping the selected Purchase/Sale filter and search text (used by live sync)
         refresh: () => HistoryManager.refreshHistory(),
+        // Opened from the menu / tab bar, or 'wholesale' from Wholesale bills (that visit only)
+        open: (section) => HistoryManager.open(section),
         viewBill: (index, type) => HistoryManager.viewBill(index, type),
         
         closeBillDetails: () => HistoryManager.closeBillDetails(),
@@ -1442,6 +1444,8 @@ window.app = {
     outstanding: {
         filterDue: (filter, evt) => OutstandingManager.filterDue(filter, evt),
         currentFilter: () => OutstandingManager.dueFilter(),
+        // Opened from the menu / tab bar, or 'wholesale' from Wholesale dues (that visit only)
+        open: (section) => OutstandingManager.open(section),
         toggleBills: () => OutstandingManager.toggleBills(),
         billMoreToggled: (id, open) => OutstandingManager.billMoreToggled(id, open),
         openParty: (partyKey) => OutstandingManager.openParty(partyKey),
