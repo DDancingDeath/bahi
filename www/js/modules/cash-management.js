@@ -42,6 +42,14 @@ const L = (key, params) => Helpers.escapeHtml(t(key, params));
 const diffTone = (level) => (level === 'high' ? 'tone-neg' : level === 'warn' ? 'tone-warn' : 'tone-pos');
 /** A status / summary figure, its ₹ muted (moneyHtml); the text is formatRupees(amount, opts). */
 const setMoney = (el, amount, opts, plus = false) => { if (el) el.innerHTML = (plus ? '+' : '') + moneyHtml(amount, opts); };
+/** An odd number of figures in the 2-column grid: the last one spans the row, so no empty cell is left (F05). */
+const spanOddMetric = (grid) => {
+    if (!grid) return;
+    const metrics = [...grid.children].filter(el => el.classList.contains('metric'));
+    const shown = metrics.filter(el => (el.style.display ? el.style.display !== 'none' : !el.classList.contains('cash-off')));
+    metrics.forEach(el => el.classList.remove('metric-span'));
+    if (shown.length % 2) shown[shown.length - 1].classList.add('metric-span');
+};
 /** A figure in markup whose text is exactly formatRupees(amount, opts), a missing amount included (₹0). */
 const fig = (amount, opts) => {
     const n = Number(amount);
@@ -576,6 +584,11 @@ export class CashManagementManager {
     }
 
     static updateStatusCard() {
+        this.fillStatusCard();
+        spanOddMetric(document.getElementById('statusCardsContainer'));
+    }
+
+    static fillStatusCard() {
         const statusOpeningBalance = document.getElementById('statusOpeningBalance');
         const statusCashIn = document.getElementById('statusCashIn');
         const statusCashOut = document.getElementById('statusCashOut');

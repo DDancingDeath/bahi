@@ -1,4 +1,4 @@
-# रेट
+# आइटम और रेट
 
 [मालिक के लिए गाइड](../owner-guide.hi.md) का हिस्सा (हर पेज की अलग फ़ाइल)। [English](rates.md)। कोष्ठक के कोड [calculations.md](../calculations.md) के हैं।
 

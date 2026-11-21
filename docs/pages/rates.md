@@ -1,4 +1,4 @@
-# Rates
+# Items & rates
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [rates.hi.md](rates.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 

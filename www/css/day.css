@@ -66,6 +66,7 @@
   content: ''; position: absolute; top: -1px; right: 0; bottom: 0; left: -1px; pointer-events: none;
   border-top: 1px solid var(--line); border-left: 1px solid var(--line);
 }
+.cash-metrics > .metric-span { grid-column: 1 / -1; }
 
 /* Close cash: in, out and the expected drawer (C1–C7) */
 .cash-body .cash-sub-title { margin: 0 0 var(--sp-1); color: var(--ink-3); font-size: var(--fs-sm); font-weight: var(--w-label); }

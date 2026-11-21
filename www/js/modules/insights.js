@@ -270,7 +270,7 @@ export const InsightsManager = {
                 `<button type="button" class="btn btn-sm" data-item="${esc(b.itemKey)}">${esc(t('ui.insights.see_trend'))} ›</button>`)).join(''));
             const low = showProfit ? lowProfitItems(itemSummary(m), cfg).slice(0, 3) : [];
             this.html('insightsActionsLow', low.map(x => this.actionCard(icon('coins'),
-                screenMinus(t(x.per100 < 0 ? 'ui.insights.act_loss_item' : 'ui.insights.act_low_profit', { item: nameOf(x), value: formatAmount(roundTo(x.per100, 1), 'small'), sales: formatRupees(x.sales) })),
+                screenMinus(t(x.per100 < 0 ? 'ui.insights.act_loss_item' : 'ui.insights.act_low_profit', { item: nameOf(x), value: formatAmount(roundTo(x.per100, 1), 'per100'), sales: formatRupees(x.sales) })),
                 'insights-items', t('ui.insights.see_items'))).join(''));
             if (this.maySeasons()) this.renderStockUp();
             else this.html('insightsActionsStock', '');
@@ -348,14 +348,14 @@ export const InsightsManager = {
         const profitKnown = m.M2 !== null;
         const head = `<thead><tr><th>${esc(t('ui.insights.item'))}</th><th class="num">${esc(t('ui.money.sales'))}</th>`
             + `${profitKnown ? `<th class="num" data-perm="profit">${esc(t('ui.money.profit'))}</th><th class="num" data-perm="profit">${esc(t('ui.insights.per100'))}</th>` : ''}`
-            + `<th class="num">${esc(t('ui.insights.vs_last_year'))}</th>`
+            + `<th class="num ins-ly">${esc(t('ui.insights.vs_last_year'))}</th>`
             + (target ? `<th class="num">${esc(t('ui.cmp.vs', { period: target.label }))}</th>` : '') + '</tr></thead>';
         const body = rows.map(x => {
             const cmp = arrow(change(x.sales, lyByKey.get(x.itemKey)?.sales ?? null));
             const cmpB = target ? arrow(bItems ? change(x.sales, bByKey.get(x.itemKey)?.sales ?? null) : null) : null;
             return `<tr data-item="${esc(x.itemKey)}"><td>${esc(nameOf(x))}</td><td class="num">${moneyHtml(x.sales, TM)}</td>`
-                + `${profitKnown ? `<td class="num" data-perm="profit">${moneyHtml(x.profit, TM)}</td><td class="num" data-perm="profit">${moneyHtml(x.per100 === null ? null : roundTo(x.per100, 1), 'small')}</td>` : ''}`
-                + `<td class="num">${esc(cmp)}</td>`
+                + `${profitKnown ? `<td class="num" data-perm="profit">${moneyHtml(x.profit, TM)}</td><td class="num" data-perm="profit">${moneyHtml(x.per100 === null ? null : roundTo(x.per100, 1), 'per100')}</td>` : ''}`
+                + `<td class="num ins-ly">${esc(cmp)}</td>`
                 + (cmpB === null ? '' : `<td class="num">${esc(cmpB)}</td>`) + '</tr>';
         }).join('');
         this.html('insightsItemsTable', rows.length ? head + `<tbody>${body}</tbody>` : `<tr><td>${esc(t('ui.insights.no_sales'))}</td></tr>`);
@@ -365,7 +365,7 @@ export const InsightsManager = {
         const weak = known.filter(x => x.sales >= this.cfg().lowMarginMinSales).sort((a, b) => a.per100 - b.per100)[0];
         let tk = '';
         if (best) tk += `<p data-perm="profit">${esc(t('ui.insights.tk_best_item', { item: nameOf(best), amount: moneyText(best.profit) }))}</p>`;
-        if (weak && weak !== best) tk += `<p data-perm="profit">${esc(screenMinus(t('ui.insights.tk_weak_item', { item: nameOf(weak), value: formatAmount(roundTo(weak.per100, 1), 'small') })))}</p>`;
+        if (weak && weak !== best) tk += `<p data-perm="profit">${esc(screenMinus(t('ui.insights.tk_weak_item', { item: nameOf(weak), value: formatAmount(roundTo(weak.per100, 1), 'per100') })))}</p>`;
         if (!profitKnown) tk += `<p>${esc(t('ui.tk.profit_unknown'))}</p>`;
         this.html('insightsItemsTakeaway', tk);
         const unc = m.caveats.find(c => c.key === 'uncosted');

@@ -20,7 +20,7 @@ import * as store from './rent-store.js';
 import { AppState } from '../utils/state.js';
 import { noteRent, rentReminder, leaseReminder, leaseReminderText } from '../utils/reminders.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
-import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
+import { moneyHtml, moneyInText, emptyState, skeleton } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { isShareToken, publicLink } from './rent-public.js';
 import {
@@ -220,7 +220,7 @@ function render() {
         notice.textContent = state.errors.size ? t('msg.rent.could_not_load') : limited ? t('msg.rent.limit_reached') : '';
     }
     if (!['properties', 'units', 'tenants', 'leases', 'openCharges', 'monthCharges', 'monthExpenses'].every(k => state.loaded.has(k))) {
-        root.innerHTML = `<p class="empty">${et('ui.rent.loading')}</p>`;
+        root.innerHTML = skeleton({ label: t('ui.rent.loading') });
         return;
     }
     const d = store.snapshot();

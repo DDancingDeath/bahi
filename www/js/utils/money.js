@@ -63,15 +63,15 @@ export function billLabour(bill) {
 }
 
 /**
- * @typedef {{decimals?: number, small?: boolean, exact?: boolean, trueMinus?: boolean}} MoneyOpts
- * @typedef {'whole'|'exact'|'rate'|'ratePaise'|'paise'|'small'|'signed'|'plain'} MoneyPreset
+ * @typedef {{decimals?: number, upTo?: number, small?: boolean, exact?: boolean, trueMinus?: boolean}} MoneyOpts
+ * @typedef {'whole'|'exact'|'rate'|'ratePaise'|'paise'|'small'|'per100'|'signed'|'plain'} MoneyPreset
  */
 
 /**
  * MONEY-TEXT presets: `whole` ₹2,50,000; `exact` paise only when the amount has them (₹987.50, ₹987);
  * `rate` a rate per kg, paise only when it has them (₹2,400/kg, ₹24.50/kg); `ratePaise` a rate with paise
  * always, for receipts and share text (₹2,400.00); `paise` always 2 decimals (a cash difference);
- * `small` paise below ₹100; `signed` the true minus (−₹500); `plain` the hyphen (-₹500), for print and share text.
+ * `small` paise below ₹100; `per100` a ₹ per ₹100 figure with at most one decimal (₹8.9, ₹12, ₹125.4); `signed` the true minus (−₹500); `plain` the hyphen (-₹500), for print and share text.
  * @type {Readonly<Record<MoneyPreset, MoneyOpts>>}
  */
 export const MONEY_PRESETS = Object.freeze({
@@ -81,6 +81,7 @@ export const MONEY_PRESETS = Object.freeze({
     ratePaise: Object.freeze({ decimals: 2 }),
     paise: Object.freeze({ decimals: 2 }),
     small: Object.freeze({ small: true }),
+    per100: Object.freeze({ upTo: 1 }),
     signed: Object.freeze({ trueMinus: true }),
     plain: Object.freeze({ trueMinus: false })
 });
@@ -99,15 +100,21 @@ export function moneyOpts(opts) {
  * template already has the ₹ (MONEY-TEXT). Whole rupees unless `decimals` is set;
  * `small: true` shows paise below ₹100 so ₹0.40 is not shown as ₹0; `exact: true`
  * shows paise only when the amount has them (a record saved before #129, a cash
- * count), so ₹987.50 stays ₹987.50 and ₹987 is ₹987. A preset name works too.
+ * count), so ₹987.50 stays ₹987.50 and ₹987 is ₹987. `upTo: n` shows at most n decimals, no trailing zero
+ * (₹8.9, ₹12). A preset name works too.
  * @param {*} amount
  * @param {MoneyPreset|MoneyOpts} [opts]
  * @returns {string}
  */
 export function formatAmount(amount, opts) {
-    const { decimals = 0, small = false, exact = false } = moneyOpts(opts);
+    const { decimals = 0, upTo = 0, small = false, exact = false } = moneyOpts(opts);
     const n = Number(amount);
     const v = Number.isFinite(n) ? n : 0;
+    if (upTo && !decimals) {
+        const f = 10 ** upTo;
+        const shown = Math.round(round2(v) * f) / f;
+        return (Object.is(shown, -0) ? 0 : shown).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: upTo });
+    }
     let digits = decimals;
     const paise = Math.abs(round2(v) - Math.round(v)) >= 0.005;
     if (!decimals && paise && (exact || (small && Math.abs(v) < 100))) digits = 2;

@@ -212,6 +212,25 @@
   }
 }
 
+/* Rate trends chart series (canvas lines and volume bars, and their legend swatches; rate-trends.js reads them) */
+:root {
+  --chart-purchase: #2563eb;
+  --chart-retail: #059669;
+  --chart-wholesale: #d97706;
+  --chart-bought: #93c5fd;
+  --chart-sold: #6ee7b7;
+}
+
+@media screen {
+  [data-mode="dark"] {
+    --chart-purchase: #60a5fa;
+    --chart-retail: #34d399;
+    --chart-wholesale: #fbbf24;
+    --chart-bought: #1e40af;
+    --chart-sold: #047857;
+  }
+}
+
 /* The Bahi mark (docs/brand/icon-full.svg, #375): white B with the sage corner on charcoal, fixed in every theme;
    on dark surfaces a faint ring keeps the tile's edge */
 :root {

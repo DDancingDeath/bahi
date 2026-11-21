@@ -88,7 +88,7 @@ const built = () => ({ backfillDone: true, backfillAt: now - 10 * 86400000, bill
 
 test('English: no Hindi text anywhere on the page (history built and not yet built)', async () => {
     const text = await renderPage('en', built());
-    expect(text).toMatch(/Rate changes on the Rates page/);
+    expect(text).toMatch(/Rate changes on Items & rates/);
     expect(text).toMatch(/Items moved in the month/);
     expect(text).toContain('₹25 → ₹26');
     expect(text).toMatch(/Week of \d+ [A-Z][a-z]{2} 20\d\d/);
@@ -115,10 +115,10 @@ test('U-76: when no rate has enough history, one line says so (not three identic
 
 test('Hindi: no English sentences from the catalogue on the page', async () => {
     const text = await renderPage('hi', built());
-    expect(text).toMatch(/रेट पेज पर रेट में बदलाव/);
+    expect(text).toMatch(/आइटम और रेट पेज पर रेट में बदलाव/);
     expect(text).toContain('₹25 → ₹26');
     expect(text).toMatch(/वाला हफ़्ता/);
-    for (const en of ['Trends', 'Rates page', 'Items page', 'Estimated from bills', 'Purchase', 'Wholesale', 'Retail', 'Weekly',
+    for (const en of ['Trends', 'Rates page', 'Items & rates', 'Items page', 'Estimated from bills', 'Purchase', 'Wholesale', 'Retail', 'Weekly',
         'Month', 'Week', 'Bills', 'Not enough history', 'Day by day', 'Product traffic', 'History built']) {
         expect(text).not.toContain(en);
     }
