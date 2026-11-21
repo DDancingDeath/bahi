@@ -6,6 +6,9 @@ import fs from 'fs';
 import path from 'path';
 import { CashManagementManager as C } from '../modules/cash-management.js';
 import { skeleton } from '../ui/components.js';
+import { TAB_SHORTCUTS } from '../utils/keyboard-shortcuts.js';
+import en from '../i18n/en.js';
+import hi from '../i18n/hi.js';
 
 const WWW = path.resolve(__dirname, '../..');
 const read = (p) => fs.readFileSync(path.join(WWW, p), 'utf8');
@@ -75,4 +78,9 @@ describe('F63: skeleton()', () => {
         document.body.innerHTML = skeleton({ label: 'x', rows: 0 });
         expect(document.querySelectorAll('.skel')).toHaveLength(1);
     });
+});
+
+test('F32: the keyboard shortcut list names the page as the menu does', () => {
+    const rates = TAB_SHORTCUTS.find(x => x.tabId === 'rates');
+    expect([rates.en, rates.hi]).toEqual([en['ui.nav.rates'], hi['ui.nav.rates']]);
 });
