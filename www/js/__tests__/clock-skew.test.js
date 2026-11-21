@@ -90,11 +90,11 @@ describe('payment refused because of the phone clock', () => {
         expect(toast).toHaveBeenLastCalledWith('आपके फ़ोन का समय गलत है। भुगतान दर्ज करने के लिए फ़ोन की तारीख और समय ठीक करें।');
     });
 
-    test('write-off and the wholesale payment box say the same', async () => {
+    test('write-off and a wholesale bill\'s payment box (Outstanding › Wholesale) say the same', async () => {
         await OutstandingManager._writeOff('retail', AppState.retailSalesHistory[0], 'gone away');
         expect(toast).toHaveBeenLastCalledWith("Your phone's time is wrong. Fix the date and time to record payments.");
-        document.body.innerHTML = '<input id="payment_w1" value="40">';
-        await WholesaleSalesManager.recordPayment('w1');
+        document.body.innerHTML = `<input id="${OutstandingManager.paymentInputIds('w1', 'wholesale').cash}" value="40">`;
+        await OutstandingManager.recordPayment('w1', 'wholesale');
         expect(toast).toHaveBeenLastCalledWith("Your phone's time is wrong. Fix the date and time to record payments.");
     });
 

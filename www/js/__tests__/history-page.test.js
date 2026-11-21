@@ -1,8 +1,8 @@
 /**
- * @fileoverview History page review fixes: Purchase | Sale tabs only (no
- * wholesale bills; old 'wholesale' links open Wholesale › History), old-app
+ * @fileoverview History page review fixes: Purchase | Sale | Wholesale tabs
+ * (Wholesale is the Wholesale page's old History tab, F14), old-app
  * carried dues hidden behind a per-tab toggle, one aligned row layout shared
- * with Wholesale › History, and the plain "not updated live" notice.
+ * with Wholesale's recent bills, and the plain "not updated live" notice.
  */
 
 jest.mock('../firebase/firestore-service.js', () => ({ FirebaseService: { db: null } }));
@@ -41,7 +41,7 @@ const opening = (id, timestamp, amount = 2500) => bill(id, timestamp, {
 const html = `
     <div id="history">
       <div class="history-type-filter">
-        <button data-type="purchase"></button><button data-type="sale"></button>
+        <button data-type="purchase"></button><button data-type="sale"></button><button data-type="wholesale" hidden></button>
       </div>
       <select id="historyDatePreset"><option value="all"></option><option value="today"></option>
         <option value="yesterday"></option><option value="week"></option><option value="month"></option>
@@ -53,21 +53,16 @@ const html = `
     </div>
     <div id="wholesale-sales">
       <div id="salesRecentList"></div>
-      <select id="wholesaleHistoryPreset"><option value="all"></option><option value="today"></option></select>
-      <div id="wholesaleHistoryCustomRange" hidden></div>
-      <button id="wholesaleHistoryViewToggle"></button>
-      <div><div id="salesHistoryList"></div></div>
     </div>`;
 
 const historyNos = () => [...document.querySelectorAll('#historyList .bill-row__link')].map(s => s.textContent.replace('#', ''));
-const wholesaleNos = () => [...document.querySelectorAll('#salesHistoryList .bill-row__no [data-onclick]')].map(s => s.textContent.replace('#', ''));
+const recentNos = () => [...document.querySelectorAll('#salesRecentList .bill-row__no [data-onclick]')].map(s => s.textContent.replace('#', ''));
 
 beforeEach(() => {
     document.body.innerHTML = html;
     sessionStorage.clear();
     localStorage.clear();
-    Object.assign(HistoryManager, { filter: null, pageKey: '', viewMode: 'card', showOpening: { purchase: false, sale: false }, pendingWholesaleRedirect: false });
-    Object.assign(WholesaleSalesManager, { historyFilter: { preset: 'all', from: '', to: '' }, historySearch: '', historyView: 'card', showOpening: false });
+    Object.assign(HistoryManager, { filter: null, pageKey: '', viewMode: 'card', showOpening: { purchase: false, sale: false, wholesale: false } });
     delete window.FirebaseService;
     window.app = { nav: { showTab: jest.fn() } };
     AppState.historyLoadedFrom = 0;
@@ -78,7 +73,7 @@ beforeEach(() => {
     AppState.salesHistory = [bill('W1', day(0, 12), { source: 'sales-tab' }), bill('W2', day(-5)), opening('W-OLD-1', day(-6))];
 });
 
-describe('History tabs: Purchase | Sale (retail + wholesale)', () => {
+describe('History tabs: Purchase | Sale (retail + wholesale) | Wholesale', () => {
     test('Sale lists retail and wholesale bills with a type tag for a role that may open Wholesale; the tab is remembered', () => {
         AppState.userRole = 'owner';
         HistoryManager.refreshHistory();
@@ -118,25 +113,47 @@ describe('History tabs: Purchase | Sale (retail + wholesale)', () => {
         HistoryManager.toggleView();
     });
 
-    test('old "wholesale" links and saved filters open Wholesale › History', () => {
+    test('Wholesale lists only wholesale bills (no type tag) and is remembered; its button shows for a role with Wholesale', () => {
+        AppState.userRole = 'owner';
         HistoryManager.filterHistory('wholesale');
-        expect(window.app.nav.showTab).toHaveBeenCalledWith('wholesale-history');
+        expect(historyNos()).toEqual(['W1', 'W2']);
+        expect(document.querySelectorAll('#historyList .bill-type-tag')).toHaveLength(0);
+        expect(document.querySelector('[data-type="wholesale"]').hidden).toBe(false);
+        expect(document.querySelector('[data-type="wholesale"]').getAttribute('aria-pressed')).toBe('true');
+        expect(localStorage.getItem(HISTORY_TAB_KEY)).toBe('wholesale');
+        expect(window.app.nav.showTab).not.toHaveBeenCalled();
 
-        window.app.nav.showTab.mockClear();
+        const row = document.querySelector('#historyList [data-bill-row]');
+        expect(row.getAttribute('data-onclick')).toBe("history.viewBill('id:W1', 'wholesale')");
+        HistoryManager.toggleView();
+        expect([...document.querySelectorAll('#historyList tbody tr.bill-table__row')].map(r => r.querySelector('.bill-table__no').textContent)).toEqual(['#W1', '#W2']);
+        HistoryManager.toggleView();
+
+        HistoryManager.filter = null; // app reopened, or an old saved filter
         sessionStorage.setItem(HISTORY_FILTER_KEY, JSON.stringify({ type: 'wholesale', preset: 'all' }));
-        HistoryManager.filter = null;
         HistoryManager.refreshHistory();
-        expect(window.app.nav.showTab).toHaveBeenCalledWith('wholesale-history');
-        expect(resolveRoute('wholesale-history')).toEqual({ id: 'wholesale-history', tab: 'wholesale-sales', section: 'history', needs: null, nav: 'wholesale-sales' });
+        expect(historyNos()).toEqual(['W1', 'W2']);
+        expect(resolveRoute('wholesale-history')).toEqual({ id: 'wholesale-history', tab: 'history', section: 'wholesale', needs: 'wholesale-sales', nav: 'history' });
     });
 
-    test('tab labels: Purchase | Sale in English, खरीद | बिक्री in Hindi', () => {
+    test('a member without Wholesale gets Sale (retail only) for a remembered Wholesale tab, and no Wholesale button', () => {
+        AppState.userRole = 'staff';
+        AppState.settings = { roleAccess: { staff: { wholesale: false } } };
+        localStorage.setItem(HISTORY_TAB_KEY, 'wholesale');
+        HistoryManager.refreshHistory();
+        expect(historyNos()).toEqual(['S20261022-005']);
+        expect(document.querySelector('[data-type="wholesale"]').hidden).toBe(true);
+        expect(document.querySelector('[data-type="sale"]').getAttribute('aria-pressed')).toBe('true');
+        AppState.settings = {};
+    });
+
+    test('tab labels: Purchase | Sale | Wholesale in English, खरीद | बिक्री | थोक in Hindi', () => {
         const tpl = read('templates/history.html');
-        const keys = [...tpl.matchAll(/data-type="(?:purchase|sale)"[^>]*>.*?data-i18n="([^"]+)"/g)].map(m => m[1]);
-        expect(keys).toEqual(['ui.history.tab_purchase', 'ui.history.tab_sale']);
-        expect(keys.map(k => en[k])).toEqual(['Purchase', 'Sale']);
-        expect(keys.map(k => hi[k])).toEqual(['खरीद', 'बिक्री']);
-        expect(tpl).not.toMatch(/data-type="(all|retail|wholesale)"/);
+        const keys = [...tpl.matchAll(/data-type="(?:purchase|sale|wholesale)"[^>]*>.*?data-i18n="([^"]+)"/g)].map(m => m[1]);
+        expect(keys).toEqual(['ui.history.tab_purchase', 'ui.history.tab_sale', 'ui.history.tab_wholesale']);
+        expect(keys.map(k => en[k])).toEqual(['Purchase', 'Sale', 'Wholesale']);
+        expect(keys.map(k => hi[k])).toEqual(['खरीद', 'बिक्री', 'थोक']);
+        expect(tpl).not.toMatch(/data-type="(all|retail)"/);
     });
 });
 
@@ -209,29 +226,29 @@ describe('aligned bill row', () => {
         expect([tone(2), tone(45), tone(120)]).toEqual(['warn', 'warn', 'neg']);
     });
 
-    test('Wholesale › History uses the same row component and lists only wholesale bills', () => {
+    test('the Wholesale page\'s recent bills use the same row component', () => {
         WholesaleSalesManager.renderSalesHistory();
-        expect(wholesaleNos()).toEqual(['W1', 'W2']);
-        const row = document.querySelector('#salesHistoryList [data-history-item]');
+        expect(recentNos()).toEqual(['W1', 'W2']);
+        const row = document.querySelector('#salesRecentList [data-history-item]');
         expect(row.hasAttribute('data-bill-row')).toBe(true);
         expect(slots(row)).toEqual(['no', 'party', 'amount', 'date', 'items', 'chips']);
         expect(row.getAttribute('data-type')).toBe('wholesale');
-        // Recent list under the entry form uses it too
-        expect(document.querySelectorAll('#salesRecentList [data-bill-row]')).toHaveLength(2);
         for (const mod of ['js/modules/history.js', 'js/modules/wholesale-sales.js']) {
             expect(read(mod)).toMatch(/import \{[^}]*buildBillRow[^}]*\} from '\.\.\/ui\/bill-row\.js'/);
         }
     });
 
-    test('Wholesale › History: old-app dues behind the toggle, search and Table View work', () => {
-        WholesaleSalesManager.renderWholesaleHistory();
-        expect(document.getElementById('wholesaleOpeningToggle').textContent).toBe('Show dues carried from old app (1)');
-        document.getElementById('wholesaleOpeningToggle').click();
-        expect(wholesaleNos()).toEqual(['W-OLD-1', 'W1', 'W2']);
-        WholesaleSalesManager.searchHistory('W2');
-        expect(wholesaleNos()).toEqual(['W2']);
-        WholesaleSalesManager.toggleHistoryView();
-        expect([...document.querySelectorAll('#salesHistoryList tbody tr.bill-table__row')].map(r => r.querySelector('.bill-table__no').textContent)).toEqual(['#W2']);
+    test('History › Wholesale: old-app dues behind the toggle, search and Table View work', () => {
+        AppState.userRole = 'owner';
+        HistoryManager.filterHistory('wholesale');
+        expect(document.getElementById('historyOpeningToggle').textContent).toBe('Show dues carried from old app (1)');
+        document.getElementById('historyOpeningToggle').click();
+        expect(historyNos()).toEqual(['W-OLD-1', 'W1', 'W2']);
+        document.getElementById('historySearch').value = 'W2';
+        HistoryManager.refreshHistory();
+        expect(historyNos()).toEqual(['W2']);
+        HistoryManager.toggleView();
+        expect([...document.querySelectorAll('#historyList tbody tr.bill-table__row')].map(r => r.querySelector('.bill-table__no').textContent)).toEqual(['#W2']);
     });
 
     test('CSS: the bill number never wraps; amounts are right-aligned; desktop uses six fixed columns', () => {
@@ -254,7 +271,7 @@ describe('aligned bill row', () => {
     });
 });
 
-describe('Wholesale › History respects the role\'s History "days back" limit', () => {
+describe('History › Wholesale respects the role\'s History "days back" limit', () => {
     const DAY = 24 * 60 * 60 * 1000;
     afterEach(() => {
         AppState.userRole = undefined;
@@ -263,7 +280,7 @@ describe('Wholesale › History respects the role\'s History "days back" limit',
 
     test.each([['manager'], ['staff']])('%s with historyDays: older bills hidden, no older months loaded', async (role) => {
         AppState.userRole = role;
-        AppState.settings = { roleAccess: { [role]: { historyDays: 3 } } };
+        AppState.settings = { roleAccess: { [role]: { historyDays: 3, wholesale: true } } };
         const windowStart = Date.now() - DAY; // loaded window is newer than the cutoff
         window.FirebaseService = {
             getHistoryWindowStart: () => windowStart,
@@ -271,13 +288,14 @@ describe('Wholesale › History respects the role\'s History "days back" limit',
             ensureHistoryFrom: jest.fn(() => new Promise(() => {}))
         };
 
+        HistoryManager.filterHistory('wholesale');
+        expect(historyNos()).toEqual(['W1']);
+        expect(document.getElementById('historyOpeningToggle')).toBeNull(); // W-OLD-1 is 6 days old
         WholesaleSalesManager.renderSalesHistory();
-        expect(wholesaleNos()).toEqual(['W1']);
-        expect(document.getElementById('wholesaleOpeningToggle')).toBeNull(); // W-OLD-1 is 6 days old
-        expect([...document.querySelectorAll('#salesRecentList .bill-row__no [data-onclick]')].map(s => s.textContent)).toEqual(['#W1']);
+        expect(recentNos()).toEqual(['W1']);
 
         // A custom range back to 2020 only loads from the cutoff, never older months.
-        WholesaleSalesManager.applyHistoryRange('2020-01-01', '');
+        await HistoryManager.applyCustomRange('2020-01-01', '');
         await new Promise(r => setTimeout(r, 0));
         const calls = window.FirebaseService.ensureHistoryFrom.mock.calls;
         expect(calls.length).toBeGreaterThan(0);
@@ -287,10 +305,10 @@ describe('Wholesale › History respects the role\'s History "days back" limit',
         });
     });
 
-    test('no limit for the owner: the whole range may load', () => {
+    test('no limit for the owner: every wholesale bill shows', () => {
         AppState.userRole = 'owner';
-        WholesaleSalesManager.renderSalesHistory();
-        expect(wholesaleNos()).toEqual(['W1', 'W2']);
+        HistoryManager.filterHistory('wholesale');
+        expect(historyNos()).toEqual(['W1', 'W2']);
     });
 });
 

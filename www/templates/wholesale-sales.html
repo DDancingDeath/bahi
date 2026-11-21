@@ -1,11 +1,10 @@
 <div id="wholesale-sales" class="tab bill-page">
     <div class="page-head"><h2 data-i18n="ui.nav.sales">Sales</h2></div>
 
-        <!-- Sales | History | Outstanding (redesign 5.5): the Billing components in the wholesale (violet) mode -->
-        <div class="tabs ws-tabs" role="tablist">
-            <button type="button" class="active" role="tab" aria-selected="true" aria-controls="salesEntrySection" data-view="sales" data-onclick="wholesaleSales.filterTab('sales', event)" data-i18n="ui.common.sales">Sales</button>
-            <button type="button" role="tab" aria-selected="false" aria-controls="salesHistorySection" data-view="history" data-onclick="wholesaleSales.filterTab('history', event)" data-i18n="ui.wholesale.tab_history">History</button>
-            <button type="button" role="tab" aria-selected="false" aria-controls="salesOutstandingSection" data-view="outstanding" data-onclick="wholesaleSales.filterTab('outstanding', event)" data-i18n="ui.wholesale.outstanding">Outstanding</button>
+        <!-- Wholesale bills and dues live in History and Outstanding (F14): these open them with the Wholesale filter -->
+        <div class="ws-links">
+            <button type="button" class="btn btn-ghost btn-sm" data-onclick="nav.showTab('wholesale-history', event)"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg><span data-i18n="ui.wholesale.link_bills">Wholesale bills</span></button>
+            <button type="button" class="btn btn-ghost btn-sm" data-onclick="nav.showTab('wholesale-outstanding', event)"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg><span data-i18n="ui.wholesale.link_dues">Wholesale dues</span></button>
         </div>
 
         <div id="salesEntrySection" class="ws-entry">
@@ -191,46 +190,7 @@
                 <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.wholesale.no_sales_yet">No sales yet</b></div>
             </div>
             <div class="ws-more">
-                <button type="button" class="btn btn-ghost btn-sm" data-onclick="wholesaleSales.filterTab('history')" data-i18n="ui.wholesale.see_all_history">See all in History</button>
-            </div>
-        </div>
-
-        <div id="salesHistorySection" hidden>
-            <div class="history-date-filter wholesale-history-controls">
-                <label for="wholesaleHistoryPreset" class="history-date-label" data-i18n="ui.history.date">Date</label>
-                <select id="wholesaleHistoryPreset" class="period-preset" data-onchange="wholesaleSales.setHistoryPreset(this.value)">
-                    <option value="all" data-i18n="ui.history.all_dates">All dates</option>
-                    <option value="today" data-i18n="ui.history.today">Today</option>
-                    <option value="yesterday" data-i18n="ui.history.yesterday">Yesterday</option>
-                    <option value="week" data-i18n="ui.history.week">This week</option>
-                    <option value="month" data-i18n="ui.history.month">This month</option>
-                    <option value="lastMonth" data-i18n="ui.history.last_month">Last month</option>
-                    <option value="custom" data-i18n="ui.history.custom">Custom</option>
-                </select>
-                <div id="wholesaleHistoryCustomRange" class="history-custom-range" hidden>
-                    <input type="date" id="wholesaleHistoryFrom" class="input" aria-label="From date" min="2020-01-01" data-i18n-aria-label="ui.history.from_date">
-                    <span aria-hidden="true">–</span>
-                    <input type="date" id="wholesaleHistoryTo" class="input" aria-label="To date" min="2020-01-01" data-i18n-aria-label="ui.history.to_date">
-                    <button type="button" class="btn btn-primary btn-sm history-apply-range" data-onclick="wholesaleSales.applyHistoryRange()" data-i18n="ui.history.apply">Apply</button>
-                </div>
-                <div id="wholesaleHistoryRangeHint" class="history-range-hint" role="alert" hidden></div>
-            </div>
-
-            <div class="ws-search">
-                <svg class="i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
-                <input type="text" id="wholesaleHistorySearch" class="input" placeholder="Search by bill number, customer, or item…" aria-label="Search by bill number, customer, or item…"
-                       data-oninput="wholesaleSales.searchHistory(this.value)" data-i18n-placeholder="ui.history.search_bill_number_customer" data-i18n-aria-label="ui.history.search_bill_number_customer"/>
-                <button type="button" data-onclick="wholesaleSales.toggleHistoryView()" id="wholesaleHistoryViewToggle" class="btn btn-sm" data-i18n="ui.history.table_view">Table view</button>
-            </div>
-
-            <div id="salesHistoryList">
-                <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.wholesale.no_sales_yet">No sales yet</b></div>
-            </div>
-        </div>
-
-        <div id="salesOutstandingSection" hidden>
-            <div id="salesOutstandingList" class="due-list">
-                <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span><b data-i18n="ui.wholesale.no_outstanding_payments">No outstanding payments</b></div>
+                <button type="button" class="btn btn-ghost btn-sm" data-onclick="nav.showTab('wholesale-history', event)" data-i18n="ui.wholesale.see_all_history">See all in History</button>
             </div>
         </div>
     </div>

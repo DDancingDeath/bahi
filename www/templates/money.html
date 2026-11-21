@@ -6,7 +6,6 @@
         <div class="page-head"><h2 data-i18n="ui.money.title">Money</h2></div>
         <div class="tabs" role="tablist">
             <button type="button" class="active" data-money-section="profit" role="tab" aria-selected="true" data-onclick="money.setSection('profit')" data-i18n="ui.money.tab_profit">Profit</button>
-            <button type="button" data-money-section="cash" role="tab" aria-selected="false" data-onclick="money.setSection('cash')" data-i18n="ui.money.tab_cash">Cash</button>
             <button type="button" data-money-section="spending" role="tab" aria-selected="false" data-onclick="money.setSection('spending')" data-i18n="ui.money.tab_spending">Spending</button>
             <button type="button" data-money-section="worth" role="tab" aria-selected="false" data-onclick="money.setSection('worth')" data-i18n="ui.money.tab_worth">Worth</button>
         </div>
@@ -51,7 +50,7 @@
                 <div class="ins-takeaway" data-takeaway id="moneyProfitTakeaway"></div>
                 <div class="ins-caveats" id="moneyProfitCaveats"></div>
             </div>
-            <p class="ins-hint" data-perm="profit" id="moneyProfitCaption"><span data-i18n="ui.money.profit_caption">Counts all sales made, credit sales too. Cash that came in:</span> <button type="button" class="btn btn-ghost btn-sm ins-link" data-onclick="money.setSection('cash')"><span data-i18n="ui.money.tab_cash">Cash</span> ›</button></p>
+            <p class="ins-hint" data-perm="profit" id="moneyProfitCaption"><span data-i18n="ui.money.profit_caption">Counts all sales made, credit sales too. Cash that came in:</span> <button type="button" class="btn btn-ghost btn-sm ins-link" data-onclick="money.setSection('cash')"><span data-i18n="ui.money.money_in_out">Money in and out</span> ›</button></p>
             <div>
                 <h3 class="section-title" data-i18n="ui.money.how_we_got_here">How we got here</h3>
                 <div class="panel">
@@ -68,6 +67,30 @@
                     <div class="row ins-total"><span class="row-main" data-i18n="ui.money.profit_after_linked">= Left after worker pay and bills</span><span class="row-amt" data-metric="M25" id="moneyProfitAfterLinked">—</span></div>
                 </div>
             </div>
+            <!-- Money in and out for the period (F62): the cash drawer itself lives in Today › Cash -->
+            <div id="moneyCash">
+                <h3 class="section-title" data-i18n="ui.money.money_in_out">Money in and out</h3>
+                <div class="panel">
+                    <div class="row ins-tap" data-breakdown="netCash" role="button" tabindex="0"><span class="row-main"><span class="row-title" data-i18n="ui.money.net_money">Net money in</span><span class="ins-compare" id="moneyCashCompare"></span></span><span class="row-amt" data-metric="M14" id="moneyNetCash">—</span></div>
+                    <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.cash_drawer">Cash drawer</span><span class="row-meta" data-i18n="ui.money.cash_drawer_hint">Open, add and close the cash in Today › Cash</span></span><button type="button" class="btn btn-ghost btn-sm" data-go="day-cash"><span data-i18n="ui.money.open">Open</span> ›</button></div>
+                </div>
+                <div class="ins-caveats" id="moneyCashCaveats"></div>
+                <details class="panel ins-details" id="moneyCashMore">
+                    <summary class="row" data-i18n="ui.money.in_out_by_day">Money in, money out, day by day</summary>
+                    <div class="row ins-tap" data-breakdown="moneyIn" role="button" tabindex="0"><span class="row-main"><span class="row-title"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrIn"/></svg><span data-i18n="ui.money.money_in">Money in</span></span><span class="row-meta" id="moneyInSplit"></span></span><span class="row-amt" data-metric="M12" id="moneyIn">—</span></div>
+                    <div class="row ins-tap" data-breakdown="moneyOut" role="button" tabindex="0"><span class="row-main"><span class="row-title"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrOut"/></svg><span data-i18n="ui.money.money_out">Money out</span></span><span class="row-meta" id="moneyOutSplit"></span></span><span class="row-amt" data-metric="M13" id="moneyOut">—</span></div>
+                    <div id="moneyLinkedCash" hidden>
+                        <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_cash_out">Also paid out: worker pay and bills</span><span class="row-meta" data-metric-ref="M24" id="moneyLinkedCashSplit"></span></span><span class="row-amt" data-metric-ref="M24" id="moneyLinkedCashOut">—</span></div>
+                        <div class="row ins-total"><span class="row-main" data-i18n="ui.money.net_after_linked">Net money in after these</span><span class="row-amt" data-metric="M26" id="moneyNetAfterLinked">—</span></div>
+                    </div>
+                    <div class="panel-pad">
+                        <div class="ins-takeaway" data-takeaway id="moneyCashTakeaway"></div>
+                        <h4 class="section-title" data-i18n="ui.money.by_day">Day by day</h4>
+                        <div class="ins-chart" id="moneyCashChart"></div>
+                        <p class="ins-hint" data-i18n="ui.money.by_day_hint">Tap a day to open the cash drawer for that day.</p>
+                    </div>
+                </details>
+            </div>
             <div data-perm="profit">
                 <h3 class="section-title" data-i18n="ui.money.profit_by_month">Profit by month</h3>
                 <div class="panel panel-pad">
@@ -83,43 +106,6 @@
                         <div id="moneyStockMovement" data-metric="M17"></div>
                     </details>
                     <div class="row"><span class="row-main" data-i18n="ui.money.bought">Bought</span><span class="row-amt" data-metric="M16" id="moneyPurchases">—</span></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="ins-section" id="moneyCash" data-money-pane="cash" hidden>
-            <div class="hero">
-                <button type="button" class="hero-tap ins-tap" data-breakdown="netCash">
-                    <span class="metric-label" data-i18n="ui.money.net_money">Net money in</span>
-                    <span class="hero-num" data-metric="M14" id="moneyNetCash">—</span>
-                    <span class="ins-compare" id="moneyCashCompare"></span>
-                </button>
-                <div class="ins-takeaway" data-takeaway id="moneyCashTakeaway"></div>
-                <div class="ins-caveats" id="moneyCashCaveats"></div>
-            </div>
-            <div>
-                <div class="panel metrics">
-                    <div class="metric ins-tap" data-breakdown="moneyIn" role="button" tabindex="0">
-                        <div class="metric-label"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrIn"/></svg><span data-i18n="ui.money.money_in">Money in</span></div>
-                        <div class="metric-value" data-metric="M12" id="moneyIn">—</div>
-                        <div class="metric-sub" id="moneyInSplit"></div>
-                    </div>
-                    <div class="metric ins-tap" data-breakdown="moneyOut" role="button" tabindex="0">
-                        <div class="metric-label"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrOut"/></svg><span data-i18n="ui.money.money_out">Money out</span></div>
-                        <div class="metric-value" data-metric="M13" id="moneyOut">—</div>
-                        <div class="metric-sub" id="moneyOutSplit"></div>
-                    </div>
-                </div>
-                <div class="panel" id="moneyLinkedCash" hidden>
-                    <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_cash_out">Also paid out: worker pay and bills</span><span class="row-meta" data-metric-ref="M24" id="moneyLinkedCashSplit"></span></span><span class="row-amt" data-metric-ref="M24" id="moneyLinkedCashOut">—</span></div>
-                    <div class="row ins-total"><span class="row-main" data-i18n="ui.money.net_after_linked">Net money in after these</span><span class="row-amt" data-metric="M26" id="moneyNetAfterLinked">—</span></div>
-                </div>
-            </div>
-            <div>
-                <h3 class="section-title" data-i18n="ui.money.by_day">Day by day</h3>
-                <div class="panel panel-pad">
-                    <div class="ins-chart" id="moneyCashChart"></div>
-                    <p class="ins-hint" data-i18n="ui.money.by_day_hint">Tap a day to open the cash drawer for that day.</p>
                 </div>
             </div>
         </section>

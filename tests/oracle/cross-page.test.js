@@ -112,27 +112,17 @@ describe('A. EXP-KIND: one rule on Today, the drawer, Money, Statements', () => 
     });
 });
 
-describe('B. BILL-DUE: Wholesale › Outstanding = Outstanding / Money', () => {
+describe('B. BILL-DUE: Outstanding › Wholesale = Outstanding / Money', () => {
     const due = Object.fromEntries(WHOLESALE.map(b => [b.id, O.openDue(b)]));
 
     test('oracle: legacy top-level due, the 50 paise inside the tolerance is not a due, opening record carries its amount', () => {
         expect(due).toEqual({ w1: 300, w2: 0, 'opening-wholesale-x': 2000 });
     });
-    test('Wholesale › Outstanding lists each open bill with its BILL-DUE', () => {
-        document.body.innerHTML = '<div id="salesOutstandingList"></div>';
-        WholesaleSalesManager.outstandingParty = null;
-        WholesaleSalesManager.renderSalesOutstanding();
-        const rows = Object.fromEntries([...document.querySelectorAll('#salesOutstandingList [data-history-item]')].map(row => {
-            const id = row.querySelector('input[id^="payment_"]').id.slice('payment_'.length);
-            return [id, Number(row.querySelector('.history-header').textContent.match(/₹([\d,.]+)/)[1].replace(/,/g, ''))];
-        }));
-        expect(rows).toEqual({ w1: due.w1, 'opening-wholesale-x': due['opening-wholesale-x'] });
-        expect(Object.values(rows).reduce((a, v) => a + v, 0)).toBe(outstandingTotals(data).receivable.total);
-    });
-    test('the legacy bill shows what was received on it', () => {
-        document.body.innerHTML = '<div id="salesOutstandingList"></div>';
-        WholesaleSalesManager.renderSalesOutstanding();
-        const text = document.getElementById('payment_w1').closest('[data-history-item]').textContent.replace(/\s+/g, ' ');
+    test('the legacy bill shows what was received on it (Outstanding › Wholesale, F14)', async () => {
+        const { OutstandingManager } = await import('../../www/js/modules/outstanding.js');
+        document.body.innerHTML = '<div id="due"><div id="dueAging"></div><div id="dueList"></div></div>';
+        OutstandingManager.filterDue('wholesale');
+        const text = document.getElementById(OutstandingManager.paymentInputIds('w1', 'wholesale').cash).closest('[data-history-item]').textContent.replace(/\s+/g, ' ');
         expect(text).toMatch(/₹1,000.*₹700.*₹300/);
     });
     test('openDue (the phone\'s dues query) uses the same rule', () => {

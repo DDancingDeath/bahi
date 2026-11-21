@@ -644,8 +644,7 @@ describe('review fixes (2)', () => {
         await rebuildSettled();
         await quietScans();
         await open();
-        const { WholesaleSalesManager } = await import('../modules/wholesale-sales.js');
-        jest.spyOn(WholesaleSalesManager, 'renderSalesOutstanding').mockImplementation(() => {});
+        const { OutstandingManager } = await import('../modules/outstanding.js');
         window.app = { outstanding: { renderDue: () => {} } };
         const { readPayment } = await import('../utils/money.js');
         const sale = AppState.salesHistory.find(s => !s.cleared && readPayment(s).due > 0);
@@ -661,11 +660,11 @@ describe('review fixes (2)', () => {
         });
         const runTx = fake.db.runTransaction;
         fake.db.runTransaction = async () => { throw Object.assign(new Error('offline'), { code: 'unavailable' }); };
-        await WholesaleSalesManager.markSaleAsCleared(sale.id);
+        await OutstandingManager.markAsCleared(sale.id, 'wholesale');
         expect(sale.cleared).toBeFalsy();
         expect(toast).toHaveBeenCalledWith('Internet required to clear a due');
         fake.db.runTransaction = runTx;
-        await WholesaleSalesManager.markSaleAsCleared(sale.id);
+        await OutstandingManager.markAsCleared(sale.id, 'wholesale');
         expect(sale.cleared).toBe(true);
         expect(fake.raw('wholesaleSales').get(sale.id)).toMatchObject({ cleared: true, openDue: false, payment: expect.objectContaining({ due: 0 }) });
         delete window.app;
