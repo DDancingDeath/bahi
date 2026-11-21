@@ -20,7 +20,7 @@ import {
 } from '../utils/history-window.js';
 import {
     filterHistoryBills, resolveHistoryRange, normalizeHistoryFilter, formatHistoryRange, billTimeMs,
-    validateCustomRange, olderMonthsToLoad, normalizeHistoryTab, isWholesaleHistoryLink, historyListTotal,
+    validateCustomRange, olderMonthsToLoad, normalizeHistoryTab, historyListTotal,
     HISTORY_FILTER_KEY, HISTORY_TAB_KEY, WIDE_LOAD_MONTHS
 } from '../utils/history-filters.js';
 import { buildBillRow, buildOpeningGroup, addOpeningToggle, addVoidedToggle, billTableHtml, printStatusText, billRowDate, badDateBadgeHtml } from '../ui/bill-row.js';
@@ -46,7 +46,7 @@ import { billLabour, billLineTotal, billTotal, hasBillAmount, isActiveBill, isOp
 const L = (key, params) => Helpers.escapeHtml(t(key, params));
 /** A bill line's item name in the language item names are shown in (F58). */
 const lineName = (line) => lineItemIdentity({ itemId: line?.itemId || line?.id, name: line?.name || line?.item }, AppState.items, !!AppState.settings?.showHindi).label;
-const NOUN_KEYS = { purchase: 'ui.history.noun_purchase', sale: 'ui.history.noun_sale' };
+const NOUN_KEYS = { purchase: 'ui.history.noun_purchase', sale: 'ui.history.noun_sale', wholesale: 'ui.history.noun_wholesale' };
 /** Bill type → Firestore collection key and AppState list. */
 const BILL_COLLECTION = { purchase: 'purchases', retail: 'retailSales', wholesale: 'wholesaleSales' };
 const BILL_STATE = { purchase: 'purchaseHistory', retail: 'retailSalesHistory', wholesale: 'salesHistory' };
@@ -122,19 +122,17 @@ export class HistoryManager {
     static pageOpenings = [];
 
     /** "Show dues carried from old app" toggle, per tab (off by default). */
-    static showOpening = { purchase: false, sale: false };
+    static showOpening = { purchase: false, sale: false, wholesale: false };
     /** Old-app opening records matching the current tab, dates and search. */
     static openingCount = 0;
 
     /** "Show voided bills" toggle, per tab (off by default, #75). */
-    static showVoided = { purchase: false, sale: false };
+    static showVoided = { purchase: false, sale: false, wholesale: false };
     /** Voided bills of the last render (shown only when the toggle is on). */
     static pageVoided = [];
     /** Voided bills matching the current tab, dates and search. */
     static voidedCount = 0;
 
-    /** A saved filter from before asked for wholesale bills: open Wholesale › History once. */
-    static pendingWholesaleRedirect = false;
     static showMoreObserver = null;
 
     /** Type + date filter (#160); remembered for the browser session. */
@@ -157,8 +155,8 @@ export class HistoryManager {
     static loadingGap = false;
 
     /**
-     * Tab (Purchase / Sale, remembered per device) + dates (remembered for the session).
-     * @returns {{type: 'purchase'|'sale', preset: string, from: string, to: string}}
+     * Tab (Purchase / Sale / Wholesale, remembered per device) + dates (remembered for the session).
+     * @returns {{type: 'purchase'|'sale'|'wholesale', preset: string, from: string, to: string}}
      */
     static getFilter() {
         if (!this.filter) {
@@ -166,7 +164,6 @@ export class HistoryManager {
             let tab = null;
             try { saved = sessionStorage.getItem(HISTORY_FILTER_KEY); } catch { /* storage blocked */ }
             try { tab = localStorage.getItem(HISTORY_TAB_KEY); } catch { /* storage blocked */ }
-            if (!tab && isWholesaleHistoryLink(saved)) this.pendingWholesaleRedirect = true;
             const filter = normalizeHistoryFilter(saved);
             this.filter = { ...filter, type: tab ? normalizeHistoryTab(tab) : filter.type };
         }
@@ -182,38 +179,34 @@ export class HistoryManager {
         return this.filter;
     }
 
-    /** Wholesale bills live on the Wholesale page: old History links go to Wholesale › History. */
-    static openWholesaleHistory() {
-        this.pendingWholesaleRedirect = false;
-        window.app?.nav?.showTab?.('wholesale-history');
-    }
-
-    /** Wholesale bills are in the Sale tab only for a role that may open Wholesale. */
+    /** Wholesale bills (Sale and Wholesale tabs) only for a role that may open Wholesale. */
     static canSeeWholesale() {
         const role = AppState.userRole;
         return !role || canOpenPage('wholesale-sales', role, AppState.settings?.roleAccess);
     }
 
+    /** The tab shown: a remembered Wholesale tab is Sale for a role without Wholesale. */
+    static shownTab() {
+        const type = this.getFilter().type;
+        return type === 'wholesale' && !this.canSeeWholesale() ? 'sale' : type;
+    }
+
     /**
-     * Render purchase or sale (retail + wholesale) bills with date filter, search and paging.
+     * Render purchase, sale (retail + wholesale) or wholesale bills with date filter, search and paging.
      * Old-app opening records are
      * hidden unless the tab's "Show dues carried from old app" toggle is on.
      * Supports both card and table view modes
-     * @param {'purchase'|'sale'} [type] - Tab (defaults to the remembered one;
-     *   old values: 'retail' = Sale, 'all' = Purchase, 'wholesale' opens Wholesale › History)
+     * @param {'purchase'|'sale'|'wholesale'} [type] - Tab (defaults to the remembered one;
+     *   old values: 'retail' = Sale, 'all' = Purchase)
      * @param {string} [searchTerm=''] - Optional search term to filter by
      */
     static renderHistory(type, searchTerm = '') {
         const container = document.getElementById("historyList");
         if (!container) return;
 
-        if (isWholesaleHistoryLink(type) || (this.getFilter() && this.pendingWholesaleRedirect)) {
-            this.openWholesaleHistory();
-            return;
-        }
         if (type && normalizeHistoryTab(type) !== this.getFilter().type) this.setFilter({ type: normalizeHistoryTab(type) });
         const filter = this.getFilter();
-        type = filter.type;
+        type = this.shownTab();
         this.syncFilterUi();
         syncAllDatesLabel(/** @type {?HTMLSelectElement} */ (document.getElementById('historyDatePreset')));
 
@@ -224,13 +217,16 @@ export class HistoryManager {
         // "All dates" keeps the month-by-month infinite scroll instead.
         this.rangeGap = null;
         let status = 'ready';
-        if (range.from !== null) {
-            const confirmed = this.confirmedFrom !== null && this.confirmedFrom <= range.from;
-            if (needsHistoryFrom(range.from) && !confirmed &&
-                olderMonthsToLoad(range.from, historyLoadedFrom()) > WIDE_LOAD_MONTHS) {
-                this.rangeGap = { kind: 'confirm', from: range.from };
+        const cutoff = historyCutoff(AppState.userRole, AppState.settings?.roleAccess);
+        // Never load months the role may not see (its "days back"): a range loads from the cutoff at the earliest
+        const loadFrom = range.from !== null && cutoff !== null ? Math.max(range.from, cutoff) : range.from;
+        if (loadFrom !== null) {
+            const confirmed = this.confirmedFrom !== null && this.confirmedFrom <= loadFrom;
+            if (needsHistoryFrom(loadFrom) && !confirmed &&
+                olderMonthsToLoad(loadFrom, historyLoadedFrom()) > WIDE_LOAD_MONTHS) {
+                this.rangeGap = { kind: 'confirm', from: loadFrom };
             } else {
-                status = rangeStatus('history', range.from, () => this.refreshHistory());
+                status = rangeStatus('history', loadFrom, () => this.refreshHistory());
             }
         } else if (range.to !== null && !isFullHistoryLoaded()) {
             this.rangeGap = { kind: 'older' };
@@ -241,13 +237,14 @@ export class HistoryManager {
             onRetry: () => { retryRange('history'); this.refreshHistory(); }
         });
         
-        const tabBills = type === 'sale'
+        const wholesale = () => billPool('wholesale').map(s => ({ ...s, type: 'wholesale', isPurchase: false }));
+        const tabBills = type === 'wholesale' ? wholesale()
+            : type === 'sale'
             ? [
                 ...billPool('retail').map(s => ({ ...s, type: 'retail', isPurchase: false })),
-                ...(this.canSeeWholesale() ? billPool('wholesale').map(s => ({ ...s, type: 'wholesale', isPurchase: false })) : [])
+                ...(this.canSeeWholesale() ? wholesale() : [])
             ]
             : billPool('purchase').map(b => ({ ...b, type: 'purchase', isPurchase: true }));
-        const cutoff = historyCutoff(AppState.userRole, AppState.settings?.roleAccess);
         const allHistory = tabBills.filter(b => cutoff === null || billTimeMs(b) >= cutoff);
         
         const matched = filterHistoryBills(allHistory, { type, range, search: searchTerm });
@@ -349,7 +346,7 @@ export class HistoryManager {
     }
 
     /**
-     * One history row (shared layout with Wholesale › History, see ui/bill-row.js).
+     * One history row (shared layout with Wholesale's recent bills, see ui/bill-row.js).
      * @param {Object} bill - type-tagged ('purchase' | 'retail')
      * @returns {HTMLElement}
      */
@@ -358,20 +355,20 @@ export class HistoryManager {
             kind: bill.type,
             onclick: `history.viewBill('${billRef(bill)}', '${Helpers.escapeJsAttr(bill.type)}')`,
             rowTap: true,
-            typeTag: bill.type === 'retail' || bill.type === 'wholesale'
+            typeTag: this.pageType === 'sale' && (bill.type === 'retail' || bill.type === 'wholesale')
         });
     }
 
     /** "Show dues carried from old app" chip for the current tab. */
     static toggleOpenings() {
-        const tab = this.getFilter().type;
+        const tab = this.shownTab();
         this.showOpening = { ...this.showOpening, [tab]: !this.showOpening[tab] };
         this.refreshHistory();
     }
 
     /** "Show voided bills" chip for the current tab (#75). */
     static toggleVoided() {
-        const tab = this.getFilter().type;
+        const tab = this.shownTab();
         this.showVoided = { ...this.showVoided, [tab]: !this.showVoided[tab] };
         this.refreshHistory();
     }
@@ -568,6 +565,18 @@ export class HistoryManager {
                 ${parts.due > 0 ? payRow('ui.history.due', parts.due, false, true) : ''}
             </section>
         ` : '';
+        // Each later payment of a wholesale bill: date, who, written off (as the Wholesale page showed, F14)
+        const paymentsListHTML = type === 'wholesale' && Array.isArray(bill.payments) && bill.payments.length ? `
+            <section class="bill-view-sec bill-view-payments">
+                <h3 class="bill-view-title">${L('ui.wholesale.payment_history')}</h3>
+                ${bill.payments.map(p => `
+                    <div class="row bill-view-row">
+                        <span class="row-main">${Helpers.escapeHtml(p.date)}${p.recordedBy ? ` ${L('ui.wholesale.by_name', { name: p.recordedBy })}` : ''}${p.kind === 'writeOff' ? ` — ${L('ui.wholesale.written_off', { reason: p.reason || '' })}` : ''}</span>
+                        <strong class="row-amt">${moneyHtml(p.amount)}</strong>
+                    </div>
+                `).join('')}
+            </section>
+        ` : '';
         const billNumber = bill.billNumber || (typeof bill.id === 'string' ? bill.id.substring(0, 8) : bill.id);
         // A bill that stores no amount shows "—", not ₹0 (#80)
         const known = hasBillAmount(bill);
@@ -648,6 +657,7 @@ export class HistoryManager {
                 </section>
                 
                 ${paymentHTML}
+                ${paymentsListHTML}
                 </div>
                 ${editsRowHtml(bill, 'history.showEdits()')}
                 <details class="panel bill-view-more">
@@ -809,7 +819,6 @@ export class HistoryManager {
         this.closeBillDetails();
         this.refreshHistory();
         window.app?.wholesaleSales?.renderHistory?.();
-        window.app?.wholesaleSales?.renderOutstanding?.();
         FirebaseService.calculateStock()
             .then(stock => { AppState.stock = stock; })
             .catch(error => console.error('Stock recalculation after void failed:', error));
@@ -883,17 +892,11 @@ export class HistoryManager {
     }
 
     /**
-     * Tab (Purchase / Sale). Keeps the search text and date range so they work
-     * together; the tab is remembered on this device. Old 'wholesale' links
-     * open Wholesale › History.
+     * Tab (Purchase / Sale / Wholesale). Keeps the search text and date range so they work
+     * together; the tab is remembered on this device.
      * @param {string} type
      */
     static filterHistory(type) {
-        if (isWholesaleHistoryLink(type)) {
-            this.openWholesaleHistory();
-            return;
-        }
-        this.pendingWholesaleRedirect = false;
         this.setFilter({ type: normalizeHistoryTab(type) });
         this.refreshHistory();
     }
@@ -952,7 +955,8 @@ export class HistoryManager {
      * @returns {Promise<boolean>} true = go ahead
      */
     static async confirmOlderLoad(fromMs) {
-        const months = olderMonthsToLoad(fromMs, historyLoadedFrom());
+        const cutoff = historyCutoff(AppState.userRole, AppState.settings?.roleAccess);
+        const months = olderMonthsToLoad(cutoff === null ? fromMs : Math.max(fromMs, cutoff), historyLoadedFrom());
         if (months <= WIDE_LOAD_MONTHS) return true;
         return !!(await UIManager.showModal(
             t('msg.history.will_load_months_older_bills', { months }),
@@ -1027,10 +1031,12 @@ export class HistoryManager {
     /** Reflect the remembered filter in the History controls. */
     static syncFilterUi() {
         const filter = this.getFilter();
+        const tab = this.shownTab();
         document.querySelectorAll('#history .history-type-filter [data-type]').forEach(btn => {
-            const active = btn.dataset.type === filter.type;
+            const active = btn.dataset.type === tab;
             btn.classList.toggle('active', active);
             btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            if (btn.dataset.type === 'wholesale') btn.hidden = !this.canSeeWholesale();
         });
         const preset = document.getElementById('historyDatePreset');
         if (preset && preset.value !== filter.preset) preset.value = filter.preset;

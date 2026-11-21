@@ -46,7 +46,7 @@
 - [आज](pages/today.hi.md)
 - [बिलिंग (खरीद, खुदरा बिक्री) और थोक](pages/billing.hi.md)
 - [इतिहास](pages/history.hi.md)
-- [बकाया (और थोक › बकाया)](pages/outstanding.hi.md)
+- [बकाया](pages/outstanding.hi.md)
 - [स्टॉक](pages/stock.hi.md)
 - [कैश (गल्ला)](pages/cash.hi.md)
 - [खर्च](pages/expenses.hi.md)

@@ -72,7 +72,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261121c-ux-lane-z';
+const BUILD_ID = '20261121d-one-home-nav';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -347,7 +347,7 @@ function refreshForLanguage(lang) {
             HistoryManager.refreshHistory();
         },
         'cash-management': () => CashManagementManager.refreshForLanguage(),
-        'wholesale-sales': () => withWholesale(m => { m.renderSalesHistory(); m.renderSalesOutstanding(); }),
+        'wholesale-sales': () => withWholesale(m => m.renderSalesHistory()),
         settings: () => { SettingsManager.loadSettings(); RolesAccessManager.render(); RolesAccessManager.renderPeople(); SettingsManager.renderSections(); },
         expenses: () => withExpenses(m => m.renderexpensesHistory()),
         items: () => ItemsManager.renderItemsTable(document.getElementById('itemsSearchInput')?.value || ''),
@@ -1384,18 +1384,8 @@ window.app = {
         completeSale: () => withWholesale(m => m.completeSale()),
         printWholesaleSale: () => withWholesale(m => m.printWholesaleSale()),
         shareViaWhatsApp: () => withWholesale(m => m.shareViaWhatsApp()),
-        filterTab: (view) => withWholesale(m => m.filterSalesTab(view)),
         renderHistory: () => withWholesale(m => m.renderSalesHistory()),
-        setHistoryPreset: (preset) => withWholesale(m => m.setHistoryPreset(preset)),
-        applyHistoryRange: (from, to) => withWholesale(m => m.applyHistoryRange(from, to)),
-        searchHistory: (term) => withWholesale(m => m.searchHistory(term)),
-        toggleHistoryView: () => withWholesale(m => m.toggleHistoryView()),
-        renderOutstanding: () => withWholesale(m => m.renderSalesOutstanding()),
-        recordPayment: (saleId) => withWholesale(m => m.recordPayment(saleId)),
-        markSaleAsCleared: (saleId) => withWholesale(m => m.markSaleAsCleared(saleId)),
-        writeOffSale: (saleId) => withWholesale(m => m.writeOffSale(saleId)),
         completeAllDue: (name) => withWholesale(m => m.completeAllDue(name)),
-        receiveFromParty: (name) => withWholesale(m => m.receiveFromParty(name)),
         reprintSale: (index) => withWholesale(m => m.reprintSale(index)),
         reprintSaleById: (saleId) => withWholesale(m => m.reprintSaleById(saleId)),
         updateProfitCalculation: () => withWholesale(m => m.updateProfitCalculation()),
@@ -1403,7 +1393,6 @@ window.app = {
         fillReceivableAmount: (type) => withWholesale(m => m.fillReceivableAmount(type)),
         putRestInDue: () => withWholesale(m => m.putRestInDue()),
         pickContact: () => withWholesale(m => m.pickContact()),
-        clearOutstandingParty: () => withWholesale(m => m.clearOutstandingParty()),
         // Edit a saved sale (U-30): the page is put in first when it was never opened (#66)
         openEditor: async (bill) => {
             await NavigationManager.showTab('wholesale-sales');
@@ -1477,13 +1466,12 @@ window.app = {
         partyPaySum: () => OutstandingManager.partyPaySum(),
         printStatement: (partyKey) => OutstandingManager.printStatement(partyKey),
         clearPartyFilter: () => OutstandingManager.clearPartyFilter(),
-        // Tap on a bill's "Already owes" line (#166); wholesale dues live on the Wholesale page
+        // Tap on a bill's "Already owes" line (#166)
         showParty: (kind, name) => {
-            const tab = kind === 'wholesale' ? 'wholesale-sales' : 'due';
+            const tab = 'due';
             const open = () => {
                 NavigationManager.setActiveNavLink(tab);
-                if (kind === 'wholesale') withWholesale(m => m.showOutstandingParty(name));
-                else OutstandingManager.showParty(kind === 'purchase' ? 'purchase' : kind === 'sale' ? 'sale' : 'retail', name);
+                OutstandingManager.showParty(['purchase', 'sale', 'wholesale'].includes(kind) ? kind : 'retail', name);
             };
             // A page loaded on first visit (#66) is put in first
             const shown = NavigationManager.showTab(tab);

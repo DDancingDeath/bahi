@@ -56,10 +56,10 @@ setting is missing or invalid.
   the 1st of last month, in the app only). A bill dated before today (IST) takes no cash from anyone but the
   owner (rules `noBackdatedCash`: `timestamp` before the IST day of `enteredAt`, so a cash bill entered offline and synced after midnight is kept; for cash bills `enteredAt` must be at most 3 days old (no upper bound: a fast phone clock keeps its bills); bills without `enteredAt`, from older apps that can't date a bill back, are not checked):
   online or due only.
-  Wholesale › Outstanding **"Complete all due"** (settle every open bill of a party at once,
+  Outstanding › Wholesale **"Complete all due"** (settle every open bill of a party at once,
   #150, Q36) is shown to the owner and managers only (app); the rules check each bill's write
   like any payment (its own `payments[]` entry with `at` = now, #184), so it adds no new right.
-  **"Receive payment" / "Pay"** on a party (Outstanding and Wholesale › Outstanding: one amount
+  **"Receive payment" / "Pay"** on a party (Outstanding: one amount
   spread over the party's bills, oldest first, #152) follows the same rule: owner and managers
   (app only), each bill's write an ordinary payment for the rules. The rules can't tell a bulk
   payment from single ones (a member may record the same payments one by one), so a rules-level
@@ -305,7 +305,7 @@ internet. The list shows voided expenses behind "Show voided", struck through; t
 keeps the bill and sets `voided: true`, `voidedAt` (server time), `voidedBy` (the caller's uid),
 `voidedByName` and a required `voidReason` (3–300 characters), and turns `openDue` off, in one
 transaction (`FirebaseService.voidBill`). From then on the bill counts in no figure (VOID in
-docs/calculations.md); History and Wholesale › History hide it behind "Show voided bills (N)",
+docs/calculations.md); History hides it behind "Show voided bills (N)",
 greyed with a "Voided" chip and the reason, and its details show who voided it, when and why.
 
 - **Who:** the people who could delete a bill before: the owner any bill; anyone else only their

@@ -48,7 +48,7 @@ Each page has its own short file in `docs/pages/` (English and Hindi): what it s
 - [Today](pages/today.md)
 - [Billing (purchase, retail sale) and Wholesale](pages/billing.md)
 - [History](pages/history.md)
-- [Outstanding (and Wholesale › Outstanding)](pages/outstanding.md)
+- [Outstanding](pages/outstanding.md)
 - [Stocks](pages/stock.md)
 - [Cash (the drawer)](pages/cash.md)
 - [Expenses](pages/expenses.md)

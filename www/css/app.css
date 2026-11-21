@@ -2059,6 +2059,7 @@ input[type="checkbox"].switch:focus-visible,
 /* These set display, which would otherwise beat the hidden attribute */
 .btn[hidden],
 .seg[hidden],
+.seg > button[hidden],
 .tabs[hidden] {
   display: none;
 }
@@ -5155,7 +5156,10 @@ input[type="number"] {
   --bill-tone-ink: var(--on-mode-wholesale);
 }
 
-.ws-tabs {
+.ws-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
   margin-bottom: var(--sp-3);
 }
 
@@ -5229,7 +5233,6 @@ input[type="number"] {
   text-align: center;
 }
 
-.ws-search,
 .history-search {
   position: relative;
   display: flex;
@@ -5238,7 +5241,6 @@ input[type="number"] {
   margin-bottom: var(--sp-3);
 }
 
-.ws-search > .i,
 .history-search > .i {
   position: absolute;
   top: 50%;
@@ -5248,41 +5250,14 @@ input[type="number"] {
   pointer-events: none;
 }
 
-.ws-search > .input,
 .history-search > .input {
   flex: 1;
   min-width: 0;
   padding-left: var(--sp-10);
 }
 
-.ws-search > .btn,
 .history-search > .btn {
   flex: none;
-}
-
-/* Wholesale › Outstanding: Mark as cleared is a tick box beside the bill's buttons */
-.ws-clear {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  min-height: 44px;
-  padding-right: var(--sp-2);
-}
-
-.ws-clear > label {
-  margin: 0;
-  color: var(--ink);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-label);
-  cursor: pointer;
-}
-
-.ws-clear > input {
-  width: 20px;
-  height: 20px;
-  min-height: 0;
-  margin: 0;
-  cursor: pointer;
 }
 
 /* A wholesale bill opened from a list (bill details sheet) */
@@ -7372,11 +7347,6 @@ tr.bill-check-line .bill-check-msg {
 
 .bill-table__row.is-opening {
   background: var(--accent-soft);
-}
-
-/* Wholesale › History controls */
-.wholesale-history-controls {
-  margin-bottom: var(--sp-1);
 }
 
 @media (max-width: 480px) {

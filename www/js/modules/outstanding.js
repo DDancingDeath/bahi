@@ -512,10 +512,15 @@ export class OutstandingManager {
     static renderPartyFilterNote() {
         const el = document.getElementById('dueAging');
         if (!el || !this.partyFilter) return;
+        const esc = (v) => Helpers.escapeHtml(v);
+        // Wholesale dues keep the Wholesale page's Complete all due (F14, #150: owner and managers)
+        const completeAll = this.dueFilter() === 'wholesale' && this.partyFilter.key && ['owner', 'manager'].includes(AppState.userRole)
+            ? `<button type="button" class="btn btn-sm" data-complete-all data-onclick="wholesaleSales.completeAllDue('${Helpers.escapeJsAttr(this.partyFilter.name)}')">${esc(t('ui.wholesale.complete_all_due'))}</button>` : '';
         el.insertAdjacentHTML('afterbegin', `
             <div class="party-filter-note notice info">
-                <span class="grow">${Helpers.escapeHtml(t('ui.outstanding.showing_only'))} <strong>${Helpers.escapeHtml(this.partyFilter.name)}</strong></span>
-                <button type="button" class="btn btn-sm" data-onclick="outstanding.clearPartyFilter()">${Helpers.escapeHtml(t('ui.outstanding.show_all'))}</button>
+                <span class="grow">${esc(t('ui.outstanding.showing_only'))} <strong>${esc(this.partyFilter.name)}</strong></span>
+                <button type="button" class="btn btn-sm" data-onclick="outstanding.clearPartyFilter()">${esc(t('ui.outstanding.show_all'))}</button>
+                ${completeAll}
             </div>`);
     }
 
@@ -869,7 +874,7 @@ export class OutstandingManager {
         this.renderDue();
         const app = typeof window !== 'undefined' ? window.app : null;
         try {
-            app?.wholesaleSales?.renderOutstanding?.();
+            app?.wholesaleSales?.renderHistory?.();
             if (document.getElementById('todayTotalIn')) app?.day?.loadTodayData?.();
             if (CashManagementManager.todaySession) {
                 CashManagementManager.calculateTodayTransactions()

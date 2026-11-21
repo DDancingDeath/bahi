@@ -57,9 +57,9 @@ const ROUTES = Object.freeze({
     'rates-trends': { tab: 'insights', section: 'trends', needs: 'rate-trends', id: 'insights-trends' },
     'rates-traffic': { tab: 'insights', section: 'traffic', needs: 'rate-trends', id: 'insights-traffic' },
 
-    // Wholesale › History (old History 'wholesale' links land here).
-    'wholesale-history': { tab: 'wholesale-sales', section: 'history', nav: 'wholesale-sales' },
-    'wholesale-outstanding': { tab: 'wholesale-sales', section: 'outstanding', nav: 'wholesale-sales' },
+    // Wholesale's old History and Outstanding tabs (F14) open History and Outstanding with the Wholesale filter.
+    'wholesale-history': { tab: 'history', section: 'wholesale', needs: 'wholesale-sales', nav: 'history' },
+    'wholesale-outstanding': { tab: 'due', section: 'wholesale', needs: 'wholesale-sales', nav: 'due' },
 
     // Settings groups (sub-pages of the Settings list; parent: Back returns there). Aadhat = internal 'shop'.
     // Old ids: settings-common (the list), settings-roles (Team), settings-aadhat and admin-configure (Aadhat).
@@ -278,21 +278,15 @@ const NavigationManager = {
             setTimeout(() => window.app.items.renderTable(), 100);
         }
         
-        // Render history when History tab is shown (keeps the session's filter, #160)
-        if (tabId === 'history' && window.app?.history) {
-            setTimeout(() => window.app.history.refresh(), 100);
+        // Render history when History tab is shown (keeps the session's filter, #160; 'wholesale-history' picks Wholesale)
+        if (route.tab === 'history' && window.app?.history) {
+            setTimeout(() => (route.section === 'wholesale' ? window.app.history.filterHistory('wholesale') : window.app.history.refresh()), 100);
         }
         
         // Render outstanding when Due tab is shown
-        if (tabId === 'due' && window.app?.outstanding) {
-            // Sales first (collecting is the daily job, U-69), or the list last opened this session
-            setTimeout(() => window.app.outstanding.filterDue(window.app.outstanding.currentFilter?.() || 'sale'), 100);
-        }
-        
-        // Wholesale page: Sales (entry) tab, or History for 'wholesale-history'
-        if (route.tab === 'wholesale-sales' && window.app?.wholesaleSales) {
-            const view = route.section || 'sales';
-            setTimeout(() => window.app.wholesaleSales.filterTab(view), 100);
+        if (route.tab === 'due' && window.app?.outstanding) {
+            // Sales first (collecting is the daily job, U-69), or the list last opened this session; 'wholesale-outstanding' picks Wholesale
+            setTimeout(() => window.app.outstanding.filterDue(route.section === 'wholesale' ? 'wholesale' : (window.app.outstanding.currentFilter?.() || 'sale')), 100);
         }
         
         // Render stock when Stock tab is shown

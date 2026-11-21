@@ -542,11 +542,6 @@
   background: var(--accent-soft);
 }
 
-/* Wholesale › History controls */
-.wholesale-history-controls {
-  margin-bottom: var(--sp-1);
-}
-
 @media (max-width: 480px) {
   .history-apply-range {
     flex: 1 1 100%;

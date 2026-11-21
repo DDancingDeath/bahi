@@ -822,13 +822,13 @@ describe('#104 "Mark as cleared" asks how and records it (no silent write-off)',
         expect(bill.payments[0]).toMatchObject({ online: 600, cash: 0, note: 'UPI ref 123' });
     });
 
-    test('wholesale "Mark as Cleared" uses the same dialog and transaction', async () => {
+    test('wholesale "Mark as cleared" (Outstanding › Wholesale) uses the same dialog and transaction', async () => {
         const W = { id: 'w1', billNumber: 'W1', customerName: 'Gupta', source: 'sales-tab', date: '2026-10-20T10:00:00', total: 5000, payment: { cash: 3000, online: 0, due: 2000 } };
         ctx.fake.seed('wholesaleSales', [W]);
         AppState.salesHistory = [{ ...W }];
         jest.spyOn(WholesaleSalesManager, 'renderSalesHistory').mockImplementation(() => {});
         answer('writeOff', 'Settled by discount');
-        await WholesaleSalesManager.markSaleAsCleared('w1');
+        await OutstandingManager.markAsCleared('w1', 'wholesale');
         expect(ctx.fake.raw('wholesaleSales').get('w1')).toMatchObject({ cleared: true, payment: { due: 0, writtenOff: 2000 } });
     });
 });

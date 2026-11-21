@@ -444,6 +444,7 @@ input[type="checkbox"].switch:focus-visible,
 /* These set display, which would otherwise beat the hidden attribute */
 .btn[hidden],
 .seg[hidden],
+.seg > button[hidden],
 .tabs[hidden] {
   display: none;
 }

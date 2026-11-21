@@ -112,7 +112,6 @@ const VIEWS = {
     billingDropdown: { tab: 'billing' },
     salesDropdown: { tab: 'wholesale-sales' },
     wholesaleHistory: { tab: 'wholesale-sales' },
-    wholesaleOutstanding: { tab: 'wholesale-sales' },
     history: { tab: 'history' },
     due: { tab: 'due' },
     stockAdjustmentHistory: { tab: 'stock' },
