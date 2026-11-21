@@ -262,6 +262,7 @@ describe('save gate', () => {
         modal.mockResolvedValue(true);
         const ok = await BillChecksUI.confirmSave('test');
         expect(ok.ok).toBe(true);
+        expect(banner().hidden).toBe(false); // back while the save runs (it may still fail)
         expect(ok.flags).toEqual(expect.arrayContaining([expect.objectContaining({ rule: 'rate-high', by: 'u1' })]));
         expect(ok.flags.find(f => f.rule === 'rate-high').en).toBe('Rice: ₹90.00/kg is 2.3× the usual ₹40.00/kg');
         expect(modal).toHaveBeenCalledTimes(2);

@@ -481,7 +481,7 @@ export const BillChecksUI = {
      * Decide whether the bill may be saved. Hard blocks stop the save with the
      * same message as before; other blocks need an owner/manager reason;
      * warnings need one confirm, or with deferWarnings come back in `warnings` for the
-     * caller's own dialog (then `accept()` once it saves, `restore()` when cancelled).
+     * caller's own dialog (then `accept()` once confirmed, `restore()` when cancelled).
      * @param {string} kind
      * @param {Object} [draftOverrides] - e.g. the edit context from the bill editor
      * @param {{deferWarnings?: boolean}} [opts]
@@ -563,16 +563,17 @@ export const BillChecksUI = {
 
         const confirmList = [...autoOverride, ...combineRateWarnings(warns)];
         const flags = toFlags(warns, by, Date.now());
+        const restore = () => {
+            if (sectionOf(kind)) renderIssues(kind, issues);
+        };
         const accept = () => {
+            restore();
             if (!autoOverride.length) return;
             AuditService.log(AuditService.ACTIONS.OVERRIDE_CHECK, {
                 kind, rules: overrides.map(o => o.rule), reason: AUTO_ROLLBACK_REASON
             }).catch(e => console.warn('Audit log failed:', e));
         };
         if (autoOverride.length) overrides = toOverrides(autoOverride, AUTO_ROLLBACK_REASON, by, Date.now());
-        const restore = () => {
-            if (sectionOf(kind)) renderIssues(kind, issues);
-        };
         if (confirmList.length) hideBanner(kind);
         // An edit lists these in its one "Save changes" sheet with the reason (F53)
         if (deferWarnings) {
