@@ -301,6 +301,11 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   Dark theme), `.dialog` / `.sheet` / `.scrim` (old `.modal-overlay > .modal-box`), `.spinner` (blocking
   saves only). Dialog buttons: Cancel (ghost) on the left, one primary on the right, labelled with a verb; a destructive
   confirm (Void bill) passes `{ confirmLabel, danger: true }` to `UIManager.showModal` / `showModalWithHtml` (`.btn-danger` instead of `.btn-primary`; Cancel is `.btn-ghost`).
+  Every confirm with Cancel passes a `confirmLabel` ("Reload", "Print again", "Cancel reminder"; `tests/ci/confirm-verbs.test.js`, F50).
+  Bill-check warnings at Save are listed once, bulleted, in a `.notice.warn` (`warningsNoticeHtml`, ui/bill-highlight.js) while the bill's
+  banner hides; an edit shows them in its one "Save changes" sheet above the reason (`askEditReason`, modules/billing.js, F51/F53).
+  A native date box gets a `.date-caption` under it with the day as `formatDay` writes it (`ui/date-caption.js`, every
+  `input[type=date]` but the bill forms', whose date line already says the day; a From – To pair shares one caption, F54).
   **The app dialog (C5a)**: `showModal`, `showModalWithHtml` and `showCustomModal` share one controller (`ui/ui-manager.js`)
   and one template (`#modalOverlay.scrim.app-scrim > #modalBox.app-dialog` with `.dialog-title`, `.dialog-body` and `.dialog-actions`): a `.dialog` from 600 px, a bottom `.sheet` with a grabber
   below. It takes focus, keeps Tab inside (`trapFocus`, shared with the More and Rentals sheets) and gives focus back; Esc,

@@ -673,7 +673,7 @@ export const AnomaliesManager = {
                     </div>
                 </div>`;
             const title = t(status === 'ok' ? 'msg.anomalies.mark_ok' : 'msg.anomalies.mark_fixed');
-            const ok = await UIManager.showModalWithHtml(html, title, true);
+            const ok = await UIManager.showModalWithHtml(html, title, true, { confirmLabel: title });
             if (!ok) return false;
             note = (document.getElementById('anomalyReviewNote')?.value || '').trim().slice(0, 300);
         }

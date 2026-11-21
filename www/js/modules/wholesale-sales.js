@@ -490,7 +490,7 @@ export class WholesaleSalesManager {
             const customerName = Helpers.getInputText('wholesaleCustomerName');
             const comments = Helpers.getInputText('salesComments');
             this.updatePaymentTotal();
-            const checks = await BillChecksUI.confirmSave('wholesale', editCheckContext(bill));
+            const checks = await BillChecksUI.confirmSave('wholesale', editCheckContext(bill), { deferWarnings: true });
             if (!checks.ok) return undefined;
             const keepMoney = editKeepsMoney({ bill, items: wholesaleSaleItems, typed: this.readTypedSplit() })
                 && expenses === (typedAmount(Number(bill.expenses) || 0));
@@ -522,7 +522,7 @@ export class WholesaleSalesManager {
                 editedBy: AppState.currentUser?.uid || 'unknown',
                 ...BillChecksUI.billFields(checks, bill)
             };
-            const reason = await askEditReason(bill, updated);
+            const reason = await askEditReason(bill, updated, checks);
             if (reason === null) return undefined;
             FirebaseService.withLoadedPaymentSignature(updated, editing.paymentSig);
             await commitBillEdit(FirebaseService.updateWholesaleSale(updated, {

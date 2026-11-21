@@ -2248,6 +2248,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 }
 
+/* ---------- Date caption (F54) ---------- */
+/* The day in the app's format under a native date box (js/ui/date-caption.js) */
+.date-caption {
+  display: block;
+  flex-basis: 100%;
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+}
+
+.date-caption[hidden],
+input[hidden] + .date-caption {
+  display: none;
+}
+
 /* ---- css/surfaces.css ---- */
 /* Surfaces and feedback (redesign 2.5b, DIRECTION 3.6): panel and rows, metrics, hero figure, meter,
    notice, empty, skeleton, table, dialog, sheet and scrim, toast, loading. Layer 3: tokens only.
@@ -6742,6 +6756,18 @@ tr.bill-check-line .bill-check-msg {
     padding-left: var(--sp-1);
     list-style: none;
     text-align: left;
+}
+
+/* The warnings listed once in the Save dialog (F51, F53) */
+.bill-check-sheet-notice {
+    margin-bottom: var(--sp-3);
+    text-align: left;
+}
+
+.bill-check-bullets {
+    margin: 0;
+    padding-left: var(--sp-4);
+    list-style: disc;
 }
 
 .bill-check-reason {

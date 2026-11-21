@@ -4,8 +4,9 @@
  * after the server committed; offline and conflicts keep the editor. Also the
  * client-side edit permission (canEditBill).
  */
-import { BillingManager, PurchaseManager, canEditBill, EDIT_NOT_ALLOWED_KEY, EDIT_WINDOW_CLOSED_KEY } from '../modules/billing.js';
+import { BillingManager, PurchaseManager, askEditReason, canEditBill, EDIT_NOT_ALLOWED_KEY, EDIT_WINDOW_CLOSED_KEY } from '../modules/billing.js';
 import { RetailSaleManager } from '../modules/retail-sale.js';
+import { BillChecksUI } from '../ui/bill-highlight.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
@@ -120,11 +121,55 @@ describe('saveEditedBill', () => {
     it('asks for a reason and passes it with the edit (#121)', async () => {
         const update = jest.spyOn(FirebaseService, 'updatePurchase').mockImplementation(async b => b);
         expect(await BillingManager.saveEditedBill()).toBeDefined();
-        expect(UIManager.showModalWithHtml).toHaveBeenCalledWith(expect.stringContaining('reasonInput'), t('ui.edits.reason_title'), true,
-            { confirmLabel: t('ui.common.save'), danger: false });
+        expect(UIManager.showModalWithHtml).toHaveBeenCalledWith(expect.stringContaining('reasonInput'), t('ui.edits.save_title'), true,
+            { confirmLabel: t('ui.confirm.save_changes'), danger: false });
         // the audit entry goes in the edit's own transaction (D-3)
         expect(update).toHaveBeenCalledWith(expect.objectContaining({ id: 'b1' }),
             { reason: 'Typo fix', audit: expect.objectContaining({ action: 'EDIT_BILL', details: expect.objectContaining({ amount: 0 }) }) });
+    });
+
+    it('bill-check warnings and the reason are one "Save changes" sheet; Cancel puts the banner back (F53)', async () => {
+        const accept = jest.fn();
+        const restore = jest.fn();
+        const confirm = jest.spyOn(BillChecksUI, 'confirmSave').mockResolvedValue({
+            ok: true, flags: [{ rule: 'dup' }], overrides: [], warnings: ['Same bill <saved> 8 s ago', 'Rate is low'], accept, restore
+        });
+        const alert = jest.spyOn(UIManager, 'showModal');
+        const update = jest.spyOn(FirebaseService, 'updatePurchase').mockImplementation(async b => b);
+        expect(await BillingManager.saveEditedBill()).toBeDefined();
+        expect(confirm).toHaveBeenCalledWith('purchase', expect.objectContaining({ isEdit: true }), { deferWarnings: true });
+        expect(alert).not.toHaveBeenCalled();
+        expect(UIManager.showModalWithHtml).toHaveBeenCalledTimes(1);
+        const [html, title] = UIManager.showModalWithHtml.mock.calls[0];
+        expect(title).toBe(t('ui.edits.save_title'));
+        const box = document.createElement('div');
+        box.innerHTML = html;
+        expect([...box.querySelectorAll('.notice.warn li')].map(li => li.textContent)).toEqual(['Same bill <saved> 8 s ago', 'Rate is low']);
+        expect(box.querySelector('.notice.warn').compareDocumentPosition(box.querySelector('#reasonInput')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(update).toHaveBeenCalledWith(expect.objectContaining({ flags: [{ rule: 'dup' }] }), expect.objectContaining({ reason: 'Typo fix' }));
+        expect(accept).toHaveBeenCalled();
+        expect(restore).not.toHaveBeenCalled();
+
+        startEditing();
+        answerReason(null);
+        expect(await BillingManager.saveEditedBill()).toBeUndefined();
+        expect(restore).toHaveBeenCalledTimes(1);
+        expect(update).toHaveBeenCalledTimes(1);
+    });
+
+    it('an edit with warnings but nothing recorded changed still shows them once, then saves without a reason', async () => {
+        const accept = jest.fn();
+        expect(await askEditReason(BILL, { ...BILL }, { warnings: ['Rate is low'], accept })).toBe('');
+        expect(UIManager.showModalWithHtml).toHaveBeenCalledTimes(1);
+        const [html, title, , opts] = UIManager.showModalWithHtml.mock.calls[0];
+        expect(html).toContain('notice warn');
+        expect(html).not.toContain('reasonInput');
+        expect(title).toBe(t('ui.edits.save_title'));
+        expect(opts).toEqual({ confirmLabel: t('ui.confirm.save_changes') });
+        expect(accept).toHaveBeenCalled();
+        UIManager.showModalWithHtml.mockClear();
+        expect(await askEditReason(BILL, { ...BILL }, { warnings: [] })).toBe('');
+        expect(UIManager.showModalWithHtml).not.toHaveBeenCalled();
     });
 
     it('a cancelled or too short reason saves nothing and keeps the editor', async () => {

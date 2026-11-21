@@ -227,7 +227,7 @@ test('a member moves a tenant who already paid the move month: no error; the old
     RentalsModule.api.dialogClose(true);
     await p;
     const next = firstMonthRent(9000, `${M}-16`, true);
-    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/already paid, so it stays as it is/), 'Change unit', true);
+    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/already paid, so it stays as it is/), 'Change unit', true, { confirmLabel: 'Change unit' });
     expect(UIManager.showToast).not.toHaveBeenCalledWith(expect.anything(), 'error');
     const lease2 = leases().find(l => l.fromLeaseId === 'L1');
     expect(lease2).toMatchObject({ proRate: true, firstRent: next, unitId: 'U3' });
@@ -245,7 +245,7 @@ test('a member moves a tenant who partly paid more than the old share: the old m
     RentalsModule.api.dialogClose(true);
     await p;
     const next = firstMonthRent(9000, `${M}-16`, true);
-    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/closed at the ₹3,000 already paid/), 'Change unit', true);
+    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/closed at the ₹3,000 already paid/), 'Change unit', true, { confirmLabel: 'Change unit' });
     expect(UIManager.showToast).toHaveBeenCalledWith(expect.stringMatching(/closed at the ₹3,000 already paid/), 'success');
     expect(fake.raw('rent_charges').get(`L1_${M}`)).toMatchObject({ rent: 3000, amount: 3000, paid: 3000, open: false });
     const lease2 = leases().find(l => l.fromLeaseId === 'L1');
@@ -360,7 +360,7 @@ test('Edit tenant has no unit field (owner decision); Change unit picks the unit
     expect(document.getElementById('rentTRent').value).toBe('7000');
     RentalsModule.api.dialogClose(true);
     await p;
-    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/Flat 1A, Gupta Bhawan.*Flat 2B, Gupta Bhawan.*8,000/), 'Change unit', true);
+    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/Flat 1A, Gupta Bhawan.*Flat 2B, Gupta Bhawan.*8,000/), 'Change unit', true, { confirmLabel: 'Change unit' });
     expect(fake.raw('rent_leases').get('L1').status).toBe('ended');
     expect(fake.raw('rent_units').get('U2').leaseId).toBeTruthy();
     expect(AuditService.log).toHaveBeenCalledWith('RENT_UNIT_CHANGE', expect.objectContaining({ fromLeaseId: 'L1' }));
@@ -511,7 +511,7 @@ test('change dialog: "Pro-rate move month" ticked with both amounts filled in; m
     document.getElementById('rentTDate').dispatchEvent(new Event('change'));
     RentalsModule.api.dialogClose(true);
     await p;
-    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/split by days/), 'Change unit', true);
+    expect(UIManager.showModal).toHaveBeenCalledWith(expect.stringMatching(/split by days/), 'Change unit', true, { confirmLabel: 'Change unit' });
     expect(fake.raw('rent_charges').get(`L1_${M}`)).toMatchObject({ rent: x, amount: x });
 
     store.detach();
@@ -527,7 +527,7 @@ test('change dialog: "Pro-rate move month" ticked with both amounts filled in; m
     expect(document.getElementById('rentSplitBox').hidden).toBe(true);
     RentalsModule.api.dialogClose(true);
     await q;
-    expect(UIManager.showModal).toHaveBeenLastCalledWith(expect.stringMatching(/Both units are charged the full rent/), 'Change unit', true);
+    expect(UIManager.showModal).toHaveBeenLastCalledWith(expect.stringMatching(/Both units are charged the full rent/), 'Change unit', true, { confirmLabel: 'Change unit' });
     expect(fake.raw('rent_charges').get(`L1_${M}`)).toMatchObject({ rent: 5000, amount: 5000 });
     const moved = leases().find(l => l.fromLeaseId === 'L1');
     expect(moved.proRate).toBe(false);

@@ -123,6 +123,18 @@ tr.bill-check-line .bill-check-msg {
     text-align: left;
 }
 
+/* The warnings listed once in the Save dialog (F51, F53) */
+.bill-check-sheet-notice {
+    margin-bottom: var(--sp-3);
+    text-align: left;
+}
+
+.bill-check-bullets {
+    margin: 0;
+    padding-left: var(--sp-4);
+    list-style: disc;
+}
+
 .bill-check-reason {
     width: 100%;
     margin-top: 6px;

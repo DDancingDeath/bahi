@@ -35,6 +35,7 @@
     "moneyInText": "ui/components.js: the text HTML-escaped, with its formatRupees figure drawn by moneyHtml",
     "emptyState": "ui/components.js: title, line, tone, icon name and the action's label / handler all HTML-escaped, in constant .empty markup",
     "byNameHtml": "ui/bill-row.js: L('ui.outstanding.by_name') with {name} replaced by the HTML-escaped name in a constant <strong>",
+    "warningsNoticeHtml": "ui/bill-highlight.js: each warning line HTML-escaped in constant .notice.warn markup with icon()",
     "payAmountHtml": "ui/bill-status.js: moneyHtml of the amount in a constant .row-amt span, or a .tag with the HTML-escaped dueTone class"
   },
   "names": {},

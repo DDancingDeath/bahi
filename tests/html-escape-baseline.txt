@@ -432,6 +432,7 @@ www/js/ui/bill-row.js: opening ? '' : SyncStatus.chipHtml(bill?.id) ← SyncStat
 www/js/ui/bill-row.js: st.s ← st = printStatusOf(bill)
 www/js/ui/bill-row.js: tag.cls ← tag = TYPE_TAGS[type]
 www/js/ui/bill-status.js: REASON_MAX
+www/js/ui/bill-status.js: leadHtml
 www/js/ui/bill-status.js: onclick
 www/js/ui/disclosure.js: bodyId ← o.id
 www/js/ui/disclosure.js: bodyId ← o.id

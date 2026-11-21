@@ -54,7 +54,7 @@ export async function linkAction(c, action, leaseId) {
             await store.removeShareLink(lease);
             UIManager.showToast(t('msg.rent.link_turned_off'), 'success');
         } else {
-            if (action === 'new' && !await UIManager.showModal(t('msg.rent.link_new_confirm'), t('ui.rent.link_new'), true)) return;
+            if (action === 'new' && !await UIManager.showModal(t('msg.rent.link_new_confirm'), t('ui.rent.link_new'), true, { confirmLabel: t('ui.confirm.make_new_link'), danger: true })) return;
             await store.makeShareLink(lease, {
                 tenantName: ix.tenants.get(lease.tenantId)?.name || '',
                 ...c.linkPlace(ix, lease.unitId),

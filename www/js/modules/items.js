@@ -601,7 +601,7 @@ const ItemsManager = {
                 return;
             }
             
-            const confirmed = await UIManager.showModalWithHtml(this.importPreviewHtml(plan), t('msg.items.confirm_import'), true);
+            const confirmed = await UIManager.showModalWithHtml(this.importPreviewHtml(plan), t('msg.items.confirm_import'), true, { confirmLabel: t('ui.confirm.import') });
             if (!confirmed) return;
             
             UIManager.showLoading();
@@ -980,7 +980,7 @@ const ItemsManager = {
                 `<li>${e(fieldLabel(c.field))}: ${rateHtml(c.old)} → ${rateHtml(c.new)}</li>`).join('')}</ul>
                 <p class="rates-dlg-note">${e(t('ui.rate_history.check_rate'))}</p>`);
         }
-        return UIManager.showModalWithHtml(`<div class="rates-dlg">${parts.join('')}</div>`, t('msg.items.confirm_changes'), true);
+        return UIManager.showModalWithHtml(`<div class="rates-dlg">${parts.join('')}</div>`, t('msg.items.confirm_changes'), true, { confirmLabel: t('ui.confirm.save_changes') });
     },
     
     // Render rates in modal
