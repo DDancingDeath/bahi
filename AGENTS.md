@@ -4,6 +4,11 @@
 > before doing anything else**. It will save you (and the human) a lot of
 > wasted turns.
 
+**Project docs.** What and why: [docs/PRD.md](docs/PRD.md). Where each rule lives: [docs/RULES.md](docs/RULES.md)
+(an index; this file stays authoritative for agent rules). Past decisions: [docs/DECISIONS.md](docs/DECISIONS.md).
+Work: GitHub issues, see [docs/TASKS.md](docs/TASKS.md). Read [docs/MEMORY.md](docs/MEMORY.md) when relevant, but treat
+it as possibly stale. Update DECISIONS.md / MEMORY.md in the same PR when your change makes or settles a decision.
+
 ---
 
 ## 1. What this repo is
