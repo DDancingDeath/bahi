@@ -16,6 +16,7 @@ import { openExternal, notOpenedKey } from '../utils/open-external.js';
 import { t } from '../i18n/index.js';
 import { PrinterService } from '../services/printer.js';
 import { UIManager } from '../ui/ui-manager.js';
+import { MENU } from '../ui/menus.js';
 import { AppState } from '../utils/state.js';
 import fs from 'fs';
 import path from 'path';
@@ -260,6 +261,17 @@ describe('#46/#77 Outstanding panel', () => {
         expect([...document.querySelectorAll('#dueList [data-history-item]')].map(el => el.textContent)).toEqual([expect.stringContaining('#R2')]);
         OutstandingManager.clearPartyFilter();
         AppState.userRole = 'owner';
+    });
+
+    test('a party row\'s ⋯ is the shared floating menu (Remind, Statement), so opening it moves nothing', () => {
+        OutstandingManager.renderDue();
+        const row = document.querySelector('#dueAgingParties .aging-party');
+        const menu = row.querySelector('.aging-party-actions > details.menu.aging-more');
+        expect(menu.matches(MENU)).toBe(true);
+        expect(menu.querySelector('summary').getAttribute('aria-label')).toBe('More actions');
+        expect(menu.lastElementChild.matches('.panel.menu-list')).toBe(true);
+        expect([...menu.querySelectorAll('.menu-list > .btn')].map(b => b.textContent.trim())).toEqual(['Remind', 'Statement']);
+        expect(fs.readFileSync(path.join(__dirname, '../../css/outstanding.css'), 'utf8')).not.toMatch(/\.aging-more/);
     });
 
     test('U-72: a search hides the all-party totals and says when nothing matches, with Clear search', () => {

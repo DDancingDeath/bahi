@@ -850,7 +850,7 @@
 
 /* Table view needs a wide screen (U-70): phones keep the cards */
 @media (max-width: 599.98px) {
-  .history-table-toggle {
+  .history-search > .btn-sm {
     display: none;
   }
 }

@@ -320,7 +320,7 @@ function renderMonth(d, ix, rows, by = '') {
         <div class="panel">${paid.map(a => collectRow(a, ix, lang)).join('')}</div></details>` : '';
     const vacant = sum.vacant ? `<button type="button" class="btn btn-ghost btn-sm rent-vacant" data-onclick="rentals.page('properties')">${et(sum.vacant === 1 ? 'ui.rent.vacant_units_one' : 'ui.rent.vacant_units', { n: sum.vacant })}${icon('chevR', 'i-sm')}</button>` : '';
     const payAny = canWrite() && owe.length ? `<div class="rent-pay-any">${btn(' btn-primary btn-block', 'payAny', '', 'ui.rent.record_payment', '', ' data-rent-pay')}</div>` : '';
-    return `${title}${by}${summary}${payAny}${attentionHtml(d, ix)}
+    return `${title}${by}${attentionHtml(d, ix)}${summary}${payAny}
         <h3 class="rent-section-title">${et('ui.rent.to_collect', { n: owe.length })}${owe.some(a => a.late)
             ? ` <button type="button" class="chip" aria-pressed="${state.onlyLate ? 'true' : 'false'}" data-onclick="rentals.onlyLate()">${et('ui.rent.status_late')}</button>` : ''}</h3>
         ${shown.length ? `<div class="panel">${list}</div>` : list}${paidList}${vacant}`;
@@ -356,8 +356,11 @@ function attentionHtml(d, ix) {
     const rem = rentReminder(localStorage, uid, state.month);
     const notes = leaseReminder(localStorage, uid, state.month);
     const rows = [];
-    if (rem?.late) {
-        rows.push(`<button type="button" class="row" data-onclick="rentals.onlyLate(true)"><span class="row-main">${et(rem.dueUnits === 1 ? 'ui.today.reminder_rent_units_one' : 'ui.today.reminder_rent_units', { count: rem.dueUnits, late: rem.late })}</span><strong class="row-trail row-amt">${moneyHtml(rem.due)}</strong></button>`);
+    // REM-2 lives here, not on Aadhat's Today: rent still due this month, late or not (a late one filters the list)
+    if (rem) {
+        const body = `<span class="lead-icon${rem.late ? ' warn' : ''}">${icon('calendar', 'i-sm')}</span><span class="row-main"><span class="row-title">${et('ui.today.reminder_rent')}</span>`
+            + `<span class="row-meta">${et(rem.dueUnits === 1 ? 'ui.today.reminder_rent_units_one' : 'ui.today.reminder_rent_units', { count: rem.dueUnits, late: rem.late })}</span></span><strong class="row-trail row-amt">${moneyHtml(rem.due)}</strong>`;
+        rows.push(rem.late ? `<button type="button" class="row" data-rent-reminder data-onclick="rentals.onlyLate(true)">${body}</button>` : `<div class="row" data-rent-reminder>${body}</div>`);
     }
     const meters = meterPending(d, state.month).length;
     if (meters) rows.push(`<button type="button" class="row" data-onclick="rentals.meters()"><span class="lead-icon warn">${icon('bolt', 'i-sm')}</span><span class="row-main">${et('ui.rent.meter_pending', { n: meters })}</span></button>`);

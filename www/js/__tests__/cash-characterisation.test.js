@@ -32,7 +32,7 @@ const STATUS_IDS = [
 ];
 const CARD_IDS = [
     'statusOpeningCard', 'statusCashInCard', 'statusCashOutCard', 'statusAvailableCard', 'statusCashAddedCard',
-    'statusBuyCard', 'statusSaleCard', 'statusOthersCard', 'statusExpectedCard', 'statusActualCard', 'statusDiffCard',
+    'statusBuyCard', 'statusSaleCard', 'statusOthersCard', 'statusExpectedCard',
     'cashSignInSection', 'cashSignOutSection', 'cashDepositSection'
 ];
 const SUMMARY_IDS = [
@@ -78,6 +78,7 @@ function screen() {
         text: Object.fromEntries([...STATUS_IDS, ...SUMMARY_IDS].map(id => [id, text(id)])),
         shown: Object.fromEntries(CARD_IDS.map(id => [id, document.getElementById(id).style.display])),
         diffTone: [...document.getElementById('statusDiff').classList].filter(c => c.startsWith('tone-')).join(' '),
+        countLine: !document.getElementById('statusCountLine').hidden,
         signInAmount: document.getElementById('cashSignInAmount').value,
         signInHint: text('cashSignInSuggestion')
     };

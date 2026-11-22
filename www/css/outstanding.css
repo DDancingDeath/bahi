@@ -522,27 +522,6 @@
     box-shadow: var(--focus);
 }
 
-.aging-more[open] {
-    flex-basis: 100%;
-}
-
-.aging-more-menu {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-    margin-top: var(--sp-2);
-}
-
-.aging-more,
-.aging-more-menu > .btn {
-    min-width: 0;
-    max-width: 100%;
-}
-
-.aging-more-menu > .btn {
-    white-space: normal;
-}
-
 .aging-bills-toggle {
     display: inline-flex;
     align-items: center;

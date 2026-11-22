@@ -62,7 +62,7 @@ beforeEach(() => {
     document.body.innerHTML = html;
     sessionStorage.clear();
     localStorage.clear();
-    Object.assign(HistoryManager, { filter: null, homeTab: null, pageKey: '', viewMode: 'card', showOpening: { purchase: false, sale: false, wholesale: false } });
+    Object.assign(HistoryManager, { filter: null, homeTab: null, homeDates: null, pageKey: '', viewMode: 'card', showOpening: { purchase: false, sale: false, wholesale: false } });
     delete window.FirebaseService;
     window.app = { nav: { showTab: jest.fn() } };
     AppState.historyLoadedFrom = 0;
@@ -162,6 +162,25 @@ describe('History tabs: Purchase | Sale (retail + wholesale) | Wholesale', () =>
         HistoryManager.open(null);
         expect(shown()).toBe('wholesale');
         expect(localStorage.getItem(HISTORY_TAB_KEY)).toBe('wholesale');
+    });
+
+    test('Today\'s bills row: History on Today for that visit only; a plain visit is back on the picked dates', () => {
+        AppState.userRole = 'owner';
+        const preset = () => document.getElementById('historyDatePreset')?.value ?? HistoryManager.getFilter().preset;
+        HistoryManager.setDatePreset('month');
+        HistoryManager.open('today');
+        expect(HistoryManager.getFilter().preset).toBe('today');
+        expect(preset()).toBe('today');
+        HistoryManager.filterHistory('sale');
+        expect(JSON.parse(sessionStorage.getItem(HISTORY_FILTER_KEY)).preset).toBe('month');
+        HistoryManager.open(null);
+        expect(HistoryManager.getFilter().preset).toBe('month');
+        // Dates picked during the visit are the user's own and stay
+        HistoryManager.open('today');
+        HistoryManager.setDatePreset('week');
+        HistoryManager.open(null);
+        expect(HistoryManager.getFilter().preset).toBe('week');
+        expect(resolveRoute('history-today')).toEqual({ id: 'history-today', tab: 'history', section: 'today', needs: null, nav: 'history' });
     });
 
     test('a member without Wholesale gets Sale (retail only) for a remembered Wholesale tab, and no Wholesale button', () => {

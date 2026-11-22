@@ -17,7 +17,7 @@ server, no push service, no new account. Phone notifications are shown by the ap
 | Bell update (rate / item changed by someone else) | — (needs stage 2 push) | status-bar notification while Android keeps the app running | toast + bell badge only | system notification while the tab is hidden; toast + badge while it is visible; nothing when closed |
 | To do reminder at its date and time (9:00 am without a time) | ✔ | ✔ | ✔ (status bar) | only while the app is open (a toast when it is on screen) |
 | Udhaar summary (owner, managers) at the summary time | ✔ (amounts as of the last time the app was open) | ✔ | ✔ | only while open |
-| Rent due on each rent due day (Rentals roles) | ✔ (needs the Rent page opened this month on this phone, like Today's rent reminder) | ✔ | ✔ | only while open |
+| Rent due on each rent due day (Rentals roles) | ✔ (needs the Rent page opened this month on this phone, like the rent reminder at the top of the Rent page; rent is not on Aadhat's Today) | ✔ | ✔ | only while open |
 | Backup check (owner) 30 days after the last check on this phone | ✔ | ✔ | ✔ | only while open |
 | Send test notification | one now + one 10 s later (close the app or lock the phone to try it) | ✔ | ✔ | one now |
 

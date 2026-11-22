@@ -776,7 +776,7 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
-/* Save & print is the screen's one primary button (Save is outlined; Add to bill, Rest → due are tonal); the sale
+/* Print (save, then print) is the screen's one primary button (Save is outlined; Add to bill, Rest → due are tonal); the sale
    screen gives both its mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
 .bill-sale .btn-primary {
   background-color: var(--btn-sale-bg);
@@ -1078,7 +1078,8 @@ label {
   margin-bottom: var(--sp-2);
 }
 
-.bill-view-row {
+/* Rows of the bill details (.row) in their small text */
+:where(.bill-view) .row {
   font-size: var(--fs-sm);
 }
 

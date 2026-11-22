@@ -5,12 +5,8 @@
         <!-- Today's cash (C7): what is in the drawer now, then the day's figures -->
         <section id="cashStatusCard" class="cash-status" aria-labelledby="cashStatusTitle">
             <h3 class="cash-title sr-only" id="cashStatusTitle" data-i18n="ui.cash.today_s_cash_status">Today's cash</h3>
-            <div id="statusAvailableCard" class="cash-hero">
-                <div class="cash-hero-label" data-i18n="ui.cash.available_cash">Available cash</div>
-                <div class="hero-num" id="statusAvailable">₹0</div>
-            </div>
-            <div id="statusCardsContainer" class="panel metrics cash-metrics">
-                <!-- Open: opening, cash added (when there is some), cash in, cash out -->
+            <!-- The summary is the grid (as the old app): Opening | Cash in / Cash out | Expected cash, the last one stands out -->
+            <div id="statusCardsContainer" class="panel metrics">
                 <div id="statusOpeningCard" class="metric">
                     <div class="metric-label" data-i18n="ui.cash.opening_balance">Opening balance</div>
                     <div class="metric-value" id="statusOpeningBalance">₹0</div>
@@ -27,8 +23,13 @@
                     <div class="metric-label" data-i18n="ui.cash.cash_out">Cash out</div>
                     <div class="metric-value" id="statusCashOut">₹0</div>
                 </div>
+                <!-- C7: opening + added + in − out, what should be in the drawer -->
+                <div id="statusAvailableCard" class="metric" data-emphasis>
+                    <div class="metric-label" data-i18n="ui.cash.expected_cash">Expected cash</div>
+                    <div class="metric-value" id="statusAvailable">₹0</div>
+                </div>
 
-                <!-- Closed: the day's figures, the count and the difference -->
+                <!-- Closed: the day's figures and what was expected -->
                 <div id="statusBuyCard" class="metric cash-off">
                     <div class="metric-label"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.cash.purchases_buy">Purchases</span></div>
                     <div class="metric-value" id="statusBuy">₹0</div>
@@ -41,19 +42,13 @@
                     <div class="metric-label" data-i18n="ui.cash.expenses_others">Expenses &amp; others</div>
                     <div class="metric-value" id="statusOthers">₹0</div>
                 </div>
-                <div id="statusExpectedCard" class="metric cash-off">
-                    <div class="metric-label" data-i18n="ui.cash.expected_balance">Expected balance</div>
+                <div id="statusExpectedCard" class="metric cash-off" data-emphasis>
+                    <div class="metric-label" data-i18n="ui.cash.expected_cash">Expected cash</div>
                     <div class="metric-value" id="statusExpected">₹0</div>
                 </div>
-                <div id="statusActualCard" class="metric cash-off">
-                    <div class="metric-label" data-i18n="ui.cash.actual_balance">Actual balance</div>
-                    <div class="metric-value" id="statusActual">-</div>
-                </div>
-                <div id="statusDiffCard" class="metric cash-off">
-                    <div class="metric-label" data-i18n="ui.cash.difference">Difference</div>
-                    <div class="metric-value" id="statusDiff">-</div>
-                </div>
             </div>
+            <!-- Once counted (the day closed with a count): what was counted and how it compares (C8) -->
+            <p id="statusCountLine" class="cash-count" hidden><span data-i18n="ui.cash.counted">Counted</span> <strong id="statusActual">-</strong> · <span id="statusDiff">-</span></p>
         </section>
 
         <!-- Open cash -->

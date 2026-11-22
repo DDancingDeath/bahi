@@ -8,7 +8,7 @@ const { test, expect, login, showTab } = require('./support/app');
 const NAV_TIMER_MS = 400;
 
 const PAGES = [
-    { route: 'day', list: '#day .day-tabs', pane: (n) => ['#dayTodayContent', '#dayCashContent'][n] },
+    { route: 'day', list: '#day .day-container > .tabs', pane: (n) => ['#dayTodayContent', '#dayCashContent'][n] },
     { route: 'money', list: '#money .tabs[role="tablist"]' },
     { route: 'insights', list: '#insights .tabs[role="tablist"]' }
 ];

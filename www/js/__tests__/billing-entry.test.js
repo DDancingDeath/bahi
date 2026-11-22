@@ -277,7 +277,7 @@ describe('one field style, and Billing\'s look on Wholesale (NEW-04, NEW-10)', (
         for (const s of selectors.filter(s => !/mode-dot|bill-bar-label::before/.test(s))) expect(s).not.toMatch(/bill-page|\.ws-|wholesale-sales|btn|pay-fill/);
         expect(all).toMatch(/\.bill-page \.bill-bar-label::before \{[^}]*background: var\(--mode-wholesale\)/);
     });
-});describe('action row: Save & print is the one primary', () => {
+});describe('action row: Print (save and print) is the one primary', () => {
     const tpl = (n) => fs.readFileSync(path.join(WWW, 'templates', n), 'utf8');
     test.each([['saveBillBtn', 'printBillBtn'], ['saveSaleBtn', 'printSaleBtn'], ['saveWholesaleBtn', 'printWholesaleBtn']])('%s / %s', (save, print) => {
         document.body.innerHTML = `<main>${BILLING}${tpl('wholesale-sales.html')}</main>`;
@@ -289,6 +289,10 @@ describe('one field style, and Billing\'s look on Wholesale (NEW-04, NEW-10)', (
         expect($(print).querySelector('use').getAttribute('href')).toBe('#i-printer');
         expect([$(save).dataset.kbd, $(print).dataset.kbd]).toEqual(['Ctrl S', 'Ctrl P']);
         expect(row.querySelector('.bill-share').classList.contains('btn-icon')).toBe(true);
+        // The label is just "Print" (it still saves first); its name and tooltip say so
+        expect($(print).querySelector('.bill-print-label').getAttribute('data-i18n')).toBe('ui.billing.print_btn');
+        expect([$(print).getAttribute('data-i18n-aria-label'), $(print).getAttribute('data-i18n-title')]).toEqual(['ui.billing.save_print', 'ui.billing.save_print']);
+        expect($(print).getAttribute('aria-label')).toBe('Save and print');
     });
 
     test('Save and Save & print share the row in equal widths', () => {

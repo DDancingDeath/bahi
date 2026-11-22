@@ -74,7 +74,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261122c-rentals-one-view';
+const BUILD_ID = '20261122d-today-compact-dues-menu';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1512,7 +1512,7 @@ window.app = {
     // Anomalies (#187, #40): Day report card on Today + Anomalies page (anomalies.js is imported on first use)
     anomalies: {
         ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'correctRate', 'review',
-            'shareDayReport', 'printDayReport', 'refreshNow']
+            'shareDayReport', 'shareDayReportImage', 'refreshNow']
             .map(name => [name, (...args) => loadAnomalies().then(m => m[name](...args))])),
         // The cash-close screen's line, when the code is loaded (owner/manager phones load it after the first screen)
         cashCloseLine: () => loadedAnomalies()?.cashCloseLine()
@@ -1599,7 +1599,7 @@ window.app = {
         openBackupCheck: () => DayManager.openBackupCheck(),
         filterTransactions: () => DayManager.filterTransactions(),
         showLabourBreakdown: () => DayManager.showLabourBreakdown(),
-        toggleAllBills: () => DayManager.toggleAllBills(),
+        showSplit: (kind) => DayManager.showSplit(kind),
         returnCashBody: () => DayManager.returnCashBody(),
         reminderForm: (open) => ManualReminders.form(open),
         reminderSave: () => ManualReminders.save(),

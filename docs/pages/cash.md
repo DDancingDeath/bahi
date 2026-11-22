@@ -11,7 +11,7 @@ Only cash counts here, for one day's cash session.
 | Due received / paid (C4, C5) | Cash part of that day's due payments. |
 | Deposits (C6) | Cash added to the drawer. |
 | Expected cash (C7) | Opening + cash sales + due received + deposits − cash purchases − due paid − expenses. |
-| Today's cash (C7) | Available cash is the big figure at the top; below it Opening, Cash added (when there is some) and **Cash in** (cash sales + due received, the same as Today's "Cash In") are separate lines; Available = opening + cash added + cash in − cash out. |
+| Today's cash (C7) | A 2×2 grid, as in the old app: Opening, **Cash in** (cash sales + due received, the same as Today's "Cash In"), Cash out and **Expected cash** (opening + cash added + cash in − cash out: what should be in the drawer), the last one tinted and bold. Cash added shows when there is some (Expected cash then takes the whole last row). A closed day shows the day's figures with Expected cash, and one line under the grid: "Counted ₹9,250 · ₹62 short" (red), "· ₹40 extra" (amber) or "· matches" (green, within ₹1); there is no line before the count. |
 | Difference (C8) | Counted cash − expected: short or extra. Within ₹1 it matches. |
 | Counted cash (C9) | The last counted closing; it is the drawer part of Net worth. |
 | Open for N hours (C10) | When today's cash has been open 14 hours or more, Close cash says so with the time it was opened. |

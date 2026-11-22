@@ -5,62 +5,34 @@
   padding: var(--sp-2) var(--sp-4) var(--sp-4);
 }
 
-.anom-card-sub-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
-}
-
-.anom-card-sub {
-  font-size: var(--fs-sm);
-}
-
 .anom-all-clear {
   margin: 0;
   font-size: var(--fs-sm);
 }
-.anom-chips {
+
+/* One row under the report: the share icon (its menu floats) and All anomalies › */
+.day-report-foot {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
+  margin-top: var(--sp-2);
 }
 
-.anom-types {
-  margin: var(--sp-1) 0 var(--sp-2);
-  padding-left: var(--sp-5);
-  font-size: var(--fs-sm);
+.day-report-all {
+  gap: var(--sp-1);
 }
 
-.anom-queue {
-  margin-top: var(--sp-3);
+/* A compact row (Today): the dot and title, one line of why, then Looks right and ⋯ */
+.anom-row.compact .anom-meta {
+  display: none;
 }
 
-.anom-queue-title {
-  margin-bottom: var(--sp-2);
-  font-weight: var(--w-strong);
+.anom-row.compact .anom-why {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-
-.anom-queue-head {
-  margin: var(--sp-2) 0 var(--sp-1);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-strong);
-}
-
-.anom-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-}
-
-.anom-card-actions .btn {
-  flex: 1 1 auto;
-  min-width: 120px;
-}
-
 /* Rows (card and page): the severity dot, the reason and who / what, then the review buttons */
 .anom-row {
   flex-wrap: wrap;
@@ -136,45 +108,6 @@
   white-space: nowrap;
 }
 
-/* ⋯ floats its list over the rows below (ui/menus.js keeps it in the window), as Billing's ⋯ does: the row never moves */
-.anom-overflow {
-  position: relative;
-  flex: none;
-}
-
-.anom-overflow > summary {
-  list-style: none;
-}
-
-.anom-overflow > summary::-webkit-details-marker {
-  display: none;
-}
-
-.anom-overflow-menu {
-  position: absolute;
-  top: calc(100% + var(--sp-1));
-  right: 0;
-  z-index: var(--z-popover);
-  display: flex;
-  flex-direction: column;
-  min-width: 180px;
-  max-width: calc(100vw - var(--sp-4));
-  padding: var(--sp-1);
-  box-shadow: var(--e2);
-  translate: var(--menu-shift, 0px) 0;
-}
-
-.anom-overflow-menu[data-up] {
-  top: auto;
-  bottom: calc(100% + var(--sp-1));
-}
-
-.anom-overflow-menu > .btn {
-  justify-content: flex-start;
-  white-space: normal;
-  text-align: left;
-}
-
 /* Page: filters, sections and summary */
 .anom-filters {
   display: grid;
@@ -183,7 +116,8 @@
   margin-bottom: var(--sp-4);
 }
 
-.anom-tabs {
+/* List | Patterns, under the filters */
+.anom-filter-box + .tabs {
   margin-bottom: var(--sp-3);
 }
 

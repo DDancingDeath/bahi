@@ -91,7 +91,6 @@
       "undo-bar-btn"
     ],
     "card_panel": [
-      "anom",
       "anom-filter-box",
       "app-lock-box",
       "bill-view-panel",
@@ -120,8 +119,6 @@
     "hero_summary_metric": [
       "aging-hero",
       "anom-summary",
-      "cash-hero",
-      "cash-metrics",
       "diag-metrics",
       "disclosure-summary",
       "hero",
@@ -140,13 +137,10 @@
     "tabs_segmented": [
       "admin-tabs",
       "aging-bills-toggle",
-      "anom-tabs",
-      "day-tabs",
       "diag-tabs",
       "disclosure-toggle",
       "due-seg",
       "exp-seg",
-      "history-table-toggle",
       "password-toggle",
       "role-toggle",
       "seg",
@@ -154,9 +148,6 @@
       "stock-seg",
       "sync-pill",
       "tabs",
-      "tcp-seg",
-      "tcp-seg-off",
-      "tcp-seg-on",
       "ws-margin-toggle"
     ],
     "list_table_row": [
@@ -169,7 +160,6 @@
       "bill-entry-tool",
       "bill-mode",
       "bill-table-scroll",
-      "bill-view",
       "bottom-nav",
       "cash-entry",
       "cash-sum",
@@ -180,7 +170,6 @@
       "exp",
       "exp-row-note",
       "exp-row-type",
-      "history-table-toggle",
       "hl-rows",
       "hl-table",
       "ins-cmp-table",

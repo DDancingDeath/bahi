@@ -43,7 +43,7 @@ describe('Today Labour card == oracle', () => {
         AppState.expensesHistory = [];
         AppState.settings = { showHindi: false, ...E.settings };
         CashManagementManager.todaySession = null;
-        document.body.innerHTML = ['todayLaborCost', 'todayLabourToPay', 'todayLabourDiff']
+        document.body.innerHTML = ['todayLaborCost', 'todayLabourToPay']
             .map(id => `<div id="${id}"></div>`).join('');
         DayManager.loadTodayData();
     });
@@ -69,8 +69,9 @@ describe('Today Labour card == oracle', () => {
         expect(amount('todayLabourToPay')).toBe(Math.round(want.T_LAB_2_toPay));
         expect(breakdown().textContent).toContain(`(${want.T_LAB_2_kg} kg ÷ 35 kg = ${want.T_LAB_2_packages} packages × ₹6)`);
     });
-    test('T-LAB-3 difference', () => {
-        expect(text('todayLabourDiff')).toBe(`Pay differs from deducted by ₹${want.T_LAB_3_difference}`);
+    test('T-LAB-3 difference (worked out, not shown on Today since v761)', () => {
+        expect(Math.round(DayManager.lastLabour.gap.amount)).toBe(Math.round(want.T_LAB_3_difference));
+        expect(document.getElementById('todayLabourDiff')).toBeNull();
     });
 });
 

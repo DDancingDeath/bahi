@@ -14,7 +14,7 @@ import { t, tn, getLang, loadAllCatalogues } from '../i18n/index.js';
 import { emptyState } from '../ui/components.js';
 import { canOpenPage } from '../utils/role-access.js';
 import { on, REFRESH, REMINDERS_CHANGED } from '../utils/events.js';
-import { overdueReminder, rentReminder, leaseReminder, leaseReminderText } from '../utils/reminders.js';
+import { overdueReminder, leaseReminder, leaseReminderText } from '../utils/reminders.js';
 import { drillReminder } from '../utils/backup-verify.js';
 import { billsForKind } from '../utils/party-due.js';
 import { rentalsRole } from '../ui/business-switcher.js';
@@ -27,14 +27,11 @@ import { getPendingJoins, writeOffsByOthers } from '../utils/owner-alerts.js';
 import { firstRunSteps, showFirstRun, appLockOfferDue, FIRST_RUN_HIDDEN_KEY, FIRST_RUN_TEAM_KEY } from '../utils/first-run.js';
 import { normalizePrinterSettings } from '../utils/printer-settings.js';
 import { safeSetItem } from '../utils/storage-full.js';
-import { SyncStatus } from '../ui/sync-status.js';
 
 // Use helper functions
 const formatDate = (date) => Helpers.formatDate(date);
-const LABOUR_PAID_KEYS = { more: 'ui.today.labour_paid_more', less: 'ui.today.labour_paid_less' };
 const CHANNELS = { retail: 'Retail', wholesale: 'Wholesale', purchase: 'Purchase' };
 const BILL_KIND_KEYS = { retail: 'ui.finance.bill_retail', wholesale: 'ui.finance.bill_wholesale', purchase: 'ui.reports.pdf_purchase' };
-const BILLS_SHOWN = 8;
 const WIDE_TODAY = '(min-width: 1280px)';
 /** Bills in memory by kind, for the owner's write-off reminder (U-08). */
 const loadedBillsByKind = () => ({ purchase: AppState.purchaseHistory || [], retail: AppState.retailSalesHistory || [], wholesale: AppState.salesHistory || [] });
@@ -251,6 +248,7 @@ export const DayManager = {
         }
         
         this.updateElement('todayNetCashFlow', moneyText(s.netAmount));
+        this.renderMeter(s.totalIn, s.totalOut);
 
         // Payment summary
         this.updateElement('todayCashReceived', moneyText(s.cashIn));
@@ -271,7 +269,8 @@ export const DayManager = {
         this.updateElement('todayDueToPay', moneyText(s.dueToPay));
 
         const showWholesale = this.canSeeWholesale();
-        this.renderChannels(s.channels, showWholesale);
+        this.lastChannels = s.channels;
+        this.lastShowWholesale = showWholesale;
         this.renderDayBills(showWholesale ? s.dayBills : s.dayBills.filter(r => r.type !== 'wholesale'));
         this.lastHasBills = s.dayBills.length > 0;
         this.renderCashPrompt(this.lastHasBills, todayIso);
@@ -301,27 +300,42 @@ export const DayManager = {
     },
 
     /**
-     * T18: cash / online at save, paid later today, written off and due still open, per bill type (they add up to the total).
-     * @param {Object} channels - todaySummary().channels
-     * @param {boolean} showWholesale - false hides the Wholesale card
+     * The hero's meter: T10 in and T11 out as the two shares of one bar (no new figure); hidden when both are ₹0.
+     * @param {number} totalIn
+     * @param {number} totalOut
      */
-    renderChannels(channels, showWholesale = true) {
-        Object.entries(CHANNELS).forEach(([type, k]) => {
-            const c = channels[type];
-            const card = document.getElementById(`todayCh${k}`);
-            if (card) card.hidden = type === 'wholesale' && !showWholesale;
-            this.updateElement(`todayCh${k}Count`, tn('ui.today.bills_count', c.count));
-            this.updateElement(`todayCh${k}Total`, moneyText(c.total));
-            this.updateElement(`todayCh${k}Cash`, moneyText(c.cash));
-            this.updateElement(`todayCh${k}Online`, moneyText(c.online));
-            this.updateElement(`todayCh${k}PaidLater`, moneyText(c.paidLater));
-            this.updateElement(`todayCh${k}Due`, moneyText(c.due));
-            this.updateElement(`todayCh${k}WrittenOff`, moneyText(c.writtenOff));
-            const off = document.getElementById(`todayCh${k}WrittenOffRow`);
-            if (off) off.hidden = !(c.writtenOff > 0);
-        });
+    renderMeter(totalIn, totalOut) {
+        const el = document.getElementById('todayMeter');
+        if (!el) return;
+        const a = Math.max(0, Number(totalIn) || 0);
+        const b = Math.max(0, Number(totalOut) || 0);
+        el.hidden = !(a + b > 0);
+        el.innerHTML = el.hidden ? '' : [['in', a], ['out', b]].filter(([, v]) => v > 0)
+            .map(([k, v]) => `<span class="today-meter-${k === 'in' ? 'in' : 'out'}" style="--w: ${Number(v)}"></span>`).join('');
     },
 
+    /**
+     * T18 one tap away: tapping Purchases or Sales in Transactions opens that type's split (Sales: Retail and Wholesale):
+     * cash / online at save, paid later today, written off and due still open; they add up to the total.
+     * @param {'purchase'|'sale'} kind
+     */
+    showSplit(kind) {
+        const channels = this.lastChannels;
+        if (!channels) return Promise.resolve(false);
+        const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
+        const types = kind === 'purchase' ? ['purchase'] : ['retail', ...(this.lastShowWholesale ? ['wholesale'] : [])];
+        const line = (k, f, key, amount) => `<div class="row"><span class="row-main">${esc(t(key))}</span><strong class="row-trail row-amt" id="todayCh${esc(k)}${esc(f)}">${esc(moneyText(amount))}</strong></div>`;
+        const blocks = types.map(type => {
+            const c = channels[type];
+            const k = CHANNELS[type];
+            return `<section class="today-split" data-split="${esc(type)}">
+                <h3 class="section-title today-split-head"><span>${esc(t(BILL_KIND_KEYS[type]))}</span> <span class="tone-muted" id="todayCh${esc(k)}Count">${esc(tn('ui.today.bills_count', c.count))}</span> <strong class="today-split-total" id="todayCh${esc(k)}Total">${esc(moneyText(c.total))}</strong></h3>
+                <div class="panel">${line(k, 'Cash', 'ui.today.ch_cash', c.cash)}${line(k, 'Online', 'ui.today.ch_online', c.online)}${line(k, 'PaidLater', 'ui.today.ch_paid_later', c.paidLater)}${line(k, 'Due', 'ui.today.ch_due', c.due)}${c.writtenOff > 0 ? line(k, 'WrittenOff', 'ui.today.ch_written_off', c.writtenOff) : ''}</div>
+            </section>`;
+        }).join('');
+        const html = `${blocks}<p class="row-meta today-split-note">${esc(t('ui.today.split_note'))}</p>`;
+        return UIManager.showModalWithHtml(html, t(kind === 'purchase' ? 'ui.today.split_title_purchase' : 'ui.today.split_title_sale'));
+    },
     /**
      * Reminders (#86): REM-5 manual reminders (owner/manager add them, anyone marks done),
      * REM-1 who to collect from / pay (parties with OVERDUE bills: their whole dues
@@ -370,16 +384,6 @@ export const DayManager = {
         if (canWholesale) add('collect_wholesale', billsForKind(AppState, 'wholesale'), "nav.showTab('wholesale-outstanding')");
         if (canDue) add('pay', AppState.purchaseHistory || [], "day.openDues('purchase')");
         if (rentalsRole(AppState)) {
-            let rent = null;
-            try { rent = rentReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { rent = null; }
-            if (rent) {
-                chips.push(t('ui.today.rem_chip_rent', { amount: moneyText(rent.due) }));
-                late = late || rent.late > 0;
-                parts.push(`${reminderOpen('rent')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_rent'))}</strong> ${e(moneyText(rent.due))}</div>`
-                    + `<div>${e(tn('ui.today.reminder_rent_units', rent.dueUnits, { late: rent.late }))}</div>`
-                    + `<div class="today-reminder-more">${e(t('ui.today.reminder_as_of', { time: formatDayTime(rent.at, { lang: getLang() }) }))}</div>`
-                    + `<button type="button" class="btn btn-sm" data-onclick="rentals.open('rent', event)">${e(t('ui.today.reminder_open_rent'))}</button></div></div>`);
-            }
             // REM-4: agreements ending and rent increases due, as the Rent page last saw them this month
             let leases = null;
             try { leases = leaseReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { leases = null; }
@@ -521,44 +525,22 @@ export const DayManager = {
         return !role || canOpenPage('wholesale-sales', role, AppState.settings?.roleAccess);
     },
 
-    showAllBills: false,
     lastHasBills: false,
 
     /**
-     * T19: today's bills, newest first; a row opens the bill (History's bill details).
-     * @param {Array<{type: string, bill: Object, at: number, total: number}>} rows - todaySummary().dayBills
+     * T19: one row at the bottom of Today, "Today's bills · N" with the count per type; it opens History on Today
+     * (the bills themselves are listed there, not on Today).
+     * @param {Array<{type: string}>} rows - todaySummary().dayBills (wholesale left out for a role without Wholesale)
      */
     renderDayBills(rows) {
-        const list = document.getElementById('todayBillsList');
-        if (!list) return;
-        const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
-        if (!rows.length) {
-            list.innerHTML = emptyState({ icon: 'receipt', title: t('ui.today.no_bills_today') });
-        } else {
-            const shown = this.showAllBills ? rows : rows.slice(0, BILLS_SHOWN);
-            list.innerHTML = shown.map(({ type, bill, at, total }) => {
-                const party = bill.customerName || bill.seller || bill.buyer || (type === 'retail' ? t('ui.today.walk_in') : '');
-                const no = bill.billNumber ? `#${bill.billNumber}` : '';
-                const ref = Helpers.escapeJsAttr(`id:${bill.id}`);
-                return `<button type="button" class="today-bill-${type}" data-today-bill data-onclick="history.viewBill('${ref}', '${type}')" aria-label="${esc(t('ui.today.bill_open_aria', { bill: [t(BILL_KIND_KEYS[type]), no, party].filter(Boolean).join(' ') }))}">
-                    <span class="today-bill-time">${esc(at ? Helpers.formatTime(new Date(at)) : '')}</span>
-                    <span class="today-bill-main"><span class="today-bill-party">${esc(party || no)}</span><span class="today-bill-kind">${esc([t(BILL_KIND_KEYS[type]), party ? no : '']                    .filter(Boolean).join(' · '))}</span>${SyncStatus.chipHtml(bill.id)}</span>
-                    <strong class="today-bill-total">${esc(moneyText(total))}</strong>
-                </button>`;
-            }).join('');
-        }
-        const more = document.getElementById('todayBillsMore');
-        if (more) {
-            more.hidden = rows.length <= BILLS_SHOWN;
-            more.textContent = this.showAllBills ? t('ui.today.bills_less') : t('ui.today.bills_more', { count: rows.length });
-        }
+        const link = document.getElementById('todayBillsLink');
+        if (!link) return;
+        link.hidden = !rows.length;
+        this.updateElement('todayBillsCount', t('ui.today.bills_row', { count: rows.length }));
+        const count = (type) => rows.filter(r => r.type === type).length;
+        this.updateElement('todayBillsMeta', ['purchase', 'retail', 'wholesale']
+            .filter(type => count(type) > 0).map(type => t(`ui.today.bills_n_${type}`, { count: count(type) })).join(' · '));
     },
-
-    toggleAllBills() {
-        this.showAllBills = !this.showAllBills;
-        this.loadTodayData();
-    },
-
     /**
      * "Open cash" prompt (#141, Q41): today has bills and the day's sessions are loaded and none is open.
      * @param {boolean} hasBills
@@ -623,28 +605,31 @@ export const DayManager = {
     },
 
     /**
-     * Today › Labour card: Deducted (T-LAB-1), Paid (T-LAB-4) and Pay, the estimate (T-LAB-2). An amber line under
-     * Paid (T-LAB-5) or Pay (T-LAB-3) only when it differs from deducted; the working is in the breakdown.
+     * Today › Labour card, a disclosure: closed, one line "Deducted ₹N · Est. pay ₹N"; open, Deducted (T-LAB-1),
+     * Estimated pay (T-LAB-2) and Paid (T-LAB-4), just the three figures (the working is in Details).
      * @param {Object} labour - todaySummary().labour (labourSummary + gap + packets)
      */
     renderLabour(labour) {
         this.lastLabour = labour;
-        const { toPay, gap, paid, paidGap } = labour;
-        const diffLine = (id, text) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.textContent = text;
-            el.hidden = !text;
-        };
-        if (paid) {
-            this.updateElement('todayLabourPaid', moneyText(paid.amount));
-            const key = LABOUR_PAID_KEYS[paidGap.kind];
-            diffLine('todayLabourPaidDiff', key ? t(key, { amount: moneyText(paidGap.amount) }) : '');
+        const { deducted, toPay, paid } = labour;
+        const card = document.getElementById('todayLabourCard');
+        if (card) {
+            const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
+            const row = (key, id) => `<div class="row"><span class="row-main">${esc(t(key))}</span><strong class="row-trail row-amt" id="${esc(id)}"></strong></div>`;
+            const hadFocus = document.activeElement?.id === 'todayLabourToggle';
+            card.innerHTML = disclosureHtml({
+                key: 'today-labour', id: 'todayLabour',
+                title: esc(t('ui.today.labor')),
+                summary: `<span>${esc(t('ui.today.labour_ded_chip', { amount: moneyText(deducted.amount) }))}</span><span>·</span><span>${esc(t('ui.today.labour_est_chip', { amount: moneyText(toPay.amount) }))}</span>`,
+                body: row('ui.today.labour_row_deducted', 'todayLaborCost') + row('ui.today.labour_row_pay', 'todayLabourToPay') + row('ui.today.labour_row_paid', 'todayLabourPaid')
+                    + `<button type="button" class="btn btn-ghost btn-sm today-labour-more" data-onclick="day.showLabourBreakdown()">${esc(t('ui.today.labour_details'))}${icon('chevR', 'i-sm')}</button>`
+            });
+            refocusDisclosure('todayLabour', hadFocus);
         }
+        this.updateElement('todayLaborCost', moneyText(deducted.amount));
         this.updateElement('todayLabourToPay', moneyText(toPay.amount));
-        diffLine('todayLabourDiff', gap.kind === 'same' ? '' : t('ui.today.labour_pay_differs', { amount: moneyText(gap.amount) }));
+        if (paid) this.updateElement('todayLabourPaid', moneyText(paid.amount));
     },
-
     /** Tap on the Labour card: today's purchase bills with kg, packets and labour deducted. */
     showLabourBreakdown() {
         const labour = this.lastLabour;

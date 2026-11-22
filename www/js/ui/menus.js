@@ -1,12 +1,13 @@
 /**
  * @fileoverview ⋯ menus: a `<details>` whose `<summary>` is the ⋯ button and whose `.panel` list floats under it
- * (Billing's `.bill-menu`, the Anomalies rows' `.anom-overflow`, Rentals' `.rent-menu`). A pick, a tap elsewhere, Esc or Tab out closes it;
+ * (Billing's `.bill-menu`, Rentals' `.rent-menu`; the shared `details.menu` > `.menu-list` of surfaces.css on the Anomalies and Dues rows).
+ * A pick, a tap elsewhere, Esc or Tab out closes it;
  * Up / Down move between the picks. An open list is kept inside the window and opens upwards when there is no room
  * below (above the phone's tab bar). Installed once on the document, so rows drawn later work too.
  * @module ui/menus
  */
 
-export const MENU = 'details.bill-menu, details.anom-overflow, details.rent-menu';
+export const MENU = 'details.bill-menu, details.rent-menu, details.menu';
 const EDGE = 8;
 
 const listOf = (menu) => menu.lastElementChild;

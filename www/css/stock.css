@@ -17,14 +17,6 @@
   display: none;
 }
 
-.stock-metrics > .metric:nth-child(n+3) {
-  border-top: none;
-}
-
-.stock-metrics > .metric + .metric {
-  border-left: 1px solid var(--line);
-}
-
 .stock-search {
   margin-bottom: var(--sp-4);
 }

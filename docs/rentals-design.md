@@ -38,7 +38,7 @@ business of the same type. It is not built now.
 | Electricity | **Sub-meter** per unit: previous and current reading, rate per unit; (current − previous) × rate added to that month's charge | **1** (small: one dialog, one transaction, rules check the arithmetic) |
 | Rent increase reminder | Yearly, on the lease anniversary: "Rent increase due: 5% → ₹X" on the Rent page. **Never applied automatically**; the new rent is saved by hand after agreeing with the tenant. % editable per lease (default 5) | 1 |
 | Water / other utilities | Fixed or metered, like electricity | 3 |
-| Reminders | Rent due / late, lease ending in 30/60 days, escalation month: rentals cards on Today and in the notifications bell (in-app, no push: Spark has no Cloud Functions) | 3 |
+| Reminders | Rent due / late, lease ending in 30/60 days, escalation month: rentals cards on Today (rent due moved to the top of the Rent page in v761; Aadhat's Today keeps the lease ones) and in the notifications bell (in-app, no push: Spark has no Cloud Functions) | 3 |
 | Reports | Monthly expected vs collected, outstanding per tenant (aging), yearly income per property (ITR "house property"), occupancy, deposits held, CSV/Excel | 3 |
 | Audit | Every create/edit/delete of lease, payment, deposit | 1 (payments), 2 (rest) |
 

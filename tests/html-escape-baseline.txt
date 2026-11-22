@@ -16,7 +16,7 @@ www/js/modules/ask.js: this.answers (markup via map(a => `<div class="ask-answer
 www/js/modules/cash-management.js: SyncStatus.chipHtml(session.id)
 www/js/modules/cash-management.js: date ← (parseAnyBillDate(session.date) || new Date(NaN)).toLocaleDateString(displayLoca
 www/js/modules/day.js: REMINDER_ICONS[kind] ← REMINDER_ICONS = { collect: icon('arrIn'), collect_wholesale: icon('truck'), pay: icon('arrOut'),
-www/js/modules/day.js: SyncStatus.chipHtml(bill.id)
+www/js/modules/day.js: disclosureHtml({ key: 'today-labour', id: 'todayLabour', title: esc(t('ui.today.labor')), summary: `<span>${esc(t('ui.today.labour_ded_chip' (sink)
 www/js/modules/day.js: disclosureHtml({ key: TODAY_REMINDERS_KEY, id: 'todayReminders', lead: `<span class="lead-icon">${icon('list')}</span>`, title: `<span class
 www/js/modules/day.js: firstRunSteps({ shopName: AppState.settings?.shopName, itemCount: (AppState.items || []).length, teamSeen: read(FIRST_RUN_TEAM_KEY) === '1', (markup via map(s => `<li class="first-run-step${s.done ? ' done' : ''}">${s.done ? icon('check', 'i-sm') : ''}<span>${e(t(`ui.firstrun.step_${s.id}`))}</sp) .route)
 www/js/modules/day.js: item.count
@@ -26,15 +26,9 @@ www/js/modules/day.js: kind (markup via block)
 www/js/modules/day.js: kind (markup via reminderOpen)
 www/js/modules/day.js: open
 www/js/modules/day.js: open (markup via block)
-www/js/modules/day.js: rows (markup via map(({ type, bill, at, total }) => { const party = bill.customerName || bill.seller || bill.buyer || (type === 'retail' ? t('ui.today.walk_in') ))
-www/js/modules/day.js: rows (markup via map(({ type, bill, at, total }) => { const party = bill.customerName || bill.seller || bill.buyer || (type === 'retail' ? t('ui.today.walk_in') ))
-www/js/modules/day.js: s.dayBills ← s = todaySummary({ bills: { purchase: AppState.purchaseHistory, wholesale: AppState. (markup via this.renderDayBills)
-www/js/modules/day.js: s.dayBills ← s = todaySummary({ bills: { purchase: AppState.purchaseHistory, wholesale: AppState. (markup via this.renderDayBills)
 www/js/modules/day.js: s.purchaseItems ← s = todaySummary({ bills: { purchase: AppState.purchaseHistory, wholesale: AppState. (markup via this.renderItemWiseDetails)
 www/js/modules/day.js: s.route
 www/js/modules/day.js: s.saleItems ← s = todaySummary({ bills: { purchase: AppState.purchaseHistory, wholesale: AppState. (markup via this.renderItemWiseDetails)
-www/js/modules/day.js: type
-www/js/modules/day.js: type
 www/js/modules/health.js: html (sink)
 www/js/modules/history.js: (toMoney(item.total) ?? toMoney(item.amount)) === null ? '—' : formatAmount(toMoney(item.total) ?? toMoney(item.amount), { exact: true }) ← formatAmount(toMoney(item.total) ?? toMoney(item.amount), { exact: true })
 www/js/modules/history.js: billTableHtml(bills, { openings: this.pageOpenings, voided: this.pageVoided, typeTags: type === 'sale', onclickFor: (bill) => `history.viewB (sink)

@@ -220,17 +220,16 @@ describe('Anomalies page and Today day report render in one language', () => {
     test('English: no Hindi outside user data; old stored sentence shows its English half', async () => {
         const text = await render('en');
         expect(text).toContain('Day report');
-        expect(text).toContain('Needs review');
+        expect(text).toContain('Share as image');
         expect(text).toContain('Mahua Naya: selling 1.0 kg, only 0.5 kg in stock');
-        expect(text).toContain('Cash: closed, short ₹50');
         expect(strayHindi(text, userData)).toEqual([]);
     });
 
     test('Hindi: Hindi UI text, no English UI text', async () => {
         const text = await render('hi');
-        ['आज की रिपोर्ट', 'जाँच बाकी', 'सभी गड़बड़ियाँ', 'खोलें', 'सुधारा', 'गंभीर', 'Mahua Naya: 1.0 kg बिक्री',
-            'नकद: बंद, ₹50 कम', 'गड़बड़ियाँ', 'सूची', 'पैटर्न', 'मुख्य पार्टी'].forEach(s => expect(text).toContain(s));
-        ['Day report', 'Needs review', 'All anomalies', 'Open', 'Fixed', 'High', 'selling 1.0 kg', 'Cash:', 'Top parties',
+        ['आज की रिपोर्ट', 'फ़ोटो के रूप में भेजें', 'सभी गड़बड़ियाँ', 'खोलें', 'सुधारा', 'गंभीर', 'Mahua Naya: 1.0 kg बिक्री',
+            'गड़बड़ियाँ', 'सूची', 'पैटर्न', 'मुख्य पार्टी'].forEach(s => expect(text).toContain(s));
+        ['Day report', 'Share as image', 'All anomalies', 'Open', 'Fixed', 'High', 'selling 1.0 kg', 'Cash:', 'Top parties',
             'Loading', 'Severity', 'Patterns'].forEach(s => expect(text).not.toContain(s));
     });
 

@@ -153,13 +153,26 @@ describe('Day report card', () => {
         expect(card.textContent).not.toContain('Yesterday Party');
         expect(card.textContent).not.toContain('R0');
         expect(card.textContent).not.toContain('Yesterday');
-        expect(card.textContent).toContain('Needs review (1)');
+        expect(card.querySelectorAll('#dayReportBody .anom-row')).toHaveLength(1);
         expect(card.querySelector('#dayReportToggle [data-day-report-sev="high"]').textContent).toBe('High 1');
-        expect(card.textContent).toContain('All anomalies · 1 pending');
+        expect(card.querySelector('.day-report-all').textContent).toBe('All anomalies (2)');
         const text = AnomaliesManager.dayReportText();
         expect(text).toContain('Anomalies: 1 (High 1, Medium 0, Low 0)');
         expect(text).not.toContain('R0');
         expect(text).not.toContain('Yesterday');
+    });
+
+    test('at most 3 rows to review, each compact; the rest behind All anomalies (N)', async () => {
+        AnomaliesManager.renderDayReport({}, null);
+        await AnomaliesManager.refreshing;
+        const { today } = AnomaliesManager.reportKeys();
+        AnomaliesManager.reportList = [1, 2, 3, 4, 5].map(n => ({ id: `x${n}`, type: 'rate-high', severity: 'medium', status: 'open', dayKey: today, refKind: 'bill', refId: `b${n}` }));
+        AnomaliesManager.drawDayReport();
+        const rows = document.querySelectorAll('#dayReportBody .day-report-rows > .anom-row.compact');
+        expect(rows).toHaveLength(3);
+        expect(rows[0].querySelector('.anom-actions > .btn').textContent.trim()).toBe('Looks right');
+        expect(rows[0].querySelector('.anom-actions > details.menu')).not.toBeNull();
+        expect(document.querySelector('.day-report-all').textContent).toBe('All anomalies (5)');
     });
 
     test('no pending count when nothing older is open', async () => {
@@ -170,7 +183,7 @@ describe('Day report card', () => {
         expect(card.textContent).not.toContain('pending');
     });
 
-    test('closed by default: one row with the date and the counts in their colours; the report is in the closed body', async () => {
+    test('closed by default: one row with the counts in their colours (no date: it is today); the report is in the closed body', async () => {
         AnomaliesManager.renderDayReport({ sales: 400, saleCount: 1 }, null);
         await AnomaliesManager.refreshing;
         const toggle = document.getElementById('dayReportToggle');
@@ -178,12 +191,25 @@ describe('Day report card', () => {
         expect(document.getElementById('dayReportBody').hidden).toBe(true);
         expect(toggle.querySelector('[data-day-report-sev="high"]').className).toBe('tag neg');
         expect(toggle.querySelector('[data-day-report-review]').className).toBe('tag warn');
-        expect(toggle.querySelector('.disclosure-summary').textContent).toBe('21 OctHigh 1Review 1');
+        expect(toggle.querySelector('.disclosure-summary').textContent).toBe('High 1Review 1');
         expect(toggle.querySelector('.lead-icon').classList.contains('neg')).toBe(true);
         const body = document.getElementById('dayReportBody');
-        for (const action of ['anomalies.refreshNow()', 'anomalies.shareDayReport()', 'anomalies.printDayReport()', 'anomalies.openPage()']) {
-            expect(body.querySelector(`[data-onclick="${action}"]`)).not.toBeNull();
-        }
+        // Refresh is a small icon in the card's head, not in the report
+        expect(document.querySelector('#dayReportCard .disclosure-head > [data-onclick="anomalies.refreshNow()"]').classList.contains('btn-icon')).toBe(true);
+        expect(body.querySelector('[data-onclick="anomalies.refreshNow()"]')).toBeNull();
+        // One share icon (the shared ⋯ menu): WhatsApp text or an image; no print; then All anomalies on the same row
+        const foot = body.querySelector('.day-report-foot');
+        const share = foot.querySelector('details.menu.day-report-share');
+        expect(share.querySelector('summary').classList.contains('btn-icon')).toBe(true);
+        expect(share.querySelector('summary').getAttribute('aria-label')).toBe('Share the day report');
+        expect([...share.querySelectorAll('.menu-list > .btn')].map(b => [b.textContent.trim(), b.getAttribute('data-onclick')])).toEqual([
+            ['WhatsApp (text)', 'anomalies.shareDayReport()'], ['Share as image', 'anomalies.shareDayReportImage()']]);
+        expect(foot.querySelector('.day-report-all').getAttribute('data-onclick')).toBe('anomalies.openPage()');
+        expect(body.querySelector('[data-onclick*="print" i]')).toBeNull();
+        // No date / cash line, severity chips, type list, top items / parties or group headings on screen
+        expect(body.querySelector('.anom-card-sub-row, .anom-chips, .anom-types, .anom-queue-title, .anom-queue-head')).toBeNull();
+        expect(body.textContent).not.toMatch(/Top items|Top parties|Needs review|Cash:/);
+        expect(AnomaliesManager.dayReportText()).toMatch(/Top/);
         localStorage.setItem('happa.open.day-report', '1');
         AnomaliesManager.drawDayReport();
         expect(document.getElementById('dayReportToggle').getAttribute('aria-expanded')).toBe('true');
@@ -195,12 +221,13 @@ describe('Day report card', () => {
         AnomaliesManager.renderDayReport({}, null);
         await AnomaliesManager.refreshing;
         const card = document.getElementById('dayReportCard');
-        expect(card.querySelector('.disclosure-summary').textContent).toBe('21 Oct · No issues');
+        expect(card.querySelector('.disclosure-summary').textContent).toBe('No issues');
         expect(card.querySelector('[data-day-report-sev], [data-day-report-review]')).toBeNull();
         expect(card.querySelector('.anom-chips')).toBeNull();
         expect(card.querySelector('.empty')).toBeNull();
-        expect(card.querySelector('[data-day-report-clear]').textContent).toBe('No anomalies · Nothing to review');
-        expect(card.textContent).not.toContain('Needs review');
+        expect(card.querySelector('[data-day-report-clear]').textContent).toBe('No issues today');
+        expect(card.querySelector('#dayReportBody .anom-row')).toBeNull();
+        expect(card.querySelector('.day-report-share')).not.toBeNull();
         expect(card.querySelector('[data-onclick="anomalies.openPage()"]')).not.toBeNull();
     });
 
@@ -391,13 +418,16 @@ describe('rows (NEW-16, NEW-05)', () => {
 
     test('the ⋯ list floats on a panel out of the row\'s flow, so opening it moves nothing (NEW-19)', () => {
         const actions = row({ type: 'rate-high', refKind: 'bill', refId: 'b1' });
-        expect(actions.querySelector('details.anom-overflow > .anom-overflow-menu').classList.contains('panel')).toBe(true);
-        const css = require('fs').readFileSync(require('path').join(__dirname, '../../css/anomalies.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-        const rule = (sel) => (new RegExp(`(?:^|\\})\\s*${sel.replace(/[.[\]()>]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css) || [])[1] || '';
-        expect(rule('.anom-overflow')).toMatch(/position: relative/);
-        expect(rule('.anom-overflow-menu')).toMatch(/position: absolute/);
-        expect(rule('.anom-overflow-menu')).toMatch(/z-index: var\(--z-popover\)/);
-        expect(rule('.anom-overflow-menu')).toMatch(/box-shadow: var\(--e2\)/);
+        expect(actions.querySelector('details.menu.anom-overflow > .panel.menu-list.anom-overflow-menu')).not.toBeNull();
+        const read = (f) => require('fs').readFileSync(require('path').join(__dirname, `../../css/${f}`), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+        const css = read('anomalies.css');
+        const shared = read('surfaces.css');
+        const rule = (sel, src = css) => (new RegExp(`(?:^|\\})\\s*${sel.replace(/[.[\]()>]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(src) || [])[1] || '';
+        expect(rule('.menu', shared)).toMatch(/position: relative/);
+        expect(rule('.menu-list', shared)).toMatch(/position: absolute/);
+        expect(rule('.menu-list', shared)).toMatch(/z-index: var\(--z-popover\)/);
+        expect(rule('.menu-list', shared)).toMatch(/box-shadow: var\(--e2\)/);
+        expect(css).not.toMatch(/\.anom-overflow/);
         expect(rule('.anom-actions')).toMatch(/flex-wrap: nowrap/);
         expect(css).not.toMatch(/\.anom-overflow\[open\]/);
         expect(css).not.toMatch(/\.anom-list \{[^}]*overflow: hidden/);

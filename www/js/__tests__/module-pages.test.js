@@ -365,7 +365,7 @@ describe('Today (day.js)', () => {
     const IDS = ['todayTotalPurchases', 'todayPurchaseCount', 'todayTotalSales', 'todaySaleCount', 'todayLaborCost',
         'todayBusinessExpenses', 'todayPersonalExpenses', 'todayTotalIn', 'todayTotalOut', 'todayNetCashFlow',
         'todayCashFlowLabel', 'todayCashReceived', 'todayOnlineReceived', 'todayCashPaid', 'todayOnlinePaid',
-        'todayDueReceived', 'todayDuePaid', 'todayDueToReceive', 'todayDueToPay', 'todayPurchaseItems', 'todaySaleItems'];
+        'todayDueReceived', 'todayDuePaid', 'todayDueToReceive', 'todayDueToPay', 'todayPurchaseItems', 'todaySaleItems', 'todayMeter'];
     const val = (id) => document.getElementById(id).textContent;
     const money = (n) => formatRupees(n);
 
@@ -416,6 +416,18 @@ describe('Today (day.js)', () => {
         expect(val('todayNetCashFlow')).toBe(money(1570));
         expect(val('todayDueToReceive')).toBe(money(2495));
         expect(val('todayDueToPay')).toBe(money(1068));
+    });
+
+    test('the hero meter: total in and total out as the two shares of one bar, hidden at ₹0 / ₹0', () => {
+        DayManager.loadTodayData();
+        const meter = document.getElementById('todayMeter');
+        expect(meter.hidden).toBe(false);
+        expect([...meter.children].map(s => [s.className, s.style.getPropertyValue('--w').trim()])).toEqual([['today-meter-in', '3300'], ['today-meter-out', '1730']]);
+        DayManager.renderMeter(0, 0);
+        expect(meter.hidden).toBe(true);
+        expect(meter.children).toHaveLength(0);
+        // .meter sets display, so [hidden] needs its own rule to hide it
+        expect(require('fs').readFileSync(require('path').join(__dirname, '../../css/surfaces.css'), 'utf8')).toMatch(/\.meter\[hidden\] \{\s*display: none;\s*\}/);
     });
 
     test('item-wise cards aggregate quantity and value per item', () => {
