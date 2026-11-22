@@ -65,4 +65,13 @@ describe('date fields', () => {
         expect(shown('late').textContent).toBe('2 मार्च 2026');
         await setLang('en');
     });
+
+    test('a box added and focused at once keeps its focus when it is wrapped', async () => {
+        installDateFields();
+        document.body.insertAdjacentHTML('beforeend', '<input type="date" id="focused" value="2026-03-02">');
+        document.getElementById('focused').focus();
+        await new Promise(r => setTimeout(r, 0));
+        expect(document.getElementById('focused').parentElement.className).toBe('date-field');
+        expect(document.activeElement.id).toBe('focused');
+    });
 });

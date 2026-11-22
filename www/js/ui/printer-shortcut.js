@@ -37,14 +37,14 @@ export function shortcutState({ available, connecting = false, connected = false
 export const PrinterShortcut = {
     /** @type {?() => Promise<?HTMLElement>} set by init: the synced printer panel (Settings put in first) */
     loadPanel: null,
-    /** @type {?(evt?: Event) => *} set by init: opens Settings › Printing & receipts */
+    /** @type {?() => *} set by init: opens Settings › Printing & receipts */
     openSettings: null,
     /** @type {?Comment} where the panel goes back to while it is in the sheet */
     home: null,
     opening: false,
     bound: false,
 
-    /** @param {{loadPanel: () => Promise<?HTMLElement>, openSettings?: (evt?: Event) => *}} deps */
+    /** @param {{loadPanel: () => Promise<?HTMLElement>, openSettings?: () => *}} deps */
     init({ loadPanel, openSettings = null }) {
         this.loadPanel = loadPanel;
         this.openSettings = openSettings;
@@ -105,11 +105,10 @@ export const PrinterShortcut = {
 
     /**
      * "Receipt options ›": closes the sheet and opens Settings › Printing & receipts at the printed bill.
-     * @param {Event} [evt]
      */
-    async receiptOptions(evt) {
+    async receiptOptions() {
         this.close();
-        await this.openSettings?.(evt);
+        await this.openSettings?.();
         document.getElementById('receiptSettingsCard')?.scrollIntoView?.({ block: 'start' });
     },
 

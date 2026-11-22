@@ -42,8 +42,11 @@ function wrap(input) {
     const text = document.createElement('span');
     text.className = 'date-field-text';
     text.setAttribute('aria-hidden', 'true');
+    const hadFocus = input.ownerDocument.activeElement === input;
     input.before(box);
     box.append(input, text);
+    // Moving the box drops its focus (a page redrawn with the box focused, e.g. Today's reminder form)
+    if (hadFocus) input.focus({ preventScroll: true });
     input.addEventListener('click', () => {
         if (typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches) openPicker(input);
     });

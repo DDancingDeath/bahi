@@ -677,7 +677,9 @@ async function initializeUserData() {
                 SettingsManager.updatePrinterStatus().catch(e => console.warn('Printer status:', e));
                 return document.getElementById('printerPanel');
             },
-            openSettings: (evt) => NavigationManager.showTab('settings-printing', evt)
+            // As the menu opens it (settings.load runs after 100 ms), then the sheet scrolls to the printed bill
+            openSettings: () => Promise.resolve(NavigationManager.showTabFromNav('settings-printing'))
+                .then(() => new Promise(resolve => setTimeout(resolve, 150)))
         });
 
         BottomNav.init({
@@ -1159,7 +1161,7 @@ window.app = {
     printerSheet: {
         open: () => PrinterShortcut.open(),
         close: () => PrinterShortcut.close(),
-        receiptOptions: (evt) => PrinterShortcut.receiptOptions(evt)
+        receiptOptions: () => PrinterShortcut.receiptOptions()
     },
 
     // Notifications inbox (#12)
