@@ -281,6 +281,7 @@
   --bottomnav-h: 56px;
   --phone-col-max: 480px;
   /* A wide dialog (.dialog-wide); 680 px on desktop (desktop.css) */
+  --dialog-wide: 560px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3) + var(--shell-notice-h, 0px));
   /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
   --tap-min: 48px;
