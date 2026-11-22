@@ -334,6 +334,7 @@ describe('Tenants and the tenant screen', () => {
         document.getElementById('rentals').insertAdjacentHTML('beforeend', '<div id="rentDialog" hidden><div id="rentDialogBody"></div></div>');
         expect(root.querySelector('[data-tenant="T1"]').textContent).not.toContain('₹8,000/month');
         expect(root.querySelector('#rentTenantFilter').textContent).toBe('Filter');
+        root.querySelector('#rentTenantFilter').focus();
         const open = RentalsModule.api.tenantFilters();
         await new Promise(r => setTimeout(r, 0));
         const sheet = () => document.getElementById('rentTenantFilters');
@@ -347,6 +348,8 @@ describe('Tenants and the tenant screen', () => {
         expect(document.querySelector('#rentTenantFilter').textContent).toBe('Filter (1)');
         RentalsModule.api.dialogClose(false);
         await open;
+        // Closing the sheet gives focus back to Filter: a pick redraws the list, not the button.
+        expect(document.activeElement.id).toBe('rentTenantFilter');
         _test.state.detail = 'T1';
         await _test.render();
         expect(document.getElementById('rentalsBody').textContent).toContain('₹8,000/month, due on day 10');

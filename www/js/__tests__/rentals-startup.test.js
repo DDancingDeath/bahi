@@ -51,7 +51,8 @@ const LAZY_BUDGETS = {
     'ledger maths': [['/js/rentals/rent-math-ledger.js'], 10 * 1024],
     'agreement and reports': [['/js/rentals/rent-report.js', '/js/rentals/rent-report-store.js', '/js/rentals/rent-math-report.js'], 18 * 1024],
     'properties page and move-in forms': [['/js/rentals/rent-pages.js'], 28 * 1024],
-    'tenants page and tenant screen': [['/js/rentals/rent-tenants.js'], 24 * 1024],
+    // 24 → 25 KB (one view, D-023): the former Advanced filters and sort became a Filter sheet that keeps focus.
+    'tenants page and tenant screen': [['/js/rentals/rent-tenants.js'], 25 * 1024],
     'this month by property / unit': [['/js/rentals/rent-advanced.js'], 14 * 1024],
     'meter readings sheet': [['/js/rentals/rent-meter.js'], 8 * 1024]
 };

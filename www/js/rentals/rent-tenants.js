@@ -65,6 +65,13 @@ function listRows(d) {
     }).join('') || emptyState({ icon: 'users', title: t(d.tenants.length ? 'ui.rent.no_match' : 'ui.rent.no_tenants_hint') });
 }
 
+/** Filter (n on). */
+function filterText() {
+    const v = c.state.tenantList;
+    const n = (v.filter !== 'all') + (v.sort !== 'name');
+    return `${icon('sliders', 'i-sm')}${et(n ? 'ui.rent.filter_n' : 'ui.rent.filter', { n })}`;
+}
+
 /** The Filter sheet's chips. */
 function filterChips() {
     const v = c.state.tenantList;
@@ -76,9 +83,8 @@ function renderTenants(d) {
     const v = c.state.tenantList;
     const search = d.tenants.length > 8 || v.q ? `<input class="input" type="search" id="rentTenantSearch" value="${esc(v.q)}" placeholder="${et('ui.rent.search_tenants')}" aria-label="${et('ui.rent.search_tenants')}" data-oninput="rentals.tenantList('q', this.value)">` : '';
     const add = c.canWrite ? btn(' btn-primary', 'addTenant', '', 'ui.rent.add_tenant', icon('plus', 'i-sm')) : '';
-    const on = (v.filter !== 'all') + (v.sort !== 'name');
-    const filter = `<button type="button" class="btn${on ? ' active' : ''}" id="rentTenantFilter" aria-haspopup="dialog" data-onclick="rentals.tenantFilters()">${icon('sliders', 'i-sm')}${et(on ? 'ui.rent.filter_n' : 'ui.rent.filter', { n: on })}</button>`;
-    // Moved out, link still on (readable until turned off).
+    const filter = `<button type="button" class="btn" id="rentTenantFilter" aria-haspopup="dialog" data-onclick="rentals.tenantFilters()">${filterText()}</button>`;
+    // Moved out, link still on.
     const ix = c.index(d);
     const ended = c.isManager ? d.linked.filter(l => l.status === 'ended') : [];
     const endedLinks = ended.map(l => `<div class="row rent-entry">
@@ -91,12 +97,12 @@ function renderTenants(d) {
         ${endedLinks ? `<details class="rent-more" data-rent-moved-out><summary>${et('ui.rent.moved_out_n', { n: ended.length })}</summary><div class="panel">${endedLinks}</div></details>` : ''}`;
 }
 
-/** Tenants › Filter: which tenants and in what order; a pick applies at once. */
+/** Tenants › Filter: a pick applies at once. */
 function tenantFilters() {
     return c.dialog(`<h3>${et('ui.rent.filter')}</h3><div id="rentTenantFilters">${filterChips()}</div>`, { info: true });
 }
 
-/** Search redraws only the list, so the box keeps its focus; a filter or sort also redraws the open sheet. */
+/** Redraws the list in place (focus stays), and for a filter or sort the button and the open sheet. */
 function tenantList(field, value) {
     const v = c.state.tenantList;
     if (field === 'q') v.q = String(value ?? '');
@@ -104,9 +110,11 @@ function tenantList(field, value) {
     else if (field === 'sort' && SORTS.includes(value)) v.sort = value;
     else return;
     const list = byId('rentTenantList');
-    if (field === 'q' && list) { list.innerHTML = listRows(store.snapshot()); return; }
-    c.render();
+    if (!list) return c.render();
+    list.innerHTML = listRows(store.snapshot());
     const sheet = byId('rentTenantFilters');
+    if (field === 'q') return;
+    byId('rentTenantFilter').innerHTML = filterText();
     if (!sheet) return;
     sheet.innerHTML = filterChips();
     sheet.querySelector(`[data-onclick="rentals.tenantList('${field}', '${v[field]}')"]`)?.focus();
