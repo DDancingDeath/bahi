@@ -14,14 +14,14 @@ server, no push service, no new account. Phone notifications are shown by the ap
 
 | | Android app: closed (swiped away, phone restarted) | Android app: in the background / screen off | Android app: on screen | Browser (phone or computer) |
 |---|---|---|---|---|
-| Bell update (rate / item changed by someone else) | — (needs stage 2 push) | status-bar notification while Android keeps the app running | toast + bell badge only | system notification while the tab is hidden; toast + badge while it is visible; nothing when closed |
+| Bell update (rate / item changed, cash drawer opened / closed by someone else) | — (needs stage 2 push) | status-bar notification while Android keeps the app running | toast + bell badge only | system notification while the tab is hidden; toast + badge while it is visible; nothing when closed |
 | To do reminder at its date and time (9:00 am without a time) | ✔ | ✔ | ✔ (status bar) | only while the app is open (a toast when it is on screen) |
 | Udhaar summary (owner, managers) at the summary time | ✔ (amounts as of the last time the app was open) | ✔ | ✔ | only while open |
 | Rent due on each rent due day (Rentals roles) | ✔ (needs the Rent page opened this month on this phone, like the rent reminder at the top of the Rent page; rent is not on Aadhat's Today) | ✔ | ✔ | only while open |
 | Backup check (owner) 30 days after the last check on this phone | ✔ | ✔ | ✔ | only while open |
 | Send test notification | one now + one 10 s later (close the app or lock the phone to try it) | ✔ | ✔ | one now |
 
-Tapping a notification opens the app on the bell (bell updates), Today's Reminders (To do),
+Tapping a notification opens the app on the bell (bell updates; Today › Cash for a single cash opened / closed), Today's Reminders (To do),
 Outstanding (Udhaar), Rentals › Rent, or Admin › Data (backup check). In the browser the service
 worker focuses the open tab and tells it where to go, or opens `/?notify=<page>`.
 
@@ -39,11 +39,21 @@ amounts appear only in the Udhaar summary (owner, managers) and Rent due (Rental
   a toast and the card say where to allow it (phone settings › Apps › this app › Notifications, or the
   browser's site settings). Unset, the switch is on in the Android app once the phone allows
   notifications, and in the browser only for those who had the old "Desktop notifications" on.
-- Per kind: **Bell updates**, **To do reminders** (everyone, on by default), **Udhaar summary**
-  (owner and managers, on), **Rent due** (Rentals roles, on), **Backup check** (owner, on). A kind
-  someone can't see in the app is not offered.
+- **Updates from others** (per kind, on by default, work even with phone notifications off):
+  **Rate changes** (everyone), **Item edits** (owner), **Cash opened** and **Cash closed** (owner and
+  managers). Each switch decides the bell's toast and badge **and** the phone notification for that
+  kind; a switched-off kind is still written and still listed in the inbox (marked read when the
+  inbox opens), it just doesn't pop up, count or reach the status bar. Filtering happens on the
+  recipient's phone, so no extra reads or writes. **Role changes always come** (they are about the
+  person's own access). The old single "Bell updates" switch is gone; its stored `bell` value is
+  ignored.
+- **Reminders** (phone only, need the master switch): **To do reminders** (everyone, on by default),
+  **Udhaar summary** (owner and managers, on), **Rent due** (Rentals roles, on), **Backup check**
+  (owner, on). A kind someone can't see in the app is not offered.
 - **Daily summary time** (default 9:30 am): Udhaar summary, Rent due and Backup check.
-- Stored per phone in localStorage `happa.notify` (`{on, bell, todo, udhaar, rent, backup, time}`).
+- Stored per phone in localStorage `happa.notify` (`{on, todo, udhaar, rent, backup, time, rate, item, cashOpen, cashClose}`;
+  unset = on). The update kind keys are `UPDATE_KINDS` in `js/utils/notification-format.js`
+  (`role` is listed there but always on).
 
 ## Scheduling (Android app)
 
@@ -88,7 +98,7 @@ Reads: one live listener on the 20 newest unread (`userId == me`,
 `userId + read + timestamp` index. Older than 30 days: hidden, and deleted
 (at most 100, once a day per device). Code: `js/modules/notifications.js`,
 text/rules in `js/utils/notification-format.js`, writes in
-`FirebaseService.sendNotification / notifyRateChanges / notifyItemEdit`.
+`FirebaseService.sendNotification / notifyRateChanges / notifyItemEdit / notifyCash`.
 
 ## Catalogue
 
@@ -96,9 +106,10 @@ text/rules in `js/utils/notification-format.js`, writes in
 |---|---|---|---|
 | `rate_change` | an item rate is changed (edit dialog or inline rate box; old value = value when editing started) | everyone except the person who changed it; wholesale rates: owners and managers only | live |
 | `item_edit` (`action: added/updated`) | item added, or its name / Hindi name / contact changed | owners (except the person who changed it) | live |
+| `cash_open` (`date`, `amount` = opening) | the day's cash is opened (Today › Cash; not when a phone joins an already open day) | owners and managers (except the person who opened it); any member may send it (rules: `cashNoteOk`) | live |
+| `cash_close` (`date`, `amount` = counted, `difference`) | the day's cash is closed with a count; short / extra shown when not zero. Auto-closed past days don't notify | owners and managers (except the person who closed it) | live |
 | `edit` (`documentType`) | a bill / sale / payment was edited | owners | text supported; no sender wired yet |
 | `review_flag` | an open review-queue flag | owners/managers | planned |
-| `cash_mismatch` | cash session closed with a difference | owners/managers | planned |
 | `stale_outbox` | writes not synced for a long time on a device | that user + owners | planned |
 | `print_failure` | a bill failed to print | that user | planned |
 | `backup_failure` | nightly backup failed | owners | planned |

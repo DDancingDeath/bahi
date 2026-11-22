@@ -66,14 +66,23 @@ describe('plan (utils/phone-reminders.js)', () => {
         expect(planReminders({ ...input, prefs: notifyPrefs({ on: false }, { role: 'owner', granted: true }) })).toEqual([]);
     });
 
-    test('defaults: Bell and To do for everyone, Udhaar for owner / manager, Rent for rentals, Backup for the owner; off without permission', () => {
-        expect(notifyPrefs(null, { role: 'staff', granted: true, defaultOn: true }).types).toEqual({ bell: true, todo: true, udhaar: false, rent: false, backup: false });
-        expect(notifyPrefs(null, { role: 'manager', rentals: true, granted: true, defaultOn: true }).types).toEqual({ bell: true, todo: true, udhaar: true, rent: true, backup: false });
+    test('defaults: To do for everyone, Udhaar for owner / manager, Rent for rentals, Backup for the owner; off without permission', () => {
+        expect(notifyPrefs(null, { role: 'staff', granted: true, defaultOn: true }).types).toEqual({ todo: true, udhaar: false, rent: false, backup: false });
+        expect(notifyPrefs(null, { role: 'manager', rentals: true, granted: true, defaultOn: true }).types).toEqual({ todo: true, udhaar: true, rent: true, backup: false });
         expect(notifyPrefs(null, { role: 'owner', granted: true, defaultOn: true }).on).toBe(true);
         expect(notifyPrefs(null, { role: 'owner', granted: false, defaultOn: true }).on).toBe(false);
         expect(notifyPrefs(null, { role: 'owner', granted: true, defaultOn: false }).on).toBe(false);
         expect(notifyPrefs({ on: true }, { role: 'owner', granted: false }).on).toBe(false);
         expect(notifyPrefs({ time: '25:00' }, { role: 'owner' }).time).toBe('09:30');
+    });
+
+    test('updates from others: per kind for whoever gets them, on by default, role changes always; independent of the master switch', () => {
+        const staff = notifyPrefs({ on: false }, { role: 'staff', granted: true });
+        expect(staff.updatesAllowed).toEqual({ rate: true, item: false, cashOpen: false, cashClose: false, role: true });
+        expect(staff.updates).toEqual({ rate: true, item: false, cashOpen: false, cashClose: false, role: true });
+        const mgr = notifyPrefs({ cashOpen: false, rate: false, role: false }, { role: 'manager' });
+        expect(mgr.updates).toEqual({ rate: false, item: false, cashOpen: false, cashClose: true, role: true });
+        expect(notifyPrefs(null, { role: 'owner' }).updates).toEqual({ rate: true, item: true, cashOpen: true, cashClose: true, role: true });
     });
 
     test('helpers: plan key, our ids among pending ones, udhaar total', () => {
@@ -245,7 +254,32 @@ describe('Android app (@capacitor/local-notifications, mocked)', () => {
         expect(sent).toMatchObject({ channelId: 'bahi', extra: { route: 'bell' } });
         expect(sent.body).toMatch(/Wheat/);
         PhoneNotify.setType('bell', false);
+        expect(PhoneNotify.bell([n], 'u1')).toBe(true);
+        PhoneNotify.setUpdate('rate', false);
         expect(PhoneNotify.bell([n], 'u1')).toBe(false);
+        expect(JSON.parse(localStorage.getItem(NOTIFY_PREFS_KEY)).rate).toBe(false);
+        PhoneNotify.setUpdate('role', false);
+        expect(PhoneNotify.wants({ type: 'role_change', newRole: 'manager' })).toBe(true);
+    });
+
+    test('cash opened / closed: a status-bar notification that opens Today › Cash; its own switch', async () => {
+        const { ln, listeners } = nativePlugin();
+        await PhoneNotify.start('u1');
+        listeners['app:appStateChange']({ isActive: false });
+        const n = { id: 'c1', type: 'cash_close', amount: 12300, difference: -200, changedBy: 'Ramesh' };
+        expect(PhoneNotify.bell([n], 'u1')).toBe(true);
+        await Promise.resolve();
+        const sent = ln.schedule.mock.calls.map(c => c[0].notifications[0]).find(x => x.id === NOTIFY_IDS.bell);
+        expect(sent.extra.route).toBe('cash');
+        expect(sent.body).toBe('Cash closed by Ramesh · counted ₹12,300 · short ₹200');
+        PhoneNotify.setUpdate('cashClose', false);
+        expect(PhoneNotify.bell([n], 'u1')).toBe(false);
+        expect(PhoneNotify.bell([{ ...n, id: 'c2', type: 'cash_open', amount: 5000 }], 'u1')).toBe(true);
+        const showTab = jest.fn();
+        window.app = { nav: { showTab } };
+        listeners.localNotificationActionPerformed({ notification: { extra: { route: 'cash' } } });
+        expect(showTab).toHaveBeenCalledWith('day-cash');
+        delete window.app;
     });
 
     test('a tap opens the bell; a tap before sign-in waits for it', async () => {
@@ -262,14 +296,20 @@ describe('Android app (@capacitor/local-notifications, mocked)', () => {
         delete window.app;
     });
 
-    test('an app built without the plugin: no card, nothing thrown', async () => {
+    test('an app built without the plugin: only the update switches, nothing thrown', async () => {
         window.Capacitor = { isNativePlatform: () => true, Plugins: {} };
+        AppState.userRole = 'staff';
         await PhoneNotify.start('u1');
         expect(PhoneNotify.platform()).toBeNull();
         await expect(PhoneNotify.planNow()).resolves.toBeUndefined();
-        document.body.innerHTML = '<div id="notifSettingsCard" hidden></div>';
+        document.body.innerHTML = '<div id="notifSettingsCard" hidden><div data-notify-phone></div>'
+            + '<div data-notify-update="rate"><input type="checkbox"></div><div data-notify-update="cashOpen"><input type="checkbox"></div></div>';
         await PhoneNotify.renderSettings();
-        expect(document.getElementById('notifSettingsCard').hidden).toBe(true);
+        expect(document.getElementById('notifSettingsCard').hidden).toBe(false);
+        expect(document.querySelector('[data-notify-phone]').hidden).toBe(true);
+        expect(document.querySelector('[data-notify-update="rate"]').hidden).toBe(false);
+        expect(document.querySelector('[data-notify-update="rate"] input').checked).toBe(true);
+        expect(document.querySelector('[data-notify-update="cashOpen"]').hidden).toBe(true);
     });
 });
 

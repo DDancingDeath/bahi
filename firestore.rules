@@ -520,10 +520,10 @@ service cloud.firestore {
 
     function validNotificationCreate(u, docId) {
       let d = request.resource.data;
-      return isManagerIn(u)
+      return (d.get('type', '') in ['cash_open', 'cash_close'] || (isManagerIn(u)
         && d.keys().hasOnly(['type', 'action', 'fields', 'itemId', 'itemName', 'itemHindiName',
                              'rateType', 'rateTypeLabel', 'oldRate', 'newRate', 'newRole',
-                             'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])
+                             'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])))
         && d.get('changedByUserId', null) == request.auth.uid
         && d.get('userId', null) is string && d.userId.size() > 0 && d.userId != request.auth.uid
         && d.get('eventKey', null) is string && docId == d.eventKey + '_' + d.userId
@@ -539,6 +539,7 @@ service cloud.firestore {
               && rateValueOk(d, 'oldRate') && rateValueOk(d, 'newRate')
               && !d.keys().hasAny(['action', 'fields'])
             : d.get('type', null) == 'role_change' ? roleNoteOk(u, d)
+            : d.type in ['cash_open', 'cash_close'] ? cashNoteOk(u, d)
             : d.get('type', null) == 'item_edit'
               && d.get('action', null) in ['added', 'updated']
               && d.get('fields', []) is list
@@ -552,6 +553,12 @@ service cloud.firestore {
       return isOwnerIn(u) && d.get('newRole', '') in ['manager', 'staff'] && activeOwnerData(get(p).data)
         && getAfter(p).data.get('role', '') == d.newRole && d.keys().hasOnly(['type', 'newRole', 'changedBy',
              'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp']);
+    }
+
+    function cashNoteOk(u, d) {
+      return get(/databases/$(database)/documents/$(u)/$(d.userId)).data.get('role', '') in ['owner', 'manager']
+        && d.keys().hasOnly(['type', 'date', 'amount', 'difference', 'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])
+        && d.date is string && d.amount is number && d.get('difference', 0) is number;
     }
 
     function notificationReadOnly() {

@@ -36,6 +36,7 @@ const TOAST_MS = 5000;
 const rowIcon = (type) => (type === 'rate_change' ? icon('tag')
     : type === 'item_edit' ? icon('box')
         : type === 'role_change' ? icon('user')
+        : type === 'cash_open' || type === 'cash_close' ? icon('wallet')
         : type === 'edit' ? icon('receipt') : icon('bell'));
 
 /** Message for a listener / query failure. */
@@ -178,7 +179,7 @@ const NotificationsManager = {
         this.renderBadge();
 
         if (initial) {
-            const count = this.unread.length;
+            const count = this.alerting().length;
             if (count > 0 && !meta.fromCache) {
                 UIManager.showToast(t('msg.notifications.new_notification_s_tap_bell', { badgeText: badgeText(count) }), TOAST_MS);
             }
@@ -187,17 +188,23 @@ const NotificationsManager = {
         // Older unread docs slide into the window when others are marked read: no toast for those.
         const fresh = arrivals.map(id => this.unread.find(n => n.id === id))
             .filter(n => n && (!notificationTime(n) || notificationTime(n) >= this.startedAt - 60000));
-        if (!fresh.length) return;
-        const latest = fresh[0];
-        const text = fresh.length > 1
-            ? `${notificationText(latest)} (+${fresh.length - 1})`
-            : notificationText(latest);
-        UIManager.showToast(text, TOAST_MS);
-        PhoneNotify.bell(fresh, uid);
-        if (this.panelOpen) {
+        if (this.panelOpen && fresh.length) {
             this.panelItems = prepareList([...fresh, ...this.panelItems]);
             this.renderPanel();
         }
+        const shown = fresh.filter(n => PhoneNotify.wants(n));
+        if (!shown.length) return;
+        const latest = shown[0];
+        const text = shown.length > 1
+            ? `${notificationText(latest)} (+${shown.length - 1})`
+            : notificationText(latest);
+        UIManager.showToast(text, TOAST_MS);
+        PhoneNotify.bell(shown, uid);
+    },
+
+    /** Unread items whose kind is switched on here (switched-off kinds stay in the inbox list only). */
+    alerting() {
+        return this.unread.filter(n => PhoneNotify.wants(n));
     },
 
     /** @private */
@@ -229,7 +236,7 @@ const NotificationsManager = {
     renderBadge() {
         const badge = document.getElementById('notifBadge');
         const bell = document.getElementById('notifBell');
-        const text = badgeText(this.unread.length + this.unseenRentCount());
+        const text = badgeText(this.alerting().length + this.unseenRentCount());
         if (badge) {
             badge.textContent = text;
             badge.hidden = !text;

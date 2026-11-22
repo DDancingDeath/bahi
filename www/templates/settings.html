@@ -423,17 +423,41 @@
 
         <div class="panel panel-pad set-panel" id="notifSettingsCard" hidden>
             <h3 class="set-title" data-i18n="ui.common.notifications">Notifications</h3>
-            <label class="set-toggle">
-                <span data-i18n="ui.notify.master">Phone notifications</span>
-                <input type="checkbox" class="switch" id="settingPhoneNotifications" data-onchange="notifications.setPhone(this.checked)">
-            </label>
-            <p class="setting-description" id="notifPermNote" role="status" hidden></p>
-            <div data-notify-type="bell">
+            <div data-notify-phone>
                 <label class="set-toggle">
-                    <span data-i18n="ui.notify.type_bell">Bell updates</span>
-                    <input type="checkbox" class="switch" id="notifTypeBell" data-onchange="notifications.setType('bell', this.checked)">
+                    <span data-i18n="ui.notify.master">Phone notifications</span>
+                    <input type="checkbox" class="switch" id="settingPhoneNotifications" data-onchange="notifications.setPhone(this.checked)">
+                </label>
+                <p class="setting-description" id="notifPermNote" role="status" hidden></p>
+            </div>
+            <h4 class="set-subtitle" data-i18n="ui.notify.group_updates">Updates from others</h4>
+            <p class="setting-description" data-i18n="ui.notify.updates_hint">In the bell and on the phone. Switched off: still listed in the bell, without a pop-up or count. Role changes always come.</p>
+            <div data-notify-update="rate">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.update_rate">Rate changes</span>
+                    <input type="checkbox" class="switch" id="notifUpdateRate" data-onchange="notifications.setUpdate('rate', this.checked)">
                 </label>
             </div>
+            <div data-notify-update="item">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.update_item">Item edits</span>
+                    <input type="checkbox" class="switch" id="notifUpdateItem" data-onchange="notifications.setUpdate('item', this.checked)">
+                </label>
+            </div>
+            <div data-notify-update="cashOpen">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.update_cash_open">Cash opened</span>
+                    <input type="checkbox" class="switch" id="notifUpdateCashOpen" data-onchange="notifications.setUpdate('cashOpen', this.checked)">
+                </label>
+            </div>
+            <div data-notify-update="cashClose">
+                <label class="set-toggle">
+                    <span data-i18n="ui.notify.update_cash_close">Cash closed</span>
+                    <input type="checkbox" class="switch" id="notifUpdateCashClose" data-onchange="notifications.setUpdate('cashClose', this.checked)">
+                </label>
+            </div>
+            <div data-notify-phone>
+            <h4 class="set-subtitle" data-i18n="ui.notify.group_reminders">Reminders</h4>
             <div data-notify-type="todo">
                 <label class="set-toggle">
                     <span data-i18n="ui.notify.type_todo">To do reminders</span>
@@ -469,6 +493,7 @@
                 <button class="btn" type="button" data-onclick="notifications.test()" data-i18n="ui.notify.test">Send test notification</button>
             </div>
             <p class="setting-description" id="notifPlatformNote"></p>
+            </div>
         </div>
 
         <div class="panel panel-pad set-panel" id="crashReportsCard" hidden>

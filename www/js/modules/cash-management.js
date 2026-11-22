@@ -822,7 +822,10 @@ export class CashManagementManager {
 
             await withCashLock('open', async () => {
                 const { session: opened, joined } = await FirebaseService.openCashSession(session);
-                if (!joined) AuditService.note(AuditService.ACTIONS.CASH_OPEN, { date: opened.date, openingBalance: opened.openingBalance });
+                if (!joined) {
+                    AuditService.note(AuditService.ACTIONS.CASH_OPEN, { date: opened.date, openingBalance: opened.openingBalance });
+                    FirebaseService.notifyCash?.('open', opened);
+                }
                 this.todaySession = opened;
                 await this.calculateTodayTransactions();
                 this.updateUI();
@@ -928,6 +931,7 @@ export class CashManagementManager {
             });
             this.clearOfflineCount();
             this.todaySession = updatedSession;
+            FirebaseService.notifyCash?.('close', updatedSession);
             this.updateUI();
             this.renderHistory();
             

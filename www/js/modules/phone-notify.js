@@ -13,7 +13,7 @@ import { t } from '../i18n/index.js';
 import { pickLang } from '../i18n/localize.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { on, REFRESH, REMINDERS_CHANGED, TODOS_CHANGED } from '../utils/events.js';
-import { describeNotification } from '../utils/notification-format.js';
+import { describeNotification, wantsUpdate, UPDATE_KINDS, ALWAYS_ON_KINDS } from '../utils/notification-format.js';
 import { rentReminder } from '../utils/reminders.js';
 import { drillReminder } from '../utils/backup-verify.js';
 import { billsForKind } from '../utils/party-due.js';
@@ -34,7 +34,7 @@ const SMALL_ICON = 'ic_stat_bahi';
 const RESCHEDULE_MS = 1500;
 const FIRST_PLAN_MS = 8000;
 const TEST_LATER_MS = 10000;
-const ROUTES = new Set(['bell', 'todo', 'udhaar', 'rent', 'backup', 'test']);
+const ROUTES = new Set(['bell', 'cash', 'todo', 'udhaar', 'rent', 'backup', 'test']);
 
 const capacitor = () => (typeof window !== 'undefined' ? window.Capacitor : null);
 const isNative = () => !!capacitor()?.isNativePlatform?.();
@@ -90,6 +90,11 @@ export const PhoneNotify = {
     enabled(type) {
         const p = this.prefs();
         return p.on && !!p.types[type];
+    },
+
+    /** Whether bell item `n` should toast, badge and phone-notify (its kind's switch on this phone). */
+    wants(n) {
+        return wantsUpdate(n, this.stored());
     },
 
     /** The app is on screen (then the bell and its toast are enough). */
@@ -345,14 +350,15 @@ export const PhoneNotify = {
      * front. Never for this person's own changes (they are never sent to them either).
      */
     bell(fresh, uid) {
-        if (!uid || uid !== this.uid || !this.enabled('bell') || this.foreground()) return false;
-        const list = (fresh || []).filter(n => n && n.byUid !== uid && n.createdBy !== uid);
+        if (!uid || uid !== this.uid || !this.prefs().on || this.foreground()) return false;
+        const list = (fresh || []).filter(n => n && n.byUid !== uid && n.createdBy !== uid && this.wants(n));
         if (!list.length) return false;
         const d = describeNotification(list[0]);
         const name = APP_IDENTITY.appName || 'Bahi';
         const title = list.length > 1 ? t('ui.notify.bell_many', { app: name, count: list.length }) : name;
         const body = `${pickLang(d)}${d.who ? ` — ${d.who}` : ''}`;
-        this.show({ id: NOTIFY_IDS.bell, title, body, route: 'bell', tag: 'happa-bell' })
+        const route = list.length === 1 && d.target?.tab === 'day-cash' ? 'cash' : 'bell';
+        this.show({ id: NOTIFY_IDS.bell, title, body, route, tag: 'happa-bell' })
             .catch(e => console.warn('Bell notification failed:', e?.message || e));
         return true;
     },
@@ -367,6 +373,7 @@ export const PhoneNotify = {
         }
         const app = window.app;
         if (page === 'bell') app.notifications?.open?.();
+        else if (page === 'cash') app.nav.showTab('day-cash');
         else if (page === 'todo') {
             setDisclosureOpen(TODAY_REMINDERS_KEY, true);
             app.nav.showTab('day');
@@ -405,6 +412,13 @@ export const PhoneNotify = {
         if (type === 'todo') this.listenTodos();
         this.renderSettings();
         this.reschedule();
+    },
+
+    /** A switch under "Updates from others": the bell's toast and badge and the phone, on this phone. */
+    setUpdate(kind, checked) {
+        if (!UPDATE_KINDS.includes(kind) || ALWAYS_ON_KINDS.includes(kind)) return;
+        this.save({ [kind]: !!checked });
+        this.renderSettings();
     },
 
     setTime(value) {
@@ -446,7 +460,15 @@ export const PhoneNotify = {
         const card = typeof document !== 'undefined' ? document.getElementById('notifSettingsCard') : null;
         if (!card) return;
         const kind = this.platform();
-        card.hidden = !kind;
+        card.hidden = false;
+        card.querySelectorAll('[data-notify-phone]').forEach(el => { el.hidden = !kind; });
+        const u = this.prefs();
+        UPDATE_KINDS.forEach(k => {
+            const row = card.querySelector(`[data-notify-update="${k}"]`);
+            if (row) row.hidden = !u.updatesAllowed[k];
+            const box = row?.querySelector('input');
+            if (box) box.checked = !!u.updates[k];
+        });
         if (!kind) return;
         await this.readNotifyPermission();
         const p = this.prefs();
