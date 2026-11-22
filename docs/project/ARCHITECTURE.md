@@ -5,7 +5,7 @@ Status: Phase 0 (review + ratchet), 31 Oct 2026, `main` at `ca6f2ba`; phases 2aâ
 instead of calling pages) done since.
 Owner's goal: core logic decoupled from the UI, and every calculation in one
 place where it can be reviewed. This page says where we are, where we are going,
-which function owns each number in [calculations.md](calculations.md), and the
+which function owns each number in [calculations.md](../calculations.md), and the
 order of the refactor PRs. The ratchet test
 `www/js/__tests__/architecture-guard.test.js` stops things getting worse
 meanwhile (section 6).

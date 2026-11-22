@@ -6,7 +6,7 @@
  * Unicode form (NFC) ignored. Nothing else is folded: "Ramesh Ji", "R. Kumar",
  * "रमेश" and a nukta letter (क़ vs क) stay separate parties.
  * Dues, statements, Insights and the cash page group, filter and compare parties
- * through here (#139); the exceptions are listed in docs/architecture.md (PARTY row).
+ * through here (#139); the exceptions are listed in docs/project/ARCHITECTURE.md (PARTY row).
  * Pure: no DOM, Firestore or AppState.
  * @module utils/parties
  */

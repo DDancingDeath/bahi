@@ -2,7 +2,7 @@
  * @fileoverview FirebaseService: the one object pages and services use for every Firestore read
  * and write. It is put together from the data layer's modules (firebase/core/*: listeners, history
  * window, stock and its checkpoint; firebase/repos/*: one per collection family), whose method
- * objects are spread in, so callers, `this` and test spies see one object (docs/architecture.md).
+ * objects are spread in, so callers, `this` and test spies see one object (docs/project/ARCHITECTURE.md).
  * @module firebase/firestore-service
  */
 

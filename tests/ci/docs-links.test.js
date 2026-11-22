@@ -71,7 +71,7 @@ describe('docs link check', () => {
 
     test('finds the docs', () => {
         expect(files.map(f => path.relative(ROOT, f).replace(/\\/g, '/'))).toEqual(
-            expect.arrayContaining(['README.md', 'AGENTS.md', 'docs/architecture.md'])
+            expect.arrayContaining(['README.md', 'AGENTS.md', 'docs/project/ARCHITECTURE.md'])
         );
     });
 

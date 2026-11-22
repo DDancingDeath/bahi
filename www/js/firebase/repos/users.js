@@ -1,5 +1,5 @@
 /**
- * @fileoverview Repository of user profiles (`users/{uid}`, docs/architecture.md
+ * @fileoverview Repository of user profiles (`users/{uid}`, docs/project/ARCHITECTURE.md
  * phase 4) for sign-in and registration: the profile read (cache first, or from
  * the server), the person's saved period ranges (#140) and the pending profile made on registration; the team directory
  * `settings/team` (#87); and each person's phone list (`deviceLog/{uid}`, #124).

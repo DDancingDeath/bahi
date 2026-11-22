@@ -1,7 +1,7 @@
 /**
  * @fileoverview Repository of Test in Production (#217): the per-device day counters
  * (`tipHealth`) and failure samples (`tipFailures`). Moved verbatim out of
- * firestore-service.js (docs/architecture.md, phase 5).
+ * firestore-service.js (docs/project/ARCHITECTURE.md, phase 5).
  * @module firebase/repos/tip-health
  */
 

@@ -4,6 +4,11 @@
 > before doing anything else**. It will save you (and the human) a lot of
 > wasted turns.
 
+**Project docs** ([docs/project/](docs/project/README.md)). What and why: [docs/project/PRD.md](docs/project/PRD.md). Where each rule lives: [docs/project/RULES.md](docs/project/RULES.md)
+(an index; this file stays authoritative for agent rules). Past decisions: [docs/project/DECISIONS.md](docs/project/DECISIONS.md).
+Work: GitHub issues, see [docs/project/TASKS.md](docs/project/TASKS.md). Read [docs/project/MEMORY.md](docs/project/MEMORY.md) when relevant, but treat
+it as possibly stale. Update DECISIONS.md / MEMORY.md in the same PR when your change makes or settles a decision.
+
 ---
 
 ## 1. What this repo is
@@ -680,7 +685,7 @@ skipped with its issue while the bug is open, and give it a cause in
 ### Architecture rules
 
 Target layers and the order of the refactor are in
-[docs/architecture.md](docs/architecture.md): calc (pure, `www/js/utils/`) →
+[docs/project/ARCHITECTURE.md](docs/project/ARCHITECTURE.md): calc (pure, `www/js/utils/`) →
 services → repositories → UI. Anywhere in `www/js` (`modules/`, `rentals/`,
 `ui/`, `services/`, `auth/`, `main.js`, …):
 
@@ -717,7 +722,7 @@ fails unless the baseline's `exceptions` records it
       updated its entry in `docs/calculations.md` and its oracle test in
       `tests/oracle/` (review rule `displayed-number-spec` warns).
 - [ ] Architecture ratchet green; lowered `tests/architecture-baseline.json` if a
-      count went down (docs/architecture.md).
+      count went down (docs/project/ARCHITECTURE.md).
 - [ ] New user-facing text in both `i18n/en.js` and `i18n/hi.js`; no "staff".
 - [ ] Changed what a page shows or does (or how a number on it is worked out) →
       updated that page's doc, `docs/pages/<page>.md` and `docs/pages/<page>.hi.md`, in

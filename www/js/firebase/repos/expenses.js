@@ -1,7 +1,7 @@
 /**
  * @fileoverview Expenses, business (`expenses`) and personal (`personalExpenses`, with their day
  * totals in `personalExpenseDays`, #98): saves shown at once also offline, edits, void (#99) and
- * delete. Moved verbatim out of firestore-service.js (docs/architecture.md, phase 5, #69).
+ * delete. Moved verbatim out of firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/repos/expenses
  */
 

@@ -2,7 +2,7 @@
  * @fileoverview The data listeners of a signed-in session: items, the stock checkpoint, the history
  * window and dues of each history collection and the item order, started once after sign-in and
  * stopped by cleanup(); and what Diagnostics shows about them. Moved verbatim out of
- * firestore-service.js (docs/architecture.md, phase 5, #69).
+ * firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/core/listeners
  */
 

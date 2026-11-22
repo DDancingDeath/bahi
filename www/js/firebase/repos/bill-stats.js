@@ -2,7 +2,7 @@
  * @fileoverview Repository of the figures built from bills: rate trends
  * (`rateStats/{itemId}_{YYYY}`, #65, with the bill pages its backfill reads) and month
  * snapshots (`monthStats/{YYYY-MM}`, redesign §7.6); owner/manager only (rules). Moved
- * verbatim out of firestore-service.js (docs/architecture.md, phase 5).
+ * verbatim out of firestore-service.js (docs/project/ARCHITECTURE.md, phase 5).
  * @module firebase/repos/bill-stats
  */
 

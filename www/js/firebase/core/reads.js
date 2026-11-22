@@ -1,6 +1,6 @@
 /**
  * @fileoverview One-shot Firestore reads that cannot hang (getWithRetry), shared by
- * the data layer. Moved verbatim out of firestore-service.js (docs/architecture.md,
+ * the data layer. Moved verbatim out of firestore-service.js (docs/project/ARCHITECTURE.md,
  * phase 5, #69).
  * @module firebase/core/reads
  */

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Repository of the due-payment and write-off transactions on one bill
- * (docs/architecture.md phase 4): reads the bill (and today's cash session, when
+ * (docs/project/ARCHITECTURE.md phase 4): reads the bill (and today's cash session, when
  * given) from the server inside a transaction, lets the caller decide from that
  * fresh data, and writes what it returns. Bills are saved at doc(String(bill.id)),
  * but legacy documents may only carry an `id` field: when the transaction finds no

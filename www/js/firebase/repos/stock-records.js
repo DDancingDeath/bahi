@@ -1,7 +1,7 @@
 /**
  * @fileoverview Stock adjustments and withdrawals: new records with an id made on the phone, shown at
  * once also offline (#95); a refused write removes them again. Moved verbatim out of
- * firestore-service.js (docs/architecture.md, phase 5, #69).
+ * firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/repos/stock-records
  */
 

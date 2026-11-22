@@ -1,7 +1,7 @@
 /**
  * @fileoverview Characterisation of the three bill forms (purchase, retail,
  * wholesale) before their maths moves to utils/calc/billing.js
- * (docs/architecture.md §5, plan step 2f). Each test drives the form the way the
+ * (docs/project/ARCHITECTURE.md §5, plan step 2f). Each test drives the form the way the
  * page does and pins what the screen shows, the saved bill document and the
  * payment split, rounding included. Recorded against the code before the move
  * (step 2f: whole-rupee lines, paise totals). Re-recorded for #129 (owner

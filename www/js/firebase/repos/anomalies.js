@@ -1,7 +1,7 @@
 /**
  * @fileoverview Repository of anomaly records (`anomalies`, #187; owner/manager only by
  * the rules) and the audit-log range read of Diagnostics and the anomaly scan. Moved
- * verbatim out of firestore-service.js (docs/architecture.md, phase 5).
+ * verbatim out of firestore-service.js (docs/project/ARCHITECTURE.md, phase 5).
  * @module firebase/repos/anomalies
  */
 
