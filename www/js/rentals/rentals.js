@@ -284,7 +284,7 @@ function renderRent(d) {
     const rows = unitRows(d, state.month);
     notePage(d, ix, rows);
     const by = viewBy();
-    return state.by === 'owes' || !d.properties.length ? renderMonth(d, ix, rows, by) : lazyMods.advanced.renderAdvanced(unitCtx(), d, rows, by);
+    return state.by === 'owes' ? renderMonth(d, ix, rows, by) : lazyMods.advanced.renderAdvanced(unitCtx(), d, rows, by);
 }
 
 /** This month's View by: Who owes | Property | Unit. */
@@ -304,7 +304,7 @@ function renderMonth(d, ix, rows, by = '') {
     const paid = all.filter(a => !a.ended && a.dues.total <= 0);
     const title = `<h3 class="rent-month-title">${esc(monthLabel(state.month, lang))}</h3>`;
     if (!d.properties.length) {
-        return `${title}${emptyState({ icon: 'building', title: t('ui.rent.start_hint') })}`
+        return `${title}${by}${emptyState({ icon: 'building', title: t('ui.rent.start_hint') })}`
             + (canWrite() ? btn(' btn-primary', 'page', `'properties'`, 'ui.rent.add_property', icon('plus', 'i-sm')) : '');
     }
     const summary = `<div class="panel panel-pad rent-collect">

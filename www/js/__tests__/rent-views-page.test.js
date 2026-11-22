@@ -199,6 +199,7 @@ describe('This month, View by Who owes (the default)', () => {
         global.__rentData = { ...DATA, properties: [], units: [], tenants: [], leases: [], charges: [] };
         const root = await show('owes');
         expect(root.textContent).toContain('Start by adding a property and its units.');
+        expect(root.querySelector('[data-rent-by="owes"]').getAttribute('aria-pressed')).toBe('true');
         let renders = 0;
         new MutationObserver(() => { renders++; }).observe(root, { childList: true });
         await new Promise(r => setTimeout(r, 300));
