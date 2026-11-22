@@ -13,7 +13,7 @@ const ROWS = [1, 2, 3].map(n => ({
 }));
 
 // Draws three rows into a list of their own, so the page's own redraws can't replace them
-const drawRows = (page) => page.evaluate(async (rows) => {
+const drawRows = (page, rows = ROWS) => page.evaluate(async (rows) => {
     const { AnomaliesManager } = await import('/js/modules/anomalies.js');
     document.getElementById('e2eAnomList')?.remove();
     const list = document.createElement('div');
@@ -22,7 +22,7 @@ const drawRows = (page) => page.evaluate(async (rows) => {
     list.innerHTML = rows.map(a => AnomaliesManager.rowHtml(a)).join('');
     document.getElementById('anomalyListView').prepend(list);
     list.scrollIntoView({ block: 'center' });
-}, ROWS);
+}, rows);
 
 const layout = (page) => page.evaluate(() => {
     const box = (el) => { const r = el.getBoundingClientRect(); return { top: Math.round(r.top), left: Math.round(r.left), right: Math.round(r.right), bottom: Math.round(r.bottom), height: Math.round(r.height) }; };
@@ -98,6 +98,36 @@ test('Anomalies ⋯ menu floats and the row does not reflow (light, dark, Hindi)
     await page.evaluate(() => window.app.i18n.setLang('en'));
     expect(problems.pageErrors).toEqual([]);
     expect(problems.consoleErrors).toEqual([]);
+});
+
+test('phone: the last row\'s ⋯ just above the tab bar opens upwards, clear of the bar', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone', 'phone tab bar');
+    await page.setViewportSize({ width: 360, height: 780 });
+    await login(page, 'owner');
+    await showTab(page, 'anomalies');
+    expect(await settle(page)).toBe(true);
+    // The last row is reviewed: its menu holds only Open, short enough to fit above the window's edge but not the bar
+    await drawRows(page, [...ROWS, { ...ROWS[0], id: 'e2e4', status: 'ok' }]);
+    await page.evaluate(() => {
+        const list = document.getElementById('e2eAnomList');
+        const spacer = document.createElement('div');
+        spacer.style.height = '900px';
+        list.after(spacer);
+        const dots = [...list.querySelectorAll('.anom-overflow > summary')].pop();
+        dots.scrollIntoView({ block: 'end' });
+        const barTop = document.querySelector('.bottom-nav').getBoundingClientRect().top;
+        let el = dots.parentElement;
+        while (el && el !== document.body && !(/(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight)) el = el.parentElement;
+        const scroller = el && el !== document.body ? el : document.scrollingElement;
+        scroller.scrollBy(0, dots.getBoundingClientRect().bottom - (barTop - 40));
+    });
+    await page.locator('#e2eAnomList .anom-overflow > summary').last().click();
+    const r = await page.evaluate(() => {
+        const menu = [...document.querySelectorAll('#e2eAnomList .anom-overflow-menu')].pop();
+        return { up: menu.hasAttribute('data-up'), bottom: menu.getBoundingClientRect().bottom, barTop: document.querySelector('.bottom-nav').getBoundingClientRect().top };
+    });
+    expect(r.up).toBe(true);
+    expect(r.bottom).toBeLessThanOrEqual(r.barTop);
 });
 
 // NEW-20: the focus ring stays inside the border, under the label's notch, on Billing, Expenses and Cash fields

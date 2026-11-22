@@ -20,7 +20,7 @@ export function placeMenu(menu, win = window) {
     list.style.removeProperty('--menu-shift');
     const doc = win.document;
     const bar = doc.querySelector('.bottom-nav');
-    const barTop = bar && bar.offsetParent !== null ? bar.getBoundingClientRect().top : 0;
+    const barTop = bar && bar.getClientRects().length ? bar.getBoundingClientRect().top : 0;
     const bottom = (barTop > 0 ? barTop : win.innerHeight) - EDGE;
     let r = list.getBoundingClientRect();
     const above = menu.getBoundingClientRect().top - EDGE;
