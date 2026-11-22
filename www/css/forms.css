@@ -311,6 +311,14 @@ select:not([multiple]):not([size]) {
   color: var(--accent-text);
 }
 
+/* Focus is drawn inside the border, so the label's notch cuts it like the border and no ring crosses the label (NEW-20) */
+.field-float :is(input, select, textarea, .input):focus,
+.field-float :is(input, select, textarea, .input):focus-visible {
+  border-color: var(--focus-ring);
+  outline: none;
+  box-shadow: var(--focus-inset);
+}
+
 /* ---------- Search field: .search-field > .i (decorative, aria-hidden) + .input with its own label ---------- */
 .search-field {
   position: relative;

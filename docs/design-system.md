@@ -127,7 +127,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   look (C2): Billing and Wholesale use Save `-primary`, Print and Share (`-icon`) the default (the bill's action row is
   Share, Save, Print: Print, the most used, is right-most, in DOM and tab order too; Share is a 48 px icon and Save and Print
   share the rest of the row in equal widths), Add to bill and
-  Rest → due `-tonal`, the bill menu (⋯ `.bill-menu`, a `<details>` like `.rent-menu`, at the end of the Purchase / Retail sale
+  Rest → due `-tonal`, the bill menu (⋯ `.bill-menu`, a `<details>` like `.rent-menu` whose `.panel` list floats; `ui/menus.js` closes it on a pick, a tap elsewhere, Esc or Tab out, moves through it with Up / Down and keeps it in the window, also for the Anomalies rows' ⋯; at the end of the Purchase / Retail sale
   row `.bill-mode-row`: Drafts with its count only when there are some, Save draft, Clear; `.bill-menu-badge` on ⋯ counts the
   drafts) and the contact picker `-ghost`; inside `.bill-sale` (Retail sale) and
   `.ws-entry` (Wholesale) the primary and tonal buttons take the mode's colour. `[data-add-line]` and
@@ -148,7 +148,8 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   holding one, like Billing's `.bill-party` with its contact button): a compact field whose label sits on the
   control's top border and **stays there**, with or without a value, so no extra row is spent on labels. It is a real
   `<label for>` (never a placeholder as label; a placeholder may add a hint such as "Name (optional)" or "Pick"). The
-  label is `--fs-label` (14 px, the #68 minimum; nothing smaller), `--ink-2` (`--accent-text` while the field has focus),
+  label is `--fs-label` (14 px, the #68 minimum; nothing smaller), `--ink-2` (`--accent-text` while the field has focus;
+  the focus ring is `--focus-inset`, inside the border, so the label's notch cuts it and it never crosses the label, NEW-20),
   one line with an ellipsis; its lower half takes `--input-bg` to cut the border and its upper half is clear, so it
   needs no knowledge of the surface behind it (page, panel or sheet, any theme or mode). Leave about `--sp-3` free above
   the field for the label's upper half. A field error or a party line goes after the `.field-float`
@@ -269,8 +270,8 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   tables `.table`, pass rates tinted cells, and Today's below-target banner a `.notice.neg`. Anomalies: filters are
   `.field`s in a panel with a `.search-field`, List | Patterns are `.tabs`, rows (also on Today's Day report) are `.row`s
   with a severity dot (no stripe), `.tag` status, one `.btn-sm.btn-tonal` review button ("Looks right", or "Reopen") and the
-  rest (Open, Correct rate, "I corrected it") as ghost buttons in a ⋯ `<details class="anom-overflow">` like Outstanding's
-  `.aging-more`, so a row never wraps on a phone; amounts `moneyHtml()`; the heat map and the
+  rest (Open, Correct rate, "I corrected it") as ghost buttons in a ⋯ menu `<details class="anom-overflow">` whose `.panel`
+  list floats over the rows below like Billing's ⋯ (NEW-19: opening it moves nothing), so a row never wraps on a phone; amounts `moneyHtml()`; the heat map and the
   by-hour bars draw from `--a` / `--h` custom properties and the trend chart's axis text from the theme's muted ink.
 - **Admin (5.8b)**: Users | Data are `.tabs` (Aadhat settings is a ghost button beside them); each list of people is a `.panel`
   of `.row`s (name, email, a `.tag` for the role or status) with small `.btn`s below; the activity range is a `.seg` and the
@@ -415,7 +416,7 @@ counts toward the 1.5 KB. A look that tokens can't express needs a new token in 
 |---|---|
 | `tests/ci/colour-guard.test.js` | a hard-coded colour outside the allowlist (see "Strict guards" below) |
 | `tests/ci/type-guard.test.js` | a raw `font-size` / `font-weight` outside the allowlist |
-| `www/js/__tests__/billing-entry.test.js`, `tests/e2e/billing-entry.spec.js` | `.field-float`: a field without its own `<label for>`, a label hidden or moved by whether the field has a value, `--fs-label` under 14 px; Billing's 🎙 / 📷 shown without their setting |
+| `www/js/__tests__/billing-entry.test.js`, `tests/e2e/billing-entry.spec.js` | `.field-float`: a field without its own `<label for>`, a label hidden or moved by whether the field has a value, `--fs-label` under 14 px, an outer focus ring over the label (NEW-20); Billing's 🎙 / 📷 shown without their setting |
 | `tests/ci/ds-guard.test.js` | raw spacing, radius, shadow or z-index, `!important`, an `#id` or `.dark-mode` / `[data-theme]` selector, an inline style, an emoji, a Title Case label or a legacy component class outside the allowlist; an allowlist entry without a known list or a reason; a selector written in a second stylesheet or a new component-family root (`tests/ds-components.json`) |
 | `tests/ci/themes.test.js` | a theme missing from the registry, `styles.css` or i18n; a non-token rule or a colour outside `@media screen` in a theme file; a theme over 1.5 KB gzip; a rule in `www/css` or a template `<style>` that sets an accent, sale, wholesale, positive or negative fill and white text together |
 | `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1, or a control edge, chosen segment or focus ring under 3:1, in any theme × mode |

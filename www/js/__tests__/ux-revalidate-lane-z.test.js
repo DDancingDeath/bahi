@@ -47,12 +47,14 @@ describe('F05: Today › Cash figures', () => {
     });
 });
 
-test('F07: on desktop the Day report buttons take the row and wrap, so "I corrected" is never cut off', () => {
+test('F07: on desktop the Day report buttons take the row, so "I corrected" is never cut off', () => {
     const css = read('css/desktop.css');
     const rule = css.match(/\.day-report \.anom-actions \{([^}]*)\}/);
     expect(rule[1]).toMatch(/flex: 1 1 100%/);
     expect(rule[1]).toMatch(/min-width: 0/);
-    expect(read('css/anomalies.css')).toMatch(/\.anom-actions \{[^}]*flex-wrap: wrap/);
+    // One button and ⋯ on one line (NEW-19); "I corrected it" is in the ⋯ menu, which floats
+    expect(read('css/anomalies.css')).toMatch(/\.anom-actions \{[^}]*flex-wrap: nowrap/);
+    expect(read('css/anomalies.css')).toMatch(/\.anom-overflow-menu \{[^}]*position: absolute/);
 });
 
 test('F25: on a phone the items table leaves out "vs last year" so Profit per ₹100 fits', () => {

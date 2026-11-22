@@ -8,7 +8,7 @@
  * @module utils/quota-guard
  */
 
-import { t } from '../i18n/index.js';
+import { t, LANG_CHANGE_EVENT } from '../i18n/index.js';
 import { icon } from '../ui/icons.js';
 
 /** Warn once when a single app session has read more documents than this. */
@@ -187,12 +187,19 @@ export function createQuotaGuard(env = {}) {
         close.innerHTML = icon('x');
         const fit = () => root.style.setProperty('--shell-notice-h', `${el.offsetHeight}px`);
         const watch = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
+        const relabel = () => {
+            text.textContent = quotaBannerText();
+            close.setAttribute('aria-label', t('ui.kbd.close'));
+        };
+        const view = doc.defaultView;
         close.addEventListener('click', () => {
             watch?.disconnect();
+            view?.removeEventListener(LANG_CHANGE_EVENT, relabel);
             el.remove();
             root.style.removeProperty('--shell-notice-h');
             try { storage?.setItem(DISMISS_KEY, '1'); } catch (_) { /* private mode */ }
         });
+        view?.addEventListener(LANG_CHANGE_EVENT, relabel);
         el.append(lead, text, close);
         doc.body.appendChild(el);
         fit();

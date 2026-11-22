@@ -113,6 +113,8 @@
   /* A solid focus ring at 3:1 or more on every surface */
   --focus-ring: var(--accent-text);
   --focus: 0 0 0 3px var(--focus-ring);
+  /* Inside the border: floating-label fields, whose label sits on the border (NEW-20) */
+  --focus-inset: inset 0 0 0 2px var(--focus-ring);
   --table-rule: var(--line);
   --toast-bg: #1d1d24;
   --toast-ink: #f4f4f7;
@@ -1926,6 +1928,14 @@ select:not([multiple]):not([size]) {
 
 .field-float:focus-within > label {
   color: var(--accent-text);
+}
+
+/* Focus is drawn inside the border, so the label's notch cuts it like the border and no ring crosses the label (NEW-20) */
+.field-float :is(input, select, textarea, .input):focus,
+.field-float :is(input, select, textarea, .input):focus-visible {
+  border-color: var(--focus-ring);
+  outline: none;
+  box-shadow: var(--focus-inset);
 }
 
 /* ---------- Search field: .search-field > .i (decorative, aria-hidden) + .input with its own label ---------- */
@@ -4716,6 +4726,7 @@ label {
   min-width: 180px;
   padding: var(--sp-1);
   box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
 }
 
 .bill-menu-list > .btn {
@@ -9853,10 +9864,6 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 /* Rows (card and page): the severity dot, the reason and who / what, then the review buttons */
-.anom-list {
-  overflow: hidden;
-}
-
 .anom-row {
   flex-wrap: wrap;
   align-items: flex-start;
@@ -9922,13 +9929,19 @@ body.no-perm-contacts [data-perm~="contacts"] {
 
 .anom-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: var(--sp-2);
 }
 
 .anom-actions .btn {
   white-space: nowrap;
+}
+
+/* ⋯ floats its list over the rows below (ui/menus.js keeps it in the window), as Billing's ⋯ does: the row never moves */
+.anom-overflow {
+  position: relative;
+  flex: none;
 }
 
 .anom-overflow > summary {
@@ -9939,21 +9952,29 @@ body.no-perm-contacts [data-perm~="contacts"] {
   display: none;
 }
 
-.anom-overflow[open] {
-  flex-basis: 100%;
+.anom-overflow-menu {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: calc(100vw - var(--sp-4));
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
 }
 
-.anom-overflow-menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-top: var(--sp-2);
+.anom-overflow-menu[data-up] {
+  top: auto;
+  bottom: calc(100% + var(--sp-1));
 }
 
 .anom-overflow-menu > .btn {
-  min-width: 0;
-  max-width: 100%;
+  justify-content: flex-start;
   white-space: normal;
+  text-align: left;
 }
 
 /* Page: filters, sections and summary */

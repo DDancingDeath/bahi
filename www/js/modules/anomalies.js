@@ -639,7 +639,7 @@ export const AnomaliesManager = {
                     ${primary}
                     ${more ? `<details class="anom-overflow">
                         <summary class="btn btn-sm btn-ghost btn-icon" aria-label="${esc(t('ui.anom.more_actions'))}">${icon('dots', 'i-sm')}</summary>
-                        <div class="anom-overflow-menu">${more}</div>
+                        <div class="panel anom-overflow-menu">${more}</div>
                     </details>` : ''}
                 </div>
             </div>`;

@@ -108,6 +108,17 @@ describe('i18n catalogues', () => {
             .filter(w => !ALLOWED.has(w) && !(CODE_WORDS[k] || []).includes(w)).map(w => `${k}: ${w}`));
         expect(latin).toEqual([]);
     });
+
+    it('field labels have no trailing colon in either language (NEW-21); "Label: value" text keeps its own', () => {
+        const files = [...listFiles(path.join(WWW, 'templates'), '.html'), ...listFiles(path.join(WWW, 'js'), '.js')];
+        const firstKey = (block) => (/(?:data-i18n="|t\(\s*['"])(ui\.[a-z0-9_]+\.[a-z0-9_]+)/.exec(block) || [])[1];
+        const keys = new Set(files.flatMap(f => [...fs.readFileSync(f, 'utf8').matchAll(/<label\b[^]*?<\/label>/g)]
+            .filter(m => m[0].length < 600).map(m => firstKey(m[0])).filter(Boolean)));
+        ['ui.expenses.expense_type', 'ui.expenses.date', 'ui.expenses.paid_by', 'ui.expenses.person_name_optional',
+            'ui.expenses.remarks_optional', 'ui.billing.bill_date', 'ui.checks.reason_to_save_anyway'].forEach(k => expect(keys).toContain(k));
+        const colon = [...keys].flatMap(k => [['en', en[k]], ['hi', hi[k]]].filter(([, v]) => /[:：]\s*$/.test(v || '')).map(([l, v]) => `${l} ${k}: ${v}`));
+        expect(colon).toEqual([]);
+    });
 });
 
 describe('t()', () => {

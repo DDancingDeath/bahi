@@ -111,6 +111,8 @@
   /* A solid focus ring at 3:1 or more on every surface */
   --focus-ring: var(--accent-text);
   --focus: 0 0 0 3px var(--focus-ring);
+  /* Inside the border: floating-label fields, whose label sits on the border (NEW-20) */
+  --focus-inset: inset 0 0 0 2px var(--focus-ring);
   --table-rule: var(--line);
   --toast-bg: #1d1d24;
   --toast-ink: #f4f4f7;

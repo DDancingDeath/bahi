@@ -436,6 +436,7 @@ label {
   min-width: 180px;
   padding: var(--sp-1);
   box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
 }
 
 .bill-menu-list > .btn {

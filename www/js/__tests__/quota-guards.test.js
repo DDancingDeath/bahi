@@ -53,10 +53,25 @@ describe('quota banner', () => {
         expect(banners).toHaveLength(1);
         expect(banners[0].textContent).toContain(quotaBannerText('en'));
         expect(banners[0].textContent).not.toMatch(/[\u0900-\u097F]/);
-        expect(banners[0].textContent).toMatch(/12:30–13:30 IST/);
         expect(banners[0].textContent).not.toMatch(/staff|स्टाफ/i);
         expect(onQuota).toHaveBeenCalledTimes(1);
         expect(guard.status().quota).toMatchObject({ count: 5, lastSource: 'purchases listen' });
+    });
+
+    test('is short (two lines on a phone) and follows a language switch (NEW-22)', async () => {
+        const { setLang } = await import('../i18n/index.js');
+        const en = (await import('../i18n/en.js')).default;
+        const hi = (await import('../i18n/hi.js')).default;
+        expect(en['ui.quota.banner'].length).toBeLessThanOrEqual(80);
+        expect(hi['ui.quota.banner'].length).toBeLessThanOrEqual(85);
+        createQuotaGuard({ log: quiet }).noteQuotaExhausted('a');
+        const text = () => document.querySelector('#quotaBanner .grow').textContent;
+        expect(text()).toBe(en['ui.quota.banner']);
+        await setLang('hi', { store: null });
+        expect(text()).toBe(hi['ui.quota.banner']);
+        expect(document.querySelector('#quotaBanner button').getAttribute('aria-label')).toBe(hi['ui.kbd.close']);
+        await setLang('en', { store: null });
+        expect(text()).toBe(en['ui.quota.banner']);
     });
 
     test('once dismissed it stays hidden for the rest of the session', () => {

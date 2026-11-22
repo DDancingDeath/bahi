@@ -2039,7 +2039,7 @@ export default {
     'ui.notif.none_yet': "No notifications yet",
     'ui.notif.join_meta': "Open Settings › Team to approve",
     'ui.notif.writeoff_title': "{amount} written off: {bill}",
-    'ui.quota.banner': "Daily free data limit reached — data may not load or save until about 12:30–13:30 IST. Bills saved now are kept on this device and will sync later.",
+    'ui.quota.banner': "Daily free data limit reached. Saving works; some lists may be out of date.",
     'ui.diagnostics.subtitle_owner': "App errors, audit logs and number checks",
     'ui.diagnostics.subtitle_manager': "Number checks on the data loaded on this phone",
     'ui.diagnostics.technical_details': "Technical details",
