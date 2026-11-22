@@ -1081,14 +1081,10 @@ input[type="number"] {
   padding: var(--sp-3) var(--sp-4) 0;
 }
 
-.bill-view-note {
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
-}
-
 .bill-view-note-text {
   color: var(--ink);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .bill-view-items {

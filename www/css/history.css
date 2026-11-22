@@ -851,10 +851,6 @@
   margin-bottom: var(--sp-3);
 }
 
-.bill-view-party {
-  overflow-wrap: anywhere;
-}
-
 .bill-view-paid {
   color: var(--ink-2);
   font-size: var(--fs-sm);

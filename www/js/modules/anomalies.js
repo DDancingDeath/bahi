@@ -18,7 +18,7 @@ import { friendlyError } from '../utils/friendly-error.js';
 import { pickLang } from '../i18n/localize.js';
 import {
     ANOMALY_DEFAULTS, ANOMALY_TYPES, DETECTION_FIELDS, SEVERITIES, SEVERITY_LABELS, STATUS_LABELS,
-    addDaysToKey, anomalyPatterns, anomalyText, billTime, buildDayReportText, detectAnomalies, filterAnomalies,
+    addDaysToKey, anomalyAmountPreset, anomalyPatterns, anomalyText, billTime, buildDayReportText, detectAnomalies, filterAnomalies,
     istDayKey, istDayStartMs, mergeAnomalies, planAnomalyWrites, presetRange, sortAnomalies, summarizeAnomalies, summaryLine, typeLabel,
     voidedByOthers, withoutStoredVoidTwins, withoutUnstockedOversell, withoutVoidedBillChecks
 } from '../utils/anomalies.js';
@@ -612,16 +612,21 @@ export const AnomaliesManager = {
             a.party ? esc(a.party) : '',
             a.item ? `${icon('box', 'i-sm')} ${esc(a.item)}` : '',
             a.user ? `${icon('user', 'i-sm')} ${esc(a.user)}` : '',
-            a.amount ? moneyHtml(a.amount, { exact: true }) : '',
+            a.amount ? moneyHtml(a.amount, anomalyAmountPreset(a)) : '',
             esc(when)
         ].filter(Boolean).join(' · ');
         const id = jsAttr(a.id);
         const canOpen = a.refKind === 'bill' || a.refKind === 'cash' || a.refKind === 'stock';
         const statusBadge = status === 'open' ? '' : `<span class="tag ${status === 'fixed' ? 'info' : 'pos'}">${loc(STATUS_LABELS[status] || STATUS_LABELS.open)}</span>`;
-        const review = status === 'open'
-            ? `<button type="button" class="btn btn-sm btn-tonal" data-onclick="anomalies.review('${id}', 'ok')">${icon('check', 'i-sm')} ${esc(t('ui.anom.btn_ok'))}</button>
-               <button type="button" class="btn btn-sm" data-onclick="anomalies.review('${id}', 'fixed')">${icon('clipCheck', 'i-sm')} ${esc(t('ui.anom.btn_fixed'))}</button>`
-            : `<button type="button" class="btn btn-sm" data-onclick="anomalies.review('${id}', 'open')">${icon('refresh', 'i-sm')} ${esc(t('ui.anom.btn_reopen'))}</button>`;
+        // One tonal action; the rest in the ⋯ menu so the row never wraps on a phone (NEW-16)
+        const primary = status === 'open'
+            ? `<button type="button" class="btn btn-sm btn-tonal" data-onclick="anomalies.review('${id}', 'ok')">${icon('check', 'i-sm')} ${esc(t('ui.anom.btn_ok'))}</button>`
+            : `<button type="button" class="btn btn-sm btn-tonal" data-onclick="anomalies.review('${id}', 'open')">${icon('refresh', 'i-sm')} ${esc(t('ui.anom.btn_reopen'))}</button>`;
+        const more = [
+            canOpen ? `<button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.openRef('${id}')">${icon('chevR', 'i-sm')} ${esc(t('ui.anom.btn_open'))}</button>` : '',
+            a.refKind === 'bill' && RATE_FIX_TYPES.has(a.type) ? `<button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.correctRate('${id}')">${icon('tag', 'i-sm')} ${esc(t('ui.anom.btn_correct_rate'))}</button>` : '',
+            status === 'open' ? `<button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.review('${id}', 'fixed')">${icon('clipCheck', 'i-sm')} ${esc(t('ui.anom.btn_fixed'))}</button>` : ''
+        ].filter(Boolean).join('');
         return `
             <div class="row anom-row sev-${esc(a.severity)}${compact ? ' compact' : ''}">
                 <div class="row-main anom-row-body"${canOpen ? ` data-onclick="anomalies.openRef('${id}')" role="button" tabindex="0"` : ''}>
@@ -631,9 +636,11 @@ export const AnomaliesManager = {
                     ${a.note ? `<div class="anom-note">${icon('file', 'i-sm')} ${esc(a.note)}${a.reviewedByName ? ` — ${esc(a.reviewedByName)}` : ''}</div>` : ''}
                 </div>
                 <div class="anom-actions">
-                    ${canOpen ? `<button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.openRef('${id}')">${icon('chevR', 'i-sm')} ${esc(t('ui.anom.btn_open'))}</button>` : ''}
-                    ${a.refKind === 'bill' && RATE_FIX_TYPES.has(a.type) ? `<button type="button" class="btn btn-sm btn-tonal" data-onclick="anomalies.correctRate('${id}')">${icon('tag', 'i-sm')} ${esc(t('ui.anom.btn_correct_rate'))}</button>` : ''}
-                    ${review}
+                    ${primary}
+                    ${more ? `<details class="anom-overflow">
+                        <summary class="btn btn-sm btn-ghost btn-icon" aria-label="${esc(t('ui.anom.more_actions'))}">${icon('dots', 'i-sm')}</summary>
+                        <div class="anom-overflow-menu">${more}</div>
+                    </details>` : ''}
                 </div>
             </div>`;
     },

@@ -53,7 +53,7 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   place the app uses. No amount on any screen changes (BILL-PAY); check that a recent backup is good first.
 - **Anomalies**: bills that look wrong (a possible duplicate bill, a rate far off,
   a big cash gap…) and each mismatch the daily number checks found ("Number check: …", on
-  its bill, item or cash day); tap "Looks right" or "I corrected it" on each.
+  its bill, item or cash day); tap "Looks right" on each, or ⋯ for Open, Correct rate and "I corrected it".
 - **Diagnostics › Number checks**: the always-true checks run on this phone's data
   (bill split, payments, dates, dues, drawer, stock).
 - **Diagnostics › Audit logs**: CSV (in English) or Print / PDF of the entries listed;

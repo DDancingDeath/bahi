@@ -212,6 +212,14 @@ for (const role of A) {
         test(`${role} (${lang}) opens every page and section without errors`, async ({ page, problems }) => {
             test.setTimeout(360000);
             await login(page, role);
+            // Two jobs read on a timer, not because a page opened: the rate-stats roll-forward (main.js, 20 s after start,
+            // owner / manager) and the old-notifications cleanup (30 s). Mark them as just run so they never land on
+            // whichever page is open then (they did on History, 22 Nov).
+            await page.evaluate(() => {
+                const uid = window.firebase.auth().currentUser.uid;
+                localStorage.setItem('aadhatRateStatsRoll', JSON.stringify({ uid, at: Date.now() }));
+                localStorage.setItem(`aadhat.notifications.cleanupAt.${uid}`, String(Date.now()));
+            });
             await page.evaluate((l) => window.app.i18n.setLang(l), lang);
             await page.waitForTimeout(300);
             // Start-up reads: login until the read meter is still. Background start-up work reads too (legacy

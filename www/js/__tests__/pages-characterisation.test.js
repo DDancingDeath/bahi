@@ -225,7 +225,7 @@ describe('Stock screen, pinned (S1–S4, adjustment value)', () => {
         try {
             await StockManager.renderDeadStock();
             const rows = [...document.querySelectorAll('#deadStockList [data-stock-item]')].map(el => squash(el.textContent)).join(' | ');
-            expect(rows).toContain('औसत ₹31.33/kg');
+            expect(rows).toContain('औसत ₹31.3/kg');
             expect(rows).not.toMatch(/avg/i);
         } finally {
             setLang('en');
@@ -463,7 +463,7 @@ describe('Statements periods, pinned (day book, month, CSV)', () => {
         pin(`statements.${name}`, got);
     });
 
-    test('item statement: the closing rate drops a whole-rupee .00 on screen; the shared text keeps it (MONEY-TEXT)', () => {
+    test('item statement: the closing average cost shows at most one decimal on screen; the shared text keeps paise (MONEY-TEXT)', () => {
         document.body.innerHTML = TEMPLATES.statements;
         jest.setSystemTime(new Date(NOWS[Object.keys(NOWS)[0]]));
         loadShop(shopFor(Object.keys(NOWS)[0]));
@@ -482,6 +482,6 @@ describe('Statements periods, pinned (day book, month, CSV)', () => {
         expect(lah.screen).toContain('10 kg at ₹2,400/kg = ₹24,000');
         const seed = closing('seed');
         expect(seed.share).toBe('10 kg at ₹24.50/kg = ₹245');
-        expect(seed.screen).toContain('10 kg at ₹24.50/kg = ₹245');
+        expect(seed.screen).toContain('10 kg at ₹24.5/kg = ₹245');
     });
 });

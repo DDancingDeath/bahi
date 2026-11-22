@@ -254,6 +254,18 @@ describe('aligned bill row', () => {
         expect([tone(2), tone(45), tone(120)]).toEqual(['warn', 'warn', 'neg']);
     });
 
+    test('NEW-14: the chips read "Online ₹…", "Cash ₹…", "Due ₹…" (no colon), in Hindi too', () => {
+        const chips = () => {
+            const el = document.createElement('div');
+            el.innerHTML = paymentChipsHtml({ id: 'x', timestamp: Date.now(), payment: { total: 300, cash: 100, online: 11521, due: 50 } });
+            return [...el.querySelectorAll('.payment-badge')].map(c => c.textContent);
+        };
+        expect(chips()).toEqual(['Online ₹11,521', 'Cash ₹100', 'Due ₹50']);
+        setLang('hi');
+        expect(chips()).toEqual(['ऑनलाइन ₹11,521', 'नकद ₹100', 'बकाया ₹50']);
+        setLang('en');
+    });
+
     test('the Wholesale page\'s recent bills use the same row component', () => {
         WholesaleSalesManager.renderSalesHistory();
         expect(recentNos()).toEqual(['W1', 'W2']);

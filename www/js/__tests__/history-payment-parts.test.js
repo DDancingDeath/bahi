@@ -42,7 +42,7 @@ test('U-67: money first (party, total, Paid / Due chips), bill no and times fold
     })];
     await HistoryManager.viewBill('id:w1', 'wholesale');
     const head = document.querySelector('#billDetailsContent .bill-view-head');
-    expect(head.textContent.replace(/\s+/g, ' ')).toMatch(/Trader.*₹5,000.*Paid ₹3,000.*Due ₹2,000/);
+    expect(head.textContent.replace(/\s+/g, ' ')).toMatch(/₹5,000.*Paid ₹3,000.*Due ₹2,000/);
     expect(document.querySelector('#billDetailsContent .bill-view-more .bill-view-no').textContent).toBe('#W-1');
     expect(document.querySelector('#billDetailsContent .bill-view-more').open).toBe(false);
     const actions = [...document.querySelectorAll('.bill-details-footer button')].map(b => b.id);
@@ -86,6 +86,17 @@ test('the dialog is titled with the bill number and party; amounts are in ink, a
     const panel = [...document.querySelectorAll('#billDetailsContent h3')].find(h => h.textContent === 'Payment details').parentElement;
     expect([...panel.querySelectorAll('.tag')].map(t => [t.className, t.textContent])).toEqual([['tag warn', '₹2,000']]);
     expect(panel.querySelector('.row-amt').textContent).toBe('₹3,000');
+});
+
+test('NEW-13: a note is a plain row in the sheet, not a warning; the party is named once (the title line)', async () => {
+    AppState.salesHistory = [sale({ comments: '8340570373', payment: { cash: 5000, online: 0, due: 0, total: 5000 } })];
+    await HistoryManager.viewBill('id:w1', 'wholesale');
+    const content = document.getElementById('billDetailsContent');
+    expect(content.querySelector('.notice.warn')).toBeNull();
+    const note = content.querySelector('.bill-view-sheet .bill-view-note');
+    expect(note.textContent.replace(/\s+/g, ' ').trim()).toBe('Comments 8340570373');
+    expect(document.getElementById('billDetailsParty').textContent).toBe('Trader');
+    expect(content.textContent.split('Trader')).toHaveLength(1);
 });
 const css = (file) => fs.readFileSync(path.resolve(__dirname, '../../css', file), 'utf8').replace(/\r\n/g, '\n');
 const rule = (file, selector) => {

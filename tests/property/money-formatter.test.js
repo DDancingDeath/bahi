@@ -6,7 +6,7 @@
  * rates on screen without ".00".
  */
 import fc from 'fast-check';
-import { formatRupees, formatRate, moneyText, screenMinus, MONEY_PRESETS, UNKNOWN_AMOUNT } from '../../www/js/utils/money.js';
+import { formatRupees, formatRate, moneyText, screenMinus, screenMoneyText, MONEY_PRESETS, UNKNOWN_AMOUNT } from '../../www/js/utils/money.js';
 import { moneyHtml } from '../../www/js/ui/components.js';
 
 const RUNS = Number(process.env.FC_RUNS) || 500;
@@ -88,6 +88,19 @@ describe('F0: replaced money wrappers keep their text', () => {
         expect([8.9, 8.90, 12, 11.6, -1.5, 0.04, -0.04, 125.44, 1234.5].map(n => moneyText(n, 'per100')))
             .toEqual(['₹8.9', '₹8.9', '₹12', '₹11.6', '−₹1.5', '₹0', '₹0', '₹125.4', '₹1,234.5']);
         fc.assert(fc.property(amounts, (n) => !/\.\d{2}|\.0(?!\d)/.test(formatRupees(n, 'per100'))), { numRuns: RUNS });
+    });
+
+    test('NEW-05: an average cost per kg (preset avgRate) shows at most one decimal; a typed rate keeps its paise', () => {
+        expect([19.3333, 24.5, 26, 2400, 7.78, 0].map(n => `${moneyText(n, 'avgRate')}/kg`))
+            .toEqual(['₹19.3/kg', '₹24.5/kg', '₹26/kg', '₹2,400/kg', '₹7.8/kg', '₹0/kg']);
+        expect(formatRate(24.5)).toBe('₹24.50');
+        fc.assert(fc.property(amounts, (n) => !/\.\d{2}/.test(formatRupees(n, 'avgRate'))), { numRuns: RUNS });
+    });
+
+    test('NEW-05: a stored text\'s amounts on screen: true minus before ₹, paise dropped by the preset', () => {
+        expect(screenMoneyText('expected ₹1,33,710.57, found -₹2,636, gap ₹26.88; short ₹-12', 'small'))
+            .toBe('expected ₹1,33,711, found −₹2,636, gap ₹26.88; short −₹12');
+        expect(screenMoneyText('(-₹500) Cash ₹987.50, 10-₹20')).toBe('(−₹500) Cash ₹987.50, 10-₹20');
     });
 
     test('moneyHtml text is moneyText text, ₹1,24,56,789 included; one on-screen minus', () => {
