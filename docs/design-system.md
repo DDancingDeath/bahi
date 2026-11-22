@@ -239,7 +239,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   Every figure is `moneyHtml()`.
 - **Wholesale (5.5)**: Billing's components (customer field, line panel, row-list bill lines, totals panel with "Fill", Notes |
   Date, the phone action bar) on the page's `.bill-page` class: Billing's `#billing` rules read `:is(#billing, .bill-page)`,
-  so it looks like Purchase: indigo Save, accent Fill and Change date, the Due row folded until "Rest → due", the line entry
+  so it looks like Purchase: indigo Save, accent Fill and Change date, Cash / Online / Total / Due always shown (owner), the line entry
   in floating-label fields. Violet is only the wholesale `.mode-dot` (beside the action bar's total; NEW-04, decision 3).
   Its bills and dues open History and Dues on their Wholesale filter; stock and average rate are `.metrics`.
   `moneyInText(text, amounts, opts)` (`components.js`) draws the figure (or an array of figures, found in order) inside a
