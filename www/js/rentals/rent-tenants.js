@@ -1,5 +1,5 @@
 /**
- * @fileoverview Rentals › Tenants: the list (search; Advanced: filters, sort, details), the tenant's own screen
+ * @fileoverview Rentals › Tenants: the list (search; filters and sort in a sheet), the tenant's own screen
  * (dues, lease, actions; less used ones under ⋯) and the tenant forms: add, edit, remove, move in / out,
  * change of unit, Change rent, meter reading. Loaded with import() by rentals.js only when used.
  * @module rentals/rent-tenants
@@ -44,7 +44,7 @@ function statusOf(due) {
     return due.late ? c.badge('late', 'ui.rent.status_late') : due.partial ? c.badge('partial', 'ui.rent.status_partial') : c.badge('due', 'ui.rent.status_due');
 }
 
-function listRows(d, adv) {
+function listRows(d) {
     const ix = c.index(d);
     const rows = tenantRows(d, c.state.month);
     const v = c.state.tenantList;
@@ -52,44 +52,57 @@ function listRows(d, adv) {
     const q = v.q.trim().toLowerCase();
     const list = d.tenants.map(tn => ({ tn, lease: lease.get(tn.id) || null, due: tenantDues(rows, tn.id) }))
         .filter(x => !q || [x.tn.name, x.tn.phone, x.tn.phone2, x.lease ? c.placeOf(ix, x.lease.unitId) : ''].some(s => String(s || '').toLowerCase().includes(q)))
-        .filter(x => !adv || v.filter === 'all' || (v.filter === 'owes' ? x.due.total > 0 : v.filter === 'late' ? x.due.late : !x.lease));
-    const by = adv ? v.sort : 'name';
+        .filter(x => v.filter === 'all' || (v.filter === 'owes' ? x.due.total > 0 : v.filter === 'late' ? x.due.late : !x.lease));
+    const by = v.sort;
     list.sort((a, b) => (by === 'due' ? b.due.total - a.due.total : by === 'since' ? String(b.lease?.startDate || '').localeCompare(String(a.lease?.startDate || '')) : 0)
         || a.tn.name.localeCompare(b.tn.name));
     return list.map(({ tn, lease: l, due }) => {
         const where = l ? esc(c.placeOf(ix, l.unitId)) : et('ui.rent.no_unit');
-        const more = adv ? [tn.phone ? phones(tn) : '',
-            l ? `${moneyInText(t('ui.rent.rent_terms', { amount: formatRupees(l.rent), day: l.dueDay }), l.rent)} ${c.elecTag(l)}` : '', l?.startDate ? esc(c.sinceText(l)) : '',
-            isMonth(l?.agreementEnd) ? et('ui.rent.agr_till', { month: monthLabel(l.agreementEnd, getLang()) }) : '', tn.notes ? esc(tn.notes) : ''].filter(Boolean) : [];
         return `<button type="button" class="row rent-entry" data-tenant="${esc(tn.id)}" data-onclick="rentals.openTenant('${js(tn.id)}')">
-            <span class="rent-entry-head"><span class="row-main"><span class="row-title">${esc(tn.name)}</span><span class="row-meta">${where}</span>
-                ${more.map(x => `<span class="rent-sub">${x}</span>`).join('')}</span>
+            <span class="rent-entry-head"><span class="row-main"><span class="row-title">${esc(tn.name)}</span><span class="row-meta">${where}</span></span>
             <span class="row-trail">${due.total > 0 ? `<span class="row-amt">${moneyHtml(due.total)}</span>` : ''}${statusOf(due)}</span></span>
         </button>`;
     }).join('') || emptyState({ icon: 'users', title: t(d.tenants.length ? 'ui.rent.no_match' : 'ui.rent.no_tenants_hint') });
 }
 
+/** Filter (n on). */
+function filterText() {
+    const v = c.state.tenantList;
+    const n = (v.filter !== 'all') + (v.sort !== 'name');
+    return `${icon('sliders', 'i-sm')}${et(n ? 'ui.rent.filter_n' : 'ui.rent.filter', { n })}`;
+}
+
+/** The Filter sheet's chips. */
+function filterChips() {
+    const v = c.state.tenantList;
+    const group = (field, list) => `<div class="rent-label" id="rentT${field}">${et(`ui.rent.t${field}_title`)}</div><div class="rent-chips" role="group" aria-labelledby="rentT${field}">${list.map(k => `<button type="button" class="chip" aria-pressed="${k === v[field]}" data-onclick="rentals.tenantList('${field}', '${k}')">${et(`ui.rent.t${field}_${k}`)}</button>`).join('')}</div>`;
+    return group('filter', FILTERS) + group('sort', SORTS);
+}
+
 function renderTenants(d) {
-    const adv = c.state.mode === 'advanced';
     const v = c.state.tenantList;
     const search = d.tenants.length > 8 || v.q ? `<input class="input" type="search" id="rentTenantSearch" value="${esc(v.q)}" placeholder="${et('ui.rent.search_tenants')}" aria-label="${et('ui.rent.search_tenants')}" data-oninput="rentals.tenantList('q', this.value)">` : '';
     const add = c.canWrite ? btn(' btn-primary', 'addTenant', '', 'ui.rent.add_tenant', icon('plus', 'i-sm')) : '';
-    const chip = (k, cur, field, key) => `<button type="button" class="chip" aria-pressed="${k === cur ? 'true' : 'false'}" data-onclick="rentals.tenantList('${field}', '${k}')">${et(key)}</button>`;
-    const tools = adv ? `<div class="rent-chips" role="group">${FILTERS.map(k => chip(k, v.filter, 'filter', `ui.rent.tfilter_${k}`)).join('')}</div>
-        <div class="rent-chips" role="group">${SORTS.map(k => chip(k, v.sort, 'sort', `ui.rent.tsort_${k}`)).join('')}</div>` : '';
-    // Moved-out tenants whose link is still on (it stays readable until turned off).
+    const filter = `<button type="button" class="btn" id="rentTenantFilter" aria-haspopup="dialog" data-onclick="rentals.tenantFilters()">${filterText()}</button>`;
+    // Moved out, link still on.
     const ix = c.index(d);
-    const endedLinks = adv && c.isManager ? d.linked.filter(l => l.status === 'ended').map(l => `<div class="row rent-entry">
+    const ended = c.isManager ? d.linked.filter(l => l.status === 'ended') : [];
+    const endedLinks = ended.map(l => `<div class="row rent-entry">
             <div class="row-title">${esc(ix.tenants.get(l.tenantId)?.name || t('ui.rent.no_name'))}</div>
-            <div class="row-meta">${et('ui.rent.moved_out')} · ${esc(monthLabel(l.endMonth, getLang()))}</div>
+            <div class="row-meta">${et('ui.rent.links_moved_out')} · ${esc(monthLabel(l.endMonth, getLang()))}</div>
             <div class="rent-actions">${btn(' btn-sm', 'shareLink', `'${js(l.id)}'`, 'ui.rent.link_on', icon('link', 'i-sm'))}</div>
-        </div>`).join('') : '';
-    return `<div class="rent-toolbar">${search}${add}</div>${tools}
-        <div class="panel rent-tenant-list" id="rentTenantList">${listRows(d, adv)}</div>
-        ${endedLinks ? `<h3 class="rent-section-title">${et('ui.rent.links_moved_out')}</h3><div class="panel">${endedLinks}</div>` : ''}`;
+        </div>`).join('');
+    return `<div class="rent-toolbar">${search}${filter}${add}</div>
+        <div class="panel rent-tenant-list" id="rentTenantList">${listRows(d)}</div>
+        ${endedLinks ? `<details class="rent-more" data-rent-moved-out><summary>${et('ui.rent.moved_out_n', { n: ended.length })}</summary><div class="panel">${endedLinks}</div></details>` : ''}`;
 }
 
-/** Search redraws only the list, so the box keeps its focus. */
+/** Tenants › Filter: a pick applies at once. */
+function tenantFilters() {
+    return c.dialog(`<h3>${et('ui.rent.filter')}</h3><div id="rentTenantFilters">${filterChips()}</div>`, { info: true });
+}
+
+/** Redraws the list in place (focus stays), and for a filter or sort the button and the open sheet. */
 function tenantList(field, value) {
     const v = c.state.tenantList;
     if (field === 'q') v.q = String(value ?? '');
@@ -97,8 +110,14 @@ function tenantList(field, value) {
     else if (field === 'sort' && SORTS.includes(value)) v.sort = value;
     else return;
     const list = byId('rentTenantList');
-    if (field === 'q' && list) list.innerHTML = listRows(store.snapshot(), c.state.mode === 'advanced');
-    else c.render();
+    if (!list) return c.render();
+    list.innerHTML = listRows(store.snapshot());
+    const sheet = byId('rentTenantFilters');
+    if (field === 'q') return;
+    byId('rentTenantFilter').innerHTML = filterText();
+    if (!sheet) return;
+    sheet.innerHTML = filterChips();
+    sheet.querySelector(`[data-onclick="rentals.tenantList('${field}', '${v[field]}')"]`)?.focus();
 }
 
 // ---------- The tenant's screen ----------
@@ -350,5 +369,5 @@ async function moveOut(leaseId) {
 }
 
 export const tenants = Object.fromEntries(Object.entries({
-    renderTenants, renderTenant, tenantList, remindTenant, addTenant, editTenant, archiveTenant, moveIn, changeUnit, moveOut, meter, editLease
+    renderTenants, renderTenant, tenantList, tenantFilters, remindTenant, addTenant, editTenant, archiveTenant, moveIn, changeUnit, moveOut, meter, editLease
 }).map(([k, f]) => [k, (ctx, ...a) => { c = ctx; return f(...a); }]));

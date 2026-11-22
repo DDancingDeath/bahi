@@ -8,10 +8,13 @@
             <button type="button" role="tab" aria-selected="false" data-rent-page="properties" data-onclick="rentals.page('properties')" data-i18n="ui.nav.properties">Properties</button>
             <button type="button" role="tab" aria-selected="false" id="rentReportsTab" data-rent-page="reports" data-onclick="rentals.page('reports')" data-i18n="ui.rent.reports" hidden>Reports</button>
         </div>
-        <span id="rentSettingsLinks" class="rent-settings-links" hidden>
-            <button type="button" class="btn btn-ghost btn-sm" data-onclick="rentals.settings('rentals')" data-i18n="ui.settings.section_rentals">Rentals settings</button>
-            <button type="button" id="rentRolesLink" class="btn btn-ghost btn-sm" data-onclick="rentals.settings('roles')" data-i18n="ui.roles.title" hidden>Roles &amp; access</button>
-        </span>
+        <details id="rentSettingsLinks" class="rent-menu rent-settings-links" hidden>
+            <summary class="btn btn-ghost btn-icon" data-i18n-aria-label="ui.rent.more_actions" aria-label="More actions"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg></summary>
+            <div class="panel rent-menu-list">
+                <button type="button" class="btn btn-ghost" data-onclick="rentals.settings('rentals')" data-i18n="ui.settings.section_rentals">Rentals settings</button>
+                <button type="button" id="rentRolesLink" class="btn btn-ghost" data-onclick="rentals.settings('roles')" data-i18n="ui.roles.title" hidden>Roles &amp; access</button>
+            </div>
+        </details>
     </div>
     <div id="rentalsNotice" class="notice warn rent-notice-bar" role="status" hidden></div>
     <div id="rentalsBody" class="rent-body"></div>

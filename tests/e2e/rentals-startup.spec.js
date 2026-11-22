@@ -88,16 +88,16 @@ test('owner adds a property, unit and tenant, moves them in, records a part paym
     await expect(row).toContainText(`G${stamp}`);
 
     await page.evaluate(() => window.app.rentals.page('rent'));
-    // Simple (the default) lists who owes; Property wise and Unit wise are in Advanced.
-    await expect(page.locator('#rentals')).toHaveAttribute('data-rent-mode', 'simple');
+    // View by Who owes (the default) lists who owes; Property and Unit are the other View by choices.
+    await expect(page.locator('#rentalsBody [data-rent-by="owes"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#rentalsBody [data-lease]', { hasText: `Ram ${stamp}` })).toContainText('5,000');
-    await page.evaluate(() => window.app.rentals.setMode('advanced'));
+    await page.locator('#rentalsBody [data-rent-by="properties"]').click();
     // Property wise: the property card, then the property's units grouped by type.
     const propCard = page.locator('#rentalsBody [data-property]', { hasText: `Gali ${stamp}` });
     await expect(propCard).toContainText('1 commercial');
     await propCard.click();
     await expect(page.locator('.rent-group-title')).toContainText(['Commercial / shop space (1)']);
-    await page.evaluate(() => window.app.rentals.setView('units'));
+    await page.locator('#rentalsBody [data-rent-by="units"]').click();
     const rent = page.locator('#rentalsBody .rent-entry', { hasText: `Ram ${stamp}` });
     await expect(rent).toContainText('5,000');
     await rent.locator('button', { hasText: 'Record payment' }).click();

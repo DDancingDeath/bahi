@@ -63,8 +63,7 @@ test('the deposit ledger: received, refunded, and the deposits-held list', async
     await expect(box).toContainText('Refunded');
     await closeDialog(page);
 
-    // Deposits held is under Reports (Advanced).
-    await page.evaluate(() => window.app.rentals.setMode('advanced'));
+    // Deposits held is under Reports.
     await showPage(page, 'reports');
     await button(page.locator('#rentalsBody'), 'Deposits held').click();
     await expect(box.getByRole('listitem').filter({ hasText: tenant })).toContainText('₹7,000');
@@ -80,9 +79,10 @@ test('a property expense shows in the month, the yearly report and its CSV', asy
     await pay(page, tenant, 4000);
     await closeDialog(page);
 
-    // Expenses are on the property's screen in Advanced.
-    await page.evaluate(() => window.app.rentals.setMode('advanced'));
-    await button(await openProperty(page, prop), 'Expenses').click();
+    // Expenses are in the property screen's ⋯ menu.
+    const propScreen = await openProperty(page, prop);
+    await propScreen.locator('.rent-detail-bar .rent-menu summary').click();
+    await button(propScreen.locator('.rent-detail-bar .rent-menu-list'), 'Expenses').click();
     await expect(box).toContainText(`Expenses: ${prop}`);
     await expect(box).toContainText('No expenses recorded yet.');
     await button(box, 'Add expense').click();

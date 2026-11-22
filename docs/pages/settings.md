@@ -28,7 +28,8 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   Each change saves for everyone when you leave the box ("Saved for everyone at …" under the title); the UPI ID in
   WhatsApp payment reminders is the shop's, the same on every phone (a UPI ID typed on one phone before is moved there
   once). Only "Enable automatic labour charges by default" stays on each phone.
-- **Settings › Rentals** (Rentals owner and managers): defaults for new leases and the tenant page header.
+- **Settings › Rentals** (Rentals owner and managers): defaults for new leases and the tenant page header. (The Simple / Advanced
+  switch for the Rentals page is gone: Rentals has one view for everyone.)
 - **Settings › Team** (owner only), the one place for people: **People** (Show people: Waiting to join with a role
   picker and Approve / Reject, everyone's role (**Edit role** offers Member / Manager / Owner: an owner can make an approved
   person owner after a confirmation, demote another owner or step down, but there is always at least one owner;

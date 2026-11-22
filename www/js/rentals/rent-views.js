@@ -12,7 +12,7 @@ import { chargeDue, chargeStatus, rentTotals, leaseDues, elecMode } from './rent
 export const UNIT_TYPES = ['flat', 'commercial', 'office', 'godown', 'other'];
 export const MAX_UNIT_AREA = 1000000;
 export const VIEW_KEY = 'happa.rentView';
-/** Simple / Advanced, per user on this phone (owner decision: everyone starts in Simple). */
+/** Retired keys of the Simple / Advanced switch (one view since): rentals.js clears them. */
 export const rentModeKey = (uid) => `happa.rentMode.${uid || ''}`;
 export const UNIT_STATUSES = ['occupied', 'vacant', 'late', 'due'];
 

@@ -837,13 +837,6 @@ export class SettingsManager {
         return mod.save();
     }
 
-    /** Settings › Rentals: Simple / Advanced on this phone (U-65). */
-    static async setRentMode(mode) {
-        if (!this.currentView().rentals.visible) return null;
-        const mod = await BusinessSwitcher.loadSettings();
-        return mod.setViewMode(mode);
-    }
-
     /** Stocks › Set opening stock. */
     static openOpeningStock() {
         // After the page is in and its own first render (#66: it may load on first visit)

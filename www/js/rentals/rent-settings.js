@@ -1,6 +1,5 @@
 /**
- * @fileoverview Settings › Rentals: Simple / Advanced for the Rentals page (this phone),
- * defaults for NEW leases (due day, yearly
+ * @fileoverview Settings › Rentals: defaults for NEW leases (due day, yearly
  * increase %, electricity rate, tenant link) and the header on tenant pages.
  * Stored in rent_settings/default (rent-store.js). Loaded with import() only
  * when this section is shown (ui/business-switcher.js loadSettings()).
@@ -11,23 +10,11 @@ import { t } from '../i18n/index.js';
 import { Helpers } from '../utils/helpers.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AuditService } from '../services/audit.js';
-import { AppState } from '../utils/state.js';
 import * as store from './rent-store.js';
 import { MAX_RECEIPT_HEADER, MAX_RECEIPT_ADDRESS } from './rent-math.js';
-import { rentModeKey } from './rent-views.js';
 
 const esc = (v) => Helpers.escapeHtml(v);
 const val = (id) => document.getElementById(id)?.value ?? '';
-
-function readRentMode(uid) {
-    try { return localStorage.getItem(rentModeKey(uid)) === 'advanced' ? 'advanced' : 'simple'; } catch (_) { return 'simple'; }
-}
-
-function writeRentMode(uid, mode) {
-    const next = mode === 'advanced' ? 'advanced' : 'simple';
-    try { localStorage.setItem(rentModeKey(uid), next); } catch (_) { /* private mode */ }
-    return next;
-}
 
 /**
  * Draws the Rentals defaults form into `el` (reads rent_settings/default once).
@@ -36,18 +23,17 @@ function writeRentMode(uid, mode) {
  */
 export async function mount(el, { editable }) {
     if (!el) return;
-    el.innerHTML = `${viewCard()}<p class="setting-description">${esc(t('ui.navigation.loading'))}</p>`;
+    el.innerHTML = `<p class="setting-description">${esc(t('ui.navigation.loading'))}</p>`;
     let s;
     try {
         s = await store.loadSettings();
     } catch (e) {
         console.warn('Rentals settings not loaded:', e?.code || e);
-        el.innerHTML = `${viewCard()}<p class="setting-description">${esc(t('msg.rent.could_not_load'))}</p>`;
+        el.innerHTML = `<p class="setting-description">${esc(t('msg.rent.could_not_load'))}</p>`;
         return;
     }
     const off = editable ? '' : ' disabled';
-    el.innerHTML = `${viewCard()}
-        <div class="panel panel-pad set-panel" id="rentDefaultsCard">
+    el.innerHTML = `<div class="panel panel-pad set-panel" id="rentDefaultsCard">
             <h3 class="set-title">${esc(t('ui.rentset.defaults_title'))}</h3>
             <p class="setting-description">${esc(t('ui.rentset.defaults_hint'))}</p>
             <div class="field">
@@ -85,28 +71,6 @@ export async function mount(el, { editable }) {
         </div>
         ${editable ? `<div class="set-actions"><button type="button" class="btn btn-primary" id="rentSetSave" data-onclick="settings.saveRentals()">${esc(t('ui.roles.save'))}</button></div>`
             : `<p class="setting-description">${esc(t('ui.rentset.view_only'))}</p>`}`;
-}
-
-/** Simple / Advanced for the Rentals page (U-65): per user on this phone, anyone with a rentals role. */
-function viewCard() {
-    const mode = readRentMode(AppState.currentUser?.uid);
-    const b = (m, key) => `<button type="button" data-rent-mode="${esc(m)}" class="${mode === m ? 'active' : ''}" aria-pressed="${mode === m}" data-onclick="settings.setRentMode('${esc(m)}')">${esc(t(key))}</button>`;
-    return `<div class="panel panel-pad set-panel" id="rentViewCard">
-            <h3 class="set-title" id="rentViewTitle">${esc(t('ui.rentset.view_title'))}</h3>
-            <div class="seg rent-mode" role="group" aria-labelledby="rentViewTitle">${b('simple', 'ui.rent.view_simple')}${b('advanced', 'ui.rent.view_advanced')}</div>
-            <p class="setting-description">${esc(t('ui.rentset.view_hint'))}</p>
-        </div>`;
-}
-
-/** Saves Simple / Advanced (the Rentals page reads it each time it opens) and updates the buttons. */
-export function setViewMode(mode) {
-    const next = writeRentMode(AppState.currentUser?.uid, mode);
-    document.querySelectorAll('#rentViewCard [data-rent-mode]').forEach((btn) => {
-        const on = btn.getAttribute('data-rent-mode') === next;
-        btn.classList.toggle('active', on);
-        btn.setAttribute('aria-pressed', String(on));
-    });
-    return next;
 }
 
 /** Owner/manager: saves the form (rules: rent_settings is owner/manager write). */
