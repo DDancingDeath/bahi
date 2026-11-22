@@ -32,6 +32,8 @@
         display: flex;
         margin-left: auto;
     }
+
+    .ins-head > .ins-more[hidden] { display: none; }
 }
 
 .ins-subtabs { margin-bottom: var(--sp-3); }
@@ -231,6 +233,8 @@ div.ins-wide,
 .lh-balance > strong { font-family: var(--font-num); font-size: var(--fs-lead); font-weight: var(--w-strong); font-variant-numeric: tabular-nums; }
 .lh-days { overflow-x: auto; }
 .lh-days th, .lh-days td, .lh-bills th, .lh-bills td { padding-inline: var(--sp-2); white-space: nowrap; }
+.lh-bills td:first-child { width: 100%; padding-block: var(--sp-2); white-space: normal; }
+.lh-cust { display: block; color: var(--ink); overflow-wrap: anywhere; }
 .lh-days tbody th { height: 44px; color: var(--ink); font-size: var(--fs-sm); font-weight: var(--w-regular); text-align: left; }
 .lh-days tbody tr[role="button"] { cursor: pointer; }
 .lh-days tbody tr[role="button"]:focus-visible { outline: none; box-shadow: var(--focus-inset); }
