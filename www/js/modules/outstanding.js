@@ -468,9 +468,9 @@ export class OutstandingManager {
                     ${!canReceive ? '' : payType(p) ? `<button type="button" class="btn btn-sm btn-tonal" data-party-pay data-onclick="outstanding.receiveFromParty('${attr(p.key)}', '${attr(payType(p))}')">${tt(isPayable ? 'ui.outstanding.party_pay_pay' : 'ui.outstanding.party_pay_receive')}</button>`
                         : `<span class="aging-party-meta">${tt('ui.outstanding.party_pay_pick_list')}</span>`}
                     ${phone ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-party-call data-onclick="outstanding.callParty('${attr(p.key)}')" aria-label="${tt('ui.outstanding.call_name', { name: p.name || '' })}">${icon('phone', 'i-sm')}</button>` : ''}
-                    <details class="aging-more">
+                    <details class="menu aging-more">
                         <summary class="btn btn-sm btn-ghost btn-icon" aria-label="${tt('ui.outstanding.more_actions')}">${icon('dots', 'i-sm')}</summary>
-                        <div class="aging-more-menu">${more}</div>
+                        <div class="panel menu-list aging-more-menu">${more}</div>
                     </details>
                 </div>
             </div>`;

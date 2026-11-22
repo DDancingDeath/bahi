@@ -45,7 +45,7 @@ export function billNoteHtml(bill) {
     const note = String(bill?.comments ?? '').trim();
     if (!note) return '';
     return `<section class="bill-view-sec bill-view-note">
-        <div class="row bill-view-row"><div class="row-main">
+        <div class="row"><div class="row-main">
             <div class="row-meta">${L('ui.wholesale.comments')}</div>
             <div class="bill-view-note-text">${Helpers.escapeHtml(note)}</div>
         </div></div>

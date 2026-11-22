@@ -1,5 +1,5 @@
 /**
- * ⋯ menus (ui/menus.js, NEW-19): Billing's and the Anomalies rows' menus close on a pick, a tap elsewhere, Esc or
+ * ⋯ menus (ui/menus.js, NEW-19): Billing's, the Anomalies rows' and the Dues party rows' menus close on a pick, a tap elsewhere, Esc or
  * Tab out; Up / Down move between the picks; an open list stays inside the window and opens upwards near the bottom.
  */
 import { installMenus, placeMenu } from '../ui/menus.js';
@@ -10,21 +10,23 @@ const menuHtml = (cls) => `<details class="${cls}"><summary class="btn btn-icon"
 beforeAll(() => installMenus(document));
 
 beforeEach(() => {
-    document.body.innerHTML = `<p id="away" tabindex="-1">away</p>${menuHtml('anom-overflow')}${menuHtml('bill-menu')}`;
+    document.body.innerHTML = `<p id="away" tabindex="-1">away</p>${menuHtml('menu anom-overflow')}${menuHtml('bill-menu')}${menuHtml('menu aging-more')}`;
 });
 
-const [anom, bill] = [() => document.querySelector('.anom-overflow'), () => document.querySelector('.bill-menu')];
+const [anom, bill, dues] = [() => document.querySelector('.anom-overflow'), () => document.querySelector('.bill-menu'), () => document.querySelector('.aging-more')];
 const key = (target, k) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
 
 describe('closing', () => {
     test('a tap elsewhere closes every open menu; a tap inside the list but not on a pick keeps it', () => {
         anom().open = true;
         bill().open = true;
+        dues().open = true;
         anom().lastElementChild.click();
         expect(anom().open).toBe(true);
         document.getElementById('away').click();
         expect(anom().open).toBe(false);
         expect(bill().open).toBe(false);
+        expect(dues().open).toBe(false);
     });
 
     test('a pick closes it', () => {

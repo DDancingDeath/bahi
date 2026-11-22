@@ -1,10 +1,11 @@
 /**
  * Anomalies row ⋯ menu (NEW-19): it floats over the rows below on a surface with a shadow, anchored to ⋯, and the
  * row doesn't move (phone 360 px and desktop, light, dark and Hindi). "Looks right" and ⋯ share one line.
- * A tap elsewhere, a pick or Esc closes it; Down moves into it.
+ * A tap elsewhere, a pick or Esc closes it; Down moves into it. Dues party rows use the same menu.
  * Floating-label fields (NEW-20): the focus ring stays inside the border, so it never crosses the label.
  */
 const { test, expect, login, showTab, settle } = require('./support/app');
+const { creditSale } = require('./support/due');
 
 const ROWS = [1, 2, 3].map(n => ({
     id: `e2e${n}`, type: 'numcheck-ac3', severity: 'high', status: 'open', dayKey: '2026-11-18', at: Date.UTC(2026, 10, 18, 12),
@@ -131,6 +132,80 @@ test('phone: the last row\'s ⋯ just above the tab bar opens upwards, clear of 
     });
     expect(r.up).toBe(true);
     expect(r.bottom).toBeLessThanOrEqual(r.barTop);
+});
+
+// Dues party rows: Remind / Statement float on the shared ⋯ menu as on Anomalies; no row or button moves
+test('Dues party ⋯ menu floats and the row does not reflow (light, dark, Hindi)', async ({ page, problems }, testInfo) => {
+    if (testInfo.project.name === 'phone') await page.setViewportSize({ width: 360, height: 780 });
+    await login(page, 'owner');
+    await creditSale(page, `E2E menu party ${Date.now()}`);
+    await showTab(page, 'due');
+    await page.click('#due .filter-sale');
+    await page.waitForSelector('#dueAgingParties .aging-party .aging-more', { timeout: 30000 });
+    // Three copies of a party row in a list of their own, so the page's own redraws can't replace them
+    const draw = () => page.evaluate(() => {
+        document.getElementById('e2eDueRows')?.remove();
+        const row = document.querySelector('#dueAgingParties .aging-party').outerHTML;
+        const list = document.createElement('div');
+        list.id = 'e2eDueRows';
+        list.className = 'panel';
+        list.innerHTML = row + row + row;
+        document.getElementById('dueAgingParties').before(list);
+        list.scrollIntoView({ block: 'center' });
+    });
+    const layout = () => page.evaluate(() => {
+        const list = document.getElementById('e2eDueRows');
+        const top = list.getBoundingClientRect().top;
+        const box = (el) => { const r = el.getBoundingClientRect(); return { top: Math.round(r.top - top), left: Math.round(r.left), right: Math.round(r.right), bottom: Math.round(r.bottom - top) }; };
+        const first = list.querySelector('.aging-party');
+        const menu = first.querySelector('.aging-more-menu');
+        const cs = getComputedStyle(menu);
+        const mb = menu.getBoundingClientRect();
+        const hit = document.elementFromPoint(mb.left + mb.width / 2, mb.top + Math.min(mb.height / 2, 20));
+        return {
+            rows: [...list.querySelectorAll('.aging-party')].map(box),
+            buttons: [...first.querySelectorAll('.aging-party-actions > .btn, .aging-more > summary')].map(box),
+            dots: box(first.querySelector('.aging-more > summary')),
+            menu: box(menu),
+            open: first.querySelector('.aging-more').open,
+            position: cs.position,
+            background: cs.backgroundColor,
+            shadow: cs.boxShadow,
+            onTop: !!hit && menu.contains(hit),
+            vw: document.documentElement.clientWidth
+        };
+    });
+    for (const label of ['light', 'dark', 'Hindi']) {
+        if (label === 'dark') await page.evaluate(() => { document.documentElement.dataset.mode = 'dark'; });
+        if (label === 'Hindi') {
+            await page.evaluate(() => { document.documentElement.dataset.mode = 'light'; return window.app.i18n.setLang('hi'); });
+            await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe('hi');
+        }
+        await draw();
+        const before = await layout();
+        expect(before.open, label).toBe(false);
+        await page.locator('#e2eDueRows .aging-more > summary').first().click();
+        const after = await layout();
+        expect(after.open, label).toBe(true);
+        expect(after.position, label).toBe('absolute');
+        expect(after.rows, `${label}: no row moves or grows`).toEqual(before.rows);
+        expect(after.buttons, `${label}: no button moves`).toEqual(before.buttons);
+        expect(after.background, `${label}: the menu has a surface`).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+        expect(after.shadow, label).not.toBe('none');
+        expect(after.onTop, `${label}: drawn over the next row`).toBe(true);
+        expect(after.menu.left, label).toBeGreaterThanOrEqual(0);
+        expect(after.menu.right, label).toBeLessThanOrEqual(after.vw);
+        expect(after.menu.top >= after.dots.bottom || after.menu.bottom <= after.dots.top, `${label}: anchored to ⋯`).toBe(true);
+        await page.keyboard.press('Escape');
+        expect((await layout()).open, label).toBe(false);
+        expect(await page.evaluate(() => document.activeElement?.matches('#e2eDueRows .aging-more > summary'))).toBe(true);
+        await page.keyboard.press('ArrowDown');
+        expect(await page.evaluate(() => document.activeElement?.closest('.aging-more-menu') !== null), label).toBe(true);
+        await page.locator('#e2eDueRows .aging-party-total').nth(2).click();
+        expect((await layout()).open, label).toBe(false);
+    }
+    await page.evaluate(() => window.app.i18n.setLang('en'));
+    expect(problems.pageErrors).toEqual([]);
 });
 
 // NEW-20: the focus ring stays inside the border, under the label's notch, on Billing, Expenses and Cash fields

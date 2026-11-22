@@ -89,7 +89,7 @@ function billTimesHtml(bill) {
     const { entered, server, far } = billTimes(bill, { waiting });
     if (!entered && !server) return '';
     const row = (key, d) => (d ? `
-                        <div class="row bill-view-row bill-time-row">
+                        <div class="row bill-time-row">
                             <span class="row-main">${L(key)}</span>
                             <span>${Helpers.escapeHtml(Helpers.formatDateTime(d))}</span>
                         </div>` : '');
@@ -171,8 +171,9 @@ export class HistoryManager {
     }
 
     static setFilter(patch) {
+        if (patch.preset !== undefined) this.homeDates = null;
         this.filter = normalizeHistoryFilter({ ...this.getFilter(), ...patch });
-        const saved = this.homeTab ? { ...this.filter, type: this.homeTab } : this.filter;
+        const saved = { ...this.filter, ...(this.homeTab ? { type: this.homeTab } : {}), ...(this.homeDates || {}) };
         try { sessionStorage.setItem(HISTORY_FILTER_KEY, JSON.stringify(saved)); } catch { /* storage blocked */ }
         if (patch.type !== undefined) {
             try { localStorage.setItem(HISTORY_TAB_KEY, this.filter.type); } catch { /* storage blocked */ }
@@ -185,20 +186,31 @@ export class HistoryManager {
 
     /**
      * History opened from the menu or tab bar: the remembered tab. 'wholesale' (Wholesale bills)
-     * shows the Wholesale tab for this visit only; the next plain visit is back on the remembered tab.
+     * shows the Wholesale tab for this visit only, 'today' (Today's bills row) the Today dates; the next plain visit is back on the remembered tab and dates.
      * @param {?string} [section]
      */
     static open(section) {
-        const filter = this.getFilter();
+        let filter = this.getFilter();
         if (section === 'wholesale') {
             if (this.homeTab === null) this.homeTab = filter.type;
-            this.filter = { ...filter, type: 'wholesale' };
+            filter = { ...filter, type: 'wholesale' };
         } else if (this.homeTab !== null) {
-            this.filter = { ...filter, type: this.homeTab };
+            filter = { ...filter, type: this.homeTab };
             this.homeTab = null;
         }
+        if (section === 'today') {
+            if (this.homeDates === null) this.homeDates = { preset: filter.preset, from: filter.from, to: filter.to };
+            filter = { ...filter, preset: 'today' };
+        } else if (this.homeDates !== null) {
+            filter = { ...filter, ...this.homeDates };
+            this.homeDates = null;
+        }
+        this.filter = filter;
         this.refreshHistory();
     }
+
+    /** Dates the user picked, while Today's bills row shows Today for one visit; null otherwise. */
+    static homeDates = null;
 
     /** Wholesale bills (Sale and Wholesale tabs) only for a role that may open Wholesale. */
     static canSeeWholesale() {
@@ -541,7 +553,7 @@ export class HistoryManager {
             if (item.weights && item.weights.length >= 2) {
                 const weightsDisplay = item.weights.map(w => `<span class="bill-view-w">${Helpers.escapeHtml(formatKg(w))}</span>`).join(' ');
                 weightBreakdownHTML += `
-                    <div class="row bill-view-row bill-view-weight">
+                    <div class="row bill-view-weight">
                         <div class="row-main">
                             <div class="row-title">${Helpers.escapeHtml(lineName(item))} (${Helpers.escapeHtml(tn('ui.history.packets_kg', item.weights.length, { packets: item.weights.length, kg: formatKg(item.qty) }))})</div>
                             <div class="bill-view-weights">${weightsDisplay}</div>
@@ -569,7 +581,7 @@ export class HistoryManager {
             : paymentBreakdown(bill);
         const afterSave = parts.later.total > 0 || parts.writtenOff > 0;
         const payRow = (key, value, split = false, due = false) => `
-                    <div class="row bill-view-row">
+                    <div class="row">
                         <div class="row-main">
                             <div>${L(key)}</div>
                             ${split ? `<div class="row-meta">${moneyInText(t('ui.history.paid_later_split', { cash: formatRupees(parts.later.cash), online: formatRupees(parts.later.online) }), [parts.later.cash, parts.later.online])}</div>` : ''}
@@ -591,7 +603,7 @@ export class HistoryManager {
             <section class="bill-view-sec bill-view-payments">
                 <h3 class="bill-view-title">${L('ui.wholesale.payment_history')}</h3>
                 ${bill.payments.map(p => `
-                    <div class="row bill-view-row">
+                    <div class="row">
                         <span class="row-main">${Helpers.escapeHtml(p.date)}${p.recordedBy ? ` ${L('ui.wholesale.by_name', { name: p.recordedBy })}` : ''}${p.kind === 'writeOff' ? ` — ${L('ui.wholesale.written_off', { reason: p.reason || '' })}` : ''}</span>
                         <strong class="row-amt">${moneyHtml(p.amount)}</strong>
                     </div>
@@ -647,24 +659,24 @@ export class HistoryManager {
                 
                 <section class="bill-view-sec">
                     ${isPurchase ? `
-                        <div class="row bill-view-row bill-view-total">
+                        <div class="row bill-view-total">
                             <span class="row-main">${L('ui.billing.purchase_total')}</span>
                             <strong class="row-amt">${known ? moneyHtml(billLineTotal(bill, true)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</strong>
                         </div>
                         
                         ${billLabour(bill) > 0 ? `
-                            <div class="row bill-view-row bill-view-total">
+                            <div class="row bill-view-total">
                                 <span class="row-main">${L('ui.history.labour')}</span>
                                 <strong class="row-amt">${moneyHtml(billLabour(bill))}</strong>
                             </div>
                             
-                            <div class="row bill-view-row bill-view-total bill-view-grand">
+                            <div class="row bill-view-total bill-view-grand">
                                 <span class="row-main">${L('ui.billing.total_payable')}</span>
                                 <strong class="row-amt">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</strong>
                             </div>
                         ` : ''}
                     ` : `
-                        <div class="row bill-view-row bill-view-total">
+                        <div class="row bill-view-total">
                             <span class="row-main">${L('ui.billing.sale_total')}</span>
                             <strong class="row-amt">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</strong>
                         </div>
@@ -676,21 +688,21 @@ export class HistoryManager {
                 </div>
                 ${editsRowHtml(bill, 'history.showEdits()')}
                 <details class="panel bill-view-more">
-                    <summary class="row bill-view-row">${L('ui.history.record_details')}</summary>
+                    <summary class="row">${L('ui.history.record_details')}</summary>
                     <div class="bill-view-info">
-                    <div class="row bill-view-row">
+                    <div class="row">
                         <span class="row-main">${L('ui.history.bill_no')}</span>
                         <strong class="bill-view-no">#${Helpers.escapeHtml(billNumber)}</strong>
                     </div>
                     ${bill.createdByName || bill.userName ? `
-                        <div class="row bill-view-row">
+                        <div class="row">
                             <span class="row-main">${L('ui.history.created_by')}</span>
                             <span>${Helpers.escapeHtml(bill.createdByName || bill.userName)}</span>
                         </div>
                     ` : ''}
                     ${billTimesHtml(bill)}
                     ${billTraceId(bill, type) ? `
-                        <div class="row bill-view-row bill-trace-row">
+                        <div class="row bill-trace-row">
                             <span class="row-main">${L('ui.status.trace_id')}</span>
                             <span class="bill-trace"><code lang="zxx" translate="no">${Helpers.escapeHtml(billTraceId(bill, type))}</code>
                                 <button type="button" class="btn btn-ghost btn-sm bill-trace-copy" data-onclick="history.copyTraceId()">${L('ui.status.copy_short')}</button></span>

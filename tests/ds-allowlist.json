@@ -14,7 +14,7 @@
   "entries": [
     {"metric":"spacing","file":"www/css/bill-checks.css","count":4,"list":"off-scale","reason":"-4px, 2px, 6px, 10px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/billing.css","count":10,"list":"off-scale","reason":"2px, 6px, 10px, 13px, 14px, 15px, 52px with no exact --sp-* token"},
-    {"metric":"spacing","file":"www/css/day.css","count":20,"list":"off-scale","reason":"1px, 2px, 6px, 10px, 14px, 44px, 140px with no exact --sp-* token"},
+    {"metric":"spacing","file":"www/css/day.css","count":18,"list":"off-scale","reason":"1px, 2px, 6px, 10px, 14px, 44px, 140px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/desktop.css","count":12,"list":"off-scale","reason":"1px, 2px, 3px, 5px, 6px, 9px, 10px, 14px, 28px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/finance.css","count":8,"list":"off-scale","reason":"2px, 6px, 10px, 13px, 15px with no exact --sp-* token"},
     {"metric":"spacing","file":"www/css/forms.css","count":8,"list":"off-scale","reason":"-1px, 1px, 2px, 3px, 6px, 13px, 14px, 15px, 36px with no exact --sp-* token"},
@@ -52,7 +52,7 @@
     {"metric":"titleCase","file":"www/js/i18n/en.js#ui.insights","count":4,"list":"proper-noun","reason":"Open Dues (twice) / Stock and Profit → Money name pages"},
     {"metric":"titleCase","file":"www/js/i18n/en.js#ui.settings","count":1,"list":"proper-noun","reason":"Modern Minimal is the name of a theme"},
     {"metric":"titleCase","file":"www/js/i18n/en.js#ui.statements","count":1,"list":"proper-noun","reason":"Matches Dues names the Dues page"},
-    {"metric":"titleCase","file":"www/js/i18n/en.js#ui.today","count":3,"list":"proper-noun","reason":"Open Rent / Open Tenants / Open Workers name the page they open"},
+    {"metric":"titleCase","file":"www/js/i18n/en.js#ui.today","count":2,"list":"proper-noun","reason":"Open Tenants / Open Workers name the page they open"},
     {"metric":"colour","file":"www/js/main.js","count":4,"list":"standalone","reason":"DevTools console %c colours for the build stamp and the stock / item debug groups"},
     {"metric":"colour","file":"www/js/modules/anomalies.js","count":18,"list":"canvas","reason":"the anomaly chart's 16 type colours (data, not chrome), plus the printable day-report image's white background and black text"},
     {"metric":"colour","file":"www/js/modules/rate-trends.js","count":10,"list":"canvas","reason":"rate, volume and year-overlay chart lines drawn on canvas (grid and axis text read the --line / --ink-2 / --ink-3 tokens)"},

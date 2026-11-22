@@ -2498,21 +2498,43 @@ a.row:active {
 .mode-dot.wholesale { background: var(--mode-wholesale); }
 
 /* ---------- Metrics, hero figure, meter ---------- */
+/* Each figure draws its own top and left hairline (the grid clips the outer ones), so the grid holds whichever
+   figures show; with an odd number the last one takes .metric-span (no empty cell) */
 .metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  overflow: hidden;
 }
 
 .metric {
+  position: relative;
   padding: var(--sp-3) var(--sp-4);
 }
 
-.metrics > .metric:nth-child(2n) {
+.metrics > .metric::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: 0;
+  bottom: 0;
+  left: -1px;
+  border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
+  pointer-events: none;
 }
 
-.metrics > .metric:nth-child(n+3) {
-  border-top: 1px solid var(--line);
+.metrics > .metric-span {
+  grid-column: 1 / -1;
+}
+
+/* The figure a grid is about (Today › Cash: Expected cash): an accent tint and a bolder figure */
+.metrics > .metric[data-emphasis] {
+  background: var(--accent-soft);
+}
+
+.metrics > .metric[data-emphasis] > .metric-value {
+  color: var(--ink);
+  font-weight: var(--w-display);
 }
 
 .metric-label {
@@ -2577,6 +2599,46 @@ a.row:active {
 .hero > .hero-fig {
   margin-top: var(--sp-1);
   color: var(--ink);
+}
+
+/* ⋯ menu (ui/menus.js): <details class="menu"> with a ⋯ <summary> and a .panel.menu-list that floats over what is
+   below, anchored to ⋯, so the row never moves; menus.js keeps it in the window and above the phone tab bar (data-up) */
+.menu {
+  position: relative;
+  flex: none;
+}
+
+.menu > summary {
+  list-style: none;
+}
+
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-list {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: calc(100vw - var(--sp-4));
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
+}
+
+.menu-list[data-up] {
+  top: auto;
+  bottom: calc(100% + var(--sp-1));
+}
+
+.menu-list > .btn {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
 }
 
 /* A panel that opens something when tapped */
@@ -2653,17 +2715,22 @@ a.row:active {
   font-weight: var(--w-strong);
 }
 
-.disclosure-summary > span {
-  white-space: nowrap;
-}
-
+/* One line: what doesn't fit ends in "…" instead of wrapping */
 .disclosure-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-1);
+  display: block;
+  overflow: hidden;
   color: var(--ink-3);
   font-size: var(--fs-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.disclosure-summary > span + span {
+  margin-left: var(--sp-1);
+}
+
+.disclosure-summary > .tag {
+  vertical-align: middle;
 }
 
 /* Something overdue: an amber dot after the title (its words are for screen readers) */
@@ -2736,6 +2803,10 @@ a.row:active {
 .meter > span {
   display: block;
   height: 100%;
+}
+
+.meter[hidden] {
+  display: none;
 }
 
 /* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ----------
@@ -5104,7 +5175,7 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
-/* Save & print is the screen's one primary button (Save is outlined; Add to bill, Rest → due are tonal); the sale
+/* Print (save, then print) is the screen's one primary button (Save is outlined; Add to bill, Rest → due are tonal); the sale
    screen gives both its mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
 .bill-sale .btn-primary {
   background-color: var(--btn-sale-bg);
@@ -5406,7 +5477,8 @@ label {
   margin-bottom: var(--sp-2);
 }
 
-.bill-view-row {
+/* Rows of the bill details (.row) in their small text */
+:where(.bill-view) .row {
   font-size: var(--fs-sm);
 }
 
@@ -6446,7 +6518,7 @@ select.voice-unclear {
   }
 }
 
-/* "Save & print" may wrap to two lines on a narrow phone rather than squeeze Save */
+/* The Print label may wrap to two lines on a narrow phone rather than squeeze Save */
 @media (max-width: 399.98px) {
   .bill-actions > .bill-print {
     white-space: normal;
@@ -7684,7 +7756,7 @@ tr.bill-check-line .bill-check-msg {
 
 /* Table view needs a wide screen (U-70): phones keep the cards */
 @media (max-width: 599.98px) {
-  .history-table-toggle {
+  .history-search > .btn-sm {
     display: none;
   }
 }
@@ -8253,27 +8325,6 @@ tr.bill-check-line .bill-check-msg {
     box-shadow: var(--focus);
 }
 
-.aging-more[open] {
-    flex-basis: 100%;
-}
-
-.aging-more-menu {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-    margin-top: var(--sp-2);
-}
-
-.aging-more,
-.aging-more-menu > .btn {
-    min-width: 0;
-    max-width: 100%;
-}
-
-.aging-more-menu > .btn {
-    white-space: normal;
-}
-
 .aging-bills-toggle {
     display: inline-flex;
     align-items: center;
@@ -8329,14 +8380,6 @@ tr.bill-check-line .bill-check-msg {
 .stock-metrics[hidden],
 .stock-metrics > .metric[hidden] {
   display: none;
-}
-
-.stock-metrics > .metric:nth-child(n+3) {
-  border-top: none;
-}
-
-.stock-metrics > .metric + .metric {
-  border-left: 1px solid var(--line);
 }
 
 .stock-search {
@@ -9218,16 +9261,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-size: var(--fs-caption);
 }
 
-.tcp-seg {
-  display: flex;
-  gap: var(--sp-1);
-  padding: var(--sp-1);
-  border-radius: var(--r-md);
-  background: var(--seg-track);
-}
-
-.tcp-seg-on,
-.tcp-seg-off {
+/* Purchase | Sale: the shared .seg itself (so each theme previews its own), its picks drawn small */
+.tcp .seg > span {
   display: flex;
   flex: 1;
   align-items: center;
@@ -9235,17 +9270,13 @@ body.no-perm-contacts [data-perm~="contacts"] {
   gap: var(--sp-1);
   padding: var(--sp-2);
   border-radius: var(--r-control);
-  color: var(--ink-2);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
 }
 
-.tcp-seg-on {
-  background: var(--seg-on);
-  color: var(--ink);
-  box-shadow: var(--e1);
+.tcp .seg > [aria-pressed="false"] {
+  color: var(--ink-2);
 }
-
 .tcp-dot {
   width: var(--sp-2);
   height: var(--sp-2);
@@ -9519,7 +9550,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
   padding: 0;
 }
 
-.day-tabs {
+.day-container > .tabs {
   margin-bottom: var(--sp-4);
 }
 
@@ -9569,18 +9600,11 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .cash-body .cash-title { margin: 0 0 var(--sp-3); padding: 0; border: 0; color: var(--ink); font-size: var(--fs-body); font-weight: var(--w-strong); }
 .cash-body .cash-status .cash-title { margin-bottom: var(--sp-1); color: var(--ink-3); font-size: var(--fs-sm); font-weight: var(--w-label); }
 
-/* Available cash (C7) as the hero, the day's figures as metrics */
-.cash-hero { padding-bottom: var(--sp-3); }
-.cash-hero-label { color: var(--ink-3); font-size: var(--fs-sm); }
-.cash-hero .hero-num { margin-top: var(--sp-1); color: var(--ink); }
-/* Each figure draws its own top and left hairline (the panel clips the outer ones), so the grid holds whichever figures show */
-.cash-metrics { overflow: hidden; }
-.panel.metrics.cash-metrics > .metric { position: relative; border: 0; }
-.cash-metrics > .metric::before {
-  content: ''; position: absolute; top: -1px; right: 0; bottom: 0; left: -1px; pointer-events: none;
-  border-top: 1px solid var(--line); border-left: 1px solid var(--line);
-}
-.cash-metrics > .metric-span { grid-column: 1 / -1; }
+/* The day's figures as .metrics (Expected cash, C7, stands out), then the count line (C8) */
+.cash-count { margin: var(--sp-2) 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+.cash-count > strong { color: var(--ink); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.cash-count > [class*="tone-"] { font-weight: var(--w-strong); }
+.cash-count[hidden] { display: none; }
 
 /* Close cash: in, out and the expected drawer (C1–C7) */
 .cash-body .cash-sub-title { margin: 0 0 var(--sp-1); color: var(--ink-3); font-size: var(--fs-sm); font-weight: var(--w-label); }
@@ -9612,7 +9636,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
 .today-in .i { color: var(--positive); }
 .today-out .i { color: var(--ink-3); }
-.today-inout strong, .today-channel-total, .today-channel-split strong, .today-bill-total {
+.today-inout strong {
   color: var(--ink); font-family: var(--font-num); font-weight: var(--w-strong); font-variant-numeric: tabular-nums;
 }
 
@@ -9634,45 +9658,28 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .today-reminder-days, .today-reminder-more { color: var(--ink-3); font-size: var(--fs-caption); }
 .day-report { margin-top: var(--section-gap); }
 
-/* Labour (T-LAB-*): Deducted, Paid, Pay rows; an amber line only under a row that differs; tap for each bill */
-.today-labour-open { display: block; width: 100%; padding: var(--sp-3) 0 0; border: none; border-radius: var(--r-panel); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.today-labour-open:hover { background: var(--surface-2); }
-.today-labour-open:focus-visible { outline: none; box-shadow: var(--focus); }
-.today-labour-diff { display: block; padding: 0 var(--sp-4) var(--sp-2); font-size: var(--fs-sm); }
-.today-labour-diff[hidden] { display: none; }
-.today-labour-more { display: block; padding: var(--sp-1) var(--sp-4) var(--sp-3); color: var(--accent-text); font-size: var(--fs-sm); font-weight: var(--w-label); text-align: right; }
+/* Labour (T-LAB-*), a disclosure: closed, the title and "Deducted · Est. pay" right-aligned on one line (… when it doesn't fit);
+   open, Deducted, Estimated pay, Paid and Details (each bill) */
+.today-labour .disclosure-main { flex-direction: row; align-items: baseline; gap: var(--sp-3); }
+.today-labour .disclosure-title { flex: none; }
+.today-labour .disclosure-summary { flex: 1; min-width: 0; text-align: right; }
+.today-labour-more { display: flex; width: fit-content; gap: var(--sp-1); margin: 0 var(--sp-2) var(--sp-2) auto; }
 
-/* By bill type (T18) */
-.today-channel { padding: var(--sp-3) var(--sp-4); }
-.today-channel + .today-channel { border-top: 1px var(--rule-style) var(--line); }
-.today-channel[hidden], .today-channel-split > .today-channel-writeoff[hidden] { display: none; }
-.today-channel-head { display: flex; align-items: baseline; gap: var(--sp-2); }
-.today-channel-name { color: var(--ink); font-weight: var(--w-strong); }
-.today-channel-count { color: var(--ink-3); font-size: var(--fs-sm); }
-.today-channel-total { margin-left: auto; }
-.today-channel-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-3); font-size: var(--fs-sm); }
-.today-channel-split > div { display: flex; justify-content: space-between; gap: var(--sp-2); }
-.today-channel-writeoff { grid-column: 1 / -1; }
+/* The hero's meter: in and out as shares of one bar (style="--w: …"), keyed by the arrows in the line above */
+.today-meter { margin-top: var(--sp-3); }
+.today-meter > span { flex-grow: var(--w); }
+.today-meter > .today-meter-in { background: var(--positive); }
+.today-meter > .today-meter-out { background: var(--ink-3); }
 
-/* Today's bills (T19): each row opens the bill; the dot is the bill's mode */
-[data-today-bill] {
-  display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--row-h); padding: 10px var(--sp-4);
-  border: none; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
-}
-[data-today-bill] + [data-today-bill] { border-top: 1px var(--rule-style) var(--line); }
-[data-today-bill]:hover { background: var(--surface-2); }
-[data-today-bill]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.today-bill-time { flex: none; min-width: 4.5em; color: var(--ink-3); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-.today-bill-main { display: flex; flex: 1; min-width: 0; flex-direction: column; }
-.today-bill-party, .today-bill-kind { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.today-bill-party { font-weight: var(--w-strong); }
-.today-bill-kind { color: var(--ink-3); font-size: var(--fs-sm); }
-.today-bill-kind::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: var(--r-round); background: var(--mode-purchase); }
-.today-bill-retail .today-bill-kind::before { background: var(--mode-sale); }
-.today-bill-wholesale .today-bill-kind::before { background: var(--mode-wholesale); }
-.today-bill-total { flex: none; }
-.today-bills-more { border-top-color: var(--line); border-radius: 0 0 var(--r-panel) var(--r-panel); }
+/* Purchases and Sales open their split by bill type (T18) */
+[data-split-tile] .metric-label > .i { margin-left: auto; color: var(--ink-3); }
+.today-split + .today-split { margin-top: var(--sp-4); }
+.today-split-head { display: flex; align-items: baseline; gap: var(--sp-2); margin-top: 0; }
+.today-split-total { margin-left: auto; color: var(--ink); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.today-split-note { margin: var(--sp-3) 0 0; }
 
+/* Today's bills (T19): one row at the very bottom, opening History on Today */
+.today-bills-link { margin-top: var(--section-gap); }
 /* Item details (T17) */
 .day-item .row-meta { white-space: normal; }
 .day-item .row-meta strong { color: var(--ink-2); font-weight: var(--w-strong); }
@@ -9789,62 +9796,34 @@ body.no-perm-contacts [data-perm~="contacts"] {
   padding: var(--sp-2) var(--sp-4) var(--sp-4);
 }
 
-.anom-card-sub-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
-}
-
-.anom-card-sub {
-  font-size: var(--fs-sm);
-}
-
 .anom-all-clear {
   margin: 0;
   font-size: var(--fs-sm);
 }
-.anom-chips {
+
+/* One row under the report: the share icon (its menu floats) and All anomalies › */
+.day-report-foot {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
+  margin-top: var(--sp-2);
 }
 
-.anom-types {
-  margin: var(--sp-1) 0 var(--sp-2);
-  padding-left: var(--sp-5);
-  font-size: var(--fs-sm);
+.day-report-all {
+  gap: var(--sp-1);
 }
 
-.anom-queue {
-  margin-top: var(--sp-3);
+/* A compact row (Today): the dot and title, one line of why, then Looks right and ⋯ */
+.anom-row.compact .anom-meta {
+  display: none;
 }
 
-.anom-queue-title {
-  margin-bottom: var(--sp-2);
-  font-weight: var(--w-strong);
+.anom-row.compact .anom-why {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-
-.anom-queue-head {
-  margin: var(--sp-2) 0 var(--sp-1);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-strong);
-}
-
-.anom-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-}
-
-.anom-card-actions .btn {
-  flex: 1 1 auto;
-  min-width: 120px;
-}
-
 /* Rows (card and page): the severity dot, the reason and who / what, then the review buttons */
 .anom-row {
   flex-wrap: wrap;
@@ -9920,45 +9899,6 @@ body.no-perm-contacts [data-perm~="contacts"] {
   white-space: nowrap;
 }
 
-/* ⋯ floats its list over the rows below (ui/menus.js keeps it in the window), as Billing's ⋯ does: the row never moves */
-.anom-overflow {
-  position: relative;
-  flex: none;
-}
-
-.anom-overflow > summary {
-  list-style: none;
-}
-
-.anom-overflow > summary::-webkit-details-marker {
-  display: none;
-}
-
-.anom-overflow-menu {
-  position: absolute;
-  top: calc(100% + var(--sp-1));
-  right: 0;
-  z-index: var(--z-popover);
-  display: flex;
-  flex-direction: column;
-  min-width: 180px;
-  max-width: calc(100vw - var(--sp-4));
-  padding: var(--sp-1);
-  box-shadow: var(--e2);
-  translate: var(--menu-shift, 0px) 0;
-}
-
-.anom-overflow-menu[data-up] {
-  top: auto;
-  bottom: calc(100% + var(--sp-1));
-}
-
-.anom-overflow-menu > .btn {
-  justify-content: flex-start;
-  white-space: normal;
-  text-align: left;
-}
-
 /* Page: filters, sections and summary */
 .anom-filters {
   display: grid;
@@ -9967,7 +9907,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
   margin-bottom: var(--sp-4);
 }
 
-.anom-tabs {
+/* List | Patterns, under the filters */
+.anom-filter-box + .tabs {
   margin-bottom: var(--sp-3);
 }
 

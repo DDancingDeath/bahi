@@ -127,14 +127,14 @@ const STEPS = [
 // What a route shows once showTabFromNav's own first render (setTimeout NAV_TIMER_MS) has run: the page's default sub-tab.
 // A step's act runs only after this, so that first render cannot undo it.
 const ROUTE_READY = {
-    day: '#day .day-tabs [aria-selected="true"]',
+    day: '#day .day-container > .tabs [aria-selected="true"]',
     billing: '#purchaseSection',
     'wholesale-sales': '#salesEntrySection',
     history: '#history .history-type-filter .active',
     stock: '#currentStockSection',
     // Sales first, or the list last opened this session (U-69)
     due: '#due .due-seg > .active',
-    anomalies: '#anomalies .anom-tabs [aria-selected="true"]',
+    anomalies: '#anomalies .anom-filter-box + .tabs [aria-selected="true"]',
     admin: '#adminTabsContainer [aria-selected="true"]',
     diagnostics: '#diagnosticsTabsContainer [aria-selected="true"]'
 };

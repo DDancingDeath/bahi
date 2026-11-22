@@ -184,8 +184,12 @@ describe('This month, View by Who owes (the default)', () => {
         saveLeaseReminders(localStorage, { uid: 'u1', month: M, items: [{ kind: 'increase', place: 'Flat 2B, Gupta Bhawan', tenant: 'Ram', pct: 5, newRent: 8400 }] });
         const root = await show('owes');
         const rows = [...root.querySelectorAll('.rent-attn .row')];
+        expect(rows[0].textContent).toContain('Rent due');
         expect(rows[0].textContent).toContain('2 units owe rent · 1 late');
         expect(rows[0].textContent).toContain('₹27,000');
+        expect(rows[0].getAttribute('data-onclick')).toBe('rentals.onlyLate(true)');
+        // At the top of the page, before the month's totals (REM-2 left Aadhat's Today)
+        expect(root.querySelector('.rent-attn').compareDocumentPosition(root.querySelector('.rent-collect')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         // Leases without an electricity choice are billed by our meter (the default).
         expect(rows[1].textContent).toContain('Meter readings: 2 to enter');
         expect(rows[2].textContent).toContain('rent increase due: 5% → ₹8,400');

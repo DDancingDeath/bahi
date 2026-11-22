@@ -59,7 +59,7 @@ While a bill is being typed:
 - **Share draft (not saved)**: the WhatsApp icon is always in the bottom row (with no lines yet it
   says "No items in bill"); it sends the bill on the form without saving it, and the message itself
   says "DRAFT, not saved". Save first to record it. Both say "Customer".
-- **Save & print** (the filled, right-most button: the most used; **Save** beside it is outlined, both the same
+- **Print** (the filled, right-most button, with the printer icon: it saves the bill, then prints it; its name for screen readers and its tooltip say "Save and print"; the most used; **Save** beside it is outlined, both the same
   width; the desktop shortcuts stay on their buttons; the Enter key never saves or prints: in the Weight box it adds the weight, elsewhere
   the phone keyboard's key goes to the next box) saves the bill, then prints it. In the Android app with no printer to print on,
   it asks first: **Save only**, or Cancel to connect the printer in Settings. A print that fails

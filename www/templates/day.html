@@ -3,7 +3,7 @@
     <div class="day-container">
         
         <!-- Sub-navigation tabs -->
-        <div class="tabs day-tabs" role="tablist">
+        <div class="tabs" role="tablist">
             <button type="button" id="dayTabToday" class="active" role="tab" aria-selected="true" aria-controls="dayTodayContent" data-onclick="day.showSubTab('today')" data-i18n="ui.today.today_s_summary">Summary</button>
             <button type="button" id="dayTabCash" role="tab" aria-selected="false" aria-controls="dayCashContent" data-onclick="day.showSubTab('cash')" data-i18n="ui.today.cash_management">Cash</button>
         </div>
@@ -23,6 +23,8 @@
                     <span class="today-in"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrIn"/></svg><span data-i18n="ui.today.total_in">Total in</span> <strong id="todayTotalIn">₹0</strong></span>
                     <span class="today-out"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrOut"/></svg><span data-i18n="ui.today.total_out">Total out</span> <strong id="todayTotalOut">₹0</strong></span>
                 </div>
+                <!-- In and out as shares of one bar (DIRECTION hero: in/out line, stacked meter); the line above is its legend -->
+                <div class="meter today-meter" id="todayMeter" aria-hidden="true" hidden></div>
             </section>
 
             <!-- The day's key figures first; on a desktop they keep the left column -->
@@ -37,13 +39,13 @@
             <!-- Purchases (T1), sales (T2), business (T4) and personal (T5) expenses -->
             <h3 class="section-title" data-i18n="ui.today.transactions">Transactions</h3>
             <div class="panel metrics today-metrics">
-                <div class="metric">
-                    <div class="metric-label"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchases">Purchases</span></div>
+                <div class="metric panel-tap" role="button" tabindex="0" data-split-tile="purchase" data-onclick="day.showSplit('purchase')">
+                    <div class="metric-label"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchases">Purchases</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
                     <div class="metric-value" id="todayTotalPurchases">₹0</div>
                     <div class="metric-sub" id="todayPurchaseCount"><span data-i18n="ui.day.0_bills">0 bills</span></div>
                 </div>
-                <div class="metric">
-                    <div class="metric-label"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.common.sales">Sales</span></div>
+                <div class="metric panel-tap" role="button" tabindex="0" data-split-tile="sale" data-onclick="day.showSplit('sale')">
+                    <div class="metric-label"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.common.sales">Sales</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
                     <div class="metric-value" id="todayTotalSales">₹0</div>
                     <div class="metric-sub" id="todaySaleCount"><span data-i18n="ui.day.0_bills">0 bills</span></div>
                 </div>
@@ -70,30 +72,13 @@
             </div>
 
             <div class="today-main">
-            <!-- TODAY'S BILLS (T19): tap a row to open the bill -->
-            <h3 class="section-title" data-i18n="ui.today.bills_title">Today's bills</h3>
-            <div class="panel" id="todayBillsCard">
-                <div id="todayBillsList" class="today-bills"></div>
-                <button type="button" id="todayBillsMore" class="btn btn-ghost btn-block today-bills-more" hidden data-onclick="day.toggleAllBills()"></button>
-            </div>
-
             <details class="today-more" id="todayMore">
                 <summary class="section-title today-more-title"><span data-i18n="ui.today.day_details">Day details</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></summary>
                 <!-- Labour and Payment breakdown: at ≥ 1280 px day.js moves these two blocks to the right column (NEW-17) -->
-                <!-- LABOUR: deducted from farmers (T-LAB-1), paid to labourers (T-LAB-4) and the estimate to pay (T-LAB-2); an amber line
-                     only when paid (T-LAB-5) or the estimate (T-LAB-3) differs from deducted; tap for the bill-wise breakdown -->
+                <!-- LABOUR: Deducted from customers (T-LAB-1), Estimated pay (T-LAB-2) and Paid from the labour expenses (T-LAB-4), just the three figures; tap for the bill-wise breakdown -->
                 <div class="today-detail-block" id="todayLabourBlock">
-                <section class="panel panel-float today-labour" id="todayLabourCard" aria-labelledby="todayLabourTitle">
-                    <h3 class="panel-legend" id="todayLabourTitle" data-i18n="ui.today.labor">Labour</h3>
-                    <button type="button" class="today-labour-open" data-onclick="day.showLabourBreakdown()">
-                        <span class="row"><span class="row-main" data-i18n="ui.today.labour_row_deducted">Deducted</span><strong class="row-trail row-amt" id="todayLaborCost">₹0</strong></span>
-                        <span class="row"><span class="row-main" data-i18n="ui.today.labour_row_paid">Paid</span><strong class="row-trail row-amt" id="todayLabourPaid">₹0</strong></span>
-                        <span class="today-labour-diff tone-warn" id="todayLabourPaidDiff" hidden></span>
-                        <span class="row"><span class="row-main" data-i18n="ui.today.labour_row_pay">Pay</span><strong class="row-trail row-amt" id="todayLabourToPay">₹0</strong></span>
-                        <span class="today-labour-diff tone-warn" id="todayLabourDiff" hidden></span>
-                        <span class="today-labour-more"><span data-i18n="ui.today.labour_details">Details</span> ›</span>
-                    </button>
-                </section>
+                <!-- Closed: "Labour   Deducted ₹N · Est. pay ₹N" on one line; open: Deducted, Estimated pay, Paid (day.js renderLabour) -->
+                <div class="panel today-labour" id="todayLabourCard"></div>
                 </div>
 
                 <!-- Cash and online in (T6, T7) and out (T8, T9) -->
@@ -140,55 +125,6 @@
                     </div>
                 </div>
 
-                <!-- BY BILL TYPE (T18): cash / online at save, due still open -->
-                <h3 class="section-title" data-i18n="ui.today.ch_title">By bill type</h3>
-                <div class="panel" id="todayChannelsCard">
-                    <div class="today-channels">
-                        <div class="today-channel" id="todayChRetail">
-                            <div class="today-channel-head">
-                                <span class="today-channel-name" data-i18n="ui.finance.bill_retail">Retail sale</span>
-                                <span class="today-channel-count" id="todayChRetailCount"></span>
-                                <strong class="today-channel-total" id="todayChRetailTotal">₹0</strong>
-                            </div>
-                            <div class="today-channel-split">
-                                <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChRetailCash">₹0</strong></div>
-                                <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChRetailOnline">₹0</strong></div>
-                                <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChRetailPaidLater">₹0</strong></div>
-                                <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChRetailDue">₹0</strong></div>
-                                <div class="today-channel-writeoff" id="todayChRetailWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChRetailWrittenOff">₹0</strong></div>
-                            </div>
-                        </div>
-                        <div class="today-channel" id="todayChWholesale">
-                            <div class="today-channel-head">
-                                <span class="today-channel-name" data-i18n="ui.finance.bill_wholesale">Wholesale sale</span>
-                                <span class="today-channel-count" id="todayChWholesaleCount"></span>
-                                <strong class="today-channel-total" id="todayChWholesaleTotal">₹0</strong>
-                            </div>
-                            <div class="today-channel-split">
-                                <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChWholesaleCash">₹0</strong></div>
-                                <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChWholesaleOnline">₹0</strong></div>
-                                <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChWholesalePaidLater">₹0</strong></div>
-                                <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChWholesaleDue">₹0</strong></div>
-                                <div class="today-channel-writeoff" id="todayChWholesaleWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChWholesaleWrittenOff">₹0</strong></div>
-                            </div>
-                        </div>
-                        <div class="today-channel" id="todayChPurchase">
-                            <div class="today-channel-head">
-                                <span class="today-channel-name" data-i18n="ui.reports.pdf_purchase">Purchase</span>
-                                <span class="today-channel-count" id="todayChPurchaseCount"></span>
-                                <strong class="today-channel-total" id="todayChPurchaseTotal">₹0</strong>
-                            </div>
-                            <div class="today-channel-split">
-                                <div><span data-i18n="ui.today.ch_cash">Cash</span> <strong id="todayChPurchaseCash">₹0</strong></div>
-                                <div><span data-i18n="ui.today.ch_online">Online</span> <strong id="todayChPurchaseOnline">₹0</strong></div>
-                                <div><span data-i18n="ui.today.ch_paid_later">Paid later today</span> <strong id="todayChPurchasePaidLater">₹0</strong></div>
-                                <div class="today-channel-due"><span data-i18n="ui.today.ch_due">Due</span> <strong id="todayChPurchaseDue">₹0</strong></div>
-                                <div class="today-channel-writeoff" id="todayChPurchaseWrittenOffRow" hidden><span data-i18n="ui.today.ch_written_off">Written off</span> <strong id="todayChPurchaseWrittenOff">₹0</strong></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- ITEM DETAILS (T17) -->
                 <h3 class="section-title" data-i18n="ui.today.purchase_details">Purchase details</h3>
                 <div class="panel">
@@ -204,6 +140,13 @@
                     </div>
                 </div>
             </details>
+
+            <!-- Today's bills (T19): one row at the very bottom; History lists them (History › Today) -->
+            <div class="panel today-bills-link" id="todayBillsLink" hidden><button type="button" class="row" data-onclick="nav.showTab('history-today', event)">
+                <span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span>
+                <span class="row-main"><span class="row-title" id="todayBillsCount"></span><span class="row-meta" id="todayBillsMeta"></span></span>
+                <svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg>
+            </button></div>
             </div>
 
         </div>

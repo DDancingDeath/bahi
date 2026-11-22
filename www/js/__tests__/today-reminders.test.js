@@ -130,13 +130,14 @@ describe('Today › Reminders card', () => {
         expect(host.querySelector('[data-reminder="rent"]')).toBeNull();
     });
 
-    test('rent due shows for a rentals role once Rentals was opened this month', () => {
+    test('rent due is not on Aadhat\'s Today, even for a rentals role (Rentals shows it on its own page)', () => {
         AppState.userRole = 'owner';
         saveRentReminder(localStorage, { uid: 'u1', month: '2026-11', due: 12000, late: 2, dueUnits: 3, at: TODAY.getTime() });
         DayManager.renderReminders(TODAY);
-        const rent = document.querySelector('[data-reminder="rent"]').textContent;
-        expect(rent).toContain('₹12,000');
-        expect(rent).toContain('3 units owe rent · 2 late');
+        const host = document.getElementById('todayReminders');
+        expect(host.querySelector('[data-reminder="rent"]')).toBeNull();
+        expect(host.textContent).not.toContain('₹12,000');
+        expect(host.querySelector('.disclosure-summary').textContent).not.toMatch(/Rent/);
     });
 
     test('a member without Wholesale sees no wholesale party', () => {
@@ -326,12 +327,12 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
         expect(toggle().getAttribute('aria-expanded')).toBe('false');
         expect(toggle().getAttribute('aria-controls')).toBe('todayRemindersBody');
         expect(body().hidden).toBe(true);
-        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Dues ₹250·Rent ₹68,000·Backup');
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Dues ₹250·Backup');
         expect(toggle().querySelector('[data-disclosure-alert]')).not.toBeNull();
         expect(toggle().textContent).toContain('Something is overdue');
         expect(toggle().textContent).not.toContain('raja kumar');
         expect(body().querySelector('[data-reminder="collect"] button').getAttribute('data-onclick')).toBe("day.openDues('retail')");
-        expect(body().querySelector('[data-reminder="rent"] button').getAttribute('data-onclick')).toBe("rentals.open('rent', event)");
+        expect(body().querySelector('[data-reminder="rent"]')).toBeNull();
         expect(body().querySelector('[data-reminder="backup"] button').getAttribute('data-onclick')).toBe('day.openBackupCheck()');
         expect(body().querySelector('[data-reminder="manual"]')).toBeNull();
     });
@@ -340,7 +341,13 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
         AppState.retailSalesHistory = [];
         saveRentReminder(localStorage, { uid: 'u1', month: '2026-11', due: 5000, late: 0, dueUnits: 1, at: TODAY.getTime() });
         DayManager.renderReminders(TODAY);
-        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Rent ₹5,000·Backup');
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('Backup');
+        // One line at 360 px: what doesn't fit ends in "…" instead of wrapping
+        const css = require('fs').readFileSync(require('path').join(__dirname, '../../css/surfaces.css'), 'utf8');
+        const rule = /\.disclosure-summary \{([^}]*)\}/.exec(css)[1];
+        expect(rule).toMatch(/white-space: nowrap/);
+        expect(rule).toMatch(/text-overflow: ellipsis/);
+        expect(rule).toMatch(/overflow: hidden/);
         expect(toggle().querySelector('[data-disclosure-alert]')).toBeNull();
     });
 
@@ -364,7 +371,7 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
     test('Hindi chips', () => {
         setLang('hi');
         DayManager.renderReminders(TODAY);
-        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('बकाया ₹250·किराया ₹68,000·बैकअप');
+        expect(toggle().querySelector('.disclosure-summary').textContent).toBe('बकाया ₹250·बैकअप');
         expect(document.querySelector('.today-reminders-add').getAttribute('aria-label')).toBe('याद जोड़ें');
     });
 
@@ -415,7 +422,7 @@ describe('Today page order', () => {
             listeners.forEach(fn => fn());
             const side = document.querySelector('.today-side');
             expect([...side.children].map(e => e.id)).toEqual(['todayReminders', 'dayReportCard', 'todayLabourBlock', 'todayPayBlock']);
-            expect(document.getElementById('todayLaborCost')).not.toBeNull();
+            expect(document.getElementById('todayLabourCard')).not.toBeNull();
             mql.matches = false;
             listeners.forEach(fn => fn());
             expect(order()).toEqual(phone);
