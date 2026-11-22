@@ -28,13 +28,14 @@ export function setDisclosureOpen(key, open, store) {
 /**
  * The markup. `title`, `summary`, `tools` and `body` are HTML the caller has escaped.
  * @param {{key: string, id: string, title: string, summary?: string, lead?: string, alert?: string,
- *   tools?: string, body: string, open?: boolean}} o - `alert`: screen-reader text for the amber dot (urgent)
+ *   tools?: string, body: string, open?: boolean, line?: boolean}} o - `alert`: screen-reader text for the amber dot (urgent);
+ *   `line`: the one-line row (.disclosure-line: title left, the key figure right)
  * @returns {string}
  */
 export function disclosureHtml(o) {
     const open = o.open ?? isDisclosureOpen(o.key);
     const bodyId = `${o.id}Body`;
-    return `<div class="disclosure" data-disclosure="${o.key}">`
+    return `<div class="disclosure${o.line ? ' disclosure-line' : ''}" data-disclosure="${o.key}">`
         + '<div class="disclosure-head">'
         + `<h3 class="disclosure-heading"><button type="button" class="disclosure-toggle" id="${o.id}Toggle" aria-expanded="${open}" aria-controls="${bodyId}" data-onclick="disclosure.toggle('${o.key}')">`
         + (o.lead || '')

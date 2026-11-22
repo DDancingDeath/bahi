@@ -185,6 +185,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
 - **Tab keyboard** (`www/js/ui/seg.js`, installed once on the document): every `role="tablist"` has a roving
   tabindex (only the selected tab is a Tab stop) and Left / Right / Home / End select a tab through its own
   click handler, also for tablists drawn later.
+- **Money direction** `.tone-pos` in (green, with ↙ `arrIn`), `.tone-out` out (indigo `--accent-text`, with ↗ `arrOut`), `.tone-warn` a due (amber), `.tone-neg` short (red): always beside an arrow, a sign or a word, never colour alone.
 - **Mode dot** `.mode-dot` (`.sale`, `.wholesale`): 8 px identity dot beside a purchase / sale / wholesale label, never a status.
 - **Panel with a legend** `.panel.panel-float > .panel-legend` (`surfaces.css`): the panel's title sits on its top
   border like a `.field-float` label (14 px `--fs-label`, `--ink-2`, its lower half `--panel-bg` cuts the border), so the
@@ -205,6 +206,11 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   or closes every disclosure with that key and keeps the choice per device (`happa.open.<key>` through `safeSetItem`);
   a redraw reads it back, and the default is **closed**. Leave out empty parts in both states (no "nothing here" blocks):
   when there is nothing at all, show nothing, or one small link.
+  **One-line row** `.disclosure-line` (`disclosureHtml({ …, line: true })`, Today's groups): a 52 px row (`--tap-min` +
+  `--sp-1`) with the title (and its dot) at the left, the one key figure at the right in tabular figures (a `.tag` reads as
+  toned words, a `<strong>` is ink), the chevron, then any 44 px tool (＋, or the share `details.menu`). Several rows share
+  one `.panel` with a hairline between them; a plain link row in the same panel (`button.row`) keeps the height. No lead
+  icon: numbers and colours carry the meaning.
   ```html
   <div class="panel"><div class="disclosure" data-disclosure="day-report">
       <div class="disclosure-head"><h3 class="disclosure-heading"><button type="button" class="disclosure-toggle" id="dayReportToggle"

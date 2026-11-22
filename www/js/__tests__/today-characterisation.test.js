@@ -25,7 +25,7 @@ const EXPECTED = RECORD ? {} : JSON.parse(fs.readFileSync(EXPECTED_FILE, 'utf8')
 
 const TEXT_IDS = [
     'todayTotalPurchases', 'todayPurchaseCount', 'todayTotalSales', 'todaySaleCount',
-    'todayLaborCost', 'todayLabourPaid', 'todayLabourToPay', 'todayBillsCount', 'todayBillsMeta',
+    'todayLaborCost', 'todayLabourPaid', 'todayLabourToPay', 'todayBillsCount',
     'todayBusinessExpenses', 'todayBusinessExpenseCount', 'todayPersonalExpenses', 'todayPersonalExpenseCount',
     'todayCashReceived', 'todayOnlineReceived', 'todayCashPaid', 'todayOnlinePaid',
     'todayTotalIn', 'todayTotalOut', 'todayCashFlowLabel', 'todayNetCashFlow', 'todayTotalCashFlow',
@@ -54,8 +54,9 @@ async function renderToday(c) {
     return {
         text: Object.fromEntries(TEXT_IDS.map(id => [id, document.getElementById(id).textContent])),
         netColor: document.getElementById('todayNetCashFlow').style.color,
-        purchaseItems: document.getElementById('todayPurchaseItems').innerHTML,
-        saleItems: document.getElementById('todaySaleItems').innerHTML,
+        purchaseItems: document.getElementById('todayPurchaseItems')?.innerHTML ?? '',
+        retailItems: document.getElementById('todayRetailItems')?.innerHTML ?? '',
+        wholesaleItems: document.getElementById('todayWholesaleItems')?.innerHTML ?? '',
         dayReport: copy(totals),
         dayReportSession: session ? session.id : null,
         labourBreakdown: modal.mock.calls[0][0]

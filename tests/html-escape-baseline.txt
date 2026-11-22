@@ -3,7 +3,7 @@
 www/js/modules/admin.js: col.id
 www/js/modules/admin.js: t('ui.admin.type_word_to_confirm', { word: `<strong>${Helpers.escapeHtml(DELETE_CONFIRM_WORD)}</strong>` })
 www/js/modules/anomalies.js: colorOf(ty) ← TYPE_COLORS[Math.max(0, p.types.indexOf(type)) % TYPE_COLORS.length] {TYPE_COLORS = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed', '#db2777', '#0891b2', '#}
-www/js/modules/anomalies.js: disclosureHtml({ key: DAY_REPORT_KEY, id: 'dayReport', lead: `<span class="lead-icon${s.bySeverity.high ? ' neg' : ''}">${icon('flag')}</spa (sink)
+www/js/modules/anomalies.js: disclosureHtml({ key: DAY_REPORT_KEY, id: 'dayReport', line: true, title: `<span class="anom-card-title">${esc(t('ui.anom.day_report'))}</sp (sink)
 www/js/modules/anomalies.js: title
 www/js/modules/ask.js: a.answer (markup via this.answerHtml .page)
 www/js/modules/ask.js: a.page
@@ -16,19 +16,29 @@ www/js/modules/ask.js: this.answers (markup via map(a => `<div class="ask-answer
 www/js/modules/cash-management.js: SyncStatus.chipHtml(session.id)
 www/js/modules/cash-management.js: date ← (parseAnyBillDate(session.date) || new Date(NaN)).toLocaleDateString(displayLoca
 www/js/modules/day.js: REMINDER_ICONS[kind] ← REMINDER_ICONS = { collect: icon('arrIn'), collect_wholesale: icon('truck'), pay: icon('arrOut'),
-www/js/modules/day.js: disclosureHtml({ key: 'today-labour', id: 'todayLabour', title: esc(t('ui.today.labor')), summary: `<span>${esc(t('ui.today.labour_ded_chip' (sink)
-www/js/modules/day.js: disclosureHtml({ key: TODAY_REMINDERS_KEY, id: 'todayReminders', lead: `<span class="lead-icon">${icon('list')}</span>`, title: `<span class
+www/js/modules/day.js: disclosureHtml({ key: TODAY_DUES_KEY, id: 'todayDues', line: true, title: e(t('ui.today.dues_today')), summary: `<span>${e(t('ui.today.dues_
+www/js/modules/day.js: disclosureHtml({ key: TODAY_LABOUR_KEY, id: 'todayLabour', line: true, title: e(t('ui.today.labor')), summary: `<span>${e(t('ui.today.labour
+www/js/modules/day.js: disclosureHtml({ key: TODAY_REMINDERS_KEY, id: 'todayReminders', line: true, title: `<span class="today-reminders-title">${e(t('ui.today.rem (sink)
+www/js/modules/day.js: dot
+www/js/modules/day.js: first ← first from shown (markup via block)
 www/js/modules/day.js: firstRunSteps({ shopName: AppState.settings?.shopName, itemCount: (AppState.items || []).length, teamSeen: read(FIRST_RUN_TEAM_KEY) === '1', (markup via map(s => `<li class="first-run-step${s.done ? ' done' : ''}">${s.done ? icon('check', 'i-sm') : ''}<span>${e(t(`ui.firstrun.step_${s.id}`))}</sp) .route)
-www/js/modules/day.js: item.count
-www/js/modules/day.js: itemsArray (markup via map(item => ` <div class="row day-item"> <div class="row-main"> <div class="row-title">${Helpers.escapeHtml(item.name)}</div> <div class="row-me) .count)
+www/js/modules/day.js: id
+www/js/modules/day.js: ids ? ` id="${id}"` : '' ← id
+www/js/modules/day.js: ids[type] ← ids = { purchase: 'todayPurchaseItems', retail: 'todayRetailItems', wholesale: 'todayW
 www/js/modules/day.js: kind
 www/js/modules/day.js: kind (markup via block)
 www/js/modules/day.js: kind (markup via reminderOpen)
+www/js/modules/day.js: lead
+www/js/modules/day.js: lead[dir] ← lead = { in: icon('arrIn', 'i-sm tone-pos'), out: icon('arrOut', 'i-sm tone-out') }
 www/js/modules/day.js: open
 www/js/modules/day.js: open (markup via block)
-www/js/modules/day.js: s.purchaseItems ← s = todaySummary({ bills: { purchase: AppState.purchaseHistory, wholesale: AppState. (markup via this.renderItemWiseDetails)
+www/js/modules/day.js: rest ← rest from shown (markup via map(block))
 www/js/modules/day.js: s.route
-www/js/modules/day.js: s.saleItems ← s = todaySummary({ bills: { purchase: AppState.purchaseHistory, wholesale: AppState. (markup via this.renderItemWiseDetails)
+www/js/modules/day.js: shown.length ? disclosureHtml({ key: TODAY_ITEMS_KEY, id: 'todayItems', line: true, title: e(t('ui.today.items')), summary: `<span>${e(t('ui ← disclosureHtml({ key: TODAY_ITEMS_KEY, id: 'todayItems', line: true, title: e(t(
+www/js/modules/day.js: tone ? ` ${tone}` : '' ← tone
+www/js/modules/day.js: tone ← { match: 'tone-pos', short: 'tone-neg', extra: 'tone-warn' }[count.kind]
+www/js/modules/day.js: type
+www/js/modules/day.js: type
 www/js/modules/health.js: html (sink)
 www/js/modules/history.js: (toMoney(item.total) ?? toMoney(item.amount)) === null ? '—' : formatAmount(toMoney(item.total) ?? toMoney(item.amount), { exact: true }) ← formatAmount(toMoney(item.total) ?? toMoney(item.amount), { exact: true })
 www/js/modules/history.js: billTableHtml(bills, { openings: this.pageOpenings, voided: this.pageVoided, typeTags: type === 'sale', onclickFor: (bill) => `history.viewB (sink)

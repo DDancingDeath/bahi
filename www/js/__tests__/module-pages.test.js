@@ -365,7 +365,7 @@ describe('Today (day.js)', () => {
     const IDS = ['todayTotalPurchases', 'todayPurchaseCount', 'todayTotalSales', 'todaySaleCount', 'todayLaborCost',
         'todayBusinessExpenses', 'todayPersonalExpenses', 'todayTotalIn', 'todayTotalOut', 'todayNetCashFlow',
         'todayCashFlowLabel', 'todayCashReceived', 'todayOnlineReceived', 'todayCashPaid', 'todayOnlinePaid',
-        'todayDueReceived', 'todayDuePaid', 'todayDueToReceive', 'todayDueToPay', 'todayPurchaseItems', 'todaySaleItems', 'todayMeter'];
+        'todayDueReceived', 'todayDuePaid', 'todayDueToReceive', 'todayDueToPay', 'todayMeter', 'todayDetails', 'todayDetailsTitle', 'todayDetailsBody'];
     const val = (id) => document.getElementById(id).textContent;
     const money = (n) => formatRupees(n);
 
@@ -401,9 +401,9 @@ describe('Today (day.js)', () => {
     test('headline numbers for the local day (ISO and DD/MM dates)', () => {
         DayManager.loadTodayData();
         expect(val('todayTotalPurchases')).toBe(money(2568));
-        expect(val('todayPurchaseCount')).toBe('1 bill');
+        expect(val('todayPurchaseCount')).toBe('1');
         expect(val('todayTotalSales')).toBe(money(5795));
-        expect(val('todaySaleCount')).toBe('2 bills');
+        expect(val('todaySaleCount')).toBe('2');
         expect(val('todayLaborCost')).toBe(money(12));
         expect(val('todayBusinessExpenses')).toBe(money(150));
         expect(val('todayPersonalExpenses')).toBe(money(80));
@@ -430,19 +430,31 @@ describe('Today (day.js)', () => {
         expect(require('fs').readFileSync(require('path').join(__dirname, '../../css/surfaces.css'), 'utf8')).toMatch(/\.meter\[hidden\] \{\s*display: none;\s*\}/);
     });
 
-    test('item-wise cards aggregate quantity and value per item', () => {
+    test('items: one table per bill type (Item | kg | ₹/kg | Total), retail and wholesale apart, highest total first, no total row', () => {
         DayManager.loadTodayData();
-        const sale = document.getElementById('todaySaleItems').textContent.replace(/\s+/g, ' ');
-        expect(sale.indexOf('Rice')).toBeLessThan(sale.indexOf('Wheat')); // sorted by value
-        expect(sale).toContain('152.5 kg');
-        expect(sale).toContain('12 kg');
+        const rows = (id) => [...document.querySelectorAll(`#${id} tbody tr`)].map(tr => [...tr.children].map(c => c.textContent));
+        expect([...document.querySelectorAll('#todayPurchaseItems thead th')].map(th => th.textContent)).toEqual(['Item', 'kg', '₹/kg', 'Total']);
+        expect(rows('todayPurchaseItems')).toEqual([['Rice', '60', '25.50', money(1530)], ['Wheat', '35', '30', money(1050)]]);
+        expect(rows('todayRetailItems')).toEqual([['Rice', '12.5', '36', money(450)], ['Wheat', '12', '28.75', money(345)]]);
+        expect(rows('todayWholesaleItems')).toEqual([['Rice', '140', '35.71', money(5000)]]);
+        expect(document.querySelector('.today-items tfoot')).toBeNull();
+        expect(document.querySelector('.today-items-n')).toBeNull(); // ×N only when an item is on more than one bill
+        expect(document.querySelector('#todayItemsToggle .disclosure-summary').textContent).toBe('2 bought · 2 sold');
+    });
+
+    test('items: ×N when the item is on N > 1 bills of that type', () => {
+        AppState.retailSalesHistory.push({ id: 'r3', date: '2026-10-21T13:00:00', total: 60, items: [{ name: 'Wheat', qty: 2, rate: 30, total: 60 }], payment: { cash: 60 } });
+        DayManager.loadTodayData();
+        const badges = [...document.querySelectorAll('#todayRetailItems .today-items-n')].map(b => [b.closest('th').querySelector('.today-items-name').textContent, b.textContent]);
+        expect(badges).toEqual([['Wheat', '×2']]);
     });
 
     test('empty day', () => {
         ['purchaseHistory', 'salesHistory', 'retailSalesHistory', 'expensesHistory'].forEach(k => { AppState[k] = []; });
         DayManager.loadTodayData();
         expect(val('todayTotalSales')).toBe(money(0));
-        expect(val('todayPurchaseItems')).toBe('No purchases today');
+        expect(document.getElementById('todayDetails').hidden).toBe(true);
+        expect(document.getElementById('todayPurchaseItems')).toBeNull();
     });
 
     // #95: due payments recorded on bills today show as "due received".

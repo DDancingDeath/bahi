@@ -98,6 +98,46 @@
   }
 }
 
+/* Today: the date beside the title; a refresh button only on a desktop (a phone pulls to refresh) */
+.app-bar-date {
+  flex: none;
+  margin-right: auto;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+  white-space: nowrap;
+}
+
+.app-bar-title:has(+ .app-bar-date:not([hidden])) {
+  flex: 0 1 auto;
+}
+
+.app-bar .app-bar-refresh {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .app-bar .app-bar-refresh:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--control-h);
+    height: var(--control-h);
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+
+  .app-bar .app-bar-refresh:hover {
+    background: var(--state-hover);
+    color: var(--ink);
+  }
+}
+
 @media print {
   .app-bar {
     display: none !important;

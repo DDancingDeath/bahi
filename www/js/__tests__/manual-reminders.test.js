@@ -140,7 +140,7 @@ describe('Today: manual reminders', () => {
         const host = document.getElementById('todayReminders');
         expect(host.hidden).toBe(false);
         expect(host.querySelector('.disclosure')).toBeNull();
-        expect(host.querySelector('.today-reminders-link').getAttribute('data-onclick')).toBe('day.reminderForm(true)');
+        expect(host.querySelector('.today-reminders-link [data-onclick]').getAttribute('data-onclick')).toBe('day.reminderForm(true)');
         localStorage.removeItem('happa.restoreDrill');
         localStorage.removeItem(`happa.firstRun.hidden.${uid}`);
         localStorage.removeItem(`happa.appLockAsked.${uid}`);

@@ -294,6 +294,7 @@ const MONTHS = {
     hi: ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर']
 };
 const DAY_HALF = { en: ['am', 'pm'], hi: ['पूर्वाह्न', 'अपराह्न'] };
+const WEEKDAYS = { en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], hi: ['रवि', 'सोम', 'मंगल', 'बुध', 'गुरु', 'शुक्र', 'शनि'] };
 const langOf = (/** @type {?string|undefined} */ lang) => (lang === 'hi' ? 'hi' : 'en');
 
 /**
@@ -352,20 +353,24 @@ export function formatDayTime(value, { lang = 'en', now = new Date() } = {}) {
 const isDayOnly = (/** @type {*} */ v) => typeof v === 'string' && (ISO_DATE_ONLY.test(v.trim()) || /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v.trim()));
 
 /** DATE-TEXT presets of formatDate(). */
-export const DATE_PRESETS = Object.freeze(['short', 'full', 'time', 'datetime', 'month']);
+export const DATE_PRESETS = Object.freeze(['short', 'full', 'time', 'datetime', 'month', 'weekday']);
 
 /**
  * DATE-TEXT: the app's one on-screen date and time format, in the app language. Presets: `short` "14 Nov",
  * `full` "14 Nov 2026", `time` "3:05 pm" (12-hour, no seconds), `datetime` "14 Nov, 3:05 pm" (the year when it
- * is not this year; a value with no time, a day key or "14/11/2026", is the day alone), `month` "Nov 2026". Receipts,
- * CSV, exports and stored values keep their own formats.
+ * is not this year; a value with no time, a day key or "14/11/2026", is the day alone), `month` "Nov 2026",
+ * `weekday` "Sat, 14 Nov" (Today's header). Receipts, CSV, exports and stored values keep their own formats.
  * @param {*} value anything toJsDate accepts (a day key "2026-11-14", ms, Date, Timestamp, en-IN text)
- * @param {'short'|'full'|'time'|'datetime'|'month'} [preset='full']
+ * @param {'short'|'full'|'time'|'datetime'|'month'|'weekday'} [preset='full']
  * @param {{lang?: string, now?: Date}} [opts] lang defaults to the app language
  * @returns {string} '' when there is no usable date
  */
 export function formatDate(value, preset = 'full', { lang = getLang(), now = new Date() } = {}) {
     if (preset === 'short') return formatDay(value, { lang, year: false });
+    if (preset === 'weekday') {
+        const d = toJsDate(value);
+        return d ? `${WEEKDAYS[langOf(lang)][d.getDay()]}, ${formatDay(d, { lang, year: false })}` : '';
+    }
     if (preset === 'time') return formatTimeOfDay(value, { lang });
     if (preset === 'datetime') {
         const d = toJsDate(value);

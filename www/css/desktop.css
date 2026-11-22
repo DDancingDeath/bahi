@@ -523,13 +523,8 @@
   }
 
   #dayTodayContent .today-side > *,
-  #dayTodayContent .today-side .section-title,
-  #dayTodayContent .today-main-top > .section-title {
+  #dayTodayContent .today-side .section-title {
     margin-top: 0;
-  }
-
-  .today-main-top > .today-cash-prompt {
-    margin: 0 0 var(--sp-4);
   }
   /* Today › Cash (5.2a): forms keep a readable width */
   .cash-body {

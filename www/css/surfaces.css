@@ -8,6 +8,8 @@
 .tone-warn { color: var(--warning); }
 .tone-info { color: var(--info); }
 .tone-muted { color: var(--ink-3); }
+/* Money out (purchase, paid, payable): indigo, always beside its ↗ or a word that says out */
+.tone-out { color: var(--accent-text); }
 
 /* ---------- Panel + rows ---------- */
 .panel {
@@ -414,6 +416,61 @@ a.row:active {
 
 .disclosure-body[hidden] {
   display: none;
+}
+
+/* One-line disclosure (.disclosure-line): a 52 px row, the title (and dot) left, the key figure right, the chevron, then
+   any 44 px tool. Several share one panel with a hairline between them (Today's groups). */
+.disclosure-line .disclosure-toggle {
+  min-height: calc(var(--tap-min) + var(--sp-1));
+  gap: var(--sp-2);
+  padding-block: var(--sp-1);
+  padding-right: var(--sp-3);
+}
+
+.disclosure-line .disclosure-main {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.disclosure-line .disclosure-title {
+  flex: none;
+}
+
+.disclosure-line .disclosure-summary {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--ink-2);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.disclosure-line .disclosure-summary strong:not([class]) {
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
+
+/* Severity chips read as toned words on the line */
+.disclosure-line .disclosure-summary > .tag {
+  padding: 0;
+  background: none;
+}
+
+.disclosure-line .disclosure-summary > .tag + .tag::before {
+  content: '·';
+  margin-right: var(--sp-1);
+  color: var(--ink-3);
+}
+
+.disclosure-head > .menu {
+  margin-right: var(--sp-2);
+}
+
+.disclosure-line .disclosure-head > .btn-icon,
+.disclosure-line .disclosure-head > .menu {
+  margin-right: var(--sp-1);
 }
 
 /* "About" help (U-93): <details class="page-help"> with a ghost .btn-sm summary; the screen comes first,

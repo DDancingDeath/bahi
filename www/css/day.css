@@ -22,12 +22,6 @@
   gap: var(--sp-2);
 }
 
-/* Items Grid */
-.items-grid {
-  display: grid;
-  gap: 10px;
-}
-
 .labour-breakdown {
   font-size: var(--fs-sm);
 }
@@ -82,24 +76,52 @@
 
 /* ---------- Today › Summary (redesign 5.1): hero, needs attention, metrics, rows ---------- */
 #dayTodayContent .section-title { margin: var(--section-gap) 0 var(--sp-2); color: var(--ink-3); font-size: var(--fs-sm); font-weight: var(--w-label); }
-#dayTodayContent .items-grid { gap: 0; }
 
-/* Hero: net (T12), in (T10) and out (T11) */
+/* Hero: net (T12), in (T10) and out (T11); in / out open the cash and online sheet */
 /* "New bill" beside the net figure, for every role (U-35) */
 .today-new-bill { float: right; gap: var(--sp-1); margin-left: var(--sp-3); }
-.today-inout { clear: both; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-2); font-size: var(--fs-sm); }
-.today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
+.today-inout { clear: both; display: flex; flex-wrap: wrap; gap: 0 var(--sp-5); margin-top: var(--sp-1); color: var(--ink-2); font-size: var(--fs-sm); }
+.today-inout > button { display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap-min); padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
 .today-in .i { color: var(--positive); }
-.today-out .i { color: var(--ink-3); }
+.today-out .i { color: var(--accent-text); }
+.today-inout .today-chev { color: var(--ink-3); }
+@media (max-width: 379.98px) {
+  .today-inout .today-chev { display: none; }
+}
 .today-inout strong {
   color: var(--ink); font-family: var(--font-num); font-weight: var(--w-strong); font-variant-numeric: tabular-nums;
 }
 
-/* Needs attention, after the key figures: Reminders (closed to one line, then one row per reminder: icon tile, text, its action) and the Day report */
-.today-cash-prompt { flex-wrap: wrap; align-items: center; margin-top: var(--section-gap); }
-.today-cash-prompt .btn { margin-left: auto; }
-.today-cash-prompt[hidden], .today-reminders[hidden] { display: none; }
-.today-reminders { margin-top: var(--section-gap); }
+/* Cash in drawer (C7, C8): one line under the hero; Open cash, or the count in colour, at the right */
+.today-cashline { margin-top: var(--sp-3); }
+.today-cashline[hidden], .today-reminders[hidden], .today-group[hidden] { display: none; }
+.today-cashline > .row { min-height: calc(var(--tap-min) + var(--sp-1)); padding-block: var(--sp-1); }
+.today-cashline .row-main { display: flex; align-items: baseline; gap: var(--sp-2); }
+.today-cashline .row-title { flex: none; }
+.today-cashline .row-meta { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.today-cashline .row-trail { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.today-cashline .row-amt { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-lead); }
+.today-cashline .row-trail > .i { color: var(--ink-3); }
+
+/* Cash and online (T6–T9): a desktop panel; a phone opens it from Total in / out */
+.today-cashonline { display: none; }
+
+/* Groups (Needs attention, Settle today, Details): a section title over one panel of one-line rows, hairline between */
+.today-stack > * + * { border-top: 1px var(--rule-style) var(--line); }
+.today-stack > [hidden] + *, .today-stack > [style*="none"] + * { border-top: 0; }
+.today-stack .disclosure-toggle { border-radius: 0; }
+.today-stack > button.row:not(:first-child) { border-top: 1px var(--rule-style) var(--line); }
+.today-stack .disclosure-body .row, .today-side .panel-float > .row { min-height: var(--tap-min); padding-block: var(--sp-2); }
+.today-side .panel-float { padding-top: var(--sp-3); }
+.today-attention:not(:has(.day-report[style*="block"], .today-reminders:not([hidden]))) { display: none; }
+.today-link { min-height: calc(var(--tap-min) + var(--sp-1)); }
+.today-link > .i, .today-link > .row-trail { color: var(--ink-3); }
+.today-link > .row-trail { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.today-links { display: flex; justify-content: flex-end; gap: var(--sp-2); padding: 0 var(--sp-2) var(--sp-1); }
+.today-links > .btn { gap: var(--sp-1); color: var(--accent-text); }
+.today-summary .row-main > .i:first-child, .today-inout-split .row-main > .i:first-child { margin-right: var(--sp-2); vertical-align: -2px; }
+
+/* Reminders: one row per reminder (icon tile, text, its action) */
 .today-reminder { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); }
 .today-reminder + .today-reminder { border-top: 1px var(--rule-style) var(--line); }
 .today-reminder-body { flex: 1; min-width: 0; color: var(--ink-2); font-size: var(--fs-sm); }
@@ -111,16 +133,9 @@
 .today-reminder-party span:first-child { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .today-reminder-party .today-reminder-days { flex-basis: 100%; }
 .today-reminder-days, .today-reminder-more { color: var(--ink-3); font-size: var(--fs-caption); }
-.day-report { margin-top: var(--section-gap); }
 
-/* Labour (T-LAB-*), a disclosure: closed, the title and "Deducted · Est. pay" right-aligned on one line (… when it doesn't fit);
-   open, Deducted, Estimated pay, Paid and Details (each bill) */
-.today-labour .disclosure-main { flex-direction: row; align-items: baseline; gap: var(--sp-3); }
-.today-labour .disclosure-title { flex: none; }
-.today-labour .disclosure-summary { flex: 1; min-width: 0; text-align: right; }
-.today-labour-more { display: flex; width: fit-content; gap: var(--sp-1); margin: 0 var(--sp-2) var(--sp-2) auto; }
-.today-labour-actions { display: flex; align-items: center; }
-.today-labour-history { display: flex; gap: var(--sp-1); margin: 0 0 var(--sp-2) var(--sp-2); }
+/* Settle today: Labour (Deducted, Estimated pay, Paid; Details ›) and Dues today, rows with the figure right */
+.today-labour { padding-top: var(--sp-1); }
 
 /* The hero's meter: in and out as shares of one bar (style="--w: …"), keyed by the arrows in the line above */
 .today-meter { margin-top: var(--sp-3); }
@@ -128,19 +143,45 @@
 .today-meter > .today-meter-in { background: var(--positive); }
 .today-meter > .today-meter-out { background: var(--ink-3); }
 
-/* Purchases and Sales open their split by bill type (T18) */
-[data-split-tile] .metric-label > .i { margin-left: auto; color: var(--ink-3); }
+/* Tiles: the count on the label line, the figure under it; Purchases and Sales open their split by bill type (T18) */
+.today-main-top > .metrics { margin-top: var(--sp-3); }
+.today-main-top > .metrics > .metric { padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4); }
+.today-main-top > .metrics .metric-value { font-size: var(--fs-lead); }
+.today-main-top > .metrics .metric-label > .i { margin-left: auto; color: var(--ink-3); }
+.metric-count { color: var(--ink-3); font-size: var(--fs-caption); font-variant-numeric: tabular-nums; }
+.metric-count::before { content: '· '; }
 .today-split + .today-split { margin-top: var(--sp-4); }
 .today-split-head { display: flex; align-items: baseline; gap: var(--sp-2); margin-top: 0; }
 .today-split-total { margin-left: auto; color: var(--ink); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 .today-split-note { margin: var(--sp-3) 0 0; }
 
-/* Today's bills (T19): one row at the very bottom, opening History on Today */
-.today-bills-link { margin-top: var(--section-gap); }
-/* Item details (T17) */
-.day-item .row-meta { white-space: normal; }
-.day-item .row-meta strong { color: var(--ink-2); font-weight: var(--w-strong); }
-.day-item .row-meta .row-amt { color: var(--ink); }
+/* Items (T17): one table per bill type, Item | kg | ₹/kg | Total, one line per item; ×N when on more than one bill */
+.today-items-wrap { padding: 0 var(--sp-4) var(--sp-3); }
+.today-items-block + .today-items-block { margin-top: var(--sp-3); }
+.today-items-head { display: flex; align-items: center; gap: var(--sp-2); margin: 0; padding: var(--sp-3) 0 var(--sp-1); color: var(--ink); font-size: var(--fs-sm); font-weight: var(--w-strong); }
+.today-items-meta { margin-left: auto; color: var(--ink-3); font-size: var(--fs-caption); font-weight: var(--w-label); }
+.panel-legend.today-items-head { display: inline-flex; gap: var(--sp-1); padding: 0 var(--sp-1); color: var(--ink-2); font-size: var(--fs-label); font-weight: var(--w-label); }
+.panel-legend > .mode-dot { display: none; }
+.panel-legend > .today-items-meta { margin-left: 0; color: var(--ink-2); font-size: var(--fs-label); }
+.panel-legend > .today-items-meta::before { content: '· '; }
+.today-items { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--fs-sm); font-variant-numeric: tabular-nums lining-nums; }
+.today-items th, .today-items td { white-space: nowrap; }
+.today-items thead th { padding: var(--sp-1) 0; border-bottom: 1px solid var(--line); color: var(--ink-3); font-size: var(--fs-caption); font-weight: var(--w-label); text-align: right; }
+.today-items thead th:first-child { text-align: left; }
+.today-items thead th:nth-child(2) { width: 15%; }
+.today-items thead th:nth-child(3) { width: 16%; }
+.today-items thead th:nth-child(4) { width: 26%; }
+.today-items tbody th { height: 34px; padding: 0; overflow: hidden; color: var(--ink); font-weight: var(--w-label); text-align: left; }
+.today-items td { height: 34px; padding: 0 0 0 var(--sp-1); color: var(--ink-2); text-align: right; }
+.today-items td:last-child { color: var(--ink); font-family: var(--font-num); font-weight: var(--w-strong); }
+.today-items tbody tr + tr > * { border-top: 1px var(--rule-style) var(--surface-2); }
+.today-items-cell { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
+.today-items-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.today-items-n { flex: none; padding: 0 var(--sp-1); border-radius: var(--r-full); background: var(--surface-2); color: var(--ink-3); font-size: var(--fs-caption); font-weight: var(--w-label); line-height: 1.4; }
+.today-items-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.today-items-grid .panel-float { margin-top: var(--sp-3); padding: var(--sp-4) var(--sp-4) var(--sp-2); }
+.today-items-grid .panel-float + .panel-float { margin-top: var(--sp-5); }
+.today-details .today-items-grid + .today-stack { margin-top: var(--sp-4); }
 
 /* Cash open 14 h or more (C10, Q25 of #111) */
 .cash-long-open { background: var(--warning-soft); border: 1px solid var(--warning-line); color: var(--warning); border-radius: var(--r-control); padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3); font-weight: var(--w-strong); }
@@ -227,21 +268,19 @@
 .first-run-step.done {
   color: var(--ink-3);
 }
-/* Day details fold (U-35): open for the owner and manager, folded for Members */
-.today-more > summary {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  min-height: var(--control-h);
-  list-style: none;
-  cursor: pointer;
-}
 
-.today-more > summary::-webkit-details-marker {
-  display: none;
-}
+/* Today at 1280 and wider (owner's Today layout): the four tiles in one row; the right column starts with Cash in drawer */
+@media (min-width: 1280px) {
+  .today-main-top > .metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 
-.today-more[open] > summary > .i {
-  transform: rotate(180deg);
+  .today-side > .today-cashline {
+    margin: 0;
+  }
+
+  .today-cashonline {
+    display: block;
+  }
 }
 

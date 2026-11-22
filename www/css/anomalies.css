@@ -10,11 +10,11 @@
   font-size: var(--fs-sm);
 }
 
-/* One row under the report: the share icon (its menu floats) and All anomalies › */
+/* Under the report: All anomalies › (the share icon is on the row) */
 .day-report-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--sp-2);
   margin-top: var(--sp-2);
 }

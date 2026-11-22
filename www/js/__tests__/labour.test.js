@@ -189,42 +189,38 @@ describe('Today Labour card (single language)', () => {
     };
 
     const rows = () => [...document.querySelectorAll('#todayLabourCard .row')].map(r => [...r.children].map(c => c.textContent).join(' '));
-    test('English: three figures, Deducted, Estimated pay and Paid, under the Labour legend; no mismatch lines', () => {
+    const line1 = () => document.querySelector('#todayLabourToggle .disclosure-summary').textContent.replace(/\s+/g, ' ').trim();
+
+    test('English: one closed line "Deducted · Est. pay"; open: Deducted, Estimated pay and Paid with no mismatch lines', () => {
         const card = render('en');
-        const toggle = document.getElementById('todayLabourToggle');
-        expect(toggle.querySelector('.disclosure-title').textContent).toBe('Labour');
-        // Closed by default: the key numbers on the header line, no dot
-        expect(toggle.getAttribute('aria-expanded')).toBe('false');
-        expect(toggle.querySelector('.disclosure-summary').textContent).toBe('Deducted ₹72·Est. pay ₹174');
-        expect(toggle.querySelector('[data-disclosure-alert]')).toBeNull();
+        expect(line1()).toBe('Deducted ₹72 · Est. pay ₹174');
+        expect(document.getElementById('todayLabourToggle').getAttribute('aria-expanded')).toBe('false');
+        expect(document.querySelector('[data-disclosure="today-labour"] [data-disclosure-alert]')).toBeNull();
         expect(rows()).toEqual(['Deducted ₹72', 'Estimated pay ₹174', 'Paid ₹0']);
-        expect(card).not.toMatch(/than deducted|differs|bills?\)|expenses?\)|kg ÷|part package|matches/);
-        expect(document.querySelector('#todayLabourCard .tone-warn')).toBeNull();
+        expect(card).not.toMatch(/less|more|differs|bills?\)|expenses?\)|kg ÷|part package|matches/);
         expect(card).toContain('Details');
         expect(card).not.toMatch(DEVANAGARI);
-        const css = fs.readFileSync(path.join(__dirname, '..', '..', 'css', 'day.css'), 'utf8');
-        expect(css).toMatch(/\.today-labour \.disclosure-summary \{[^}]*text-align: right/);
+        const css = fs.readFileSync(path.join(__dirname, '..', '..', 'css', 'surfaces.css'), 'utf8');
+        expect(css).toMatch(/\.disclosure-line \.disclosure-summary \{[^}]*text-align: right/);
     });
 
     test('Hindi: the same numbers with no English words', () => {
         const card = render('hi');
-        expect(document.querySelector('#todayLabourToggle .disclosure-title').textContent).toBe('मज़दूरी');
+        expect(line1()).toBe('काटी ₹72 · अनुमान ₹174');
         expect(rows()).toEqual(['काटी गई ₹72', 'अनुमानित मज़दूरी ₹174', 'दिया ₹0']);
         expect(card).not.toMatch(LATIN_WORD);
-        expect(document.querySelector('#todayLabourToggle .disclosure-summary').textContent).toBe('काटी गई ₹72·अनुमानित मज़दूरी ₹174');
     });
 
-    test('no line when the figures differ or match: just the three numbers', () => {
-        const today = todayLocalISO();
-        AppState.purchaseHistory = [purchase('p', [line(35, 2)], 12)];
-        AppState.expensesHistory = [{ id: 'e1', date: today, type: 'Labour', amount: 6 }];
-        render('en');
-        expect(rows()).toEqual(['Deducted ₹12', 'Estimated pay ₹6', 'Paid ₹6']);
-        expect([...document.getElementById('todayLabourBody').children].map(el => el.className)).toEqual(['row', 'row', 'row', 'today-labour-actions']);
-        AppState.purchaseHistory = [];
-        AppState.expensesHistory = [];
-        DayManager.loadTodayData();
-        expect(document.querySelector('#todayLabourToggle .disclosure-summary').textContent).toBe('Deducted ₹0·Est. pay ₹0');
+    test('at ≥ 1280 px: an open .panel-float "Labour" with the same three rows', () => {
+        DayManager.wideToday = { matches: true };
+        try {
+            render('en');
+            expect(document.querySelector('#todayLabourCard.panel-float > .panel-legend').textContent).toBe('Labour');
+            expect(document.getElementById('todayLabourToggle')).toBeNull();
+            expect(rows()).toEqual(['Deducted ₹72', 'Estimated pay ₹174', 'Paid ₹0']);
+        } finally {
+            DayManager.wideToday = null;
+        }
     });
     test('OD-03 step 1: paid to labourers = today\'s Labour expenses (any spelling); the difference is paid − deducted', () => {
         const today = todayLocalISO();
