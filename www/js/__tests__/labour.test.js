@@ -220,7 +220,7 @@ describe('Today Labour card (single language)', () => {
         AppState.expensesHistory = [{ id: 'e1', date: today, type: 'Labour', amount: 6 }];
         render('en');
         expect(rows()).toEqual(['Deducted ₹12', 'Estimated pay ₹6', 'Paid ₹6']);
-        expect([...document.getElementById('todayLabourBody').children].map(el => el.className)).toEqual(['row', 'row', 'row', 'btn btn-ghost btn-sm today-labour-more']);
+        expect([...document.getElementById('todayLabourBody').children].map(el => el.className)).toEqual(['row', 'row', 'row', 'today-labour-actions']);
         AppState.purchaseHistory = [];
         AppState.expensesHistory = [];
         DayManager.loadTodayData();
