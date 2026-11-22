@@ -575,6 +575,26 @@ describe('#92 sign-off fixes', () => {
         expect(head.classList.contains('ins-cmp-open')).toBe(false);
     });
 
+    test('Save range, WhatsApp and Print are icon buttons in one row, named in the app language', () => {
+        MoneyManager.init('profit');
+        const row = document.querySelector('#moneyCmpBar .ins-ab-actions');
+        const names = () => [...row.children].map(b => [b.className, b.getAttribute('aria-label'), b.title, b.textContent.trim(), b.querySelector('use').getAttribute('href')]);
+        expect(names()).toEqual([
+            ['btn btn-icon', 'Save range', 'Save range', '', '#i-plus'],
+            ['btn btn-icon', 'WhatsApp summary', 'WhatsApp summary', '', '#i-wa'],
+            ['btn btn-icon', 'Print summary', 'Print summary', '', '#i-printer']
+        ]);
+        expect(row.children[0].dataset.onclick).toBe('money.saveRange()');
+        setLang('hi');
+        try {
+            MoneyManager.render();
+            const hi = document.querySelector('#moneyCmpBar .ins-ab-actions');
+            expect([...hi.children].map(b => b.getAttribute('aria-label'))).toEqual(['अवधि सेव करें', 'WhatsApp पर सार', 'सार प्रिंट करें']);
+        } finally {
+            setLang('en');
+        }
+    });
+
     test('no sale bill in the period: "No sales in Oct 2026 yet", a past month without "yet", today, Hindi; the figures stay', () => {
         AppState.salesHistory = [];
         AppState.retailSalesHistory = [];

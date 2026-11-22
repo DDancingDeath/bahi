@@ -370,7 +370,7 @@ describe('Money screen, pinned (M1–M18, net worth, day chart)', () => {
         });
         const got = {};
         MoneyManager.init('profit');
-        for (const section of ['profit', 'cash', 'spending', 'worth']) {
+        for (const section of ['labour', 'profit', 'cash', 'spending', 'worth']) {
             MoneyManager.setSection(section);
             await flush();
             MoneyManager.render();

@@ -173,6 +173,7 @@ export const TAB_ROLES = Object.freeze({
     diagnostics: Object.freeze(['owner', 'manager']),
     anomalies: Object.freeze(['owner', 'manager']),
     'rate-trends': Object.freeze(['owner', 'manager']),
+    'labour-history': Object.freeze(['owner', 'manager']),
     health: Object.freeze(['owner', 'manager'])
 });
 
@@ -203,13 +204,14 @@ export function canOpenTab(tabId, role, raw) {
 
 /**
  * Sections of a page that show another page's data keep that page's rule:
- * Insights › Seasons hosts Rate trends and Product traffic (owner, manager).
+ * Insights › Seasons hosts Rate trends and Product traffic (owner, manager); Money › Labour is owner and manager only.
  */
 /** @type {Readonly<Object<string, string>>} */
 export const SECTION_TABS = Object.freeze({
     'insights:seasons': 'rate-trends',
     'insights:trends': 'rate-trends',
-    'insights:traffic': 'rate-trends'
+    'insights:traffic': 'rate-trends',
+    'money:labour': 'labour-history'
 });
 
 /**

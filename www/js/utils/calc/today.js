@@ -10,7 +10,7 @@
 import { activeExpenses, activityBills, billTotal, isOnlineExpense, isPersonalExpense, outstandingDue, round2 } from '../money.js';
 import { endOfLocalDayExclusive, parseAnyBillDate, startOfLocalDay } from '../dates.js';
 import { dueEvents, paymentBreakdown, saleTimePayment, sumDueEvents } from '../due-payments.js';
-import { labourGap, labourPaid, labourPaidGap, labourSummary } from '../labour.js';
+import { labourForDay } from './labour-days.js';
 import { billDayTime } from './cash.js';
 
 /** Field of todaySummary() → its spec ID in docs/calculations.md. */
@@ -167,16 +167,13 @@ export function todaySummary({ bills = {}, expenses = [], personalDay = null, se
     const totalOut = round2(cashOut + onlineOut);
     const netOutflow = totalOut - totalIn;
 
-    const labour = labourSummary(purchaseBills, settings);
-    // T-LAB-4 / T-LAB-5 (OD-03 step 1): paid to labourers from today's business expenses; display only, not in profit
-    const paid = labourPaid(business);
-
     return {
         from: from.getTime(),
         to: to.getTime(),
         purchases, purchaseCount: purchaseBills.length,
         sales, saleCount: saleBills.length,
-        labour: { ...labour, gap: labourGap(labour.difference), packets: sumOf(labour.rows, r => r.packets), paid, paidGap: labourPaidGap(paid.amount, labour.deducted.amount) },
+        // T-LAB-4 / T-LAB-5 (OD-03 step 1): paid from today's business expenses; display only, not in profit
+        labour: labourForDay(purchaseBills, business, settings),
         businessExpenses, businessExpenseCount: business.length,
         personalExpenses, personalExpenseCount: personal.length + (Number(personalDay?.count) || 0),
         expenses: expensesTotal,

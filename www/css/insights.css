@@ -220,6 +220,21 @@ div.ins-wide,
 .ins-ab-bar select, .ins-ab-dates input, .ins-ab-bar .btn, .ins-ab-dates .btn { min-height: 44px; font-size: var(--fs-sm); }
 .ins-ab-bar .btn, .ins-ab-dates .btn { padding: 0 var(--sp-3); }
 .ins-ab-saved { max-width: 100%; }
+.ins-ab-actions { display: inline-flex; flex-wrap: nowrap; gap: var(--sp-2); }
+.ins-ab-actions > .btn-icon { width: 44px; padding: 0; }
+
+/* Money › Labour (LH1–LH3): three totals, the balance line, one table row per day */
+.lh-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lh-totals > .metric { padding: var(--sp-3); }
+.lh-totals > .metric + .metric { border-left: 1px solid var(--line); }
+.lh-balance { margin: var(--sp-2) 0 var(--sp-3); font-size: var(--fs-body); }
+.lh-balance > span { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.lh-days { overflow-x: auto; }
+.lh-days th, .lh-days td, .lh-bills th, .lh-bills td { padding-inline: var(--sp-2); white-space: nowrap; }
+.lh-days tbody th { height: 44px; color: var(--ink); font-size: var(--fs-sm); font-weight: var(--w-regular); text-align: left; }
+.lh-days tbody tr[role="button"] { cursor: pointer; }
+.lh-days tbody tr[role="button"]:focus-visible { outline: none; box-shadow: var(--focus-inset); }
+.lh-note { margin: var(--sp-2) 0; color: var(--ink-3); font-size: var(--fs-sm); }
 .ins-cmp-table .ins-cmp-up { color: var(--positive); }
 .ins-cmp-table .ins-cmp-down { color: var(--negative); }
 

@@ -124,11 +124,14 @@ function datesHtml(page, which, preset) {
 
 /**
  * The bar under the period: chosen days for A, "Compare with" B, saved ranges and (Money) Share / Print.
+ * Save / Remove, WhatsApp and Print are 44 px icon buttons in one row, named by aria-label and title.
  * @param {'money'|'insights'} page
- * @param {{share?: boolean}} [opts]
+ * @param {{share?: boolean, compare?: boolean}} [opts] compare: false draws only the chosen days for A (Money › Labour)
  */
-export function compareBarHtml(page, { share = false } = {}) {
+export function compareBarHtml(page, { share = false, compare: withCompare = true } = {}) {
     const { preset, compare } = getInsightsContext();
+    const datesA = isEditing('a') || /^range:/.test(preset) ? datesHtml(page, 'a', preset) : '';
+    if (!withCompare) return datesA;
     const bValue = isEditing('b') || /^range:/.test(compare || '') ? 'custom' : (compare || '');
     const options = [['', t('ui.cmp.off')], ...COMPARE_PRESETS.map(p => [p, t(PRESET_KEYS[p])]), ['custom', t('ui.cmp.choose_dates')]]
         .map(([v, label]) => `<option value="${v}"${v === bValue ? ' selected' : ''}>${esc(label)}</option>`).join('');
@@ -140,7 +143,13 @@ export function compareBarHtml(page, { share = false } = {}) {
         const a = periodText(periodRange(x.a), x.a);
         return x.b ? t('ui.cmp.a_vs_b', { a, b: periodText(periodRange(x.b), x.b) }) : a;
     };
-    return (isEditing('a') || /^range:/.test(preset) ? datesHtml(page, 'a', preset) : '')
+    const named = (/** @type {string} */ key) => `aria-label="${esc(t(key))}" title="${esc(t(key))}"`;
+    const actions = (isSaved
+        ? `<button type="button" class="btn btn-icon" data-onclick="${page}.removeRange()" ${named('ui.cmp.remove')}>${icon('x')}</button>`
+        : savable ? `<button type="button" class="btn btn-icon" data-onclick="${page}.saveRange()" ${named('ui.cmp.save')}>${icon('plus')}</button>` : '')
+        + (share ? `<button type="button" class="btn btn-icon" data-onclick="${page}.shareSummary()" ${named('ui.cmp.share')}>${icon('wa')}</button>`
+            + `<button type="button" class="btn btn-icon" data-onclick="${page}.printSummary()" ${named('ui.cmp.print')}>${icon('printer')}</button>` : '');
+    return datesA
         + `<div class="ins-cmp-more" id="${esc(page)}CmpMore">`
         + `<div class="ins-ab-bar">`
         + `<label class="ins-ab-pick"><span>${esc(t('ui.cmp.compare_with'))}</span>`
@@ -148,11 +157,7 @@ export function compareBarHtml(page, { share = false } = {}) {
         + (saved.length ? `<select id="${page}Saved" class="ins-ab-saved" data-onchange="${page}.applySaved(this.value)" aria-label="${esc(t('ui.cmp.saved'))}">`
             + `<option value="">${esc(t('ui.cmp.saved'))}</option>`
             + saved.map(x => `<option value="${esc(x.id)}">${esc(savedLabel(x))}</option>`).join('') + '</select>' : '')
-        + (isSaved
-            ? `<button type="button" class="btn btn-sm" data-onclick="${page}.removeRange()">${icon('x', 'i-sm')}${esc(t('ui.cmp.remove'))}</button>`
-            : savable ? `<button type="button" class="btn btn-sm" data-onclick="${page}.saveRange()">${icon('plus', 'i-sm')}${esc(t('ui.cmp.save'))}</button>` : '')
-        + (share ? `<button type="button" class="btn btn-sm" data-onclick="${page}.shareSummary()">${icon('wa', 'i-sm')}${esc(t('ui.cmp.share'))}</button>`
-            + `<button type="button" class="btn btn-sm" data-onclick="${page}.printSummary()">${icon('printer', 'i-sm')}${esc(t('ui.cmp.print'))}</button>` : '')
+        + (actions ? `<span class="ins-ab-actions">${actions}</span>` : '')
         + '</div>'
         + (bValue === 'custom' ? datesHtml(page, 'b', compare) : '')
         + '</div>';

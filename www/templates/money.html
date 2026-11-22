@@ -7,6 +7,7 @@
         <div class="tabs" role="tablist">
             <button type="button" class="active" data-money-section="profit" role="tab" aria-selected="true" data-onclick="money.setSection('profit')" data-i18n="ui.money.tab_profit">Profit</button>
             <button type="button" data-money-section="spending" role="tab" aria-selected="false" data-onclick="money.setSection('spending')" data-i18n="ui.money.tab_spending">Spending</button>
+            <button type="button" data-money-section="labour" role="tab" aria-selected="false" data-onclick="money.setSection('labour')" data-i18n="ui.money.tab_labour" hidden>Labour</button>
             <button type="button" data-money-section="worth" role="tab" aria-selected="false" data-onclick="money.setSection('worth')" data-i18n="ui.money.tab_worth">Worth</button>
         </div>
         <div class="period ins-period" id="moneyPeriodBar">
@@ -163,6 +164,17 @@
                 </div>
                 <div class="panel ins-list" data-metric-ref="M9" id="moneyWithdrawalList"></div>
             </div>
+        </section>
+
+        <!-- Labour day by day (LH1–LH3), owner and manager: each day's figures are the Today Labour card's -->
+        <section class="ins-section" id="moneyLabourHistory" data-money-pane="labour" hidden>
+            <div class="panel lh-totals">
+                <div class="metric"><span class="metric-label" data-i18n="ui.money.lh_deducted">Deducted</span><span class="metric-value" data-metric="LH2" id="lhDeducted">—</span></div>
+                <div class="metric"><span class="metric-label" data-i18n="ui.money.lh_est">Est. pay</span><span class="metric-value" data-metric="LH2" id="lhEst">—</span></div>
+                <div class="metric"><span class="metric-label" data-i18n="ui.money.lh_paid">Paid</span><span class="metric-value" data-metric="LH2" id="lhPaid">—</span></div>
+            </div>
+            <p class="lh-balance" data-metric="LH3" id="lhBalance"></p>
+            <div class="panel lh-days" data-metric="LH1" id="lhDays"></div>
         </section>
 
         <section class="ins-section" id="moneyWorth" data-money-pane="worth" hidden>
