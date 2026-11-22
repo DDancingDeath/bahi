@@ -253,7 +253,7 @@
   display: none;
 }
 
-.history-custom-range > .input {
+.history-custom-range > :is(.input, .date-field) {
   flex: 1 1 0;
   width: auto;
   min-width: 0;
@@ -666,7 +666,7 @@
 
 .exp-form {
   display: grid;
-  gap: var(--sp-3);
+  gap: var(--sp-5);
 }
 
 .exp-actions {

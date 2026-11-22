@@ -653,16 +653,52 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 }
 
-/* ---------- Date caption (F54) ---------- */
-/* The day in the app's format under a native date box (js/ui/date-caption.js) */
-.date-caption {
-  display: block;
-  flex-basis: 100%;
-  color: var(--ink-2);
-  font-size: var(--fs-caption);
+/* ---------- Date field (F54) ---------- */
+/* A native date box showing the day in the app's format ("21 Nov 2026") over its own text (js/ui/date-field.js) */
+.date-field {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
 }
 
-.date-caption[hidden],
-input[hidden] + .date-caption {
+:is(.field, .field-float, .bill-form-field) > .date-field {
+  display: block;
+}
+
+.date-field > input {
+  width: 100%;
+  -webkit-text-fill-color: transparent;
+}
+
+.date-field-text {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--date-pad, var(--sp-3));
+  right: var(--sp-10);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--date-fs, var(--fs-body));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.date-field-text.date-field-empty,
+.date-field > input:disabled + .date-field-text {
+  color: var(--ink-3);
+}
+
+/* Typing digits: the box's own fields show until it loses focus */
+.date-field--typing > input {
+  -webkit-text-fill-color: currentColor;
+}
+
+.date-field--typing > .date-field-text,
+.date-field:has(> input[hidden]) {
   display: none;
 }

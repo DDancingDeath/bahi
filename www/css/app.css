@@ -2268,17 +2268,53 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 }
 
-/* ---------- Date caption (F54) ---------- */
-/* The day in the app's format under a native date box (js/ui/date-caption.js) */
-.date-caption {
-  display: block;
-  flex-basis: 100%;
-  color: var(--ink-2);
-  font-size: var(--fs-caption);
+/* ---------- Date field (F54) ---------- */
+/* A native date box showing the day in the app's format ("21 Nov 2026") over its own text (js/ui/date-field.js) */
+.date-field {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
 }
 
-.date-caption[hidden],
-input[hidden] + .date-caption {
+:is(.field, .field-float, .bill-form-field) > .date-field {
+  display: block;
+}
+
+.date-field > input {
+  width: 100%;
+  -webkit-text-fill-color: transparent;
+}
+
+.date-field-text {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--date-pad, var(--sp-3));
+  right: var(--sp-10);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--date-fs, var(--fs-body));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.date-field-text.date-field-empty,
+.date-field > input:disabled + .date-field-text {
+  color: var(--ink-3);
+}
+
+/* Typing digits: the box's own fields show until it loses focus */
+.date-field--typing > input {
+  -webkit-text-fill-color: currentColor;
+}
+
+.date-field--typing > .date-field-text,
+.date-field:has(> input[hidden]) {
   display: none;
 }
 
@@ -4634,8 +4670,7 @@ input[type="number"] {
   color: var(--warning);
 }
 
-/* Save with a line not added to the bill (BF-PENDING), extreme rate (BF-RATECHECK): choices wrap on a phone */
-.pending-line-sheet .dialog-actions > .btn,
+/* Extreme rate (BF-RATECHECK): choices wrap on a phone */
 .rate-check-sheet .dialog-actions > .btn {
   flex: 1 1 auto;
 }
@@ -4785,7 +4820,7 @@ input[type="number"] {
 }
 
 .bill-party > .btn-icon:hover {
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
 }
 
 /* Name suggestions while typing a customer / supplier (#139 phase 1) */
@@ -5016,8 +5051,8 @@ input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
 
-/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale and wholesale
-   screens give both their mode's colour */
+/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale screen gives both its
+   mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
 .bill-sale .btn-primary {
   background-color: var(--btn-sale-bg);
   color: var(--btn-sale-ink);
@@ -5026,16 +5061,6 @@ input[type="number"] {
 .bill-sale .btn-tonal {
   background-color: var(--positive-soft);
   color: var(--positive);
-}
-
-.ws-entry .btn-primary {
-  background-color: var(--bill-tone-fill);
-  color: var(--bill-tone-ink);
-}
-
-.ws-entry .btn-tonal {
-  background-color: var(--bill-tone-soft);
-  color: var(--bill-tone-text);
 }
 
 .bill-breakdown:not(:empty) {
@@ -5178,13 +5203,17 @@ input[type="number"] {
   gap: var(--sp-1);
 }
 
-/* ---------- Wholesale (5.5): Billing's components in the wholesale (violet) mode ---------- */
-/* Billing's tones are --bill-tone-* with its accent as the fallback; the wholesale page sets them */
-.bill-page {
-  --bill-tone-text: var(--ink);
-  --bill-tone-soft: var(--mode-wholesale-soft);
-  --bill-tone-fill: var(--mode-wholesale);
-  --bill-tone-ink: var(--on-mode-wholesale);
+/* ---------- Wholesale (5.5): Billing's components as they are; violet only for the mode dot (NEW-04) ---------- */
+/* The action bar's "Receivable" carries the wholesale dot, as Billing's mode switch carries its own */
+.bill-page .bill-bar-label::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--sp-1);
+  border-radius: var(--r-round);
+  background: var(--mode-wholesale);
+  vertical-align: 0.1em;
 }
 
 .ws-links {
@@ -5226,6 +5255,7 @@ input[type="number"] {
 
 .ws-add {
   min-height: 48px;
+  margin-top: var(--sp-3);
 }
 
 /* Expenses and the live profit (WS-PROFIT): folded under "Expenses and profit" (U-36), so the margin is not on show at the counter */
@@ -6124,7 +6154,7 @@ select.voice-unclear {
   min-width: 48px;
   min-height: 44px;
   margin: 0;
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
   cursor: pointer;
@@ -6162,9 +6192,9 @@ select.voice-unclear {
 
 :is(#billing, .bill-page) .pay-line > .pay-fill > input:checked ~ .pay-fill-on {
   display: flex;
-  border-color: var(--bill-tone-fill, var(--accent-text));
-  background: var(--bill-tone-fill, var(--btn-primary-bg));
-  color: var(--bill-tone-ink, var(--btn-primary-ink));
+  border-color: var(--accent-text);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-weight: var(--w-strong);
 }
 
@@ -6253,7 +6283,7 @@ select.voice-unclear {
 }
 
 .bill-extras .btn-sm {
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
 }
 
 .bill-sale .bill-extras .btn-sm {
@@ -7087,7 +7117,7 @@ tr.bill-check-line .bill-check-msg {
   display: none;
 }
 
-.history-custom-range > .input {
+.history-custom-range > :is(.input, .date-field) {
   flex: 1 1 0;
   width: auto;
   min-width: 0;
@@ -7500,7 +7530,7 @@ tr.bill-check-line .bill-check-msg {
 
 .exp-form {
   display: grid;
-  gap: var(--sp-3);
+  gap: var(--sp-5);
 }
 
 .exp-actions {
@@ -8684,6 +8714,17 @@ tr.bill-check-line .bill-check-msg {
   flex: 1 1 0;
 }
 
+/* Long choices (Add & save / Save without it): full width, one per line, the primary on top; Cancel is the head's × */
+.app-dialog .dialog-actions.dialog-actions-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.app-dialog .dialog-actions.dialog-actions-stack > .btn {
+  flex: none;
+  width: 100%;
+}
+
 /* Retail sale open: the dialog's primary takes the sale colour */
 body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   background-color: var(--btn-sale-bg);
@@ -9002,6 +9043,13 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 
 .printer-sheet .set-panel > .set-title {
   display: none;
+}
+
+/* "Receipt options ›" under the panel: the rest of Settings › Printing & receipts (NEW-12) */
+.printer-sheet .printer-sheet-receipt {
+  margin-top: var(--sp-3);
+  padding-inline: 0;
+  border-top: 1px var(--rule-style) var(--line);
 }
 
 .usage-list {
@@ -9609,10 +9657,9 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .cash-sum-out .i { color: var(--ink-3); }
 .cash-sum-expected { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line-strong); color: var(--ink); font-weight: var(--w-label); }
 
-/* Fields: label above, ₹ as a prefix; the script shows a row with display: block, so the spacing doesn't rely on flex */
-.cash-form { display: flex; flex-direction: column; gap: var(--sp-4); }
-.cash-form .field { display: block; }
-.cash-form .field > * + * { margin-top: var(--sp-2); }
+/* Floating-label fields (.field-float, NEW-10), ₹ as a prefix; the script shows a row with display: block, so the spacing doesn't rely on flex */
+.cash-form { display: flex; flex-direction: column; gap: var(--sp-5); }
+.cash-form .field-float > .cash-hint { margin-top: var(--sp-2); }
 .cash-hint { color: var(--ink-3); font-size: var(--fs-caption); }
 .cash-diff-alert { display: none; padding: var(--sp-3); border-radius: var(--r-control); font-weight: var(--w-strong); }
 .cash-history-list { max-height: 400px; overflow-y: auto; }
@@ -11182,7 +11229,7 @@ div.ins-wide,
 
 /* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */
 .st-day-step { flex-wrap: wrap; }
-.st-day-pick { flex: 1 1 100%; }
+.st-day-pick, .date-field:has(> .st-day-pick) { flex: 1 1 100%; }
 
 /* Month statement: the month chip sits between ‹ and › (U-61) */
 .st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }

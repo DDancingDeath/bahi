@@ -255,7 +255,7 @@ div.ins-wide,
 
 /* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */
 .st-day-step { flex-wrap: wrap; }
-.st-day-pick { flex: 1 1 100%; }
+.st-day-pick, .date-field:has(> .st-day-pick) { flex: 1 1 100%; }
 
 /* Month statement: the month chip sits between ‹ and › (U-61) */
 .st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }

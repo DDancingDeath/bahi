@@ -137,3 +137,38 @@ describe('Expenses page: search, templates and totals (#90)', () => {
         expect(document.querySelector('#businessExpenseTypeFilter img')).toBeNull();
     });
 });
+
+describe('Expenses list loading (F36, F63)', () => {
+    beforeEach(() => {
+        document.body.innerHTML = TEMPLATE;
+        jest.spyOn(FirebaseService, 'voidedExpenses').mockReturnValue([]);
+        AppState.userRole = 'owner';
+        AppState.settings = {};
+        AppState.expensesHistory = [];
+    });
+    afterEach(() => {
+        jest.restoreAllMocks();
+        AppState.expensesHistory = [];
+        AppState.userRole = null;
+    });
+    const list = () => document.getElementById('businessExpenseHistoryList');
+    const sentinel = () => list().nextElementSibling;
+
+    test('first load: grey rows (skeleton), not "No expenses", and no older-months line yet', () => {
+        jest.spyOn(FirebaseService, 'expenseRowsLoaded').mockReturnValue(false);
+        ExpensesManager.renderexpensesHistory();
+        expect(list().querySelector('.skel-list[aria-busy="true"]')).not.toBeNull();
+        expect(list().querySelector('.empty')).toBeNull();
+        expect(sentinel().dataset.state).toBe('disabled');
+    });
+
+    test('rows in and nothing older to load: the end-of-list line, no spinner', () => {
+        jest.spyOn(FirebaseService, 'expenseRowsLoaded').mockReturnValue(true);
+        AppState.expensesHistory = ROWS.filter(e => !e.voided);
+        ExpensesManager.renderexpensesHistory();
+        expect(list().querySelectorAll('.exp-row')).toHaveLength(4);
+        expect(sentinel().dataset.state).toBe('end');
+        expect(sentinel().textContent).toBe('No older expenses');
+        expect(sentinel().querySelector('.history-range-spinner')).toBeNull();
+    });
+});

@@ -1,7 +1,8 @@
 /**
  * @fileoverview Billing's printer button in the app bar, next to the bell: a dot shows the
  * Bluetooth printer's state, a tap opens a sheet with the Settings › Printing & receipts
- * printer panel (status, enable, saved printers, Scan, Test print, Disconnect). The panel is
+ * printer panel (status, enable, saved printers, Scan, Test print, Disconnect) and a "Receipt options ›" row to the rest of
+ * that Settings page (NEW-12). The panel is
  * moved into the sheet while it is open and put back on close, so there is one copy of it and
  * the bill being entered stays as it is. Shown only where Bluetooth printing works (the Android app).
  * @module ui/printer-shortcut
@@ -36,14 +37,17 @@ export function shortcutState({ available, connecting = false, connected = false
 export const PrinterShortcut = {
     /** @type {?() => Promise<?HTMLElement>} set by init: the synced printer panel (Settings put in first) */
     loadPanel: null,
+    /** @type {?() => *} set by init: opens Settings › Printing & receipts */
+    openSettings: null,
     /** @type {?Comment} where the panel goes back to while it is in the sheet */
     home: null,
     opening: false,
     bound: false,
 
-    /** @param {{loadPanel: () => Promise<?HTMLElement>}} deps */
-    init({ loadPanel }) {
+    /** @param {{loadPanel: () => Promise<?HTMLElement>, openSettings?: () => *}} deps */
+    init({ loadPanel, openSettings = null }) {
         this.loadPanel = loadPanel;
+        this.openSettings = openSettings;
         if (!this.bound && typeof window !== 'undefined') {
             this.bound = true;
             on(PRINTER_CHANGED, () => this.render());
@@ -97,6 +101,15 @@ export const PrinterShortcut = {
         } finally {
             this.opening = false;
         }
+    },
+
+    /**
+     * "Receipt options ›": closes the sheet and opens Settings › Printing & receipts at the printed bill.
+     */
+    async receiptOptions() {
+        this.close();
+        await this.openSettings?.();
+        document.getElementById('receiptSettingsCard')?.scrollIntoView?.({ block: 'start' });
     },
 
     close() {

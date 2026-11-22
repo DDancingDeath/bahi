@@ -1,7 +1,7 @@
 /**
  * @fileoverview Save / Print with a line still typed in the entry boxes (BF-PENDING):
- * the line is never dropped without a word. A complete line asks "Add this line and
- * save" / "Discard line and save" (or go back); an incomplete one is pointed out
+ * the line is never dropped without a word. A complete line asks "Add & save" /
+ * "Save without it" (or × to go back); an incomplete one is pointed out
  * and the save waits.
  * @module ui/pending-line
  */
@@ -10,6 +10,7 @@ import { pendingLine } from '../utils/calc/billing.js';
 import { formatKg, formatRate, formatRupees } from '../utils/money.js';
 import { t } from '../i18n/index.js';
 import { UIManager, buildSheet, openSheet, closeSheet } from './ui-manager.js';
+import { icon } from './icons.js';
 
 const MISSING_KEY = {
     item: 'msg.billing.pending_line_item',
@@ -24,7 +25,7 @@ const MISSING_KEY = {
  */
 export function askPendingLine({ label, line }) {
     return new Promise((resolve) => {
-        const { overlay, body, footer } = buildSheet({ labelId: 'pendingLineTitle', title: t('ui.billing.pending_line_title'), className: 'pending-line-sheet' });
+        const { overlay, title, body, footer } = buildSheet({ labelId: 'pendingLineTitle', title: t('ui.billing.pending_line_title'), className: 'pending-line-sheet' });
         const message = document.createElement('p');
         message.id = 'pendingLineMessage';
         message.textContent = t('msg.billing.pending_line_prompt', {
@@ -37,20 +38,29 @@ export function askPendingLine({ label, line }) {
             overlay.remove();
             resolve(choice);
         };
-        const button = (/** @type {string} */ cls, /** @type {string} */ key, /** @type {'add'|'discard'|'cancel'} */ choice) => {
+        const button = (/** @type {string} */ cls, /** @type {'add'|'discard'|'cancel'} */ choice, /** @type {HTMLElement} */ host = footer) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = cls;
             b.dataset.choice = choice;
-            if (choice === 'cancel') b.dataset.dismiss = '';
-            b.textContent = t(key);
             b.addEventListener('click', () => done(choice));
-            footer.appendChild(b);
+            host.appendChild(b);
             return b;
         };
-        button('btn btn-ghost', 'ui.modals.cancel', 'cancel');
-        button('btn btn-danger-outline pending-line-discard', 'ui.billing.pending_line_discard', 'discard');
-        const add = button('btn btn-primary', 'ui.billing.pending_line_add', 'add');
+        // Cancel is the sheet's ×; the two saves are stacked full width, the primary on top (NEW-08)
+        const head = document.createElement('div');
+        head.className = 'dialog-head';
+        title.before(head);
+        head.appendChild(title);
+        const close = button('btn btn-ghost btn-icon', 'cancel', head);
+        close.dataset.dismiss = '';
+        close.setAttribute('aria-label', t('ui.modals.cancel'));
+        close.title = t('ui.modals.cancel');
+        close.innerHTML = icon('x');
+        footer.classList.add('dialog-actions-stack');
+        const add = button('btn btn-primary', 'add');
+        add.textContent = t('ui.billing.pending_line_add');
+        button('btn btn-danger-outline pending-line-discard', 'discard').textContent = t('ui.billing.pending_line_discard');
 
         document.body.appendChild(overlay);
         openSheet(overlay, { focus: add });

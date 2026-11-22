@@ -361,7 +361,7 @@
   min-width: 48px;
   min-height: 44px;
   margin: 0;
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
   cursor: pointer;
@@ -399,9 +399,9 @@
 
 :is(#billing, .bill-page) .pay-line > .pay-fill > input:checked ~ .pay-fill-on {
   display: flex;
-  border-color: var(--bill-tone-fill, var(--accent-text));
-  background: var(--bill-tone-fill, var(--btn-primary-bg));
-  color: var(--bill-tone-ink, var(--btn-primary-ink));
+  border-color: var(--accent-text);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-weight: var(--w-strong);
 }
 
@@ -490,7 +490,7 @@
 }
 
 .bill-extras .btn-sm {
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
 }
 
 .bill-sale .bill-extras .btn-sm {
