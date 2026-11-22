@@ -263,7 +263,9 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   native share button start `hidden`; their scripts set `hidden` with `style.display`. App health: sections are panels,
   tables `.table`, pass rates tinted cells, and Today's below-target banner a `.notice.neg`. Anomalies: filters are
   `.field`s in a panel with a `.search-field`, List | Patterns are `.tabs`, rows (also on Today's Day report) are `.row`s
-  with a severity dot (no stripe), `.tag` status and `.btn-sm` review buttons, amounts `moneyHtml()`; the heat map and the
+  with a severity dot (no stripe), `.tag` status, one `.btn-sm.btn-tonal` review button ("Looks right", or "Reopen") and the
+  rest (Open, Correct rate, "I corrected it") as ghost buttons in a ⋯ `<details class="anom-overflow">` like Outstanding's
+  `.aging-more`, so a row never wraps on a phone; amounts `moneyHtml()`; the heat map and the
   by-hour bars draw from `--a` / `--h` custom properties and the trend chart's axis text from the theme's muted ink.
 - **Admin (5.8b)**: Users | Data are `.tabs` (Aadhat settings is a ghost button beside them); each list of people is a `.panel`
   of `.row`s (name, email, a `.tag` for the role or status) with small `.btn`s below; the activity range is a `.seg` and the

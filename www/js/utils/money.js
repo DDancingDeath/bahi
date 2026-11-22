@@ -64,12 +64,13 @@ export function billLabour(bill) {
 
 /**
  * @typedef {{decimals?: number, upTo?: number, small?: boolean, exact?: boolean, trueMinus?: boolean}} MoneyOpts
- * @typedef {'whole'|'exact'|'rate'|'ratePaise'|'paise'|'small'|'per100'|'signed'|'plain'} MoneyPreset
+ * @typedef {'whole'|'exact'|'rate'|'avgRate'|'ratePaise'|'paise'|'small'|'per100'|'signed'|'plain'} MoneyPreset
  */
 
 /**
  * MONEY-TEXT presets: `whole` ₹2,50,000; `exact` paise only when the amount has them (₹987.50, ₹987);
- * `rate` a rate per kg, paise only when it has them (₹2,400/kg, ₹24.50/kg); `ratePaise` a rate with paise
+ * `rate` a rate per kg, paise only when it has them (₹2,400/kg, ₹24.50/kg); `avgRate` an average cost per kg
+ * worked out by the app, at most one decimal (₹19.3/kg, ₹26/kg); `ratePaise` a rate with paise
  * always, for receipts and share text (₹2,400.00); `paise` always 2 decimals (a cash difference);
  * `small` paise below ₹100; `per100` a ₹ per ₹100 figure with at most one decimal (₹8.9, ₹12, ₹125.4); `signed` the true minus (−₹500); `plain` the hyphen (-₹500), for print and share text.
  * @type {Readonly<Record<MoneyPreset, MoneyOpts>>}
@@ -78,6 +79,7 @@ export const MONEY_PRESETS = Object.freeze({
     whole: Object.freeze({}),
     exact: Object.freeze({ exact: true }),
     rate: Object.freeze({ exact: true }),
+    avgRate: Object.freeze({ upTo: 1 }),
     ratePaise: Object.freeze({ decimals: 2 }),
     paise: Object.freeze({ decimals: 2 }),
     small: Object.freeze({ small: true }),
@@ -196,6 +198,19 @@ export function formatRate(rate) {
  */
 export function screenRateText(text) {
     return String(text ?? '').replace(/(₹[\d,]+)\.00(?!\d)/g, '$1');
+}
+
+/**
+ * A stored text's amounts as the screen writes them (MONEY-TEXT): the hyphen before ₹ ("-₹2,636", "₹-12") becomes
+ * the true minus, and with a preset each amount with decimals is written again by it ("₹1,33,710.57" → "₹1,33,711"
+ * with `small`). For the stored anomaly texts, which keep their saved form.
+ * @param {*} text
+ * @param {MoneyPreset} [preset]
+ * @returns {string}
+ */
+export function screenMoneyText(text, preset) {
+    const s = screenMinus(String(text ?? '').replace(/(^|[^\w₹.,])-₹(?=\d)/g, '$1−₹'));
+    return preset ? s.replace(/₹(\d[\d,]*\.\d+)(?![\d.])/g, (_, n) => `₹${formatAmount(Number(n.replace(/,/g, '')), preset)}`) : s;
 }
 
 /**

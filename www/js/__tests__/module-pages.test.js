@@ -54,7 +54,14 @@ describe('Rates page (items list)', () => {
         ItemsManager.renderItemsTable();
         expect(rowNames()).toEqual(['Maize', 'Mustard', 'Rice', 'Wheat']);
         const rice = [...document.querySelectorAll('#itemsViewTableBody tr')][2];
-        expect([...rice.cells].map(c => c.textContent.trim())).toEqual(['Rice', '30', '36', '34']);
+        expect([...rice.cells].map(c => c.textContent.trim())).toEqual(['Rice', '₹30', '₹36', '₹34']);
+    });
+
+    test('F31: several rates each show ₹ (paise only when they have them); no rate is "—"', () => {
+        AppState.items = [{ id: 'x', name: 'Makai', rates: [25, 25.5, 2400], saleRates: [27, 28], wholesaleRates: [] }];
+        ItemsManager.renderItemsTable();
+        const cells = [...document.querySelector('#itemsViewTableBody tr').cells].map(c => c.textContent.trim());
+        expect(cells).toEqual(['Makai', '₹25, ₹25.50, ₹2,400', '₹27, ₹28', '—']);
     });
 
     test.each([

@@ -365,3 +365,34 @@ describe('read budget (free plan)', () => {
         expect(serverCalls()).toHaveLength(0);
     });
 });
+
+describe('rows (NEW-16, NEW-05)', () => {
+    const row = (a) => {
+        document.body.innerHTML = AnomaliesManager.rowHtml({ id: 'x1', severity: 'high', status: 'open', dayKey: '2026-10-21', ...a });
+        return document.querySelector('.anom-actions');
+    };
+    const styles = (el) => [...el.querySelectorAll(':scope > .btn')].map(b => [b.className, b.textContent.trim()]);
+
+    test('an open row: one tonal "Looks right", the rest as ghost buttons in the ⋯ menu', () => {
+        const actions = row({ type: 'rate-high', refKind: 'bill', refId: 'b1', amount: 400 });
+        expect(styles(actions)).toEqual([['btn btn-sm btn-tonal', 'Looks right']]);
+        const menu = actions.querySelector('details.anom-overflow');
+        expect(menu.querySelector('summary').getAttribute('aria-label')).toBe('More actions');
+        expect([...menu.querySelectorAll('.anom-overflow-menu > .btn')].map(b => [b.className, b.textContent.trim()])).toEqual([
+            ['btn btn-sm btn-ghost', 'Open'], ['btn btn-sm btn-ghost', 'Correct rate on this bill'], ['btn btn-sm btn-ghost', 'I corrected it']
+        ]);
+    });
+
+    test('a reviewed row: one tonal "Reopen"; Open in the menu', () => {
+        const actions = row({ type: 'rate-high', status: 'ok', refKind: 'cash', refId: '2026-10-21' });
+        expect(styles(actions)).toEqual([['btn btn-sm btn-tonal', 'Reopen']]);
+        expect([...actions.querySelectorAll('.anom-overflow-menu > .btn')].map(b => b.textContent.trim())).toEqual(['Open']);
+    });
+
+    test('a number check: its text and amount without paise from ₹100 up, the true minus', () => {
+        row({ type: 'numcheck-ac3', refKind: 'bill', refId: 'b1', amount: 2193.43, en: 'Bill split: expected ₹1,33,710.57, found -₹2,636', hi: 'x' });
+        expect(document.querySelector('.anom-why').textContent).toBe('Bill split: expected ₹1,33,711, found −₹2,636');
+        expect(document.querySelector('.anom-meta').textContent).toContain('₹2,193');
+        expect(document.querySelector('.anom-meta').textContent).not.toContain('.43');
+    });
+});

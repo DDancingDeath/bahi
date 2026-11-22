@@ -2,11 +2,11 @@
   "stock.owner": {
     "list": [
       "Dal Avg cost ₹0/kg Alert below 10 kg 0.04 kg ≈ ₹0",
-      "Rice Avg cost ₹31.54/kg Alert below 10 kg 132.9 kg ≈ ₹4,191",
-      "Salt Avg cost ₹7.78/kg Alert below 10 kg 3.333 kg ≈ ₹26",
+      "Rice Avg cost ₹31.5/kg Alert below 10 kg 132.9 kg ≈ ₹4,191",
+      "Salt Avg cost ₹7.8/kg Alert below 10 kg 3.333 kg ≈ ₹26",
       "Wheat Avg cost ₹26/kg Alert below 10 kg 40 kg ≈ ₹1,040",
       "ghost item Unmatched — no catalogue item with this id/name -3.5 kg Avg cost ₹0/kg",
-      "old name Unmatched — no catalogue item with this id/name 7.25 kg Avg cost ₹12.75/kg"
+      "old name Unmatched — no catalogue item with this id/name 7.25 kg Avg cost ₹12.8/kg"
     ],
     "adjustments": [
       "Rice Added 10 kg 31 Jan, 10:00 am • By Owner Rate ₹30/kg • Value: ₹300 110.5 kg → 120.5 kg found Reverse",
@@ -20,15 +20,15 @@
     "dead": {
       "summary": "3 items · ≈ ₹3,802 in stockUsing all bills.",
       "rows": [
-        "Rice Last sale: never Last purchase: never 120.5 kg ≈ ₹3,776 avg ₹31.33/kg",
-        "Salt Last sale: never Last purchase: never 3.333 kg ≈ ₹26 avg ₹7.78/kg",
+        "Rice Last sale: never Last purchase: never 120.5 kg ≈ ₹3,776 avg ₹31.3/kg",
+        "Salt Last sale: never Last purchase: never 3.333 kg ≈ ₹26 avg ₹7.8/kg",
         "Dal Last sale: never Last purchase: never 0.04 kg ≈ ₹0 avg ₹0/kg"
       ]
     },
     "current": {
       "i-rice": {
         "stock": "120.5",
-        "avgRate": "₹31.33/kg"
+        "avgRate": "₹31.3/kg"
       },
       "i-wheat": {
         "stock": "0",
@@ -44,7 +44,7 @@
       },
       "i-salt": {
         "stock": "3.333",
-        "avgRate": "₹7.78/kg"
+        "avgRate": "₹7.8/kg"
       },
       "(none)": {
         "stock": "",
@@ -54,19 +54,19 @@
   },
   "stock.staff": [
     "Dal Avg cost ₹0/kg 0.04 kg ≈ ₹0",
-    "Rice Avg cost ₹31.54/kg 132.9 kg ≈ ₹4,191",
-    "Salt Avg cost ₹7.78/kg 3.333 kg ≈ ₹26",
+    "Rice Avg cost ₹31.5/kg 132.9 kg ≈ ₹4,191",
+    "Salt Avg cost ₹7.8/kg 3.333 kg ≈ ₹26",
     "Wheat Avg cost ₹26/kg 40 kg ≈ ₹1,040",
     "ghost item Unmatched — no catalogue item with this id/name -3.5 kg Avg cost ₹0/kg",
-    "old name Unmatched — no catalogue item with this id/name 7.25 kg Avg cost ₹12.75/kg"
+    "old name Unmatched — no catalogue item with this id/name 7.25 kg Avg cost ₹12.8/kg"
   ],
   "stock.first": {
     "list": [
-      "Gram Avg cost ₹47.59/kg Alert below 10 kg 3,748.5 kg ≈ ₹1,78,374",
-      "Maize Avg cost ₹19.72/kg Alert below 10 kg 2,394.5 kg ≈ ₹47,221",
-      "Mustard Avg cost ₹53.41/kg Alert below 10 kg 3,573 kg ≈ ₹1,90,825",
-      "Rice Avg cost ₹32.75/kg Alert below 10 kg 4,999.5 kg ≈ ₹1,63,715",
-      "Wheat Avg cost ₹24.79/kg Alert below 10 kg 6,123 kg ≈ ₹1,51,814"
+      "Gram Avg cost ₹47.6/kg Alert below 10 kg 3,748.5 kg ≈ ₹1,78,374",
+      "Maize Avg cost ₹19.7/kg Alert below 10 kg 2,394.5 kg ≈ ₹47,221",
+      "Mustard Avg cost ₹53.4/kg Alert below 10 kg 3,573 kg ≈ ₹1,90,825",
+      "Rice Avg cost ₹32.8/kg Alert below 10 kg 4,999.5 kg ≈ ₹1,63,715",
+      "Wheat Avg cost ₹24.8/kg Alert below 10 kg 6,123 kg ≈ ₹1,51,814"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -85,11 +85,11 @@
   },
   "stock.jan31": {
     "list": [
-      "Gram Avg cost ₹47.50/kg Alert below 10 kg 3,835.5 kg ≈ ₹1,82,182",
-      "Maize Avg cost ₹19.02/kg Alert below 10 kg 1,875.5 kg ≈ ₹35,679",
-      "Mustard Avg cost ₹54.89/kg Alert below 10 kg 6,023.5 kg ≈ ₹3,30,634",
-      "Rice Avg cost ₹32.25/kg Alert below 10 kg 6,284 kg ≈ ₹2,02,641",
-      "Wheat Avg cost ₹24.07/kg Alert below 10 kg 4,134.5 kg ≈ ₹99,525"
+      "Gram Avg cost ₹47.5/kg Alert below 10 kg 3,835.5 kg ≈ ₹1,82,182",
+      "Maize Avg cost ₹19/kg Alert below 10 kg 1,875.5 kg ≈ ₹35,679",
+      "Mustard Avg cost ₹54.9/kg Alert below 10 kg 6,023.5 kg ≈ ₹3,30,634",
+      "Rice Avg cost ₹32.3/kg Alert below 10 kg 6,284 kg ≈ ₹2,02,641",
+      "Wheat Avg cost ₹24.1/kg Alert below 10 kg 4,134.5 kg ≈ ₹99,525"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -108,11 +108,11 @@
   },
   "stock.leapDay": {
     "list": [
-      "Gram Avg cost ₹48.37/kg Alert below 10 kg 6,738 kg ≈ ₹3,25,923",
-      "Maize Avg cost ₹18.88/kg Alert below 10 kg 5,889 kg ≈ ₹1,11,213",
-      "Mustard Avg cost ₹55.12/kg Alert below 10 kg 6,707.5 kg ≈ ₹3,69,687",
-      "Rice Avg cost ₹31.66/kg Alert below 10 kg 5,720.5 kg ≈ ₹1,81,121",
-      "Wheat Avg cost ₹24.06/kg Alert below 10 kg 7,447 kg ≈ ₹1,79,188"
+      "Gram Avg cost ₹48.4/kg Alert below 10 kg 6,738 kg ≈ ₹3,25,923",
+      "Maize Avg cost ₹18.9/kg Alert below 10 kg 5,889 kg ≈ ₹1,11,213",
+      "Mustard Avg cost ₹55.1/kg Alert below 10 kg 6,707.5 kg ≈ ₹3,69,687",
+      "Rice Avg cost ₹31.7/kg Alert below 10 kg 5,720.5 kg ≈ ₹1,81,121",
+      "Wheat Avg cost ₹24.1/kg Alert below 10 kg 7,447 kg ≈ ₹1,79,188"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -131,11 +131,11 @@
   },
   "stock.mar31": {
     "list": [
-      "Gram Avg cost ₹47.21/kg Alert below 10 kg 2,831.5 kg ≈ ₹1,33,669",
-      "Maize Avg cost ₹19.66/kg Alert below 10 kg 2,106 kg ≈ ₹41,395",
-      "Mustard Avg cost ₹54.85/kg Alert below 10 kg 5,133 kg ≈ ₹2,81,561",
-      "Rice Avg cost ₹32.16/kg Alert below 10 kg 7,005 kg ≈ ₹2,25,251",
-      "Wheat Avg cost ₹23.99/kg Alert below 10 kg 4,645 kg ≈ ₹1,11,437"
+      "Gram Avg cost ₹47.2/kg Alert below 10 kg 2,831.5 kg ≈ ₹1,33,669",
+      "Maize Avg cost ₹19.7/kg Alert below 10 kg 2,106 kg ≈ ₹41,395",
+      "Mustard Avg cost ₹54.9/kg Alert below 10 kg 5,133 kg ≈ ₹2,81,561",
+      "Rice Avg cost ₹32.2/kg Alert below 10 kg 7,005 kg ≈ ₹2,25,251",
+      "Wheat Avg cost ₹24/kg Alert below 10 kg 4,645 kg ≈ ₹1,11,437"
     ],
     "dead": {
       "summary": "Using all bills.",
@@ -154,11 +154,11 @@
   },
   "stock.jan1": {
     "list": [
-      "Gram Avg cost ₹46.81/kg Alert below 10 kg 2,785 kg ≈ ₹1,30,362",
-      "Maize Avg cost ₹18.44/kg Alert below 10 kg 1,053.5 kg ≈ ₹19,429",
-      "Mustard Avg cost ₹54.64/kg Alert below 10 kg 5,996.5 kg ≈ ₹3,27,627",
+      "Gram Avg cost ₹46.8/kg Alert below 10 kg 2,785 kg ≈ ₹1,30,362",
+      "Maize Avg cost ₹18.4/kg Alert below 10 kg 1,053.5 kg ≈ ₹19,429",
+      "Mustard Avg cost ₹54.6/kg Alert below 10 kg 5,996.5 kg ≈ ₹3,27,627",
       "Rice Avg cost ₹32/kg Alert below 10 kg 7,329 kg ≈ ₹2,34,507",
-      "Wheat Avg cost ₹23.83/kg Alert below 10 kg 5,148 kg ≈ ₹1,22,657"
+      "Wheat Avg cost ₹23.8/kg Alert below 10 kg 5,148 kg ≈ ₹1,22,657"
     ],
     "dead": {
       "summary": "Using all bills.",

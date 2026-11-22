@@ -7,7 +7,7 @@ wholesale bills together, each with a Retail / Wholesale tag (wholesale only for
 may open Wholesale). **Wholesale** lists only wholesale bills; the Wholesale page's **Wholesale bills** link opens it
 for that visit only (the Wholesale page has no History tab of its own any more); the tab bar or menu opens History on the tab you last picked. With a date range or a search, the line under the filters gives the
 number of bills and their ₹ total (H-TOTAL; for you, the same as Money's sales or purchases for
-that period; a role without Wholesale or with a history limit sees fewer bills). Tap anywhere on a row to open the bill. Bill details show
+that period; a role without Wholesale or with a history limit sees fewer bills). Tap anywhere on a row to open the bill. Bill details name the party once (under the bill number), show a note as a plain row and
 the lines, labour and payable, how it was paid, later payments, write-offs and
 every edit (who, when, why). A bill can be **voided** (with a reason) within the
 role's edit window; only the owner deletes, and only a voided bill. A void needs no

@@ -22,7 +22,7 @@ import {
 } from '../utils/history-window.js';
 import { filterHistoryBills, billTimeMs } from '../utils/history-filters.js';
 import { buildBillRow } from '../ui/bill-row.js';
-import { editsRowHtml, payAmountHtml, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
+import { billNoteHtml, editsRowHtml, payAmountHtml, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
 import { billPool, HistoryManager } from './history.js';
 import { historyCutoff } from '../utils/role-access.js';
 import { OutstandingManager } from './outstanding.js';
@@ -1185,19 +1185,8 @@ export class WholesaleSalesManager {
                             <span>${Helpers.escapeHtml(sale.createdByName)}</span>
                         </div>
                     ` : ''}
-                    ${sale.customerName ? `
-                        <div class="row bill-view-row">
-                            <span class="row-main">${L('ui.common.customer')}</span>
-                            <strong>${Helpers.escapeHtml(sale.customerName)}</strong>
-                        </div>
-                    ` : ''}
                 </div>
-                                ${sale.comments ? `
-                    <div class="notice warn bill-view-note">
-                        <span>${L('ui.wholesale.comments')}</span>
-                        <div class="bill-view-note-text">${Helpers.escapeHtml(sale.comments)}</div>
-                    </div>
-                ` : ''}
+                ${billNoteHtml(sale)}
                 
                 <h3 class="bill-view-title">${L('ui.history.sale_items')}</h3>
                 <table class="table bill-view-items">

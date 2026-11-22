@@ -5,7 +5,7 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [stock.
 | On screen | How it is worked out |
 |---|---|
 | Quantity (S1) | All purchases added, sales taken out, corrections applied, in time order. Opening stock is a correction with its cost per kg. |
-| Average rate (S2) | The average cost after all of that. |
+| Average rate (S2) | The average cost after all of that, shown to at most one decimal ("Avg cost ₹19.3/kg"). |
 | Value per item, total value (S3, S4) | Quantity × average rate; the total is their sum. |
 | Adjustment value (S5) | Quantity of a correction × its rate (or today's average rate). |
 | "A bill has a doubtful rate" notice (BF-USUAL; owner and managers) | A loaded purchase with a line at least 5× (or at most ⅕ of) the item's rate on Items & rates, e.g. ₹2,400/kg against ₹24/kg. Such a bill moves the average rate and the value; **Open bill** shows it to correct (Edit) or keep. |

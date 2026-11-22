@@ -12,7 +12,7 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
 import { SAVED_ON_PHONE_KEY } from '../utils/storage-full.js';
-import { formatAmount, formatRupees, formatRate, formatKg } from '../utils/money.js';
+import { formatAmount, formatRupees, formatKg } from '../utils/money.js';
 import { parseAnyBillDate, formatDate } from '../utils/dates.js';
 import { stockRows, itemValue, stockValue, stockSummary, adjustItemStock, adjustmentValue, deadStockValue } from '../utils/calc/stock.js';
 import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
@@ -161,7 +161,7 @@ export class StockManager {
             const div = document.createElement("div");
             div.className = "row";
             div.dataset.stockItem = '';
-            const rateLine = txMoney('ui.stock.avg_cost_per_kg', { rate: formatAmount(item.rate, 'rate') }, item.rate, 'rate');
+            const rateLine = txMoney('ui.stock.avg_cost_per_kg', { rate: formatAmount(item.rate, 'avgRate') }, item.rate, 'avgRate');
 
             if (item.isOrphan) {
                 // Orphan rows: highlight in red so the user can spot the
@@ -661,7 +661,7 @@ export class StockManager {
                         <div class="row-trail">
                             <div class="row-amt tone-neg">${e(stockKg(r.quantity))} kg</div>
                             <div class="row-meta">≈ ${figHtml(r.value)}</div>
-                            <div class="row-meta">${txMoney('ui.deadstock.avg_rate', { rate: formatRate(r.rate) }, r.rate, 'rate')}</div>
+                            <div class="row-meta">${txMoney('ui.deadstock.avg_rate', { rate: formatRupees(r.rate, 'avgRate') }, r.rate, 'avgRate')}</div>
                         </div>
                 </div>`;
             }).join('')}</div>` + (rows.some(r => r.uncertain)
@@ -745,7 +745,7 @@ export class StockManager {
         // Average rate (S2)
         if (avgRateDisplay && avgRateValue) {
             if (avgRate !== null) {
-                avgRateValue.innerHTML = `${figHtml(avgRate, 'rate')}/kg`;
+                avgRateValue.innerHTML = `${figHtml(avgRate, 'avgRate')}/kg`;
                 showAvgRate(avgRateDisplay, true);
             } else {
                 showAvgRate(avgRateDisplay, false);

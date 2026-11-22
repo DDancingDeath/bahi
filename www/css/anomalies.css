@@ -132,7 +132,37 @@
 .anom-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--sp-2);
+}
+
+.anom-actions .btn {
+  white-space: nowrap;
+}
+
+.anom-overflow > summary {
+  list-style: none;
+}
+
+.anom-overflow > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anom-overflow[open] {
+  flex-basis: 100%;
+}
+
+.anom-overflow-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.anom-overflow-menu > .btn {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
 }
 
 /* Page: filters, sections and summary */
