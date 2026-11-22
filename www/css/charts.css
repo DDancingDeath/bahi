@@ -186,7 +186,7 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 }
 
 .dialog-wide {
-  width: min(560px, 100%);
+  width: min(var(--dialog-wide), 100%);
 }
 
 /* A title row with its own buttons (Back, Close) */

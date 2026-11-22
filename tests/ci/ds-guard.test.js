@@ -217,6 +217,60 @@ function scan() {
     return { result };
 }
 
+describe('component families and one home per selector (tests/ds-components.json, NEW-07)', () => {
+    const DC = require('./ds-components');
+    const now = DC.scan();
+
+    test('no selector is written in a second stylesheet, and no family grows its own variant', () => {
+        const { over, under } = DC.compare(now, DC.load());
+        if (over.length) {
+            throw new Error([`Not in ${DC.REL}: give a selector one home (the file that owns it, or a token that desktop.css sets), `
+                + 'and build new UI from the shared components (docs/design-system.md §3).', ...over].join('\n'));
+        }
+        if (under.length && process.env.DS_ALLOWLIST === 'lower' && !process.env.CI) { DC.lower(now); return; }
+        if (under.length) throw new Error([`Gone from the CSS: lower the list with DS_ALLOWLIST=lower npx jest -i ds-guard`, ...under].join('\n'));
+    });
+
+    test('the lists are no longer than on the PR base', () => {
+        const base = DC.baseDoc();
+        if (!base.doc) {
+            const why = base.missing === 'ref' ? `${base.ref} is not available (no git / shallow clone)` : `${base.ref} has no ${DC.REL} yet`;
+            if (base.missing === 'ref' && process.env.ARCH_REQUIRE_BASE === '1') throw new Error(`Cannot compare ${DC.REL} with the PR base: ${why}.`);
+            console.log(`${DC.REL} not compared with the base: ${why}.`);
+            return;
+        }
+        expect(DC.raisedVsBase(base.doc, DC.load())).toEqual([]);
+    });
+
+    test('scan: each part of a selector list counts, in @media too, not in print, keyframes or comments', () => {
+        const r = DC.scan({
+            'a.css': '.x, .y .z { color: red; } @media (min-width: 1px) { .voice-sheet-mic { gap: 0; } } /* .q { } */',
+            'b.css': '.y  .z { color: blue; } @media print { .x { color: red; } } @keyframes k { from { opacity: 0; } } .voice-sheet-more:hover { }',
+        });
+        expect(r.dupSelectors).toEqual({ '.y .z': ['a.css', 'b.css'] });
+        expect(r.roots.modal_dialog_sheet).toEqual(['voice-sheet-mic', 'voice-sheet-more']);
+    });
+
+    test('rootOf folds the part suffixes into the family root', () => {
+        expect(['bill-check-sheet-notice', 'voice-sheet-live', 'admin-user-actions', 'btn-primary', 'printer-sheet'].map(DC.rootOf))
+            .toEqual(['bill-check-sheet-notice', 'voice-sheet-live', 'admin-user', 'btn', 'printer-sheet']);
+    });
+
+    test('raisedVsBase: a new selector or root fails unless an exception explains it', () => {
+        const base = { dupSelectors: ['.a'], roots: { notice_banner: ['notice'] } };
+        expect(DC.raisedVsBase(base, base)).toEqual([]);
+        expect(DC.raisedVsBase(base, { dupSelectors: [], roots: { notice_banner: [] } })).toEqual([]);
+        expect(DC.raisedVsBase(base, { dupSelectors: ['.a', '.b'], roots: { notice_banner: ['notice', 'pw-banner'] } })).toEqual([
+            'dupSelectors: .b is new (give the rule one home)',
+            'dupSelectors: 1 -> 2',
+            `roots notice_banner: pw-banner is new (use ${DC.USE.notice_banner})`,
+        ].sort());
+        const excused = { exceptions: { 'notice_banner:pw-banner': { reason: 'a banner that floats over the camera view', added: '#600' } },
+            dupSelectors: ['.a'], roots: { notice_banner: ['notice', 'pw-banner'] } };
+        expect(DC.raisedVsBase(base, excused)).toEqual([]);
+    });
+});
+
 describe('design-system guard (strict outside tests/ds-allowlist.json)', () => {
     const { result: current } = scan();
 

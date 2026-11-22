@@ -384,3 +384,39 @@ describe('the business is called Aadhat (internal id stays shop)', () => {
         expect(btn.textContent).toContain('आढ़त');
     });
 });
+
+describe('Billing tools and Team read short (NEW-11)', () => {
+    afterEach(() => resetLangForTests());
+    const lines = (text) => Math.ceil(text.length / 45);
+
+    test('each switch has a hint of at most two phone lines; the long help is behind "About"', () => {
+        document.body.innerHTML = html('settings.html');
+        for (const lang of ['en', 'hi']) {
+            setLang(lang);
+            applyTranslations(document);
+            for (const card of ['voiceBillingCard', 'photoWeightsCard']) {
+                const hints = [...document.querySelectorAll(`#${card} > .setting-description:not([id])`)].map(p => p.textContent.trim());
+                expect(hints.length).toBeGreaterThan(0);
+                for (const h of hints) expect(lines(h)).toBeLessThanOrEqual(2);
+                const about = document.querySelector(`#${card} > details.page-help`);
+                expect(about.querySelector('summary').textContent.trim()).toBe(t('ui.common.about'));
+                expect(about.querySelector('.setting-description').textContent.length).toBeGreaterThan(200);
+            }
+        }
+    });
+
+    test('Team has one "Show people", which shows everyone and their Rentals role', () => {
+        document.body.innerHTML = html('settings.html');
+        const buttons = [...document.querySelectorAll('#settingsTeam [data-i18n="ui.roles.show_people"]')];
+        expect(buttons.map(b => b.id)).toEqual(['teamShowPeople']);
+        expect(buttons[0].getAttribute('data-onclick')).toBe('team.showPeople()');
+        expect(document.getElementById('rolePeopleList').closest('#teamPeopleCard')).not.toBeNull();
+    });
+
+    test('labels have no colon', () => {
+        for (const lang of ['en', 'hi']) {
+            setLang(lang);
+            expect(t('ui.roles.perm_history_days')).not.toContain(':');
+        }
+    });
+});

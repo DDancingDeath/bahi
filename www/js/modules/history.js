@@ -606,7 +606,7 @@ export class HistoryManager {
         const content = `
             <div class="bill-view${isPurchase ? '' : ' is-sale'}">
                 ${voidedBannerHtml(bill)}
-                <div class="panel bill-view-sheet">
+                <div class="panel">
                 <div class="panel-pad bill-view-head">
                     <div class="bill-view-sum hero-num">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</div>
                     ${paidSoFar(parts) > 0 || parts.due > 0 ? `<div class="bill-view-paid">${[

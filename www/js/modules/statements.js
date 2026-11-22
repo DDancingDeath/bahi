@@ -206,7 +206,7 @@ export const StatementsManager = {
             const preset = this.day === today ? 'today' : this.day === yesterday ? 'yesterday' : 'pick';
             const opt = (v, key) => `<option value="${esc(v)}"${v === preset ? ' selected' : ''}>${esc(t(key))}</option>`;
             // The shared period control (U-61): ‹ day › and a preset chip; "Choose day…" opens the phone's date picker
-            html = `<div class="ins-period st-day-step">`
+            html = `<div class="period ins-period st-day-step">`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(-1)" aria-label="${esc(t('ui.statements.day_before'))}">${icon('chevL')}</button>`
                 + `<span class="ins-period-label">${esc(formatDay(parseLocalDate(this.day) || new Date(), { lang }))}</span>`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(1)" aria-label="${esc(t('ui.statements.day_after'))}"${this.day >= today ? ' disabled' : ''}>${icon('chevR')}</button>`
@@ -218,7 +218,7 @@ export const StatementsManager = {
             const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
             const at = opts.indexOf(this.month);
             // The shared period control (U-61): ‹ the month as a chip ›, as on Money and the Day book
-            html = `<div class="ins-period st-month-step">`
+            html = `<div class="period ins-period st-month-step">`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(-1)" aria-label="${esc(t('ui.money.earlier'))}"${at >= opts.length - 1 ? ' disabled' : ''}>${icon('chevL')}</button>`
                 + `<select class="ins-preset st-month-pick" aria-label="${esc(t('ui.statements.pick_month'))}" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select>`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(1)" aria-label="${esc(t('ui.money.later'))}"${at <= 0 ? ' disabled' : ''}>${icon('chevR')}</button></div>`;

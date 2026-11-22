@@ -22,7 +22,3 @@
     .wp-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .wp-form h3, .wp-form .wp-actions, .wp-form p { grid-column: 1 / -1; }
 }
-/* Intro behind 'About this page' (U-93): the list comes first on every visit */
-.page-help > summary { width: fit-content; list-style: none; }
-.page-help > summary::-webkit-details-marker { display: none; }
-.page-help[open] { display: grid; gap: var(--sp-2); }

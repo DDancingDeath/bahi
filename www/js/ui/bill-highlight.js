@@ -280,7 +280,7 @@ function ensureBanner(section) {
 export function warningsNoticeHtml(lines) {
     if (!lines?.length) return '';
     const items = lines.map(s => `<li>${Helpers.escapeHtml(s)}</li>`).join('');
-    return `<div class="notice warn bill-check-sheet-notice" role="status">${icon('triangle', 'i-sm')}<ul class="grow bill-check-bullets">${items}</ul></div>`;
+    return `<div class="notice warn" role="status">${icon('triangle', 'i-sm')}<ul class="grow bill-check-bullets">${items}</ul></div>`;
 }
 
 const warningLines = (issues) => issues.flatMap(i => (Array.isArray(i.parts) ? i.parts.map(text) : [text(i)]));

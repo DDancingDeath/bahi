@@ -323,6 +323,17 @@ a.row:active {
   display: none;
 }
 
+/* "About" help (U-93): <details class="page-help"> with a ghost .btn-sm summary; the screen comes first,
+   the longer text is one tap away (Recurring bills, Workers, Settings groups) */
+.page-help > summary {
+  width: fit-content;
+}
+
+.page-help[open] {
+  display: grid;
+  gap: var(--sp-2);
+}
+
 /* Money figure: the ₹ sign smaller and muted beside the digits (<span class="cur">₹</span>) */
 .money {
   font-variant-numeric: tabular-nums;

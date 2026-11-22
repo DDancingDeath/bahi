@@ -93,7 +93,7 @@ test('NEW-13: a note is a plain row in the sheet, not a warning; the party is na
     await HistoryManager.viewBill('id:w1', 'wholesale');
     const content = document.getElementById('billDetailsContent');
     expect(content.querySelector('.notice.warn')).toBeNull();
-    const note = content.querySelector('.bill-view-sheet .bill-view-note');
+    const note = content.querySelector('.bill-view > .panel .bill-view-note');
     expect(note.textContent.replace(/\s+/g, ' ').trim()).toBe('Comments 8340570373');
     expect(document.getElementById('billDetailsParty').textContent).toBe('Trader');
     expect(content.textContent.split('Trader')).toHaveLength(1);
