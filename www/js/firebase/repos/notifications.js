@@ -10,6 +10,7 @@ import { AppState } from '../../utils/state.js';
 import { getDb, col } from '../db.js';
 import { planNotificationDocs, newEventId, cashEventId } from '../../utils/notification-format.js';
 import { getUsersForNotifications } from './user-profiles.js';
+import { triggerPush } from '../push-trigger.js';
 
 /**
  * Writes planned notification docs ({id, data}) with batched writes. Doc ids
@@ -46,7 +47,10 @@ export const notificationMethods = {
             read: false,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-        if (docs.length) await writeNotificationDocs(docs);
+        if (docs.length) {
+            await writeNotificationDocs(docs);
+            triggerPush(eventId);
+        }
         return docs.length;
     },
 

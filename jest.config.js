@@ -19,7 +19,9 @@ module.exports = {
         // Firestore backup tooling (tools/backup)
         '**/tests/backup/**/*.test.js',
         // CI helper scripts (tools/ci)
-        '**/tests/ci/**/*.test.js'
+        '**/tests/ci/**/*.test.js',
+        // Push sender core (push-sender/Core.js, Apps Script)
+        '**/tests/push-sender/**/*.test.js'
     ],
     
     // Stryker's sandbox copies of the repo (#216)

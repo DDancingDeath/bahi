@@ -3668,6 +3668,53 @@ function defineSuite(prefix) {
         }
     });
 
+    t('notifications: no client sets pushed (only the push sender, by REST as the project owner)', async () => {
+        for (const actor of ['manager1', 'legacyOwner']) {
+            await assertFails(sendAs(actor, rateNote(actor, 'staff1', { pushed: true })));
+            await assertFails(sendAs(actor, rateNote(actor, 'staff1', { pushed: false })));
+        }
+        await seedBill(notifications, 'np', { ...rateNote('manager1', 'staff1'), timestamp: 1 });
+        await assertFails(as('staff1').collection(notifications).doc('np').update({ pushed: true }));
+        await assertFails(as('staff1').collection(notifications).doc('np').update({ read: true, pushed: true }));
+        await assertFails(as('manager1').collection(notifications).doc('np').update({ pushed: true }));
+    });
+
+    const pushDevice = (extra = {}) => ({ token: 'fcm-token-1', platform: 'android', on: true,
+        kinds: { bell: true, rate: false }, lang: 'hi', updatedAt: serverTimestamp(), ...extra });
+    const deviceOf = (who, uid, id = 'h1') => as(who).collection(users).doc(uid).collection('devices').doc(id);
+
+    // users/{uid}/devices: production only (the push sender never reads dev_ data)
+    if (!prefix) t('push devices: each person writes, reads and deletes only their own', async () => {
+        for (const uid of ['staff1', 'manager1', 'legacyOwner', 'pending1']) {
+            await assertSucceeds(deviceOf(uid, uid).set(pushDevice()));
+            await assertSucceeds(deviceOf(uid, uid).set(pushDevice({ on: false, platform: 'web', lang: 'en' })));
+            await assertSucceeds(deviceOf(uid, uid).get());
+            await assertSucceeds(deviceOf(uid, uid).delete());
+        }
+        await assertSucceeds(deviceOf('staff1', 'staff1').set(pushDevice()));
+        for (const other of ['manager1', 'legacyOwner']) {
+            await assertFails(deviceOf(other, 'staff1').get());
+            await assertFails(deviceOf(other, 'staff1').set(pushDevice()));
+            await assertFails(deviceOf(other, 'staff1').delete());
+            await assertFails(as(other).collection(users).doc('staff1').collection('devices').get());
+        }
+        await assertFails(anon().collection(users).doc('staff1').collection('devices').doc('h1').get());
+    });
+
+    if (!prefix) t('push devices: only the device fields, with the server time', async () => {
+        const mine = deviceOf('staff1', 'staff1');
+        await assertFails(mine.set(pushDevice({ updatedAt: Date.now() })));
+        await assertFails(mine.set(pushDevice({ platform: 'ios' })));
+        await assertFails(mine.set(pushDevice({ lang: 'fr' })));
+        await assertFails(mine.set(pushDevice({ on: 'yes' })));
+        await assertFails(mine.set(pushDevice({ kinds: ['bell'] })));
+        await assertFails(mine.set(pushDevice({ token: 5 })));
+        await assertFails(mine.set(pushDevice({ pushed: true })));
+        await assertFails(mine.set(pushDevice({ uid: 'manager1' })));
+        const { token, ...noToken } = pushDevice();
+        await assertFails(mine.set(noToken));
+    });
+
     t('notifications: the recipient marks them read; nothing else changes', async () => {
         await seedBill(notifications, 'n1', { ...rateNote('manager1', 'staff1'), timestamp: 1 });
         const mine = as('staff1').collection(notifications).doc('n1');

@@ -116,6 +116,12 @@ function derive(raw) {
         googleSignIn: { web: google.web === true, android: google.android === true },
         // App Check (monitor mode) starts only when a reCAPTCHA v3 site key is set (docs/security.md)
         appCheckSiteKey: typeof raw.appCheck?.siteKey === 'string' ? raw.appCheck.siteKey.trim() : '',
+        // Push while closed (docs/notifications.md, stage 2): the sender's web app (one for every project)
+        // and the project's Web Push key; empty = off
+        push: {
+            url: typeof raw.pushUrl === 'string' ? raw.pushUrl.trim() : '',
+            vapidKey: typeof fb.vapidKey === 'string' ? fb.vapidKey.trim() : ''
+        },
         webConfig
     };
 }
@@ -159,6 +165,13 @@ function configProblems(raw) {
         const ok = a && typeof a === 'object' && Object.keys(a).every((k) => k === 'siteKey') &&
             (a.siteKey === undefined || (typeof a.siteKey === 'string' && /^[\w-]*$/.test(a.siteKey.trim())));
         if (!ok) errors.push('appCheck must be { "siteKey": "<reCAPTCHA v3 site key>" } (empty = App Check off)');
+    }
+    if (raw.pushUrl !== undefined && !(typeof raw.pushUrl === 'string' && /^(|https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec)$/.test(raw.pushUrl.trim()))) {
+        errors.push('pushUrl must be the push sender\'s web app URL (https://script.google.com/macros/s/<id>/exec) or empty');
+    }
+    const vapid = raw.firebase?.vapidKey;
+    if (vapid !== undefined && !(typeof vapid === 'string' && /^([A-Za-z0-9_-]{80,100})?$/.test(vapid.trim()))) {
+        errors.push('firebase.vapidKey must be the project\'s Web Push certificate key pair (public key) or empty');
     }
     if (raw.download !== undefined) {
         const dl = raw.download;
@@ -222,7 +235,8 @@ function identityModule(d) {
         apkFile: d.apkFile,
         apkDownloadUrl: d.apkDownloadUrl,
         latestReleaseApi: d.latestReleaseApi,
-        googleSignIn: d.googleSignIn
+        googleSignIn: d.googleSignIn,
+        push: d.push
     };
     return '// Generated from happa.config.json by `npm run apply:happa-config`. Do not edit by hand.\n' +
         `export const APP_IDENTITY = Object.freeze(${JSON.stringify(identity, null, 4)});\n`;

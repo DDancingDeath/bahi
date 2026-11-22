@@ -1311,6 +1311,8 @@ export default {
     'ui.notify.test': "Send test notification",
     'ui.notify.note_app': "Bell updates come while the app is in the background. Reminders come at their time even when the app is closed (Android may bring them a few minutes late). A To do without a time comes at 9:00 am.",
     'ui.notify.note_web': "In the browser, notifications come only while the app is open (also in another tab or in the background). Reminders at their time with the app closed need the Android app.",
+    'ui.notify.note_app_push': "Bell updates come even when the app is closed. Reminders come at their time (Android may bring them a few minutes late). A To do without a time comes at 9:00 am.",
+    'ui.notify.note_web_push': "Bell updates come even when the browser is closed. Reminders at their time with the app closed need the Android app.",
     'ui.notify.denied_app': "Notifications are blocked for this app. Open phone settings › Apps › this app › Notifications and allow them.",
     'ui.notify.denied_web': "Notifications are blocked for this site. Allow them in the browser's site settings (the lock next to the address).",
     'ui.notify.channel_bell': "Updates from the bell",

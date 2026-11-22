@@ -12,6 +12,7 @@ files — replace them with a new versioned folder instead.
 | `firebase/10.7.1/firebase-auth-compat.js` | `https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js` | `4e599f83d2eb9a581815a274178bf002aa517c305b85bf2489aeb5f42d26bcfb` |
 | `firebase/10.7.1/firebase-firestore-compat.js` | `https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js` | `84b2e0c9480de124ed53b7206ae1a93fd5c62399e525a14bcfafc23930eaaac9` |
 | `firebase/10.7.1/firebase-app-check-compat.js` | `https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check-compat.js` | `aea4ed9c48546b9d513a625de2c77b57365267b0580e0883c68ce236040f7ff2` |
+| `firebase/10.7.1/firebase-messaging-compat.js` | `https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js` | `33424948935d3a5f2c21d3f6c96c018eb5cfe7b2ddec00be94f0ae3cf5be3ba3` |
 
 - Byte-identical to the gstatic CDN copies and to the same files in the
   `firebase@10.7.1` npm package (checked via jsDelivr).
@@ -25,6 +26,9 @@ files — replace them with a new versioned folder instead.
   (`APP_CHECK_SDK_INTEGRITY`, checked by `app-check.test.js`). It is in neither service
   worker list (`RUNTIME_ONLY` in `scripts/check-sw-assets.js`), so phones without a key
   never download it; the fetch handler caches it on first use.
+- Messaging (`firebase-messaging-compat.js`, push in the browser, docs/notifications.md stage 2) is loaded the same
+  way, only when the project has a VAPID key (`js/firebase/web-push.js`, `MESSAGING_SDK_INTEGRITY`; also in
+  `RUNTIME_ONLY`).
 
 ### Upgrading
 

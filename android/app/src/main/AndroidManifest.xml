@@ -45,6 +45,14 @@
         <meta-data
             android:name="firebase_sessions_enabled"
             android:value="false" />
+        <!-- Push while the app is closed (docs/notifications.md, stage 2): shown by Android on the
+             app's "Bahi" channel with the Bahi mark when a message names none. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_bahi" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="bahi" />
     </application>
 
     <!-- Permissions -->

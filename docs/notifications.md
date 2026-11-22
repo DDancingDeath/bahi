@@ -1,7 +1,8 @@
 # Notifications (#12)
 
 The bell (in-app inbox) plus **phone notifications** in the status bar. Stage 1 is free: no
-server, no push service, no new account. Phone notifications are shown by the app itself:
+server, no push service, no new account. Phone notifications are shown by the app itself (stage 2,
+below, adds bell updates pushed to a closed app, also free):
 
 - **Android app:** `@capacitor/local-notifications` 7.0.7 (Capacitor 7). A notification is shown
   at once (bell updates, the test) or **scheduled** with Android's alarm service, so it comes at its
@@ -14,7 +15,7 @@ server, no push service, no new account. Phone notifications are shown by the ap
 
 | | Android app: closed (swiped away, phone restarted) | Android app: in the background / screen off | Android app: on screen | Browser (phone or computer) |
 |---|---|---|---|---|
-| Bell update (rate / item changed, cash drawer opened / closed by someone else) | — (needs stage 2 push) | status-bar notification while Android keeps the app running | toast + bell badge only | system notification while the tab is hidden; toast + badge while it is visible; nothing when closed |
+| Bell update (rate / item changed, cash drawer opened / closed by someone else) | ✔ pushed (stage 2, once the owner set up the sender and the APK has the plugin; ≤ 5 min when the writer was offline) | ✔ (pushed; before stage 2: the app's own notification while Android keeps it running) | toast + bell badge only | system notification while the tab is hidden; toast + badge while it is visible; with a VAPID key also when no tab is open (the browser itself must be running on a computer) |
 | To do reminder at its date and time (9:00 am without a time) | ✔ | ✔ | ✔ (status bar) | only while the app is open (a toast when it is on screen) |
 | Udhaar summary (owner, managers) at the summary time | ✔ (amounts as of the last time the app was open) | ✔ | ✔ | only while open |
 | Rent due on each rent due day (Rentals roles) | ✔ (needs the Rent page opened this month on this phone, like the rent reminder at the top of the Rent page; rent is not on Aadhat's Today) | ✔ | ✔ | only while open |
@@ -119,30 +120,86 @@ New types only need a sender: unknown types are shown with their `message` /
 `messageHi` fields. Use a stable `eventId` per flag/event so it notifies at
 most once. User-facing text is always English + Hindi.
 
-## Stage 2: push while closed (plan, not built)
+## Stage 2: push while the app is closed (built)
 
-Goal: bell updates (and a fresh Udhaar figure) reach a closed app. Still free.
+Bell updates reach a phone whose app is closed (swiped away, phone restarted) or a browser with no
+Bahi tab open. Still ₹0: no card, no Cloud Functions (they need the Blaze plan), no new account.
 
-1. **Sender:** a Cloudflare Worker (free plan: 100,000 requests a day) that sends with **FCM HTTP v1**
-   (`https://fcm.googleapis.com/v1/projects/<project>/messages:send`; FCM itself is free). Two ways to
-   trigger it:
-   - **called by the client:** the phone that wrote a notification calls the Worker with its Firebase
-     **ID token** and the event id; the Worker verifies the token (Google's public keys), reads the
-     `notifications` docs of that event with a service account and sends one message per recipient
-     token. Simple and immediate; nothing is sent if the writer is offline until it syncs.
-   - **watching a path:** the Worker's cron trigger (every minute) lists `notifications` written since
-     its last run (`timestamp >` a cursor kept in Workers KV). No client change, at most a minute late,
-     about 1,440 small queries a day (inside the Firestore free reads).
-   Firestore triggers (Cloud Functions) are not used: they need the Blaze plan.
-2. **Tokens:** the Android app gets an FCM token from `@capacitor/push-notifications` (or
-   `@capacitor-firebase/messaging`), the browser from `getToken()` with a VAPID key and a
-   `firebase-messaging-sw` handler in our service worker. Stored in `users/{uid}/devices/{tokenHash}`
-   (`token`, `platform`, `updatedAt`; the owner of the doc writes it, rules allow only their own); stale
-   tokens (FCM 404 / UNREGISTERED) are deleted by the Worker.
-3. **Payload:** a data message with the text the bell already shows and `route`; the app shows it on
-   the "Bahi" channel with the same id 1001, so a bell update shown locally and by push stays one.
-4. **Cost:** ₹0 at the shop's size (Workers free plan, FCM free, a few hundred Firestore reads a day).
-5. **The owner creates:** a Cloudflare account and the Worker (we give the code and `wrangler.toml`); in
-   Firebase (each project) a **service account key** for the Worker (stored as a Worker secret, never in
-   the repo) and, for the browser, a **Web Push certificate (VAPID key)**; the Android app already has
-   `google-services.json`. One review of the new rules for `devices`.
+- **Sender:** a **Google Apps Script** project under the shop's Google account (aadhat2025@gmail.com,
+  Owner of `bahi-happa` and `bahi-happa-dev`), code in [`push-sender/`](../push-sender/). It runs as
+  that account: `ScriptApp.getOAuthToken()` (scopes `datastore`, `firebase.messaging`,
+  `script.external_request`) reads Firestore over REST and sends with **FCM HTTP v1**. Requests made
+  this way are authorised by IAM (the project Owner), not by `firestore.rules`. Each request names
+  its project with `X-Goog-User-Project`, so one script serves both projects.
+  - **Web app** `doPost({eventId, project})`: the phone that wrote an event's notification docs posts
+    its event id right after the write (`firebase/push-trigger.js`, `no-cors`, fire and forget: the
+    action never waits; no URL configured = nothing). Only `bahi-happa` and `bahi-happa-dev` are
+    accepted. It reads that event's docs (`eventKey ==`), sends, marks each doc `pushed: true`, so a
+    repeated call, or anyone posting a made-up id, sends nothing new; the same event id is ignored for
+    10 minutes and at most 60 calls a minute are served.
+  - **Time trigger** `sweep()` every 5 minutes: per project the docs written since the last sweep
+    (cursor in Script Properties, 2 minutes overlap, at most 2 days back) that are not `pushed`, i.e.
+    from a phone that was offline or closed before it could call. Usually one empty query (1 read) per
+    project per run; about 290 runs a day, a second or two each, far inside the 90 minutes a day of
+    trigger time.
+  - **Who gets what:** the doc's `userId` (the writer is never a recipient). For each of that person's
+    devices (`users/{uid}/devices`): only with Phone notifications on and that kind's own switch under
+    "Updates from others" not off (`kinds`, a copy of `happa.notify`; `rate_change` → `rate`, `item_edit` → `item`,
+    `role_change` → `role` (always on), `cash_open` → `cashOpen`, `cash_close` → `cashClose`; any
+    other type always goes). Several new ones for a phone go as one ("Bahi: 3 new").
+  - **Text:** the bell's own words in the phone's language (`push-sender/Core.js` `describe`, checked
+    against `describeNotification` by `tests/push-sender/core.test.js`), then "— who".
+  - **Stale tokens:** FCM 404 / `UNREGISTERED` / `SENDER_ID_MISMATCH` / an invalid token → the device doc
+    is deleted. A 429 / 5xx is tried once more.
+- **Android:** `@capacitor-firebase/messaging` 7.5.0 (the other `@capacitor-firebase` plugins are 7.5.0
+  too) with the APK's `google-services.json`. The message is an FCM *notification* message on channel
+  `bahi`, icon `ic_stat_bahi`, colour `#89B284`, tag `happa-bell` (a new one replaces the last), so
+  Android shows it itself with the app swiped away or after a restart. The manifest names `bahi` and
+  `ic_stat_bahi` as defaults too. With the app on screen Android shows nothing (toast + badge as
+  before). A tap opens the bell (`notificationActionPerformed`, also on a cold start). Once this phone
+  has a device doc, the app no longer shows its own bell notification 1001 in the background: the push
+  does, so one change never gives two.
+- **Browser:** the Firebase messaging SDK (`vendor/firebase/10.7.1/firebase-messaging-compat.js`, loaded
+  only when the project has a VAPID key) subscribes **our** service worker; the message is data only
+  and the service worker's `push` handler shows it (tag `happa-bell`, so it merges with the app's own
+  bell notification) unless a Bahi tab is on screen. A tap goes through `notificationclick` as before.
+- **Device doc** `users/{uid}/devices/{sha256(token) first 40 hex}`: `token`, `platform` (`android` |
+  `web`), `on`, `kinds`, `lang` (`en` | `hi`), `updatedAt` (server). Written at sign-in, when a switch
+  or the language changes, and at least once a week (`happa.pushDevice` remembers the last write);
+  deleted when Phone notifications is switched off and before sign-out (with the token, so a shared
+  phone gets nothing for the last person). Rules: only that person, only these fields (`pushDeviceOk`).
+  Clients can never set `pushed` on a notification (rules tests).
+- **Config:** `pushUrl` in `happa.config.json` (the web app's `/exec` URL, the same for both projects)
+  and `firebase.vapidKey` per project (`happa.config.json` for bahi-happa,
+  `config/targets/bahi-happa-dev.json`). Empty = that part is off; `npm run apply:happa-config` copies
+  them into `APP_IDENTITY.push`.
+- **Cost:** ₹0 (Apps Script and FCM are free; a few hundred Firestore reads a day).
+
+### Owner setup (once)
+
+Until steps 1–2 are done nothing changes for anyone: no URL, no registration, the old local bell
+notification as before.
+
+1. **Apps Script** (signed in to Chrome as **aadhat2025@gmail.com**, the Owner of both projects):
+   1. Turn on <https://script.google.com/home/usersettings> › Google Apps Script API.
+   2. New project "Bahi push". Project settings › tick "Show appsscript.json". Paste
+      `push-sender/appsscript.json`, `Core.js` and `Main.js` from the repo (or let CI push them, step 3).
+   3. Run `checkAccess` once: allow the scopes (Google shows "unverified app": Advanced › Go to Bahi
+      push). The log must say `Firestore 200` for both projects.
+   4. Run `installTrigger` once (the 5-minute sweep; Triggers shows it).
+   5. Deploy › New deployment › Web app: Execute as **Me**, Who has access **Anyone**. Copy the web app
+      URL (`https://script.google.com/macros/s/…/exec`) and the deployment id.
+2. **URL into the app:** send us the URL (it goes into `pushUrl`, one PR, auto-deployed); the Android
+   app needs the next APK (rc) with the messaging plugin.
+3. **CI deploys of the script (optional):** on this PC `npm i -g @google/clasp@2.4.2`, `clasp login` as
+   aadhat2025, then add GitHub secrets `CLASPRC_JSON` (the content of `~/.clasprc.json`),
+   `PUSH_SENDER_SCRIPT_ID` (Project settings › Script ID) and `PUSH_SENDER_DEPLOYMENT_ID`.
+   `push-sender-deploy.yml` then pushes and redeploys the same web app on every change to
+   `push-sender/`; without the secrets it skips with a notice.
+4. **Browser push (optional):** Firebase console › each project › Project settings › Cloud Messaging
+   › Web Push certificates › Generate key pair; send us the public key (it goes into
+   `firebase.vapidKey`). Android does not need it.
+
+If a call says "API has not been used in project …": in the script's Project settings › Google Cloud
+project, switch it to the project number of `bahi-happa` (that also needs the OAuth consent screen
+there, "In production").

@@ -5,6 +5,7 @@
   "apkName": "bahi",
   "githubRepo": "DDancingDeath/bahi",
   "ownerConfirmed": true,
+  "pushUrl": "",
   "googleSignIn": {
     "web": false,
     "android": false

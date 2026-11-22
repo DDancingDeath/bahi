@@ -48,6 +48,7 @@ img-src 'self' data: blob:;
 font-src 'self' data:;
 connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com
             https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com
+            https://fcmregistrations.googleapis.com https://script.google.com https://script.googleusercontent.com
             https://content-firebaseappcheck.googleapis.com https://firebasevertexai.googleapis.com
             https://apis.google.com https://www.google.com https://api.github.com;
 worker-src 'self'; manifest-src 'self';
@@ -63,7 +64,8 @@ object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 | `firestore.googleapis.com` | Firestore SDK and the tenant page's single REST read |
 | `identitytoolkit.googleapis.com`, `securetoken.googleapis.com` | Firebase Auth sign-in and token refresh |
 | `apis.google.com` (script, connect), `www.google.com` (connect), `bahi-happa.firebaseapp.com` (the project's authDomain) and `'self'` (frame) | Firebase Auth (compat) on **phones** (and Safari) loads Google's `gapi` loader at start-up and frames `<authDomain>/__/auth/iframe` (its popup/redirect helper), even when the person signs in with email + password. Found by the E2E phone runs. These scripts can't carry SRI; dropping them needs Auth without the popup/redirect resolver (modular SDK), a separate change. `'self'`: with Google sign-in on, the helper is the site's own `/__/auth/` ([google-sign-in.md](google-sign-in.md)) |
-| `firebaseinstallations.googleapis.com` | not called today; listed for the Firebase SDKs that use it |
+| `firebaseinstallations.googleapis.com`, `fcmregistrations.googleapis.com` | push in the browser (docs/notifications.md, stage 2): the Firebase messaging SDK gets this browser's FCM token, only when the project has a VAPID key |
+| `script.google.com`, `script.googleusercontent.com` (connect) | push sender (docs/notifications.md, stage 2): after writing a bell notification the phone posts its event id to the Apps Script web app (`firebase/push-trigger.js`, no-cors, fire and forget); Google answers from the second origin |
 | `content-firebaseappcheck.googleapis.com` (connect) | App Check token exchange (monitor mode, only with a site key; see "App Check" below) |
 | `firebasevertexai.googleapis.com` (connect) | Firebase AI Logic (Gemini Developer API): photo of weights (#374), only when the owner has switched it on and someone takes a photo. The SDK is vendored (`vendor/firebase/13.2.0/`, `'self'`); no Gemini key is in the app |
 | `www.google.com/recaptcha/`, `www.gstatic.com/recaptcha/` (script), `www.google.com/recaptcha/` (frame) | reCAPTCHA Enterprise for App Check: `enterprise.js`, its versioned `recaptcha__*.js` and the invisible widget's frame. Path-limited (`/recaptcha/` only), not the whole Google origins; nothing loads from there without a site key |
@@ -569,7 +571,8 @@ as they were before the rework; see the table above).
 - `ownAutoSaveWrite()`: Nobody writes another user's records, the owner included; the owner may only delete them (Admin › Clear Data deletes auto-saves and drafts). autoSaves/{uid} (billing.js autoSaveToCloud / deleteAutoSave): that user only.
 - `validDraftCreate()`: drafts (billing.js saveDraft / loadDraft / deleteDraft): own drafts only; userId never changes. A draft saved with `shared: true` (U-37) is read by any approved user, who continues it by setting only `takenBy` (own uid) and `takenAt`; it is deleted by its maker, the owner or a manager.
 - `notificationFields()`: notifications: the sender's device writes one doc per recipient (firestore-service.js sendNotification / planNotificationDocs, id <eventKey>_<userId>). The only senders are item adds and rate/name edits (notifyRateChanges, notifyItemEdit), and only owners/managers edit items, so only they may create them: stamped with their own uid and server time, types rate_change and item_edit, these fields only.
-- `notificationReadOnly()`: The recipient marks it read (markNotificationsRead / markAllNotificationsRead).
+- `notificationReadOnly()`: The recipient marks it read (markNotificationsRead / markAllNotificationsRead). No client sets `pushed`: only the push sender does, through the Firestore REST API with the project owner's OAuth token, which IAM authorises and rules do not see (docs/notifications.md, stage 2).
+- `pushDeviceOk()`: `users/{uid}/devices/{id}` (and `dev_users`): this phone's FCM token for push while closed; only its own person reads, writes or deletes it, with these fields only and the server time. The push sender reads them and deletes stale ones as the owner, outside the rules.
 - `canDeleteOwnRecord()`: Delete: the doc's own user (resource == null: already gone, a no-op), or the owner. autoSaves are keyed by uid.
 - `personalOn()`: --- personal expenses (#98): their own collection, read and written only by the owner and roles with Roles & access › Personal expenses on (default on; one read of settings/app, never for the owner). personalExpenseDays/{YYYY-MM-DD} = { amounts: { <expense id>: amount }, last } holds each day's amounts (one key per expense, written with it) so the cash count and Today still add them up on phones that can't read the expenses. Members and managers may read these totals.
 - `personalSwitch()`: Off unless the owner turned it on in Roles & access (#98): a stored true without personalExpensesChosen is the old default (every switch used to be saved), not a choice.
