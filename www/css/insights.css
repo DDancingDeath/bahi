@@ -227,8 +227,8 @@ div.ins-wide,
 .lh-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .lh-totals > .metric { padding: var(--sp-3); }
 .lh-totals > .metric + .metric { border-left: 1px solid var(--line); }
-.lh-balance { margin: var(--sp-2) 0 var(--sp-3); font-size: var(--fs-body); }
-.lh-balance > span { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.lh-balance { display: flex; align-items: baseline; justify-content: space-between; margin: var(--sp-2) 0 var(--sp-3); padding: 0 var(--sp-3); }
+.lh-balance > strong { font-family: var(--font-num); font-size: var(--fs-lead); font-weight: var(--w-strong); font-variant-numeric: tabular-nums; }
 .lh-days { overflow-x: auto; }
 .lh-days th, .lh-days td, .lh-bills th, .lh-bills td { padding-inline: var(--sp-2); white-space: nowrap; }
 .lh-days tbody th { height: 44px; color: var(--ink); font-size: var(--fs-sm); font-weight: var(--w-regular); text-align: left; }

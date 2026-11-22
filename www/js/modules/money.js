@@ -146,21 +146,15 @@ export function barsSvg(values, { faint = null, labels = [], height = 120, onTap
         + `<line class="ins-axis" x1="0" x2="100%" y1="${zero}" y2="${zero}"/>${bars}${line}${ticks}</svg>`;
 }
 
-/**
- * LH3 line: "Owed to labour ₹X" (amber, alert icon), "Paid extra ₹Y" (green, check), or paid in full.
- * @param {{amount: number, kind: 'same'|'owed'|'extra'}} b labourBalance()
- */
-function labourBalanceHtml(b) {
-    if (b.kind === 'same') return `<span class="tone-pos">${icon('check', 'i-sm')}${esc(t('ui.money.lh_settled'))}</span>`;
-    const owed = b.kind === 'owed';
-    const [before, after = ''] = t(owed ? 'ui.money.lh_owed' : 'ui.money.lh_extra', { amount: '\u0000' }).split('\u0000');
-    return `<span class="${owed ? 'tone-warn' : 'tone-pos'}">${owed ? icon('alert', 'i-sm') : icon('check', 'i-sm')}${esc(before)}<strong>${moneyHtml(b.amount, TM)}</strong>${esc(after)}</span>`;
+/** LH1 ± / LH3: Est. pay − Paid as a signed number, "+" while still owed, the true minus when paid extra. */
+function signedHtml(b) {
+    return b.kind === 'owed' ? `+${moneyHtml(b.amount, TM)}` : moneyHtml(b.kind === 'same' ? 0 : b.difference, TM);
 }
 
-/** The ± cell: + in amber while still owed, the true minus in green when paid extra. */
-function balanceCell(b) {
-    if (b.kind === 'same') return `<span class="tone-muted">${moneyHtml(0, TM)}</span>`;
-    return b.kind === 'owed' ? `<span class="tone-warn">+${moneyHtml(b.amount, TM)}</span>` : `<span class="tone-pos">${moneyHtml(b.difference, TM)}</span>`;
+/** LH3: "Balance" and the signed number, amber while owed, green when paid extra. */
+function labourBalanceHtml(b) {
+    const tone = b.kind === 'owed' ? 'tone-warn' : b.kind === 'extra' ? 'tone-pos' : '';
+    return `<span class="metric-label">${esc(t('ui.money.lh_balance'))}</span> <strong class="${tone}">${signedHtml(b)}</strong>`;
 }
 
 export const MoneyManager = {
@@ -844,7 +838,7 @@ export const MoneyManager = {
                     return `<tr role="button" tabindex="0" data-lh-day="${esc(d.key)}" data-onclick="money.openLabourDay('${Helpers.escapeJsAttr(d.key)}')" aria-label="${esc(t('ui.money.lh_open_day', { day }))}">`
                         + `<th scope="row">${esc(day)}</th><td class="num">${moneyHtml(d.deducted.amount, TM)}</td>`
                         + `<td class="num">${moneyHtml(d.toPay.amount, TM)}</td><td class="num">${moneyHtml(d.paid.amount, TM)}</td>`
-                        + `<td class="num">${balanceCell(d.balance)}</td></tr>`;
+                        + `<td class="num">${signedHtml(d.balance)}</td></tr>`;
                 }).join('') + '</tbody></table>'
             : emptyState({ icon: 'users', title: t('ui.money.lh_none') }));
         return h;
@@ -872,7 +866,6 @@ export const MoneyManager = {
         const html = `<div class="panel lh-totals">${metric('ui.money.lh_deducted', d.deducted.amount)}${metric('ui.money.lh_est', d.toPay.amount)}${metric('ui.money.lh_paid', d.paid.amount)}</div>`
             + `<p class="lh-balance">${labourBalanceHtml(d.balance)}</p>`
             + `<h3 class="section-title">${esc(t('ui.money.lh_bills'))}</h3>${bills}`
-            + `<p class="lh-note">${esc(t('ui.money.lh_est'))} ${esc(moneyText(d.toPay.amount))} ${esc(labourCalcText(d.toPay, 'ui.today.labour_to_pay_calc'))}</p>`
             + `<h3 class="section-title">${esc(t('ui.money.lh_payments'))}</h3>${pays}`;
         return UIManager.showModalWithHtml(html, formatDay(d.key, { lang }));
     },

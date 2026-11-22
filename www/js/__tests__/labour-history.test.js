@@ -123,23 +123,25 @@ describe('Money › Labour', () => {
         expect(text('lhDeducted')).toBe('₹78');
         expect(text('lhEst')).toBe('₹180');
         expect(text('lhPaid')).toBe('₹130');
-        expect(text('lhBalance')).toBe('Owed to labour ₹50');
-        expect(document.querySelector('#lhBalance .tone-warn use').getAttribute('href')).toBe('#i-alert');
+        expect(text('lhBalance')).toBe('Balance +₹50');
+        expect(document.querySelector('#lhBalance strong').className).toBe('tone-warn');
         expect(cells()).toEqual([
             ['25 Nov', '₹72', '₹174', '₹100', '+₹74'],
             ['23 Nov', '₹6', '₹6', '₹30', '−₹24']
         ]);
         expect(document.querySelectorAll('#lhDays tbody td:not(.num)')).toHaveLength(0);
-        expect(document.querySelector('#lhDays tbody tr:nth-child(2) td:last-child .tone-pos')).not.toBeNull();
+        // numbers only: no sentences, and the ± column is a plain signed number
+        expect(document.querySelector('#moneyLabourHistory').textContent).not.toMatch(/more|less|owed|extra|than/i);
+        expect(document.querySelector('#lhDays tbody [class*="tone-"]')).toBeNull();
         // compare & share is for the other tabs
         expect(document.getElementById('moneyCmpToggle').hidden).toBe(true);
     });
 
-    test('paid extra over the period is green with a check', () => {
+    test('paid extra over the period: the true minus, in green', () => {
         AppState.expensesHistory.push(wage('e6', 24, 100));
         openMoney('this-week');
-        expect(text('lhBalance')).toBe('Paid extra ₹50');
-        expect(document.querySelector('#lhBalance .tone-pos use').getAttribute('href')).toBe('#i-check');
+        expect(text('lhBalance')).toBe('Balance −₹50');
+        expect(document.querySelector('#lhBalance strong').className).toBe('tone-pos');
         expect(cells()[1]).toEqual(['24 Nov', '₹0', '₹0', '₹100', '−₹100']);
     });
 
@@ -149,6 +151,10 @@ describe('Money › Labour', () => {
         CashManagementManager.todaySession = null;
         DayManager.loadTodayData();
         const today = ['todayLaborCost', 'todayLabourToPay', 'todayLabourPaid'].map(id => document.getElementById(id).textContent.trim());
+        const link = document.getElementById('todayLabourHistory');
+        expect(link.textContent).toBe('History');
+        expect(link.dataset.onclick).toBe("nav.showTab('money-labour')");
+        expect(link.closest('button.today-labour-open')).toBeNull();
         openMoney('today');
         expect(cells()).toEqual([['25 Nov', ...today, '+₹74']]);
     });
@@ -167,7 +173,23 @@ describe('Money › Labour', () => {
         setInsightsContext({ preset: 'range:2026-11-10:2026-11-20' });
         MoneyManager.render();
         expect(document.getElementById('lhDays').textContent).toContain('No purchases or labour payments in this period');
-        expect(text('lhBalance')).toBe('Paid in full');
+        expect(text('lhBalance')).toBe('Balance ₹0');
+    });
+
+    test('Today\'s History link shows only to who may open Money › Labour', () => {
+        document.body.innerHTML = DAY;
+        jest.spyOn(AnomaliesManager, 'renderDayReport').mockImplementation(() => {});
+        CashManagementManager.todaySession = null;
+        AppState.userRole = 'manager';
+        DayManager.loadTodayData();
+        expect(document.getElementById('todayLabourHistory')).not.toBeNull();
+        AppState.settings = { ...SETTINGS, roleAccess: { manager: { finance: false } } };
+        DayManager.loadTodayData();
+        expect(document.getElementById('todayLabourHistory')).toBeNull();
+        AppState.userRole = 'staff';
+        AppState.settings = { ...SETTINGS, roleAccess: { staff: { finance: true } } };
+        DayManager.loadTodayData();
+        expect(document.getElementById('todayLabourHistory')).toBeNull();
     });
 
     test('owner and manager only, with Money', () => {
@@ -205,16 +227,15 @@ describe('Money › Labour', () => {
             ['#P1', 'Ram <b>Lal</b>', '12', '₹72'],
             ['#P2', 'Shyam', '8', '₹0']
         ]);
-        expect(box.textContent).toContain('(1,000 kg ÷ 35 kg = 29 packages × ₹6)');
         expect([...box.querySelectorAll('.row')].map(r => r.textContent)).toEqual(['LabourEvening gang₹100']);
-        expect(box.querySelector('.lh-balance').textContent).toBe('Owed to labour ₹74');
+        expect(box.querySelector('.lh-balance').textContent).toBe('Balance +₹74');
     });
 
     test('Hindi: the same figures, Hindi words', () => {
         openMoney('this-week', 'hi');
         expect(document.querySelector('[data-money-section="labour"]').textContent).toBe('मज़दूरी');
         expect([...document.querySelectorAll('#lhDays thead th')].slice(0, 4).map(th => th.textContent)).toEqual(['तारीख', 'काटी गई', 'अनुमान', 'दिया']);
-        expect(text('lhBalance')).toBe('मज़दूरों का बाकी ₹50');
+        expect(text('lhBalance')).toBe('बाकी +₹50');
     });
 
     test('reads nothing: the figures come from the bills and expenses already on the phone', () => {

@@ -117,9 +117,9 @@ purchase bills and expenses already loaded on the phone (the history window, "Lo
 
 | ID | On screen | Definition |
 |---|---|---|
-| LH1 | One row per day: Date \| Deducted \| Est. pay \| Paid \| ± (tap: the day's bills and labour payments) | Each local day of the period with a purchase bill (BILL-TIME) or a LABOUR-EXP expense (its date), newest first. Deducted = that day's T-LAB-1, Est. pay = its T-LAB-2 (the day's kg ÷ package weight, a part package counted as a full one, × rate), Paid = its T-LAB-4; ± = Est. pay − Paid, "+" in amber while still owed, the true minus in green when paid extra, ₹0 within 50 paise. The sheet lists each bill (bill no., customer, packets, labour) with the estimate's working, and the labour expenses. |
+| LH1 | One row per day: Date \| Deducted \| Est. pay \| Paid \| ± (tap: the day's bills and labour payments) | Each local day of the period with a purchase bill (BILL-TIME) or a LABOUR-EXP expense (its date), newest first. Deducted = that day's T-LAB-1, Est. pay = its T-LAB-2 (the day's kg ÷ package weight, a part package counted as a full one, × rate), Paid = its T-LAB-4; ± = Est. pay − Paid as a plain signed number ("+" while still owed, the true minus when paid extra, ₹0 within 50 paise). Numbers only, no sentences (owner, 23 Nov 2026). The sheet lists all the day's purchase bills (bill no., customer, packets, labour) and its labour expenses. |
 | LH2 | Deducted · Est. pay · Paid (period totals) | Σ of the LH1 rows: Σ of each day's T-LAB-1, T-LAB-2 (each day rounded up on its own, as M18) and T-LAB-4. |
-| LH3 | "Owed to labour ₹X" (amber, alert icon) / "Paid extra ₹Y" (green, check) / "Paid in full" | The running balance for the period: LH2 Est. pay − LH2 Paid, to paise; within 50 paise "Paid in full". Display only: nothing is stored and profit does not change. |
+| LH3 | Balance +₹X (amber) / −₹Y (green) / ₹0 | The running balance for the period: LH2 Est. pay − LH2 Paid, to paise, with its sign ("+" still owed to labour, "−" paid extra; ₹0 within 50 paise). Display only: nothing is stored and profit does not change. |
 
 ## Bill forms: purchase, retail sale, wholesale sale (`templates/billing.html`, `templates/wholesale-sales.html`)
 
