@@ -4,8 +4,9 @@
  * loaded on this phone, with what is open on them (utils/party-match.js): no Firestore read.
  * A combobox: ↑ ↓ pick, Enter fills, Esc closes; a tap fills. After the name field is left,
  * a new name close to a known one shows "Did you mean …?" with [Use] and [Yes, it's right]:
- * a warning only, it never stops the bill. The phone keyboard's own voice typing (and any IME) gives the
- * words through a composition: the list follows when it ends, never half-way through.
+ * a warning only, it never stops the bill. A phone keyboard types (and its own mic dictates) through a
+ * composition: the list follows it letter by letter, and again when it ends; Enter and the arrow keys are left
+ * to the keyboard until the composition ends.
  * @module ui/party-suggest
  */
 
@@ -316,7 +317,7 @@ export function bindPartySuggest() {
     bound = true;
     const typed = (e) => {
         const kind = KIND_OF[/** @type {HTMLElement} */ (e.target)?.id];
-        if (!kind || filling || e.isComposing) return;
+        if (!kind || filling) return;
         hideNameHint(kind);
         showSuggestions(kind);
     };

@@ -125,7 +125,7 @@ function bind(kind) {
     if (!section || section.dataset.billChecksBound) return section;
     section.dataset.billChecksBound = '1';
     const onEdit = (e) => {
-        if (e.isComposing || e.target?.closest?.('.bill-check-notice')) return;
+        if (e.target?.closest?.('.bill-check-notice')) return;
         BillChecksUI.schedule(kind);
     };
     section.addEventListener('input', onEdit);
@@ -663,8 +663,16 @@ async function askOverrideReason(blocks) {
 // A form whose checks have not run yet has no listener; its first edit starts
 // them (e.g. typing the customer name first on the Wholesale page, #166).
 if (typeof document !== 'undefined') {
+    // A keyboard's composition (typing or its mic): the "Name - Number" fallback of the due line waits for its end
+    document.addEventListener('compositionstart', (e) => {
+        const el = /** @type {HTMLElement} */ (e.target);
+        if (el?.dataset) el.dataset.composing = '1';
+    }, true);
+    document.addEventListener('compositionend', (e) => {
+        const el = /** @type {HTMLElement} */ (e.target);
+        if (el?.dataset) delete el.dataset.composing;
+    }, true);
     const firstEdit = (e) => {
-        if (e.isComposing) return;
         Object.keys(forms).forEach(kind => {
             const section = sectionOf(kind);
             if (section && !section.dataset.billChecksBound && section.contains(e.target)) BillChecksUI.schedule(kind);

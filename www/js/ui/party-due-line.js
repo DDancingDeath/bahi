@@ -26,7 +26,8 @@ export function renderPartyDue(kind, inputId, draft) {
     let el = document.getElementById(lineId(kind));
     const name = draft?.partyName ?? input?.value ?? '';
     const excludeId = draft?.editingBill?.id ?? draft?.id ?? null;
-    const due = input ? partyDue(billsForKind(AppState, kind), name, { excludeId }) : null;
+    // Mid-composition the name is still being typed: no "Name - Number" fallback to the plain name yet
+    const due = input ? partyDue(billsForKind(AppState, kind), name, { excludeId, noFallback: input.dataset.composing === '1' }) : null;
 
     if (!due) {
         if (el) {
