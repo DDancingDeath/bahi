@@ -72,7 +72,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261121h-forms-dates';
+const BUILD_ID = '20261121i-ds-cleanup';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1685,6 +1685,8 @@ window.app = {
     // Settings › Team (U-54, U-56): people and worker accounts; admin.js is imported on first use
     team: {
         render: () => loadAdmin().then(a => a.renderTeam()),
+        // The one "Show people" (NEW-11): everyone with their Aadhat role, then each one's Rentals role
+        showPeople: () => Promise.all([loadAdmin().then(a => a.renderTeam()), RolesAccessManager.loadPeople()]),
         addWorker: () => loadAdmin().then(a => a.addWorker()),
         // From the waiting-to-join alerts (U-24): Team with its people shown
         openWaiting: () => Promise.resolve(NavigationManager.showTabFromNav('settings-team'))

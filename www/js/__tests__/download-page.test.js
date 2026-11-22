@@ -51,4 +51,21 @@ describe('/download release info', () => {
         expect(r.version).toBe('1.0.0-dev.20261115.2');
         expect(r.notes).toEqual(['Test app Bahi Dev (com.happa.dev), version 1.0.0-dev.20261115.2.', 'It installs next to the shop\'s Bahi app.']);
     });
+
+    test('the release day reads "15 Nov 2026" (Hindi month names in Hindi), not ISO, and the language switch is a .seg', async () => {
+        const api = 'https://api.github.com/repos/DDancingDeath/happa/releases/latest';
+        await render(api, { tag_name: 'v1.0.0-rc14', prerelease: false, name: 'happa v1.0.0-rc14', body: 'x', published_at: '2026-11-15T12:00:00Z' });
+        expect(document.getElementById('latestDate').textContent).toBe('(15 Nov 2026)');
+        const hi = document.querySelector('.seg [data-lang-option="hi"]');
+        hi.click();
+        expect(document.getElementById('latestDate').textContent).toBe('(15 नवंबर 2026)');
+        expect(hi.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    test('the page head is plain and the download button is the indigo primary', () => {
+        const style = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+        expect(style).toMatch(/\.download-btn \{[^}]*background: var\(--accent-strong\); color: var\(--on-accent-strong\);/);
+        expect(style).not.toMatch(/header \{[^}]*background/);
+        expect(style).not.toMatch(/mode-sale/);
+    });
 });

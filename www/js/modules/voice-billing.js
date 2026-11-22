@@ -916,11 +916,11 @@ export const VoiceBilling = {
         html += `<p class="voice-note">${esc(simple
             ? t('ui.voice.check_note', { ok: t('ui.voice.fill_bill'), add: t('ui.common.add_bill') })
             : t('ui.voice.sheet_note', { fill: t('ui.voice.fill_bill') }))}</p>`;
-        html += `<div class="voice-sheet-more"><button type="button" class="btn btn-tonal voice-sheet-mic" data-voice-hold="${esc(sheet.key)}" `
+        html += `<div class="voice-part"><button type="button" class="btn btn-tonal" data-voice-hold="${esc(sheet.key)}" `
             + `aria-label="${esc(t('ui.voice.hold_more'))}" title="${esc(t('ui.voice.hold_more_title'))}">`
             + '<svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg>'
             + `<span>${esc(t('ui.voice.hold_more'))}</span></button>`
-            + '<p class="voice-sheet-live" id="voiceSheetLive" role="status" aria-live="polite"></p></div>';
+            + '<p class="voice-transcript" id="voiceSheetLive" role="status" aria-live="polite"></p></div>';
         if (localVoice(this.lang())) {
             html += `<p class="voice-readback"><label><input type="checkbox" id="voiceReadback" data-onchange="voice.setReadback(this.checked)"${Readback.isOn() ? ' checked' : ''}> ${esc(t('ui.voice.readback'))}</label></p>`;
         }

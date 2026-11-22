@@ -282,6 +282,8 @@
   --appbar-h: 52px;
   --bottomnav-h: 56px;
   --phone-col-max: 480px;
+  /* A wide dialog (.dialog-wide); 680 px on desktop (desktop.css) */
+  --dialog-wide: 560px;
   --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3) + var(--shell-notice-h, 0px));
   /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
   --tap-min: 48px;
@@ -1695,6 +1697,15 @@ html[data-updating] .updating-mark {
   width: 100%;
 }
 
+/* A <summary> drawn as a button (About, ⋯ menus, Add a worker) has no disclosure marker */
+summary.btn {
+  list-style: none;
+}
+
+summary.btn::-webkit-details-marker {
+  display: none;
+}
+
 /* Hover is a veil over any variant's colour, so mode colours (purchase / sale / cash) keep theirs */
 .btn:hover:not(:disabled) {
   background-image: linear-gradient(var(--state-hover), var(--state-hover));
@@ -1792,6 +1803,17 @@ input[type="text"] {
   color: var(--ink);
   font-size: var(--fs-body);
   transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+
+/* No spinner arrows on number fields */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Other text-like fields keep their own size but take the field colours in every theme and mode (no specificity: page rules win) */
@@ -2139,14 +2161,14 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 /* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
-   .period is the component; .ins-period and .wp-month are its old hooks */
-:is(.period, .ins-period, .wp-month) {
+   .period is the component (Money, Insights and Statements keep .ins-period as a hook); .wp-month is an old hook */
+:is(.period, .wp-month) {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
 }
 
-:is(.period, .ins-period, .wp-month) > .btn {
+:is(.period, .wp-month) > .btn {
   flex: none;
   width: var(--tap-min);
   min-height: var(--tap-min);
@@ -2196,26 +2218,6 @@ input[type="checkbox"].switch:focus-visible,
 :where(summary) {
   min-height: var(--tap-min);
   padding-block: var(--sp-3);
-}
-
-/* Text buttons, the list's Load more / Retry and the Show voided / old dues toggles get the button height (N-15) */
-.infinite-scroll-more,
-.history-range-retry,
-.chip[data-group-toggle] {
-  min-height: var(--tap-min);
-}
-
-/* A link-like button inside a line of text (a bill number): an invisible 48 px tap area round the words */
-.due-bill-link,
-.bill-edits__view {
-  position: relative;
-}
-
-.due-bill-link::after,
-.bill-edits__view::after {
-  content: '';
-  position: absolute;
-  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 /* -------------------- UTILITIES -------------------- */
@@ -2642,6 +2644,17 @@ a.row:active {
 
 .disclosure-body[hidden] {
   display: none;
+}
+
+/* "About" help (U-93): <details class="page-help"> with a ghost .btn-sm summary; the screen comes first,
+   the longer text is one tap away (Recurring bills, Workers, Settings groups) */
+.page-help > summary {
+  width: fit-content;
+}
+
+.page-help[open] {
+  display: grid;
+  gap: var(--sp-2);
 }
 
 /* Money figure: the ₹ sign smaller and muted beside the digits (<span class="cur">₹</span>) */
@@ -4514,17 +4527,6 @@ body:not(.biz-rentals) .bottom-nav-item[data-rent-bar],
   margin: 0;
 }
 
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
 .bill-form-field select:focus,
 .bill-form-field input:focus {
   border-color: var(--accent-text);
@@ -4539,17 +4541,6 @@ label {
   font-weight: var(--w-label);
   font-size: var(--fs-sm);
   color: var(--ink);
-}
-
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 .weights-compact {
@@ -4601,13 +4592,6 @@ input[type="number"] {
 }
 
 /* -------------------- BILLING THEME -------------------- */
-.rates-container {
-  display: flex;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 .rate-input {
   width: 70px;
   padding: 10px;
@@ -4654,8 +4638,9 @@ input[type="number"] {
     display: none;
   }
 }
-/* Voice billing (#81): shown only when switched on in Settings */
-.btn[data-voice-mic].voice-listening {
+/* Voice billing (#81): shown only when switched on in Settings; the mic (also the voice check's) while it listens */
+.btn[data-voice-mic].voice-listening,
+.voice-part > .btn.voice-listening {
   background-color: var(--negative-soft);
   color: var(--negative);
 }
@@ -4698,12 +4683,7 @@ input[type="number"] {
 
 .bill-menu > summary {
   position: relative;
-  list-style: none;
   color: var(--ink-2);
-}
-
-.bill-menu > summary::-webkit-details-marker {
-  display: none;
 }
 
 .bill-menu-badge {
@@ -5512,11 +5492,6 @@ input[type="number"] {
   -webkit-touch-callout: none;
 }
 
-.voice-sheet-mic.voice-listening {
-  background-color: var(--negative-soft);
-  color: var(--negative);
-}
-
 /* The mic in the Supplier / Customer field, beside the contact button (#498) */
 .bill-party > .voice-name-mic {
   right: 48px;
@@ -5639,29 +5614,6 @@ select.voice-unclear {
   font-weight: var(--w-strong);
 }
 
-.voice-sheet-more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-}
-
-.voice-sheet-mic {
-  min-height: 48px;
-}
-
-.voice-sheet-live {
-  flex: 1 1 12rem;
-  margin: 0;
-  color: var(--ink-2);
-  font-size: var(--fs-label);
-}
-
-.voice-sheet-live:empty {
-  display: none;
-}
-
 /* ---- css/photo-weights.css ---- */
 /* Photo of weights check sheet (#374): the photo with numbered boxes, then the weights to check */
 .pw-status {
@@ -5738,10 +5690,9 @@ select.voice-unclear {
   list-style: none;
 }
 
+/* A .row whose field and tags wrap */
 .pw-row {
-  display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: var(--sp-2);
 }
 
@@ -6394,10 +6345,11 @@ select.voice-unclear {
   min-height: 48px;
 }
 
-/* Save and Print share the rest of the row equally */
+/* Save and Print share the rest of the row equally (on desktop with their Ctrl hints) */
 .bill-actions > :is(.btn-primary, .bill-print) {
   flex: 1 1 0;
   min-width: min-content;
+  padding: 0 var(--sp-2);
 }
 
 /* Share is an icon with a visible "Draft" under it (the bill is not saved yet, U-27); shown once the bill has a line */
@@ -6559,6 +6511,12 @@ select.voice-unclear {
 @keyframes bill-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* The bill's two columns may shrink below their content (desktop grid, landscape halves) */
+.bill-main,
+.bill-side {
+  min-width: 0;
 }
 
 /* On its side (U-41): the lines left, totals and payment right, so less of the bill is below the fold */
@@ -6819,12 +6777,7 @@ tr.bill-check-line .bill-check-msg {
     text-align: left;
 }
 
-/* The warnings listed once in the Save dialog (F51, F53) */
-.bill-check-sheet-notice {
-    margin-bottom: var(--sp-3);
-    text-align: left;
-}
-
+/* The warnings listed once in the Save dialog (F51, F53): a .notice.warn of bullets */
 .bill-check-bullets {
     margin: 0;
     padding-left: var(--sp-4);
@@ -7004,8 +6957,10 @@ tr.bill-check-line .bill-check-msg {
   padding: 0;
 }
 
+/* Load more / Retry get the button height (N-15) */
 .infinite-scroll-more,
 .history-range-retry {
+  min-height: var(--tap-min);
   margin-left: 6px;
   padding: 6px 14px;
   border: 1px solid var(--accent-line);
@@ -7302,6 +7257,7 @@ tr.bill-check-line .bill-check-msg {
 
 /* Old-app carried dues: hidden by default, a separate group when shown */
 .chip[data-group-toggle] {
+  min-height: var(--tap-min);
   margin: 0 var(--sp-2) var(--sp-2) 0;
 }
 
@@ -7471,7 +7427,9 @@ tr.bill-check-line .bill-check-msg {
   color: var(--ink-2);
 }
 
+/* A link inside a line of text: an invisible 48 px tap area round the words (as .due-bill-link) */
 .bill-edits__view {
+  position: relative;
   border: none;
   background: none;
   padding: 0;
@@ -7479,6 +7437,12 @@ tr.bill-check-line .bill-check-msg {
   font-size: var(--fs-sm);
   text-decoration: underline;
   cursor: pointer;
+}
+
+.bill-edits__view::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 .bill-edits__list {
@@ -7708,21 +7672,16 @@ tr.bill-check-line .bill-check-msg {
   }
 }
 
-/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end */
+/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end;
+   one panel (F49): the head, then each section under a hairline */
 .bill-view-head {
   display: grid;
   gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
 }
 
 .bill-view-paid {
   color: var(--ink-2);
   font-size: var(--fs-sm);
-}
-
-/* One panel (F49): the head, then each section under a hairline */
-.bill-view-sheet > .bill-view-head {
-  margin-bottom: 0;
 }
 
 .bill-view-sec {
@@ -8073,7 +8032,9 @@ tr.bill-check-line .bill-check-msg {
     white-space: nowrap;
 }
 
+/* An invisible 48 px tap area round the bill number's words */
 .due-bill-link {
+    position: relative;
     padding: 0;
     border: none;
     background: none;
@@ -8081,6 +8042,12 @@ tr.bill-check-line .bill-check-msg {
     font: inherit;
     text-decoration: none;
     cursor: pointer;
+}
+
+.due-bill-link::after {
+    content: '';
+    position: absolute;
+    inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 /* Retail / wholesale tag on a bill in Sales › All (#125) */
@@ -8269,14 +8236,6 @@ tr.bill-check-line .bill-check-msg {
     box-shadow: var(--focus);
 }
 
-.aging-more > summary {
-    list-style: none;
-}
-
-.aging-more > summary::-webkit-details-marker {
-    display: none;
-}
-
 .aging-more[open] {
     flex-basis: 100%;
 }
@@ -8317,11 +8276,6 @@ tr.bill-check-line .bill-check-msg {
 
 .due-bill-more > summary {
     margin-top: var(--sp-2);
-    list-style: none;
-}
-
-.due-bill-more > summary::-webkit-details-marker {
-    display: none;
 }
 
 .due-pp-chips {
@@ -8763,7 +8717,7 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 }
 
 .dialog-wide {
-  width: min(560px, 100%);
+  width: min(var(--dialog-wide), 100%);
 }
 
 /* A title row with its own buttons (Back, Close) */
@@ -9032,8 +8986,8 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   background: var(--warning-dot);
 }
 
-/* The same printer panel inside Billing's sheet: no card of its own, the sheet's title is its heading */
-.printer-sheet .set-panel {
+/* A settings panel shown in an app dialog (Billing's printer sheet): no card of its own, the dialog's title is its heading */
+.app-dialog .set-panel {
   margin: 0;
   padding: 0;
   border: 0;
@@ -9041,12 +8995,12 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   box-shadow: none;
 }
 
-.printer-sheet .set-panel > .set-title {
+.app-dialog .set-panel > .set-title {
   display: none;
 }
 
 /* "Receipt options ›" under the panel: the rest of Settings › Printing & receipts (NEW-12) */
-.printer-sheet .printer-sheet-receipt {
+.row.printer-sheet-receipt {
   margin-top: var(--sp-3);
   padding-inline: 0;
   border-top: 1px var(--rule-style) var(--line);
@@ -9528,14 +9482,6 @@ body.no-perm-contacts [data-perm~="contacts"] {
 /* Settings › Team: add a worker without email (U-56) */
 .team-add {
   margin-top: var(--sp-4);
-}
-
-.team-add > summary {
-  list-style: none;
-}
-
-.team-add > summary::-webkit-details-marker {
-  display: none;
 }
 
 .team-add form {
@@ -11254,6 +11200,7 @@ div.ins-wide,
     --control-h: 36px;
     --tap-min: 44px;
     --row-h: 44px;
+    --dialog-wide: 680px;
     /* Desktop type scale (DIRECTION §3.2); html[lang="hi"] keeps its larger --fs-sm / --fs-body */
     --fs-body: 14px;
     --fs-lead: 16px;
@@ -11411,12 +11358,6 @@ div.ins-wide,
     background: linear-gradient(var(--brand-tile-top), var(--brand-tile) 55%);
     box-shadow: var(--brand-tile-ring);
     color: var(--brand-ink);
-  }
-
-  .nav-mark-bahi {
-    width: 100%;
-    height: 100%;
-    fill: var(--brand-corner);
   }
 
   .nav-header h2 {
@@ -11636,11 +11577,6 @@ div.ins-wide,
     grid-column: 1 / -1;
   }
 
-  .bill-main,
-  .bill-side {
-    min-width: 0;
-  }
-
   .bill-side {
     position: sticky;
     top: 0;
@@ -11652,11 +11588,6 @@ div.ins-wide,
 
   .bill-side > .bill-totals:first-child {
     margin-top: 0;
-  }
-
-  /* The side column's footer holds the total, Share, then Save and Print with their Ctrl hints */
-  .bill-actions > :is(.btn-primary, .bill-print) {
-    padding: 0 var(--sp-2);
   }
 
   .bill-main > .bill-form-field:first-child {
@@ -11793,11 +11724,7 @@ div.ins-wide,
     width: 100%;
   }
 
-  /* ---------- Modals: centered dialogs with comfortable width ---------- */
-  .dialog-wide {
-    width: min(680px, 100%);
-  }
-
+  /* ---------- Modals: centered dialogs (.dialog-wide takes --dialog-wide from :root above) ---------- */
   .bill-details-footer {
     justify-content: flex-end;
   }

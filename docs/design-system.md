@@ -174,7 +174,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   `.filter-btn`, `.sub-tabs`, `.sub-tab` and the bespoke `*-toggle-chip`s are gone (action buttons that used
   `.filter-btn` are `.btn .btn-sm`). **One chosen look (U-61)**: the chosen segment, chip and tab all show `--seg-on-ink` with a
   `--seg-on-line` edge (2 px on a segment, 1 px ring + soft accent fill on a chip, the underline on a tab), never a black fill.
-  **Period control** `.period` (old hooks `.ins-period`, `.wp-month`): ‹ `-icon` stepper, the period label (`.period-label`),
+  **Period control** `.period` (Money, Insights and Statements keep `.ins-period` beside it as a hook; `.wp-month` is an old hook): ‹ `-icon` stepper, the period label (`.period-label`),
   › stepper and a preset `<select>` drawn as a chip (`.period-preset` / `.ins-preset`); Money, Insights and Workers use it.
 - **Tab keyboard** (`www/js/ui/seg.js`, installed once on the document): every `role="tablist"` has a roving
   tabindex (only the selected tab is a Tab stop) and Left / Right / Home / End select a tab through its own
@@ -201,7 +201,11 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
           aria-expanded="false" aria-controls="dayReportBody" data-onclick="disclosure.toggle('day-report')">…title, summary, chevron…</button></h3></div>
       <div class="disclosure-body" id="dayReportBody" hidden>…</div>
   </div></div>
-  ```- **Hero figure** `.hero` (C1): the page's one big figure, plain on the page with no fill: a caption
+  ```
+- **About help** `details.page-help` (`surfaces.css`): a `-ghost -sm` button-summary ("About this page", or "About" in a Settings
+  card) over the longer text, so the screen keeps a one- or two-line hint and the rest is one tap away (Recurring bills,
+  Workers, Settings › Billing tools, Roles & access). A `summary.btn` never draws the disclosure marker (`forms.css`).
+- **Hero figure** `.hero` (C1): the page's one big figure, plain on the page with no fill: a caption
   `.hero-cap` (or `.metric-label`) above a `.hero-num` (or a `.display-num` `.hero-fig`), then its
   in / out or compare line. Money, Statements and Today use it; `ins-hero`, `today-hero` and the
   bespoke card classes of the legacy registry are gone (theme tiles keep their previews in a panel frame).
@@ -246,7 +250,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   in a panel (`[data-stock-item]` is the hook; an unmatched bucket takes a tone on its note and kg); the low-stock list is a
   `.notice`; the adjustment form is a panel of `.field`s with kg and ₹ … /kg as `.adorn`, current stock and average
   rate as `.metrics`; adjustments are panels (`[data-history-item]` hook). Sections switch with `hidden`.
-- **History (5.4a, C4)**: a bill is a `.row` (`[data-history-item][data-bill-row]` is the hook, also on Wholesale's recent bills); consecutive rows join into one panel with hairlines. The bill number has its `.mode-dot` (no side stripe), number and amount in ink; online / cash / due are `.tag`s (the Due tag ages with `dueTone`). Table View and the other desktop lists (Day labour, Rate trends, Recurring bills, Workers) are `.table`s. Bill details are one panel (`.bill-view-sheet`): the head (party, total, then Paid / Due as plain `--ink-2` text, never tinted chips), then weights, items, totals (Labour in ink) and payment as `.bill-view-sec` sections under hairlines; item names follow the item-name language (`lineItemIdentity`), and a weight never wraps inside its number.
+- **History (5.4a, C4)**: a bill is a `.row` (`[data-history-item][data-bill-row]` is the hook, also on Wholesale's recent bills); consecutive rows join into one panel with hairlines. The bill number has its `.mode-dot` (no side stripe), number and amount in ink; online / cash / due are `.tag`s (the Due tag ages with `dueTone`). Table View and the other desktop lists (Day labour, Rate trends, Recurring bills, Workers) are `.table`s. Bill details are one `.panel`: the head (party, total, then Paid / Due as plain `--ink-2` text, never tinted chips), then weights, items, totals (Labour in ink) and payment as `.bill-view-sec` sections under hairlines; item names follow the item-name language (`lineItemIdentity`), and a weight never wraps inside its number.
 - **Expenses (5.4b)**: Business | Personal is a `.seg`; each form is a `.panel` of `.field`s (₹ as an `.adorn`) with a primary
   Save and a tonal Print; a section's list is a `.panel` of `.row`s (amount in `.row-trail`, voided rows `.is-voided` with a
   `.tag`), "Show voided" is a `.switch` and the quick-fill templates are `.chip`s. Expense details: the amount as a
@@ -283,7 +287,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   `error` / `success` / `info` hook. The bell's inbox is a `.sheet` over a `.scrim` with `.row`s (`.notif-item`, a sprite
   `.lead-icon` per type, unread rows tinted `--info-soft` with an `--info` edge) and an `.empty`; its close button has
   `data-dismiss`. `/download` is standalone (`variables.css` pins `html` / `body` for the app shell), so its `<style>` copies the
-  tokens it uses; `tests/ci/download-tokens.test.js` keeps them equal to `variables.css` and its rules free of raw colours.
+  tokens it uses (a plain head, the indigo primary download button, English | हिंदी as a `.seg`, the release day as `formatDay` writes it); `tests/ci/download-tokens.test.js` keeps them equal to `variables.css` and its rules free of raw colours.
 - **Rentals (5.9a)**: Simple | Advanced is a `.seg` in Settings › Rentals (U-65; `#rentals[data-rent-mode]` marks the mode); This month |
   Tenants | Properties | Reports are `.tabs`, Rentals settings and Roles & access ghost buttons. Lists are `.panel`s of `.row`s:
   a row with several lines (a tenant, unit or property) is a `.row.rent-entry` (title and figure on top, then details, `.tag`
@@ -325,7 +329,8 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   Item dialog (`#itemEditOverlay`), expense details (`#expenseDetailsOverlay`), the Money breakdown
   (`#financeBreakdownSheet`, a wide dialog on desktop, no longer a side panel) and What's new (`#whatsNewSheet`); the
   desktop keyboard help (`#kbdHelpOverlay`) is a dialog. `.dialog-head` is a title row with its own Back / Close
-  buttons, `.dialog-wide` a 560 px (desktop 680 px) dialog.
+  buttons, `.dialog-wide` a `--dialog-wide` dialog (560 px; desktop.css sets 680 px). A Settings panel shown in an app dialog
+  (Billing's printer sheet) has no card of its own (`.app-dialog .set-panel`).
 - **App shell (phone and tablet, <1024 px)**: `header.app-bar` (`hamburger.css`) holds the open page's title (`#appBarTitle`, the menu name `t('ui.nav.*')` set by `ui/bottom-nav.js` on `aadhat:tabshown`), the sync pill (`#syncStatus`) and the bell; pages scroll under it (`--appbar-h`, `--tab-top`). Rentals uses the same tab bar with its own pages (This month, Tenants, Properties, Reports in Advanced; `data-rent-bar`, marked by `rentals.js`) and the same More (U-65); the menu button is not shown. **More** opens `#sideNav` as a modal bottom sheet (`navigation.css`), one scroll for the whole sheet with Settings as the last tile, headed by the Bahi mark (`.nav-mark`) and the shop name (`#navShopName`, U-63, U-90): the business switch and the pages not on the tab bar (`data-bar` links are hidden there) in groups (`.nav-group`); it takes focus, keeps Tab inside, closes on Esc, Back or a swipe down and gives focus back. The open page is the `main` landmark (`role="main"`, set by `showTab`).
 - **Desktop shell (≥1024 px, 4.2, `desktop.css`)**: the same `header.app-bar` becomes the 60 px page header beside the sidebar (`--desktop-header-h`): the page title (the same `#appBarTitle`), the sync pill and the bell; pages scroll under it. The sidebar is the same `#sideNav` on `--surface-2`: the Bahi mark (`.nav-mark`: the `i-bahi` symbol, white B with the sage corner on the charcoal `--brand-tile`, fixed in every theme; docs/brand), the name and role, the business switch, the same `.nav-group`s as the More sheet (a group shows only when the role may open one of its pages; links a role may not open carry `hidden`), Alt+1…9 hints (`.nav-kbd`, from `TAB_SHORTCUTS` in `keyboard-shortcuts.js`, which also sets `aria-keyshortcuts`), Settings and Shortcuts. At 1024–1279 px it is a 64 px icon rail (names stay for screen readers and show as tooltips). Density: `--control-h` 36, `--row-h` 44. Tab order: header, sidebar, page.
 - **Tones** for text written by scripts: `.tone-pos`, `.tone-neg`, `.tone-warn`, `.tone-info`,
@@ -411,7 +416,7 @@ counts toward the 1.5 KB. A look that tokens can't express needs a new token in 
 | `tests/ci/colour-guard.test.js` | a hard-coded colour outside the allowlist (see "Strict guards" below) |
 | `tests/ci/type-guard.test.js` | a raw `font-size` / `font-weight` outside the allowlist |
 | `www/js/__tests__/billing-entry.test.js`, `tests/e2e/billing-entry.spec.js` | `.field-float`: a field without its own `<label for>`, a label hidden or moved by whether the field has a value, `--fs-label` under 14 px; Billing's 🎙 / 📷 shown without their setting |
-| `tests/ci/ds-guard.test.js` | raw spacing, radius, shadow or z-index, `!important`, an `#id` or `.dark-mode` / `[data-theme]` selector, an inline style, an emoji, a Title Case label or a legacy component class outside the allowlist; an allowlist entry without a known list or a reason |
+| `tests/ci/ds-guard.test.js` | raw spacing, radius, shadow or z-index, `!important`, an `#id` or `.dark-mode` / `[data-theme]` selector, an inline style, an emoji, a Title Case label or a legacy component class outside the allowlist; an allowlist entry without a known list or a reason; a selector written in a second stylesheet or a new component-family root (`tests/ds-components.json`) |
 | `tests/ci/themes.test.js` | a theme missing from the registry, `styles.css` or i18n; a non-token rule or a colour outside `@media screen` in a theme file; a theme over 1.5 KB gzip; a rule in `www/css` or a template `<style>` that sets an accent, sale, wholesale, positive or negative fill and white text together |
 | `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1, or a control edge, chosen segment or focus ring under 3:1, in any theme × mode |
 | `tests/ci/icon-sprite.test.js` | a missing `#i-*` symbol, or the sprite growing too large |
@@ -485,3 +490,18 @@ DS_ALLOWLIST=lower npx jest -i ds-guard colour-guard type-guard
 
 Commit the lowered JSON in the same PR. Moving rules from an existing stylesheet into another existing one raises the destination's entry,
 which the base check refuses: fix the moved drift in the same PR instead.
+
+### One home per selector, no new family variants (NEW-07)
+
+`ds-guard` also holds two counts of the audit's architect scanner in `tests/ds-components.json` (`tests/ci/ds-components.js`):
+
+* `dupSelectors`: the selectors written in more than one stylesheet (each part of a selector list counts). Give a rule one home: the
+  page's own file, or a token that `desktop.css` sets in its `:root` (as `--dialog-wide`). `desktop.css` keeps its desktop overrides
+  of a page's base rule; nothing else may repeat a selector.
+* `roots`: per component family (button, panel, hero / metric, tabs / seg, row / table, empty, dialog / sheet, toast, notice), the
+  root names of the classes styled for it. New UI uses the shared component (`.app-dialog` / `.sheet`, `.notice`, `.seg`, `.row`,
+  `.tag`, `.hero`, …) instead of its own `-sheet`, `-notice`, `-toggle`, `-row` or `-summary` class.
+
+A name that is not listed fails; a listed name that is gone fails until `DS_ALLOWLIST=lower npx jest -i ds-guard` drops it. Against the PR
+base the lists may only shrink: a new name needs an entry in `"exceptions"` (`"<selector>"` or `"<family>:<root>"`: a `reason` and
+`added`, as above). NEW-07 took the duplicates from 88 back to 73 (72 before lane A added `.shell-notice`) and the dialog roots from 23 to 17 (18 with lane C's `dialog-actions-stack` and `printer-sheet-receipt`).

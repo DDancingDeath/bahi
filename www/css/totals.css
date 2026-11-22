@@ -601,10 +601,11 @@
   min-height: 48px;
 }
 
-/* Save and Print share the rest of the row equally */
+/* Save and Print share the rest of the row equally (on desktop with their Ctrl hints) */
 .bill-actions > :is(.btn-primary, .bill-print) {
   flex: 1 1 0;
   min-width: min-content;
+  padding: 0 var(--sp-2);
 }
 
 /* Share is an icon with a visible "Draft" under it (the bill is not saved yet, U-27); shown once the bill has a line */
@@ -766,6 +767,12 @@
 @keyframes bill-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* The bill's two columns may shrink below their content (desktop grid, landscape halves) */
+.bill-main,
+.bill-side {
+  min-width: 0;
 }
 
 /* On its side (U-41): the lines left, totals and payment right, so less of the bill is below the fold */

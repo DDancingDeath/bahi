@@ -21,8 +21,7 @@
             --accent-strong: #4338ca;
             --on-accent-strong: #ffffff;
             --accent-text: #4338ca;
-            --mode-sale: #047857;
-            --on-mode-sale: #ffffff;
+            --surface-2: #f1f1f4;
             --state-hover: rgba(16, 16, 29, 0.05);
             --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", "Helvetica Neue", Arial, "Noto Sans Devanagari", "Nirmala UI", sans-serif;
             --w-regular: 400;
@@ -43,8 +42,7 @@
             --sp-6: 24px;
         }
         html[lang="hi"] { --fs-sm: 14px; --fs-body: 16px; }
-        /* Dark tokens copied from css/variables.css [data-mode="dark"] (download-tokens.test.js); the header is a
-           dark surface with a coloured edge instead of a bright block */
+        /* Dark tokens copied from css/variables.css [data-mode="dark"] (download-tokens.test.js) */
         @media (prefers-color-scheme: dark) {
             :root {
                 color-scheme: dark;
@@ -54,24 +52,25 @@
                 --ink: #ececf1;
                 --ink-2: #a8a8b5;
                 --accent-text: #a5a6fb;
-                --mode-sale: #057a55;
+                --surface-2: #26262d;
                 --state-hover: rgba(255, 255, 255, 0.06);
             }
-            header { background: var(--surface); color: var(--ink); border-bottom: var(--sp-1) solid var(--accent-text); }
         }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: var(--font-ui); font-size: var(--fs-body); background: var(--bg); color: var(--ink); line-height: 1.5; }
-        header { background: var(--accent-strong); color: var(--on-accent-strong); padding: var(--sp-6) var(--sp-4); text-align: center; }
+        /* A plain page head (no coloured band), as the app's page heads */
+        header { max-width: 640px; margin: 0 auto; padding: var(--sp-6) var(--sp-4) var(--sp-2); }
         header h1 { margin: 0 0 var(--sp-1); font-size: var(--fs-display); font-weight: var(--w-strong); }
-        header p { margin: 0; }
+        header p { margin: 0; color: var(--ink-2); }
+        b, strong, dd { font-weight: var(--w-strong); }
         main { max-width: 640px; margin: 0 auto; padding: var(--sp-4); }
         section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-panel); padding: var(--sp-4); margin-bottom: var(--sp-4); }
         h2 { font-size: var(--fs-title); font-weight: var(--w-strong); margin: 0 0 var(--sp-2); }
         ul, ol { margin: var(--sp-1) 0; padding-left: var(--sp-6); }
         li { margin: var(--sp-1) 0; }
-        .download-btn { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 52px; background: var(--mode-sale); color: var(--on-mode-sale); text-decoration: none; font-size: var(--fs-lead); font-weight: var(--w-strong); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-control); margin: var(--sp-3) 0 var(--sp-2); }
+        .download-btn { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 52px; background: var(--accent-strong); color: var(--on-accent-strong); text-decoration: none; font-size: var(--fs-lead); font-weight: var(--w-strong); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-control); margin: var(--sp-3) 0 var(--sp-2); }
         .download-btn:active { background-image: linear-gradient(var(--state-hover), var(--state-hover)); }
-        .download-btn:focus-visible, .lang-switch button:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; }
+        .download-btn:focus-visible, .seg > button:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; }
         .download-btn svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .muted { color: var(--ink-2); font-size: var(--fs-sm); }
         .facts { margin: 0; color: var(--ink-2); font-size: var(--fs-sm); }
@@ -81,9 +80,10 @@
         .qr img { width: 200px; height: 200px; image-rendering: pixelated; }
         a { color: var(--accent-text); }
         footer { text-align: center; color: var(--ink-2); font-size: var(--fs-sm); padding: var(--sp-2) var(--sp-4) var(--sp-6); }
-        .lang-switch { margin-top: var(--sp-2); font-size: var(--fs-body); }
-        .lang-switch button { appearance: none; background: transparent; border: 0; border-radius: var(--r-control); color: inherit; font: inherit; min-height: 44px; padding: var(--sp-1) var(--sp-3); cursor: pointer; text-decoration: underline; }
-        .lang-switch button[aria-pressed="true"] { font-weight: var(--w-strong); text-decoration: none; }
+        /* The language switch is the app's segmented control (.seg, css/forms.css) */
+        .seg { display: inline-flex; gap: 2px; margin-top: var(--sp-3); padding: 3px; border-radius: calc(var(--r-control) + 2px); background: var(--surface-2); }
+        .seg > button { min-width: 88px; min-height: 44px; padding: var(--sp-1) var(--sp-3); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink-2); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+        .seg > [aria-pressed="true"] { background: var(--surface); color: var(--accent-text); box-shadow: inset 0 0 0 2px var(--accent-text); }
         .steps-art { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--sp-2); margin: var(--sp-1) 0 var(--sp-3); }
         .steps-art figure { margin: 0; text-align: center; }
         .steps-art svg { width: 100%; max-width: 96px; height: auto; }
@@ -91,6 +91,7 @@
         html[lang="en"] .hi, html[lang="hi"] .en { display: none; }
         /* Desktop: two columns (install steps on the right) instead of one narrow column */
         @media (min-width: 960px) {
+            header { max-width: 1080px; }
             main { max-width: 1080px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--sp-4); align-items: start; }
             main > section { grid-column: 1; }
             main > section.install { grid-column: 2; grid-row: 1 / span 4; }
@@ -103,9 +104,8 @@
         <h1><span class="en" data-happa="downloadNameEn">Bahi</span><span class="hi" data-happa="downloadNameHi">Bahi</span></h1>
         <p class="en">Your business, in one place</p>
         <p class="hi">आपका कारोबार, एक जगह</p>
-        <div class="lang-switch" role="group" aria-label="Language">
+        <div class="seg lang-switch" role="group" aria-label="Language">
             <button type="button" lang="en" data-lang-option="en">English</button>
-            <span aria-hidden="true">|</span>
             <button type="button" lang="hi" data-lang-option="hi">हिंदी</button>
         </div>
     </header>
@@ -137,7 +137,7 @@
                     <figure><svg viewBox="0 0 96 120" role="presentation"><rect x="18" y="4" width="60" height="112" rx="10" fill="#1f2937"/><rect x="22" y="12" width="52" height="92" rx="4" fill="#f9fafb"/><rect x="32" y="40" width="32" height="32" rx="8" fill="#5560d6"/><circle cx="48" cy="56" r="7" fill="#fff"/><circle cx="64" cy="40" r="9" fill="#10b981"/><path d="M60 40l3 3 6-6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><figcaption>5</figcaption></figure>
                 </div>
                 <ol lang="hi">
-                    <li>ऊपर हरे बटन <b>"डाउनलोड करें"</b> को दबाएँ। फ़ाइल डाउनलोड होने तक रुकें।</li>
+                    <li>ऊपर <b>"डाउनलोड करें"</b> बटन दबाएँ। फ़ाइल डाउनलोड होने तक रुकें।</li>
                     <li>डाउनलोड पूरा होने पर सूचना में या फ़ोन के फ़ाइल वाले ऐप (<b lang="en">Files</b>) में <b data-happa="apkFile">bahi.apk</b> खोलें।</li>
                     <li>अगर लिखा आए कि इस स्रोत से ऐप इंस्टॉल करने की अनुमति नहीं है, तो <b>सेटिंग</b> दबाएँ और <b>"इस स्रोत से अनुमति दें"</b> चालू करें। फिर वापस आएँ।</li>
                     <li><b>इंस्टॉल</b> (पहली बार) या <b>अपडेट</b> (पहले से ऐप है) दबाएँ। अगर <b>गूगल प्ले प्रोटेक्ट</b> ऐप को असुरक्षित बताए या जाँचने को कहे, तो <b>ज़्यादा जानकारी</b> दबाकर <b>फिर भी इंस्टॉल करें</b> दबाएँ (या पहले जाँचने दें, फिर इंस्टॉल करें)। यह ऐप सिर्फ़ इसी पेज से आता है।</li>
@@ -154,7 +154,7 @@
                     <figure><svg viewBox="0 0 96 120" role="presentation"><rect x="18" y="4" width="60" height="112" rx="10" fill="#1f2937"/><rect x="22" y="12" width="52" height="92" rx="4" fill="#f9fafb"/><rect x="32" y="40" width="32" height="32" rx="8" fill="#5560d6"/><circle cx="48" cy="56" r="7" fill="#fff"/><circle cx="64" cy="40" r="9" fill="#10b981"/><path d="M60 40l3 3 6-6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><figcaption>5</figcaption></figure>
                 </div>
                 <ol lang="en">
-                    <li>Tap the green <b>"Download Android app"</b> button above and wait for the download to finish.</li>
+                    <li>Tap the <b>"Download Android app"</b> button above and wait for the download to finish.</li>
                     <li>Open <b data-happa="apkFile">bahi.apk</b> from the download notification or the <b>Files / Downloads</b> app.</li>
                     <li>If you see <b>"For your security, your phone is not allowed to install unknown apps from this source"</b>, tap <b>Settings</b>, turn on <b>"Allow from this source"</b> for your browser or Files app, then go back.</li>
                     <li>Tap <b>Install</b> (first time) or <b>Update</b> (already installed). If <b>Google Play Protect</b> warns about the app or offers to scan it, tap <b>More details</b> › <b>Install anyway</b> (or let it scan, then install). The app comes only from this page.</li>

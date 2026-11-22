@@ -247,17 +247,6 @@
   margin: 0;
 }
 
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
 .bill-form-field select:focus,
 .bill-form-field input:focus {
   border-color: var(--accent-text);
@@ -272,17 +261,6 @@ label {
   font-weight: var(--w-label);
   font-size: var(--fs-sm);
   color: var(--ink);
-}
-
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 .weights-compact {
@@ -334,13 +312,6 @@ input[type="number"] {
 }
 
 /* -------------------- BILLING THEME -------------------- */
-.rates-container {
-  display: flex;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 .rate-input {
   width: 70px;
   padding: 10px;
@@ -387,8 +358,9 @@ input[type="number"] {
     display: none;
   }
 }
-/* Voice billing (#81): shown only when switched on in Settings */
-.btn[data-voice-mic].voice-listening {
+/* Voice billing (#81): shown only when switched on in Settings; the mic (also the voice check's) while it listens */
+.btn[data-voice-mic].voice-listening,
+.voice-part > .btn.voice-listening {
   background-color: var(--negative-soft);
   color: var(--negative);
 }
@@ -431,12 +403,7 @@ input[type="number"] {
 
 .bill-menu > summary {
   position: relative;
-  list-style: none;
   color: var(--ink-2);
-}
-
-.bill-menu > summary::-webkit-details-marker {
-  display: none;
 }
 
 .bill-menu-badge {

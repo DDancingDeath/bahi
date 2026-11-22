@@ -9,7 +9,7 @@
             <button type="button" data-money-section="spending" role="tab" aria-selected="false" data-onclick="money.setSection('spending')" data-i18n="ui.money.tab_spending">Spending</button>
             <button type="button" data-money-section="worth" role="tab" aria-selected="false" data-onclick="money.setSection('worth')" data-i18n="ui.money.tab_worth">Worth</button>
         </div>
-        <div class="ins-period" id="moneyPeriodBar">
+        <div class="period ins-period" id="moneyPeriodBar">
             <button type="button" class="btn btn-icon" data-onclick="money.step(-1)" aria-label="Earlier" data-i18n-aria-label="ui.money.earlier"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
             <span class="ins-period-label" id="moneyPeriodLabel"></span>
             <button type="button" class="btn btn-icon" data-onclick="money.step(1)" aria-label="Later" data-i18n-aria-label="ui.money.later"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
@@ -26,7 +26,7 @@
                 <option value="custom" data-i18n="ui.cmp.choose_dates">Choose dates…</option>
             </select>
         </div>
-        <div class="ins-period" id="moneyNow" hidden>
+        <div class="period ins-period" id="moneyNow" hidden>
             <span class="ins-period-label" id="moneyNowLabel"></span>
         </div>
         <button type="button" class="btn btn-ghost btn-sm ins-more" id="moneyCmpToggle" aria-expanded="false" aria-controls="moneyCmpMore" data-onclick="money.toggleCompare()"><span data-i18n="ui.cmp.toggle_share">Compare &amp; share</span> <svg class="i i-sm ins-cmp-chev" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></button>

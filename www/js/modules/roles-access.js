@@ -11,6 +11,7 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { AuditService } from '../services/audit.js';
 import { AuthManager } from '../auth/authentication.js';
 import { Helpers } from '../utils/helpers.js';
+import { icon } from '../ui/icons.js';
 import { CHANGED_ELSEWHERE, NEEDS_INTERNET, writeErrorKey } from '../utils/write-conflict.js';
 import { t } from '../i18n/index.js';
 import {
@@ -96,8 +97,11 @@ export class RolesAccessManager {
                 ${CONFIGURABLE_ROLES.map(r => `<button type="button" data-role-pick="${r}" aria-pressed="${r === shown}" data-onclick="roles.showRole('${r}')">${e(t(ROLE_LABEL_KEYS[r]))}</button>`).join('')}
             </div>
             ${CONFIGURABLE_ROLES.map(list).join('')}
-            <p class="setting-description">${e(t('ui.roles.history_days_hint'))}</p>
-            <p class="setting-description">${e(t('ui.roles.edit_days_hint', { max: MAX_EDIT_DAYS }))}</p>`;
+            <p class="setting-description">${e(t('ui.roles.days_short'))}</p>
+            <details class="page-help"><summary class="btn btn-ghost btn-sm"><span>${e(t('ui.common.about'))}</span>${icon('chevD', 'i-sm')}</summary>
+                <p class="setting-description">${e(t('ui.roles.history_days_hint'))}</p>
+                <p class="setting-description">${e(t('ui.roles.edit_days_hint', { max: MAX_EDIT_DAYS }))}</p>
+            </details>`;
         const status = document.getElementById('roleAccessStatus');
         if (status) status.textContent = '';
     }
@@ -220,7 +224,8 @@ export class RolesAccessManager {
                 const founder = owner && u.id === this.firstOwnerUid ? ` <span class="tag">${e(t('ui.owners.founder'))}</span>` : '';
                 return `<tr><td>${e(u.name || u.email || '')}${founder}</td><td>${e(shopRole(u.role))}</td><td>${rent}</td></tr>`;
             }).join('');
-        box.innerHTML = `<table class="table role-table role-people">
+        box.innerHTML = `<h4 class="set-subtitle">${e(t('ui.roles.rentals_roles_title'))}</h4>
+            <table class="table role-table role-people">
                 <thead><tr><th>${e(t('ui.roles.person'))}</th><th>${e(t('ui.roles.shop_role'))}</th><th>${e(t('ui.roles.rentals_role'))}</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>

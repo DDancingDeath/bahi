@@ -80,6 +80,15 @@
   width: 100%;
 }
 
+/* A <summary> drawn as a button (About, ⋯ menus, Add a worker) has no disclosure marker */
+summary.btn {
+  list-style: none;
+}
+
+summary.btn::-webkit-details-marker {
+  display: none;
+}
+
 /* Hover is a veil over any variant's colour, so mode colours (purchase / sale / cash) keep theirs */
 .btn:hover:not(:disabled) {
   background-image: linear-gradient(var(--state-hover), var(--state-hover));
@@ -177,6 +186,17 @@ input[type="text"] {
   color: var(--ink);
   font-size: var(--fs-body);
   transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+
+/* No spinner arrows on number fields */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Other text-like fields keep their own size but take the field colours in every theme and mode (no specificity: page rules win) */
@@ -524,14 +544,14 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 /* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
-   .period is the component; .ins-period and .wp-month are its old hooks */
-:is(.period, .ins-period, .wp-month) {
+   .period is the component (Money, Insights and Statements keep .ins-period as a hook); .wp-month is an old hook */
+:is(.period, .wp-month) {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
 }
 
-:is(.period, .ins-period, .wp-month) > .btn {
+:is(.period, .wp-month) > .btn {
   flex: none;
   width: var(--tap-min);
   min-height: var(--tap-min);
@@ -581,26 +601,6 @@ input[type="checkbox"].switch:focus-visible,
 :where(summary) {
   min-height: var(--tap-min);
   padding-block: var(--sp-3);
-}
-
-/* Text buttons, the list's Load more / Retry and the Show voided / old dues toggles get the button height (N-15) */
-.infinite-scroll-more,
-.history-range-retry,
-.chip[data-group-toggle] {
-  min-height: var(--tap-min);
-}
-
-/* A link-like button inside a line of text (a bill number): an invisible 48 px tap area round the words */
-.due-bill-link,
-.bill-edits__view {
-  position: relative;
-}
-
-.due-bill-link::after,
-.bill-edits__view::after {
-  content: '';
-  position: absolute;
-  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 /* -------------------- UTILITIES -------------------- */

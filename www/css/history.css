@@ -140,8 +140,10 @@
   padding: 0;
 }
 
+/* Load more / Retry get the button height (N-15) */
 .infinite-scroll-more,
 .history-range-retry {
+  min-height: var(--tap-min);
   margin-left: 6px;
   padding: 6px 14px;
   border: 1px solid var(--accent-line);
@@ -438,6 +440,7 @@
 
 /* Old-app carried dues: hidden by default, a separate group when shown */
 .chip[data-group-toggle] {
+  min-height: var(--tap-min);
   margin: 0 var(--sp-2) var(--sp-2) 0;
 }
 
@@ -607,7 +610,9 @@
   color: var(--ink-2);
 }
 
+/* A link inside a line of text: an invisible 48 px tap area round the words (as .due-bill-link) */
 .bill-edits__view {
+  position: relative;
   border: none;
   background: none;
   padding: 0;
@@ -615,6 +620,12 @@
   font-size: var(--fs-sm);
   text-decoration: underline;
   cursor: pointer;
+}
+
+.bill-edits__view::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 .bill-edits__list {
@@ -844,21 +855,16 @@
   }
 }
 
-/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end */
+/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end;
+   one panel (F49): the head, then each section under a hairline */
 .bill-view-head {
   display: grid;
   gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
 }
 
 .bill-view-paid {
   color: var(--ink-2);
   font-size: var(--fs-sm);
-}
-
-/* One panel (F49): the head, then each section under a hairline */
-.bill-view-sheet > .bill-view-head {
-  margin-bottom: 0;
 }
 
 .bill-view-sec {
