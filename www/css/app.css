@@ -1838,9 +1838,11 @@ input:focus {
   border-color: var(--negative);
 }
 
-/* Native select drawn as an input with a chevron (two gradient halves, so it follows the theme) */
+/* Native select drawn as an input with a chevron (two gradient halves, so it follows the theme); a box with a list of
+   values to pick (`data-pick-list`, the bill's Rate) has the same chevron at its right edge instead of the browser's */
 .input:is(select):not([multiple]):not([size]),
-select:not([multiple]):not([size]) {
+select:not([multiple]):not([size]),
+.input[data-pick-list] {
   -webkit-appearance: none;
   appearance: none;
   padding-right: 36px;
@@ -1850,6 +1852,16 @@ select:not([multiple]):not([size]) {
   background-position: calc(100% - 19px) 50%, calc(100% - 14px) 50%;
   background-size: 5px 5px;
   background-repeat: no-repeat;
+}
+
+.input[data-pick-list] {
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.input[data-pick-list]::-webkit-calendar-picker-indicator,
+.input[data-pick-list]::-webkit-list-button {
+  display: none;
 }
 
 .adorn {
@@ -2352,6 +2364,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .panel-pad {
   padding: var(--sp-4);
+}
+
+/* A panel with its title on its top border, like a .field-float label (a fieldset legend):
+   .panel.panel-float > .panel-legend. Leave about --sp-3 free above it. */
+.panel-float {
+  position: relative;
+  margin-top: var(--sp-3);
+}
+
+.panel-float > .panel-legend {
+  position: absolute;
+  top: 0;
+  left: var(--sp-3);
+  z-index: var(--z-base);
+  max-width: calc(100% - var(--sp-6));
+  margin: 0;
+  padding: 0 var(--sp-1);
+  overflow: hidden;
+  background: linear-gradient(transparent 50%, var(--panel-bg) 50%);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  font-weight: var(--w-label);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transform: translateY(-50%);
 }
 
 .row {
@@ -4956,10 +4994,32 @@ label {
 
 /* Purchase / Retail sale: the name and the line's fields carry floating labels (.field-float) */
 .field-float.bill-customer {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Customer | 🎙 (the whole-bill mic, only with Voice billing on); a hidden mic leaves the row to the field.
+   A line put after the field (due, "Did you mean", an error) takes its own line under both. */
+.bill-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
   margin-bottom: var(--sp-4);
 }
 
-/* Item | Rate | 🎙 and Weight | 📷 | Add; a hidden tool button leaves its room to the fields */
+.bill-head > .bill-entry-tool {
+  flex: none;
+  width: 48px;
+  min-height: 48px;
+}
+
+.bill-head > :not(.field-float, .bill-entry-tool) {
+  flex: 1 0 100%;
+  order: 1;
+}
+
+/* Item | Rate and Weight | 📷 | Add; a hidden tool button leaves its room to the fields */
 .bill-entry-row {
   display: flex;
   flex-wrap: wrap;
@@ -4992,8 +5052,10 @@ label {
   padding: 0 var(--sp-2);
 }
 
+/* The right padding is the chevron's room (forms.css, as Item's select) */
 .bill-entry-rate .input {
-  padding: 0 var(--sp-2);
+  padding-block: 0;
+  padding-left: var(--sp-2);
   text-overflow: ellipsis;
 }
 
@@ -5015,13 +5077,13 @@ label {
   order: 1;
 }
 
-/* What voice heard and Undo voice, right under Item | Rate | 🎙; no gap while both are hidden */
-.bill-entry-row + .voice-strip {
+/* What voice heard and Undo voice, right under Customer | 🎙; no gap while both are hidden */
+.bill-head + .voice-strip {
   margin: 0;
 }
 
-.bill-entry-row + .voice-strip > * {
-  margin-top: var(--sp-2);
+.bill-head + .voice-strip > * {
+  margin: calc(-1 * var(--sp-2)) 0 var(--sp-3);
 }
 
 #billing .bill-line-sum {
@@ -5042,8 +5104,8 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
-/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale screen gives both its
-   mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
+/* Save & print is the screen's one primary button (Save is outlined; Add to bill, Rest → due are tonal); the sale
+   screen gives both its mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
 .bill-sale .btn-primary {
   background-color: var(--btn-sale-bg);
   color: var(--btn-sale-ink);
@@ -5501,23 +5563,6 @@ label {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-}
-
-/* The mic in the Supplier / Customer field, beside the contact button (#498) */
-.bill-party > .voice-name-mic {
-  right: 48px;
-}
-
-body.no-perm-contacts .bill-party > .voice-name-mic {
-  right: 0;
-}
-
-.bill-party:has(> .voice-name-mic:not([hidden])) {
-  --bill-party-pad: 100px;
-}
-
-body.no-perm-contacts .bill-party:has(> .voice-name-mic:not([hidden])) {
-  --bill-party-pad: 52px;
 }
 
 /* Name mic pick list */
@@ -6191,7 +6236,7 @@ select.voice-unclear {
   }
 }
 
-:is(#billing, .bill-page) .bill-form-field.field > .bill-note-print {
+:is(#billing, .bill-page) .bill-notes > .bill-note-print {
   align-self: flex-start;
   min-height: 44px;
   font-weight: var(--w-regular);
@@ -6264,31 +6309,15 @@ select.voice-unclear {
   margin-bottom: 0;
 }
 
-:is(#billing, .bill-page) .bill-form-field.field.bill-notes:not([hidden]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--sp-2);
-  row-gap: 0;
+/* Notes: a floating-label field (the label on its border), "Print in bill" a small check row right under it */
+:is(#billing, .bill-page) .bill-notes:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--sp-3);
 }
 
-:is(#billing, .bill-page) .bill-notes > label[for] {
-  grid-row: 1;
-  grid-column: 1;
-  padding-bottom: 6px;
-  align-self: end;
-}
-
-:is(#billing, .bill-page) .bill-notes > .input {
-  grid-row: 2;
-  grid-column: 1 / -1;
-}
-
-:is(#billing, .bill-page) .bill-form-field.field.bill-notes > .bill-note-print {
-  grid-row: 1;
-  grid-column: 2;
-  align-self: end;
-  gap: 6px;
+:is(#billing, .bill-page) .bill-notes > .bill-note-print {
+  gap: var(--sp-2);
   min-height: var(--tap-min);
   color: var(--ink-2);
   font-size: var(--fs-sm);
@@ -6303,7 +6332,7 @@ select.voice-unclear {
   margin-top: var(--sp-5);
 }
 
-/* Total · Share / Save / Print (3.2; Print right-most, the most used): the summary footer on desktop, the action bar on the phone.
+/* Total · Share / Save / Print (3.2; Print right-most and the one primary, the most used): the summary footer on desktop, the action bar on the phone.
    The row starts with the payable (BF-PAYABLE) or receivable figure, on every width, written in purchase.js / retail-sale.js /
    wholesale-sales.js. */
 .bill-actions {
@@ -6347,7 +6376,7 @@ select.voice-unclear {
 }
 
 /* Save and Print share the rest of the row equally (on desktop with their Ctrl hints) */
-.bill-actions > :is(.btn-primary, .bill-print) {
+.bill-actions > :is(.bill-save, .bill-print) {
   flex: 1 1 0;
   min-width: min-content;
   padding: 0 var(--sp-2);
@@ -6399,7 +6428,7 @@ select.voice-unclear {
 
 /* Phone and tablet: the row is compact (payable, Share icon, Save and Print of equal width) */
 @media (max-width: 1023.98px) {
-  :is(#billing, .bill-page) .bill-actions > :is(.btn-primary, .bill-print) {
+  :is(#billing, .bill-page) .bill-actions > :is(.bill-save, .bill-print) {
     padding: 0 var(--sp-2);
   }
 
@@ -6747,7 +6776,7 @@ tr.bill-check-line .bill-check-msg {
 }
 
 /* A red problem: Save reads "Fix 2" in the danger colour and takes the user to it (U-33); never pale, it still works */
-.btn-primary.bill-check-save-blocked {
+.bill-save.bill-check-save-blocked {
     border-color: transparent;
     background: var(--btn-danger-bg);
     color: var(--btn-danger-ink);
@@ -8673,32 +8702,6 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   color: var(--btn-sale-ink);
 }
 
-/* Enhanced dropdown arrow for rate input */
-#billRate {
-  position: relative;
-  cursor: pointer;
-}
-
-#billRate::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  opacity: 0.7;
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-#billRate::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-}
-
-#billRate::-webkit-list-button {
-  cursor: pointer;
-  position: absolute;
-}
-
 /* Page dialogs (bill and expense details, drafts, item, breakdown, What's new): below the confirms they open */
 .app-scrim.page-sheet {
   z-index: calc(var(--z-dialog) + var(--sheet-layer, 0));
@@ -9609,7 +9612,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
 .today-in .i { color: var(--positive); }
 .today-out .i { color: var(--ink-3); }
-.today-inout strong, .today-labour-line strong, .today-channel-total, .today-channel-split strong, .today-bill-total {
+.today-inout strong, .today-channel-total, .today-channel-split strong, .today-bill-total {
   color: var(--ink); font-family: var(--font-num); font-weight: var(--w-strong); font-variant-numeric: tabular-nums;
 }
 
@@ -9631,11 +9634,13 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .today-reminder-days, .today-reminder-more { color: var(--ink-3); font-size: var(--fs-caption); }
 .day-report { margin-top: var(--section-gap); }
 
-/* Labour (T-LAB-*): tap for each bill */
-.today-labour { padding: var(--sp-3) var(--sp-4); }
-.today-labour-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 2px 0; color: var(--ink-2); font-size: var(--fs-sm); }
-.today-labour-sub, .today-labour-diff { color: var(--ink-3); font-size: var(--fs-caption); }
-.today-labour-hint { margin-top: var(--sp-2); color: var(--accent-text); font-size: var(--fs-sm); font-weight: var(--w-label); }
+/* Labour (T-LAB-*): Deducted, Paid, Pay rows; an amber line only under a row that differs; tap for each bill */
+.today-labour-open { display: block; width: 100%; padding: var(--sp-3) 0 0; border: none; border-radius: var(--r-panel); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.today-labour-open:hover { background: var(--surface-2); }
+.today-labour-open:focus-visible { outline: none; box-shadow: var(--focus); }
+.today-labour-diff { display: block; padding: 0 var(--sp-4) var(--sp-2); font-size: var(--fs-sm); }
+.today-labour-diff[hidden] { display: none; }
+.today-labour-more { display: block; padding: var(--sp-1) var(--sp-4) var(--sp-3); color: var(--accent-text); font-size: var(--fs-sm); font-weight: var(--w-label); text-align: right; }
 
 /* By bill type (T18) */
 .today-channel { padding: var(--sp-3) var(--sp-4); }
@@ -11864,7 +11869,7 @@ div.ins-wide,
   }
 
   :is(#billing, .bill-page) .bill-side .pay-line > .pay-fill,
-  :is(#billing, .bill-page) .bill-side .bill-form-field.field.bill-notes > .bill-note-print {
+  :is(#billing, .bill-page) .bill-side .bill-notes > .bill-note-print {
     min-height: 30px;
   }
 

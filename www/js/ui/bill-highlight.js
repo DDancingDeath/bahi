@@ -125,11 +125,12 @@ function bind(kind) {
     if (!section || section.dataset.billChecksBound) return section;
     section.dataset.billChecksBound = '1';
     const onEdit = (e) => {
-        if (e.target?.closest?.('.bill-check-notice')) return;
+        if (e.isComposing || e.target?.closest?.('.bill-check-notice')) return;
         BillChecksUI.schedule(kind);
     };
     section.addEventListener('input', onEdit);
     section.addEventListener('change', onEdit);
+    section.addEventListener('compositionend', onEdit);
     return section;
 }
 
@@ -662,12 +663,15 @@ async function askOverrideReason(blocks) {
 // A form whose checks have not run yet has no listener; its first edit starts
 // them (e.g. typing the customer name first on the Wholesale page, #166).
 if (typeof document !== 'undefined') {
-    document.addEventListener('input', (e) => {
+    const firstEdit = (e) => {
+        if (e.isComposing) return;
         Object.keys(forms).forEach(kind => {
             const section = sectionOf(kind);
             if (section && !section.dataset.billChecksBound && section.contains(e.target)) BillChecksUI.schedule(kind);
         });
-    });
+    };
+    document.addEventListener('input', firstEdit);
+    document.addEventListener('compositionend', firstEdit);
 }
 
 // The stock note and the oversell block follow the server's confirmation (#59)

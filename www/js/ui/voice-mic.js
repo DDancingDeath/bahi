@@ -175,17 +175,6 @@ export const VoiceMic = {
         return import('../modules/voice-billing.js').then(m => m.VoiceBilling.listenOnce(mode, engine));
     },
 
-    /**
-     * The mic in the Supplier / Customer field (#498): say a name, pick from the closest parties.
-     * @param {'purchase'|'sale'} mode
-     */
-    name(mode) {
-        if (!this.isOn()) return Promise.resolve(false);
-        const engine = voiceEngine();
-        if (!engine) return Promise.resolve(noEngine());
-        return import('../modules/voice-billing.js').then(m => m.VoiceBilling.listenName(mode, engine));
-    },
-
     /** The check dialog's "Read aloud" switch (the dialog is open, so the module is loaded). */
     setReadback(on) {
         return import('../modules/voice-billing.js').then(m => m.VoiceBilling.setReadback(on));

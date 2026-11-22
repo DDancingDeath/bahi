@@ -10,6 +10,7 @@ import fc from 'fast-check';
 import * as O from './oracle.js';
 import { DayManager } from '../../www/js/modules/day.js';
 import { AnomaliesManager } from '../../www/js/modules/anomalies.js';
+import { UIManager } from '../../www/js/ui/ui-manager.js';
 import { CashManagementManager } from '../../www/js/modules/cash-management.js';
 import { AppState } from '../../www/js/utils/state.js';
 import { labourSummary, labourPaid, labourPaidGap } from '../../www/js/utils/labour.js';
@@ -42,7 +43,7 @@ describe('Today Labour card == oracle', () => {
         AppState.expensesHistory = [];
         AppState.settings = { showHindi: false, ...E.settings };
         CashManagementManager.todaySession = null;
-        document.body.innerHTML = ['todayLaborCost', 'todayLabourDeductedBills', 'todayLabourToPay', 'todayLabourToPayCalc', 'todayLabourDiff']
+        document.body.innerHTML = ['todayLaborCost', 'todayLabourToPay', 'todayLabourDiff']
             .map(id => `<div id="${id}"></div>`).join('');
         DayManager.loadTodayData();
     });
@@ -52,16 +53,24 @@ describe('Today Labour card == oracle', () => {
         AppState.purchaseHistory = [];
     });
 
-    test('T-LAB-1 deducted from farmers', () => {
+    const breakdown = () => {
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
+        DayManager.showLabourBreakdown();
+        const box = document.createElement('div');
+        box.innerHTML = modal.mock.calls[0][0];
+        return box;
+    };
+    test('T-LAB-1 deducted from farmers (the bills in the breakdown)', () => {
         expect(amount('todayLaborCost')).toBe(Math.round(want.T_LAB_1_deducted));
-        expect(text('todayLabourDeductedBills')).toBe(`(${want.T_LAB_1_bills} bill${want.T_LAB_1_bills === 1 ? '' : 's'})`);
+        const deducted = [...breakdown().querySelectorAll('tbody tr')].filter(tr => Number(tr.lastElementChild.textContent.replace(/[^\d.-]/g, '')) > 0);
+        expect(deducted).toHaveLength(want.T_LAB_1_bills);
     });
-    test('T-LAB-2 to pay labour, with its working', () => {
+    test('T-LAB-2 to pay labour, with its working in the breakdown', () => {
         expect(amount('todayLabourToPay')).toBe(Math.round(want.T_LAB_2_toPay));
-        expect(text('todayLabourToPayCalc')).toBe(`(${want.T_LAB_2_kg} kg ÷ 35 kg = ${want.T_LAB_2_packages} packages × ₹6)`);
+        expect(breakdown().textContent).toContain(`(${want.T_LAB_2_kg} kg ÷ 35 kg = ${want.T_LAB_2_packages} packages × ₹6)`);
     });
     test('T-LAB-3 difference', () => {
-        expect(text('todayLabourDiff')).toBe(`The estimate is ₹${want.T_LAB_3_difference} more than deducted`);
+        expect(text('todayLabourDiff')).toBe(`Pay differs from deducted by ₹${want.T_LAB_3_difference}`);
     });
 });
 

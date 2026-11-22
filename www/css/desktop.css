@@ -683,7 +683,7 @@
   }
 
   :is(#billing, .bill-page) .bill-side .pay-line > .pay-fill,
-  :is(#billing, .bill-page) .bill-side .bill-form-field.field.bill-notes > .bill-note-print {
+  :is(#billing, .bill-page) .bill-side .bill-notes > .bill-note-print {
     min-height: 30px;
   }
 

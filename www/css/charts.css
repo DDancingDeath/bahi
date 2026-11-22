@@ -154,32 +154,6 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   color: var(--btn-sale-ink);
 }
 
-/* Enhanced dropdown arrow for rate input */
-#billRate {
-  position: relative;
-  cursor: pointer;
-}
-
-#billRate::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  opacity: 0.7;
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-#billRate::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-}
-
-#billRate::-webkit-list-button {
-  cursor: pointer;
-  position: absolute;
-}
-
 /* Page dialogs (bill and expense details, drafts, item, breakdown, What's new): below the confirms they open */
 .app-scrim.page-sheet {
   z-index: calc(var(--z-dialog) + var(--sheet-layer, 0));

@@ -107,23 +107,6 @@
   -webkit-touch-callout: none;
 }
 
-/* The mic in the Supplier / Customer field, beside the contact button (#498) */
-.bill-party > .voice-name-mic {
-  right: 48px;
-}
-
-body.no-perm-contacts .bill-party > .voice-name-mic {
-  right: 0;
-}
-
-.bill-party:has(> .voice-name-mic:not([hidden])) {
-  --bill-party-pad: 100px;
-}
-
-body.no-perm-contacts .bill-party:has(> .voice-name-mic:not([hidden])) {
-  --bill-party-pad: 52px;
-}
-
 /* Name mic pick list */
 .voice-name-title {
   margin: 0 0 var(--sp-2);

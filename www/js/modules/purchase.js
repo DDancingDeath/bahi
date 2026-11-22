@@ -5,6 +5,7 @@
  */
 
 import { AppState } from '../utils/state.js';
+import { printNoteDefault } from '../utils/print-note.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { AuditService } from '../services/audit.js';
@@ -898,10 +899,12 @@ const PurchaseManager = {
             if (el) el.value = id === 'manualLaborCharges' ? '0' : '';
         });
         
-        ['onlineCheckbox', 'cashCheckbox', 'dueCheckbox', 'billPrintComments'].forEach(id => {
+        ['onlineCheckbox', 'cashCheckbox', 'dueCheckbox'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.checked = false;
         });
+        const printNote = document.getElementById('billPrintComments');
+        if (printNote) printNote.checked = printNoteDefault();
         
         resetBillDate('billDate');
         clearFieldError('billRate');

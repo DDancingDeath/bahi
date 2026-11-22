@@ -5,6 +5,7 @@
  */
 
 import { AppState } from '../utils/state.js';
+import { printNoteDefault } from '../utils/print-note.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { PrinterService } from '../services/printer.js';
@@ -758,10 +759,12 @@ const RetailSaleManager = {
             if (el) el.value = '';
         });
         
-        ['saleOnlineCheckbox', 'saleCashCheckbox', 'saleDueCheckbox', 'salePrintComments'].forEach(id => {
+        ['saleOnlineCheckbox', 'saleCashCheckbox', 'saleDueCheckbox'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.checked = false;
         });
+        const printNote = document.getElementById('salePrintComments');
+        if (printNote) printNote.checked = printNoteDefault();
         
         const totalReceivedEl = document.getElementById('totalReceived');
         if (totalReceivedEl) totalReceivedEl.textContent = '0';

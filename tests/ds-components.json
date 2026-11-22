@@ -1,6 +1,9 @@
 {
   "_readme": "Design-system component guard (tests/ci/ds-components.js, ds-guard): the selectors written in more than one stylesheet, and per component family the root names of its classes (docs/design-system.md section 7). Both lists may only shrink: a new duplicate selector or a family's new root fails CI. Give a rule one home (the page's file, or a token that desktop.css sets) and build new UI from the shared components (.app-dialog / .sheet, .notice, .seg / .tabs / .chip, .row / .table, .tag, .hero / .metrics, .panel, .empty, .btn). A justified new name goes in \"exceptions\" as \"<selector>\" or \"<family>:<root>\": {\"reason\": \"...\", \"added\": \"#PR or date\"}. NEW-07 (UX audit 2026-11-21) took the duplicates from 88 to 73.",
-  "exceptions": {},
+  "exceptions": {
+    "card_panel:panel-float": { "reason": "The design system's panel with its title on the top border (a legend, like .field-float's label): .panel.panel-float > .panel-legend in surfaces.css, documented in docs/design-system.md section 3; owner request, Today > Labour first.", "added": "2026-11-23" },
+    "card_panel:panel-legend": { "reason": "The legend of .panel-float (see card_panel:panel-float).", "added": "2026-11-23" }
+  },
   "dupSelectors": [
     "#billTable",
     "#billTable td",
@@ -95,6 +98,8 @@
       "diag",
       "hl-panel",
       "panel",
+      "panel-float",
+      "panel-legend",
       "panel-pad",
       "panel-tap",
       "pw-box",

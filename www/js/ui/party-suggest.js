@@ -4,7 +4,8 @@
  * loaded on this phone, with what is open on them (utils/party-match.js): no Firestore read.
  * A combobox: ↑ ↓ pick, Enter fills, Esc closes; a tap fills. After the name field is left,
  * a new name close to a known one shows "Did you mean …?" with [Use] and [Yes, it's right]:
- * a warning only, it never stops the bill.
+ * a warning only, it never stops the bill. The phone keyboard's own voice typing (and any IME) gives the
+ * words through a composition: the list follows when it ends, never half-way through.
  * @module ui/party-suggest
  */
 
@@ -279,7 +280,7 @@ export function renderNameHint(kind, draft = undefined) {
 
 function onKeydown(e) {
     const kind = KIND_OF[e.target?.id];
-    if (!kind) return;
+    if (!kind || e.isComposing || e.keyCode === 229) return;
     const state = open.get(kind);
     if (!state) {
         if (e.key === 'ArrowDown' && showSuggestions(kind).length) {
@@ -313,12 +314,14 @@ let bound = false;
 export function bindPartySuggest() {
     if (bound || typeof document === 'undefined') return;
     bound = true;
-    document.addEventListener('input', (e) => {
+    const typed = (e) => {
         const kind = KIND_OF[/** @type {HTMLElement} */ (e.target)?.id];
-        if (!kind || filling) return;
+        if (!kind || filling || e.isComposing) return;
         hideNameHint(kind);
         showSuggestions(kind);
-    });
+    };
+    document.addEventListener('input', typed);
+    document.addEventListener('compositionend', typed);
     document.addEventListener('keydown', onKeydown, true);
     document.addEventListener('pointerdown', () => { pointerHeld = true; }, true);
     const release = () => {

@@ -80,30 +80,20 @@
             <details class="today-more" id="todayMore">
                 <summary class="section-title today-more-title"><span data-i18n="ui.today.day_details">Day details</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></summary>
                 <!-- Labour and Payment breakdown: at ≥ 1280 px day.js moves these two blocks to the right column (NEW-17) -->
-                <!-- LABOUR: deducted from farmers (T-LAB-1), paid to labourers (T-LAB-4), the difference (T-LAB-5) and the estimate to pay (T-LAB-2); tap for bill-wise breakdown -->
+                <!-- LABOUR: deducted from farmers (T-LAB-1), paid to labourers (T-LAB-4) and the estimate to pay (T-LAB-2); an amber line
+                     only when paid (T-LAB-5) or the estimate (T-LAB-3) differs from deducted; tap for the bill-wise breakdown -->
                 <div class="today-detail-block" id="todayLabourBlock">
-                <h3 class="section-title" data-i18n="ui.today.labor">Labour</h3>
-                <div id="todayLabourCard" class="panel panel-tap today-labour" role="button" tabindex="0"
-                    data-onclick="day.showLabourBreakdown()">
-                    <div class="today-labour-line">
-                        <span data-i18n="ui.today.labour_deducted">Deducted from farmers</span>
-                        <strong id="todayLaborCost">₹0</strong>
-                        <span class="today-labour-sub" id="todayLabourDeductedBills"></span>
-                    </div>
-                    <div class="today-labour-line">
-                        <span data-i18n="ui.today.labour_paid">Paid to labourers</span>
-                        <strong id="todayLabourPaid">₹0</strong>
-                        <span class="today-labour-sub" id="todayLabourPaidCount"></span>
-                    </div>
-                    <div class="today-labour-diff" id="todayLabourPaidDiff"></div>
-                    <div class="today-labour-line">
-                        <span data-i18n="ui.today.labour_to_pay">To pay labour (estimate)</span>
-                        <strong id="todayLabourToPay">₹0</strong>
-                        <span class="today-labour-sub" id="todayLabourToPayCalc"></span>
-                    </div>
-                    <div class="today-labour-diff" id="todayLabourDiff"></div>
-                    <div class="today-labour-hint" data-i18n="ui.today.labour_tap_hint">Tap for each bill</div>
-                </div>
+                <section class="panel panel-float today-labour" id="todayLabourCard" aria-labelledby="todayLabourTitle">
+                    <h3 class="panel-legend" id="todayLabourTitle" data-i18n="ui.today.labor">Labour</h3>
+                    <button type="button" class="today-labour-open" data-onclick="day.showLabourBreakdown()">
+                        <span class="row"><span class="row-main" data-i18n="ui.today.labour_row_deducted">Deducted</span><strong class="row-trail row-amt" id="todayLaborCost">₹0</strong></span>
+                        <span class="row"><span class="row-main" data-i18n="ui.today.labour_row_paid">Paid</span><strong class="row-trail row-amt" id="todayLabourPaid">₹0</strong></span>
+                        <span class="today-labour-diff tone-warn" id="todayLabourPaidDiff" hidden></span>
+                        <span class="row"><span class="row-main" data-i18n="ui.today.labour_row_pay">Pay</span><strong class="row-trail row-amt" id="todayLabourToPay">₹0</strong></span>
+                        <span class="today-labour-diff tone-warn" id="todayLabourDiff" hidden></span>
+                        <span class="today-labour-more"><span data-i18n="ui.today.labour_details">Details</span> ›</span>
+                    </button>
+                </section>
                 </div>
 
                 <!-- Cash and online in (T6, T7) and out (T8, T9) -->

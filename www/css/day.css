@@ -98,7 +98,7 @@
 .today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
 .today-in .i { color: var(--positive); }
 .today-out .i { color: var(--ink-3); }
-.today-inout strong, .today-labour-line strong, .today-channel-total, .today-channel-split strong, .today-bill-total {
+.today-inout strong, .today-channel-total, .today-channel-split strong, .today-bill-total {
   color: var(--ink); font-family: var(--font-num); font-weight: var(--w-strong); font-variant-numeric: tabular-nums;
 }
 
@@ -120,11 +120,13 @@
 .today-reminder-days, .today-reminder-more { color: var(--ink-3); font-size: var(--fs-caption); }
 .day-report { margin-top: var(--section-gap); }
 
-/* Labour (T-LAB-*): tap for each bill */
-.today-labour { padding: var(--sp-3) var(--sp-4); }
-.today-labour-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 2px 0; color: var(--ink-2); font-size: var(--fs-sm); }
-.today-labour-sub, .today-labour-diff { color: var(--ink-3); font-size: var(--fs-caption); }
-.today-labour-hint { margin-top: var(--sp-2); color: var(--accent-text); font-size: var(--fs-sm); font-weight: var(--w-label); }
+/* Labour (T-LAB-*): Deducted, Paid, Pay rows; an amber line only under a row that differs; tap for each bill */
+.today-labour-open { display: block; width: 100%; padding: var(--sp-3) 0 0; border: none; border-radius: var(--r-panel); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.today-labour-open:hover { background: var(--surface-2); }
+.today-labour-open:focus-visible { outline: none; box-shadow: var(--focus); }
+.today-labour-diff { display: block; padding: 0 var(--sp-4) var(--sp-2); font-size: var(--fs-sm); }
+.today-labour-diff[hidden] { display: none; }
+.today-labour-more { display: block; padding: var(--sp-1) var(--sp-4) var(--sp-3); color: var(--accent-text); font-size: var(--fs-sm); font-weight: var(--w-label); text-align: right; }
 
 /* By bill type (T18) */
 .today-channel { padding: var(--sp-3) var(--sp-4); }

@@ -187,6 +187,24 @@ describe('Billing name field (ui/party-suggest)', () => {
         expect(input.value).toBe('Ramesh Kumar');
     });
 
+    test('the keyboard\'s voice typing (a composition): nothing half-way, the list when it ends', () => {
+        input.focus();
+        input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+        for (const partial of ['S', 'Si', 'Sit']) {
+            input.value = partial;
+            input.dispatchEvent(new CompositionEvent('compositionupdate', { bubbles: true, data: partial }));
+            input.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: partial }));
+            expect(list()?.hidden ?? true).toBe(true);
+        }
+        // Enter while composing belongs to the keyboard, not to the list
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true, isComposing: true }));
+        expect(list()?.hidden ?? true).toBe(true);
+        input.value = 'Sita D';
+        input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: 'Sita D' }));
+        expect(list().hidden).toBe(false);
+        expect(list().querySelector('[role="option"]').textContent).toContain('Sita Devi');
+    });
+
     test('"Did you mean" shows only after leaving the field; Use fills it, "Yes, it\'s right" keeps the name', () => {
         type('Seeta Devi');
         expect(renderNameHint('retail')).toBeNull();

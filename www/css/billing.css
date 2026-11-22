@@ -666,10 +666,32 @@ label {
 
 /* Purchase / Retail sale: the name and the line's fields carry floating labels (.field-float) */
 .field-float.bill-customer {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Customer | 🎙 (the whole-bill mic, only with Voice billing on); a hidden mic leaves the row to the field.
+   A line put after the field (due, "Did you mean", an error) takes its own line under both. */
+.bill-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
   margin-bottom: var(--sp-4);
 }
 
-/* Item | Rate | 🎙 and Weight | 📷 | Add; a hidden tool button leaves its room to the fields */
+.bill-head > .bill-entry-tool {
+  flex: none;
+  width: 48px;
+  min-height: 48px;
+}
+
+.bill-head > :not(.field-float, .bill-entry-tool) {
+  flex: 1 0 100%;
+  order: 1;
+}
+
+/* Item | Rate and Weight | 📷 | Add; a hidden tool button leaves its room to the fields */
 .bill-entry-row {
   display: flex;
   flex-wrap: wrap;
@@ -702,8 +724,10 @@ label {
   padding: 0 var(--sp-2);
 }
 
+/* The right padding is the chevron's room (forms.css, as Item's select) */
 .bill-entry-rate .input {
-  padding: 0 var(--sp-2);
+  padding-block: 0;
+  padding-left: var(--sp-2);
   text-overflow: ellipsis;
 }
 
@@ -725,13 +749,13 @@ label {
   order: 1;
 }
 
-/* What voice heard and Undo voice, right under Item | Rate | 🎙; no gap while both are hidden */
-.bill-entry-row + .voice-strip {
+/* What voice heard and Undo voice, right under Customer | 🎙; no gap while both are hidden */
+.bill-head + .voice-strip {
   margin: 0;
 }
 
-.bill-entry-row + .voice-strip > * {
-  margin-top: var(--sp-2);
+.bill-head + .voice-strip > * {
+  margin: calc(-1 * var(--sp-2)) 0 var(--sp-3);
 }
 
 #billing .bill-line-sum {
@@ -752,8 +776,8 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
-/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale screen gives both its
-   mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
+/* Save & print is the screen's one primary button (Save is outlined; Add to bill, Rest → due are tonal); the sale
+   screen gives both its mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
 .bill-sale .btn-primary {
   background-color: var(--btn-sale-bg);
   color: var(--btn-sale-ink);
