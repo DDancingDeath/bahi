@@ -9,6 +9,7 @@ const path = require('path');
 import { NavigationManager, resolveRoute } from '../ui/navigation.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
+import { OutstandingManager } from '../modules/outstanding.js';
 import en from '../i18n/en.js';
 
 const WWW = path.join(__dirname, '..', '..');
@@ -75,6 +76,67 @@ describe('pages', () => {
     });
 });
 
+describe('Old Wholesale History / Outstanding tabs open the global pages with Wholesale picked (F14)', () => {
+    beforeEach(() => {
+        document.body.insertAdjacentHTML('beforeend', '<div class="tab" id="history"></div><div class="tab" id="due"></div><div class="tab" id="wholesale-sales"></div>');
+        jest.spyOn(window.app.history, 'open').mockImplementation(() => {});
+        jest.spyOn(window.app.outstanding, 'open').mockImplementation(() => {});
+    });
+
+    test('wholesale-history opens History on its Wholesale tab', () => {
+        open('wholesale-history');
+        expect(activeTab()).toBe('history');
+        expect(window.app.history.open).toHaveBeenCalledWith('wholesale');
+    });
+
+    test('wholesale-outstanding opens Outstanding with the Wholesale chip', () => {
+        open('wholesale-outstanding');
+        expect(activeTab()).toBe('due');
+        expect(window.app.outstanding.open).toHaveBeenCalledWith('wholesale');
+    });
+
+    test('plain History / Outstanding open without the Wholesale filter', () => {
+        open('history');
+        expect(window.app.history.open).toHaveBeenCalledWith(null);
+        open('due');
+        expect(window.app.outstanding.open).toHaveBeenCalledWith(null);
+    });
+
+    test('Today\'s collect / pay reminders open their list for that visit only', async () => {
+        const filterDue = jest.spyOn(window.app.outstanding, 'filterDue').mockImplementation(() => {});
+        await window.app.day.openDues('retail');
+        jest.runAllTimers();
+        expect(activeTab()).toBe('due');
+        expect(filterDue).toHaveBeenCalledWith('retail', { once: true });
+    });
+
+    test('a member without Wholesale is told so and gets History / Outstanding unfiltered', () => {
+        AppState.userRole = 'staff';
+        open('wholesale-history');
+        expect(toast).toHaveBeenCalledWith(en['msg.roles.tab_role_only']);
+        expect(activeTab()).toBe('history');
+        expect(window.app.history.open).not.toHaveBeenCalledWith('wholesale');
+        open('wholesale-outstanding');
+        expect(activeTab()).toBe('due');
+        expect(window.app.outstanding.open).not.toHaveBeenCalledWith('wholesale');
+    });
+
+    test('a wholesale bill\'s "Already owes" line opens Outstanding › Wholesale for that party', () => {
+        const show = jest.spyOn(OutstandingManager, 'showParty').mockImplementation(() => {});
+        window.app.outstanding.showParty('wholesale', 'Gupta');
+        jest.runAllTimers();
+        expect(activeTab()).toBe('due');
+        expect(show).toHaveBeenCalledWith('wholesale', 'Gupta');
+    });
+
+    test('the Wholesale page links to them instead of its own tabs', () => {
+        const page = read('templates/wholesale-sales.html');
+        expect(page).toContain("nav.showTab('wholesale-history', event)");
+        expect(page).toContain("nav.showTab('wholesale-outstanding', event)");
+        expect(page).not.toMatch(/salesHistorySection|salesOutstandingSection|ws-tabs/);
+    });
+});
+
 describe('old routes redirect', () => {
     test.each([
         ['finance', 'money', 'money', null],
@@ -89,7 +151,8 @@ describe('old routes redirect', () => {
         ['rates-traffic', 'insights-traffic', 'insights', 'traffic'],
         ['insights-seasons', 'insights-seasons', 'insights', 'seasons'],
         ['rates', 'rates', 'items', null],
-        ['wholesale-history', 'wholesale-history', 'wholesale-sales', 'history']
+        ['wholesale-history', 'wholesale-history', 'history', 'wholesale'],
+        ['wholesale-outstanding', 'wholesale-outstanding', 'due', 'wholesale']
     ])('%s -> %s', (id, canonical, tab, section) => {
         expect(resolveRoute(id)).toMatchObject({ id: canonical, tab, section });
     });

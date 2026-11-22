@@ -326,6 +326,41 @@ input[type="radio"] {
   align-items: center;
 }
 
+/* Radio rows: a fieldset whose legend asks the question, one 48 px row per choice with hairlines between (F52) */
+.radio-rows {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.radio-rows > legend {
+  margin-bottom: var(--sp-1);
+  padding: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+}
+
+.radio-rows > label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.radio-rows > label + label {
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.radio-rows > label > input {
+  flex: none;
+  margin: 0;
+}
+
 /* The switch draws 36 × 22 but takes taps on 62 × 48: a clear border around the track that the negative margin
    gives back to the layout */
 input[type="checkbox"].switch,
@@ -409,6 +444,7 @@ input[type="checkbox"].switch:focus-visible,
 /* These set display, which would otherwise beat the hidden attribute */
 .btn[hidden],
 .seg[hidden],
+.seg > button[hidden],
 .tabs[hidden] {
   display: none;
 }
@@ -615,4 +651,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   body textarea {
     font-size: var(--fs-input) !important;
   }
+}
+
+/* ---------- Date caption (F54) ---------- */
+/* The day in the app's format under a native date box (js/ui/date-caption.js) */
+.date-caption {
+  display: block;
+  flex-basis: 100%;
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+}
+
+.date-caption[hidden],
+input[hidden] + .date-caption {
+  display: none;
 }

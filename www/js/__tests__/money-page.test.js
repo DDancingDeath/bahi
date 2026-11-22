@@ -93,13 +93,34 @@ describe('figures on screen == oracle (this month)', () => {
         expect(document.getElementById('moneyPeriodLabel').textContent).toBe('1–21 Oct 2026');
     });
 
-    test('Cash section: M12, M13, M14', () => {
+    test('Money in and out (money-cash): M12, M13, M14', () => {
         MoneyManager.init('cash');
         const w = O.metrics(data, OCT);
         expect(shown('moneyIn')).toBe(rupee(w.M12_inCash + w.M12_inOnline));
         expect(shown('moneyOut')).toBe(rupee(w.M13_outCash + w.M13_outOnline));
         expect(shown('moneyNetCash')).toBe(rupee(w.M14_net));
         expect(document.querySelectorAll('#moneyCashChart rect.ins-bar').length).toBe(21);
+    });
+
+    test('one Cash home (F62): no Cash tab; Profit shows money in and out with a link to Today › Cash; money-cash opens it there', () => {
+        expect(document.querySelector('#money [data-money-section="cash"]')).toBeNull();
+        expect(document.querySelector('#money [data-money-pane="cash"]')).toBeNull();
+        MoneyManager.init('profit');
+        const w = O.metrics(data, OCT);
+        const block = document.getElementById('moneyCash');
+        expect(block.closest('[data-money-pane]').dataset.moneyPane).toBe('profit');
+        expect(shown('moneyNetCash')).toBe(rupee(w.M14_net));
+        expect(shown('moneyIn')).toBe(rupee(w.M12_inCash + w.M12_inOnline));
+        expect(block.querySelector('[data-go="day-cash"]')).not.toBeNull();
+        // The drawer form is only in Today › Cash
+        expect(document.querySelector('#money #cashSignInAmount, #money #cashSignOutAmount')).toBeNull();
+        const scroll = jest.fn();
+        block.scrollIntoView = scroll;
+        MoneyManager.setSection('spending');
+        MoneyManager.setSection('cash');
+        expect(MoneyManager.section).toBe('profit');
+        expect(document.getElementById('moneyProfit').hidden).toBe(false);
+        expect(scroll).toHaveBeenCalled();
     });
 
     test('Spending section: M4, M8, M9, M10 and categories adding up to M4', () => {
@@ -1070,15 +1091,15 @@ describe('labour on Money › Spending (T-LAB-1, T-LAB-2 for the period)', () =>
 
 describe('render cost', () => {
     test('a tab switch reuses the summaries; the chart and item driver are worked out on Profit only', () => {
-        MoneyManager.init('cash');
-        const onCash = MoneyManager.summaryCache.computed;
+        MoneyManager.init('spending');
+        const onSpending = MoneyManager.summaryCache.computed;
         MoneyManager.setSection('profit');
         const afterProfit = MoneyManager.summaryCache.computed;
-        expect(afterProfit).toBeGreaterThan(onCash);
+        expect(afterProfit).toBeGreaterThan(onSpending);
         ['cash', 'spending', 'worth', 'profit', 'cash', 'profit'].forEach(s => MoneyManager.setSection(s));
         expect(MoneyManager.summaryCache.computed).toBe(afterProfit);
         AppState.dataVersion = (AppState.dataVersion || 0) + 1;
-        MoneyManager.setSection('cash');
+        MoneyManager.setSection('spending');
         expect(MoneyManager.summaryCache.computed).toBeGreaterThan(afterProfit);
     });
 });

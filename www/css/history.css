@@ -84,9 +84,17 @@
 }
 
 .bill-view-weights {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--sp-3);
   color: var(--ink-2);
   font-size: var(--fs-sm);
-  overflow-wrap: anywhere;
+}
+
+/* A weight never breaks inside the number (F49) */
+.bill-view-w {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .bill-view-packets {
@@ -534,11 +542,6 @@
   background: var(--accent-soft);
 }
 
-/* Wholesale › History controls */
-.wholesale-history-controls {
-  margin-bottom: var(--sp-1);
-}
-
 @media (max-width: 480px) {
   .history-apply-range {
     flex: 1 1 100%;
@@ -852,14 +855,32 @@
   overflow-wrap: anywhere;
 }
 
-.bill-view-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+.bill-view-paid {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
 }
 
-.bill-view-chips:empty {
-  display: none;
+/* One panel (F49): the head, then each section under a hairline */
+.bill-view-sheet > .bill-view-head {
+  margin-bottom: 0;
+}
+
+.bill-view-sec {
+  padding-bottom: var(--sp-2);
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.bill-view-sec > .bill-view-title {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4) var(--sp-1);
+}
+
+.bill-view-sec > .bill-view-items {
+  margin-bottom: 0;
+}
+
+.bill-view-sec > .bill-view-packets {
+  padding-right: var(--sp-4);
 }
 
 .bill-view-more {

@@ -53,7 +53,9 @@ import {
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
 /** Money's on-screen minus is the true minus (−₹500). */
 const TM = { trueMinus: true };
-const SECTIONS = ['profit', 'cash', 'spending', 'worth'];
+const SECTIONS = ['profit', 'spending', 'worth'];
+/** Money in and out is a block of Profit (F62); 'cash' (route money-cash) opens it there. */
+const sectionOf = (s) => (s === 'cash' ? 'profit' : s);
 const SESSION_TTL_MS = 10 * 60 * 1000;
 const ACCOUNTS_KEY = 'financeCustomAccounts';
 const listIds = new WeakMap();
@@ -158,7 +160,7 @@ export const MoneyManager = {
 
     /** Opens the page (from the side menu or a route like money-cash). */
     init(section) {
-        if (section && SECTIONS.includes(section)) this.section = section;
+        if (section && SECTIONS.includes(sectionOf(section))) this.section = sectionOf(section);
         this.setupTaps();
         this.sharedAccounts = { ...this.sharedAccounts, stale: true };
         const sel = document.getElementById('moneyPreset');
@@ -166,14 +168,20 @@ export const MoneyManager = {
         if (sel) sel.value = /^month:/.test(preset) ? 'this-month' : presetSelectValue(preset);
         this.showSection(this.section);
         this.render();
+        if (section === 'cash') this.revealCash();
         this.loadSnapshots().catch(e => console.error('Money: month snapshots failed:', e));
     },
 
     setSection(section) {
-        if (!SECTIONS.includes(section)) return;
-        this.section = section;
-        this.showSection(section);
+        if (!SECTIONS.includes(sectionOf(section))) return;
+        this.section = sectionOf(section);
+        this.showSection(this.section);
         this.render();
+        if (section === 'cash') this.revealCash();
+    },
+
+    revealCash() {
+        document.getElementById('moneyCash')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
     },
 
     showSection(section) {
@@ -465,7 +473,7 @@ export const MoneyManager = {
         this.renderCompare(m, b, labels);
         const ctx = { m, prev, ly, b, labels, r, now, cfg: this.cfg() };
         this.renderProfit(ctx);
-        if (this.section === 'cash') this.renderCash(ctx);
+        if (this.section === 'profit') this.renderCash(ctx);
         if (this.section === 'spending') this.renderSpending(ctx);
         this.renderLinked(ctx);
         this.renderChecks(ctx);
@@ -654,7 +662,7 @@ export const MoneyManager = {
             ? ` <button type="button" class="btn btn-ghost btn-sm" data-go="insights-items" data-metric-ref="I2">${esc(t('ui.money.split_link'))} ›</button>` : '';
         this.html('moneySalesSplit', `<span data-metric-ref="M1">${esc(tn('ui.money.bills', m.M1.count))}</span>${splitLink}`);
         this.html('moneyCogs', moneyHtml(m.M2, TM));
-        this.html('moneyGross', m.M3.total === null ? '—' : `${moneyHtml(m.M3.total, TM)}${m.M3.per100 !== null ? esc(` · ${screenMinus(t('ui.money.per100', { value: formatAmount(roundTo(m.M3.per100, 1), 'small') }))}`) : ''}`);
+        this.html('moneyGross', m.M3.total === null ? '—' : `${moneyHtml(m.M3.total, TM)}${m.M3.per100 !== null ? esc(` · ${screenMinus(t('ui.money.per100', { value: formatAmount(roundTo(m.M3.per100, 1), 'per100') }))}`) : ''}`);
         this.html('moneyBusinessTerm', moneyHtml(m.M4.total, TM));
         this.html('moneyBadDebts', moneyHtml(m.M5, TM));
         this.html('moneyProfitTerm', moneyHtml(m.M6.total, TM));

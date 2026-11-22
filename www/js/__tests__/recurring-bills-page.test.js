@@ -190,3 +190,17 @@ test('a background refresh still in flight when the page loads and saves never o
     expect(await refresh).toBe(false);
     expect(billsDueReminder(localStorage, 'o1', TODAY)).toBeNull();
 });
+
+test('F63/F39: a skeleton while loading; then Add bill sits on the right of the counts, above the list', async () => {
+    let done;
+    repo.loadBillItems.mockReturnValue(new Promise(r => { done = r; }));
+    const open = R.init();
+    expect(body().querySelector('.skel-list[role="status"] .skel')).not.toBeNull();
+    expect(body().querySelector('p.empty')).toBeNull();
+    done([water()]);
+    await open;
+    const head = body().querySelector('.rb-list-head');
+    expect(head.querySelector('.rb-counts')).not.toBeNull();
+    expect(head.lastElementChild.matches('button.rb-add[data-onclick="recurring.showForm(\'add\')"]')).toBe(true);
+    expect(head.nextElementSibling.classList.contains('rb-list')).toBe(true);
+});

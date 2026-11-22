@@ -452,16 +452,6 @@
     align-self: center;
   }
 
-  .due-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 var(--sp-3);
-  }
-
-  .due-list > :not(.due-bill) {
-    grid-column: 1 / -1;
-  }
-
   /* ---------- History / Wholesale › History: one aligned row per bill ---------- */
   /* bill no | party | amount | date & by | items | payment chips (ui/bill-row.js) */
   [data-history-item][data-bill-row] {
@@ -642,6 +632,8 @@
   }
 
   .day-report .anom-actions {
+    flex: 1 1 100%;
+    min-width: 0;
     justify-content: flex-start;
   }
 

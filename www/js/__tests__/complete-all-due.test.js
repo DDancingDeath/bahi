@@ -190,21 +190,24 @@ describe('OutstandingManager.settleAllDues', () => {
     });
 });
 
-describe('Wholesale › Outstanding: "Complete all due" (owner / manager)', () => {
-    const DOM = '<div id="salesOutstandingList"></div><div id="salesRecentList"></div><div id="salesHistoryList"></div><div id="toast"></div>';
+describe('Outstanding › Wholesale: "Complete all due" (owner / manager)', () => {
+    const DOM = '<div id="due"><div id="dueAging"></div><div id="dueList"></div></div><div id="salesRecentList"></div><div id="toast"></div>';
     let server;
     beforeEach(() => {
         document.body.innerHTML = DOM;
         server = { w1: bill('w1', 'Gupta', 120), w2: bill('w2', 'Gupta', 80), w3: bill('w3', 'Other', 50) };
         AppState.salesHistory = Object.values(server).map(b => ({ ...b }));
         serverTx(server);
-        WholesaleSalesManager.outstandingParty = null;
+        AppState.settings = {};
+        OutstandingManager.partyFilter = null;
         WholesaleSalesManager.pendingSettle = null;
     });
 
     test('a member sees no button and is refused', async () => {
         AppState.userRole = 'staff';
-        WholesaleSalesManager.renderSalesOutstanding();
+        AppState.settings = { roleAccess: { staff: { wholesale: true } } };
+        OutstandingManager.showParty('wholesale', 'Gupta');
+        expect(document.querySelector('.party-filter-note')).not.toBeNull();
         expect(document.querySelectorAll('[data-complete-all]')).toHaveLength(0);
         await WholesaleSalesManager.completeAllDue('Gupta');
         expect(UIManager.showToast).toHaveBeenCalledWith('Access denied', 'error');
@@ -212,8 +215,11 @@ describe('Wholesale › Outstanding: "Complete all due" (owner / manager)', () =
     });
 
     test('a manager confirms count and total, picks Online: both bills settled in one go, one audit row', async () => {
-        WholesaleSalesManager.renderSalesOutstanding();
-        expect(document.querySelectorAll('[data-complete-all]').length).toBeGreaterThan(0);
+        OutstandingManager.filterDue('sale');
+        expect(document.querySelectorAll('[data-complete-all]')).toHaveLength(0);
+        OutstandingManager.showParty('wholesale', 'Gupta');
+        const button = document.querySelector('.party-filter-note [data-complete-all]');
+        expect(button.getAttribute('data-onclick')).toBe("wholesaleSales.completeAllDue('Gupta')");
         const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockImplementation(async (html) => {
             expect(html).toContain('2 bills due, ₹200 in all');
             document.body.insertAdjacentHTML('beforeend', '<input type="radio" name="completeAllMethod" value="online" checked>');

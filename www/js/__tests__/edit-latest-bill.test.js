@@ -102,7 +102,7 @@ describe('BillingManager.latestCopyForEdit', () => {
         jest.spyOn(FirebaseService, 'latestBill').mockResolvedValue({ bill: fresh, changed: true });
         modal.mockResolvedValueOnce(true);
         await expect(BillingManager.latestCopyForEdit('purchase', { ...BILL })).resolves.toBe(fresh);
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('changed on another phone'), 'Changed on another phone', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('changed on another phone'), 'Changed on another phone', true, { confirmLabel: 'Reload' });
         modal.mockResolvedValueOnce(false);
         await expect(BillingManager.latestCopyForEdit('purchase', { ...BILL })).resolves.toBeNull();
     });
@@ -200,7 +200,7 @@ describe('edit and save when another phone recorded a payment (#127)', () => {
         expect(BillingManager.editingBill.payments).toBeUndefined();
         document.getElementById('customerName').value = 'Ramesh Kumar';
         await BillingManager.saveEditedBill();
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('changed on another phone while you were editing'), 'Changed on another phone', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('changed on another phone while you were editing'), 'Changed on another phone', true, { confirmLabel: 'Save anyway' });
         const doc = fake.raw('purchases').get('p1');
         expect(doc.customerName).toBe('Ramesh');
         expect(doc.payments).toEqual(PAID.payments);

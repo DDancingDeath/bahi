@@ -17,7 +17,7 @@ export const HISTORY_COLLECTIONS = [
     { key: 'retailSales', stateKey: 'retailSalesHistory', label: 'Retail sales', stock: true, dues: true,
         views: ['billingDropdown', 'history', 'due', 'stockView', 'money', 'insights', 'statements', 'today'] },
     { key: 'wholesaleSales', stateKey: 'salesHistory', label: 'Sales', stock: true, dues: true,
-        views: ['billingDropdown', 'salesDropdown', 'wholesaleHistory', 'wholesaleOutstanding', 'history', 'due', 'stockView', 'money', 'insights', 'statements', 'today'] },
+        views: ['billingDropdown', 'salesDropdown', 'wholesaleHistory', 'history', 'due', 'stockView', 'money', 'insights', 'statements', 'today'] },
     { key: 'expenses', stateKey: 'expensesHistory', label: 'Expenses', voidable: true,
         views: ['expensesHistory', 'money', 'insights', 'statements', 'today'] },
     // Shares AppState.expensesHistory with `expenses` (publishCollection merges them, #98)

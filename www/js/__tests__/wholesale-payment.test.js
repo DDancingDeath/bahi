@@ -1,7 +1,8 @@
 /**
- * @fileoverview The wholesale screen's "Record" payment goes through the same
- * Firestore transaction as the Due screen (OutstandingManager.applyPaymentTransaction)
- * so a payment recorded concurrently on another device is never overwritten.
+ * @fileoverview A wholesale bill's "Record" payment (Outstanding › Wholesale since F14;
+ * it was the Wholesale page's own Outstanding tab) goes through the Due screen's
+ * Firestore transaction (OutstandingManager.applyPaymentTransaction), so a payment
+ * recorded concurrently on another device is never overwritten.
  */
 
 jest.mock('../firebase/firestore-service.js', () => ({
@@ -24,6 +25,7 @@ jest.mock('../ui/infinite-scroll.js', () => ({ attachOlderHistoryScroll: jest.fn
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { AppState } from '../utils/state.js';
 import { WholesaleSalesManager } from '../modules/wholesale-sales.js';
+import { OutstandingManager } from '../modules/outstanding.js';
 import { Helpers } from '../utils/helpers.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { readPayment, NAME_REQUIRED_FOR_DUE_KEY } from '../utils/money.js';
@@ -31,14 +33,19 @@ import { t } from '../i18n/index.js';
 import { withCanonicalDue } from '../firebase/repos/bill-due.js';
 
 beforeEach(() => {
-    document.body.innerHTML = '<div id="salesOutstandingList"></div><div id="salesHistoryList"></div><div id="toast"></div>';
+    document.body.innerHTML = '<div id="due"><div id="dueAging"></div><div id="dueList"></div></div><div id="toast"></div>';
     window.app = { outstanding: { renderDue: jest.fn() } };
+    AppState.userRole = 'owner';
+    AppState.settings = {};
     AppState.salesHistory = [];
     AppState.currentUser = { uid: 'owner1', email: 'o@x' };
     AppState.userName = 'Owner';
 });
 
 describe('wholesale recordPayment uses the payment transaction', () => {
+    const cashInput = (id) => document.getElementById(OutstandingManager.paymentInputIds(id, 'wholesale').cash);
+    const record = (id) => OutstandingManager.recordPayment(id, 'wholesale');
+
     function fakeDb(serverDoc) {
         const ref = { id: 's1' };
         const tx = {
@@ -71,10 +78,10 @@ describe('wholesale recordPayment uses the payment transaction', () => {
         const { db, tx } = fakeDb(server);
         FirebaseService.db = db;
         AppState.salesHistory = [local];
-        WholesaleSalesManager.renderSalesOutstanding();
-        document.getElementById('payment_s1').value = '30';
+        OutstandingManager.filterDue('wholesale');
+        cashInput('s1').value = '30';
 
-        await WholesaleSalesManager.recordPayment('s1');
+        await record('s1');
 
         expect(db.runTransaction).toHaveBeenCalledTimes(1);
         expect(FirebaseService.updateWholesaleSale).not.toHaveBeenCalled();
@@ -85,7 +92,7 @@ describe('wholesale recordPayment uses the payment transaction', () => {
         expect(written.payments[2]).toMatchObject({ amount: 30, recordedBy: 'Owner' });
         expect(local.payment.due).toBe(30);
         expect(document.getElementById('toast').textContent).toBe('✓ Payment of ₹30 recorded');
-        expect(window.app.outstanding.renderDue).toHaveBeenCalled();
+        expect(document.getElementById('dueList').textContent).toContain('₹30');
         // Its audit entry is written in the same transaction (D-3), id from the payment id
         expect(tx.set).toHaveBeenCalledTimes(1);
         expect(tx.set.mock.calls[0][1]).toMatchObject({ action: 'UPDATE_PAYMENT', details: { billNumber: 'W-1', paymentAmount: 30, transactionType: 'wholesale' } });
@@ -99,11 +106,11 @@ describe('wholesale recordPayment uses the payment transaction', () => {
         const { db, tx } = fakeDb({ ...local, payment: { online: 0, cash: 90, due: 10, total: 90 } });
         FirebaseService.db = db;
         AppState.salesHistory = [local];
-        WholesaleSalesManager.renderSalesOutstanding();
-        document.getElementById('payment_s1').value = '50';
+        OutstandingManager.filterDue('wholesale');
+        cashInput('s1').value = '50';
         jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        await WholesaleSalesManager.recordPayment('s1');
+        await record('s1');
 
         expect(tx.update).not.toHaveBeenCalled();
         expect(FirebaseService.updateWholesaleSale).not.toHaveBeenCalled();
@@ -115,11 +122,11 @@ describe('wholesale recordPayment uses the payment transaction', () => {
         const { db } = fakeDb(local);
         FirebaseService.db = db;
         AppState.salesHistory = [local];
-        WholesaleSalesManager.renderSalesOutstanding();
-        document.getElementById('payment_s1').value = '10';
+        OutstandingManager.filterDue('wholesale');
+        cashInput('s1').value = '10';
         const spy = jest.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
 
-        await WholesaleSalesManager.recordPayment('s1');
+        await record('s1');
 
         spy.mockRestore();
         expect(db.runTransaction).not.toHaveBeenCalled();
@@ -206,7 +213,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         AppState.stock = { rice: { quantity: 500, rate: 0 } };
         AppState.userRole = 'staff';
         setVal('wholesaleCashPayment', 4025);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValueOnce(false);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValueOnce(false);
         expect(await WholesaleSalesManager.completeSale()).toBeUndefined();
         expect(modal).toHaveBeenCalledWith(expect.stringContaining('Rice: average cost not known (its stock has no rate)'), expect.any(String), true, { confirmLabel: 'Save anyway' });
         expect(saved).toHaveLength(0);
@@ -223,7 +230,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         WholesaleSalesManager.updateProfitCalculation();
         expect(document.getElementById('salesProfitAmount').textContent).toBe('—');
         setVal('wholesaleCashPayment', 4025);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         const sale = await WholesaleSalesManager.completeSale();
         expect(modal).toHaveBeenCalledWith(expect.stringContaining('stock is still loading'), expect.any(String), true, { confirmLabel: 'Save anyway' });
         expect(sale).toMatchObject({ profit: null, profitPercent: null, costUnknown: true });
@@ -259,7 +266,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         setVal('sellQuantity', ''); // the refused line is cleared (else Save asks about it, BF-PENDING)
 
         setVal('wholesaleCashPayment', 4267);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         const sale = await WholesaleSalesManager.completeSale();
         expect(modal).toHaveBeenCalledWith(expect.stringContaining('short 3 kg'), expect.any(String), true, { confirmLabel: 'Save anyway' });
         expect(sale.flags).toEqual([expect.objectContaining({ rule: 'oversell', by: 'owner1' })]);
@@ -283,7 +290,7 @@ describe('wholesale sale save: payment split (#113, #23, #68, #26)', () => {
         setVal('sellQuantity', 30);
         await WholesaleSalesManager.addToWholesaleBill(); // 1200
         setVal('wholesaleCashPayment', 1200);
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         FirebaseService.saveWholesaleSale = jest.fn(async (sale) => {
             AppState.salesHistory.unshift(sale);
             AppState.stock = { rice: { quantity: 20, rate: 30.5 } };

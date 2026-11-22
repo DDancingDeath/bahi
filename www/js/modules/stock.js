@@ -295,7 +295,7 @@ export class StockManager {
                 <span class="adorn-post" aria-hidden="true">kg</span>
             </div>
         </div>`;
-        const ok = await UIManager.showModalWithHtml(html, t('ui.stock.set_alert_title', { item: name }), true);
+        const ok = await UIManager.showModalWithHtml(html, t('ui.stock.set_alert_title', { item: name }), true, { confirmLabel: t('ui.common.save') });
         if (!ok) return;
         const raw = String(document.getElementById('lowStockInput')?.value ?? '').trim();
         const kg = raw === '' ? null : Number(raw);
@@ -353,7 +353,7 @@ export class StockManager {
         const full = Math.abs(adjustmentDelta(adj));
         const message = [t('msg.stock.reverse_confirm', { item: name, from: stockKg(plan.previousStock), to: stockKg(plan.newStock) }),
             plan.capped ? t('msg.stock.reverse_capped', { qty: stockKg(plan.quantity), full: stockKg(full) }) : ''].filter(Boolean).join(' ');
-        const ok = await UIManager.showModal(message, t('ui.stock.reverse_title'), true);
+        const ok = await UIManager.showModal(message, t('ui.stock.reverse_title'), true, { confirmLabel: t('ui.confirm.reverse'), danger: true });
         if (!ok) return;
         // Kg put back keep a cost (S2), also after a mistaken "remove everything" left it at 0
         const rate = plan.adjustType === 'add' ? this.restockRate(item, adj.rate) : 0;
@@ -399,7 +399,7 @@ export class StockManager {
                 <input type="number" inputmode="decimal" min="0" id="count_${Helpers.escapeHtml(i.id)}" class="input" data-count-item="${Helpers.escapeHtml(i.id)}" placeholder="${tx('ui.stock.counted_kg')}">
             </div>`).join('');
         const html = `<div class="stock-count"><p class="stock-note">${tx('ui.stock.count_explain')}</p>${rows}</div>`;
-        const ok = await UIManager.showModalWithHtml(html, t('ui.stock.count_title'), true);
+        const ok = await UIManager.showModalWithHtml(html, t('ui.stock.count_title'), true, { confirmLabel: t('ui.confirm.continue') });
         if (!ok) return;
         const counted = [...document.querySelectorAll('[data-count-item]')].map(input => ({
             itemId: input.dataset.countItem,
@@ -415,7 +415,7 @@ export class StockManager {
             UIManager.showToast(t('msg.stock.count_none'));
             return;
         }
-        const sure = await UIManager.showModal(tn('msg.stock.count_confirm', changes.length), t('ui.stock.count_title'), true);
+        const sure = await UIManager.showModal(tn('msg.stock.count_confirm', changes.length), t('ui.stock.count_title'), true, { confirmLabel: t('ui.confirm.save_count') });
         if (!sure) return;
         const saved = await Helpers.runExclusive('stock-adjust', '[data-stock-adjust]', () => {
             let n = 0;
@@ -803,7 +803,8 @@ export class StockManager {
             const ok = await UIManager.showModal(
                 t('msg.stock.only_kg_in_stock_remove', { quantity: plan.quantity }),
                 t('msg.stock.remove_more_than_stock'),
-                true
+                true,
+                { confirmLabel: t('ui.confirm.remove') }
             );
             if (!ok) return;
         }

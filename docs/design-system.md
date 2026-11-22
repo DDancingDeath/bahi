@@ -138,7 +138,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   (weight chips, bill lines, rate chips) are `-ghost -icon` / `-tonal -icon` with the sprite icon; period steppers are `-icon`.
   Inline text links inside a sentence (`.due-bill-link`, `.bill-edits__view`) stay links.
 - **Fields** `.field > label + .input`, label above, `₹` / `kg` in `.adorn`; native `<select>`
-  styled as an input; checkbox and switch; `.kbd` hints (desktop). **Search** `.search-field > .i + .input`: the
+  styled as an input; checkbox and switch; **radio rows** `fieldset.radio-rows > legend + label > input[type=radio]` (the legend asks the question, one 48 px row per choice, hairlines between; Mark as cleared); every `button`, `input`, `select` and `textarea` inherits the app font (`variables.css`), never the browser's Arial; `.kbd` hints (desktop). **Search** `.search-field > .i + .input`: the
   sprite search icon inside the field (decorative, `aria-hidden`), the input keeps its own `aria-label`. A field
   error is `showFieldError(inputId, text)` (`ui/bill-highlight.js`): a `.bill-check-msg` line under the field
   (`role="alert"`), `aria-invalid` and `aria-describedby` on the input, cleared on its next edit (Billing and
@@ -224,7 +224,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   still buttons that filter). Age colours: up to 30 days `--ink-3`, 31–60 `--warning-dot`, 61–90
   `--on-caution-soft`, 90+ `--negative`; dues themselves stay in ink, and ages are `.tag` (`.warn` after 30
   days, `.neg` after 90). The rule is `dueTone(days, amount)` in `utils/aging.js` (History's Due tag and Workers' dues use it too): ₹0 is never coloured, so an empty age group shows a muted dot and amount. Party rows are `.row`s in a panel with an initials avatar drawn from
-  `data-initials` (CSS, so the row's text is unchanged); bills are panels.
+  `data-initials` (CSS, so the row's text is unchanged); the bills are one `.panel.due-bills` of `.due-bill` rows with hairlines (bill no. in accent without underline, the due right-aligned, the Received / Pay label above its Cash / Online pair).
 - **Today › Cash (5.2a)**: Available cash is the hero figure, the day's other figures a `.metrics` panel (each figure draws its
   own hairlines, so the grid holds whichever ones show); Open, Record and Close are panels of `.field`s with ₹ as an `.adorn-pre`,
   one primary button each (Record is tonal while Close shows); the Difference figure takes a tone class. The script's markup
@@ -235,7 +235,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   Date, the phone action bar) on the page's `.bill-page` class: Billing's `#billing` rules read `:is(#billing, .bill-page)`,
   and its tones read `--bill-tone-text / -soft / -fill / -ink`, which `.bill-page` sets to the wholesale mode (violet fills and
   soft, ink text). Sales | History | Outstanding is a `.seg`; stock and average rate are `.metrics`; Outstanding bills are
-  Outstanding's `.due-bill` panels; a bill opened from a list is panels of `.row`s and a `.table`.
+  Outstanding's `.due-bills` panel of rows; a bill opened from a list is panels of `.row`s and a `.table`.
   `moneyInText(text, amounts, opts)` (`components.js`) draws the figure (or an array of figures, found in order) inside a
   translated sentence with `moneyHtml` (`opts` as `formatRupees`, e.g. the preset `'rate'`; a missing amount
   leaves its text as it is).
@@ -245,7 +245,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   in a panel (`[data-stock-item]` is the hook; an unmatched bucket takes a tone on its note and kg); the low-stock list is a
   `.notice`; the adjustment form is a panel of `.field`s with kg and ₹ … /kg as `.adorn`, current stock and average
   rate as `.metrics`; adjustments are panels (`[data-history-item]` hook). Sections switch with `hidden`.
-- **History (5.4a, C4)**: a bill is a `.row` (`[data-history-item][data-bill-row]` is the hook, also on Wholesale › History); consecutive rows join into one panel with hairlines. The bill number has its `.mode-dot` (no side stripe), number and amount in ink; online / cash / due are `.tag`s (the Due tag ages with `dueTone`). Table View and the other desktop lists (Day labour, Rate trends, Recurring bills, Workers) are `.table`s.
+- **History (5.4a, C4)**: a bill is a `.row` (`[data-history-item][data-bill-row]` is the hook, also on Wholesale's recent bills); consecutive rows join into one panel with hairlines. The bill number has its `.mode-dot` (no side stripe), number and amount in ink; online / cash / due are `.tag`s (the Due tag ages with `dueTone`). Table View and the other desktop lists (Day labour, Rate trends, Recurring bills, Workers) are `.table`s. Bill details are one panel (`.bill-view-sheet`): the head (party, total, then Paid / Due as plain `--ink-2` text, never tinted chips), then weights, items, totals (Labour in ink) and payment as `.bill-view-sec` sections under hairlines; item names follow the item-name language (`lineItemIdentity`), and a weight never wraps inside its number.
 - **Expenses (5.4b)**: Business | Personal is a `.seg`; each form is a `.panel` of `.field`s (₹ as an `.adorn`) with a primary
   Save and a tonal Print; a section's list is a `.panel` of `.row`s (amount in `.row-trail`, voided rows `.is-voided` with a
   `.tag`), "Show voided" is a `.switch` and the quick-fill templates are `.chip`s. Expense details: the amount as a
@@ -297,10 +297,15 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   figures; the receipt itself, its title and its share text are unchanged. The tenant's `/r/<token>` page is standalone
   like `/download`: `www/r/rent-history.css` copies the tokens it uses into `:root` (same test).
 - **Notices and empty states (C4b)**: the old banners are notices: unsaved bill `.autosave-notice` (warn), live bill checks `.bill-check-notice` (neg / warn, solid, sticky), wrong clock `.clock-notice` and printer permission `.printer-perm-notice` (float), the Android update `.app-update` (info, in the page at the top of Today), a voided bill `.bill-voided-notice`, the bill being edited `#billEditNotice` (info, "Editing #P12" on Billing until it is saved) and History's older-bills line `.history-range-note` (info, warn on error). Every page's empty list is an `emptyState()`.
-- **Feedback** `.notice` (`.pos/.neg/.warn/.info`; `.solid` puts the tint on an opaque surface for a notice that sticks or floats, `.float` pins it to the top of the screen, `.notice-actions` holds its buttons; `[hidden]` always hides it), `.empty` (write it with `emptyState({ icon, title, text, action, tone })` from `ui/components.js`: the icon tile, a title, an optional line and an optional button; loading and error lines stay a plain `<p class="empty">`), `.skel`, `.toast` (near-black; light in the
+- **Feedback** `.notice` (`.pos/.neg/.warn/.info`; `.solid` puts the tint on an opaque surface for a notice that sticks or floats, `.float` pins it to the top of the screen, `.notice-actions` holds its buttons; `[hidden]` always hides it), `.empty` (write it with `emptyState({ icon, title, text, action, tone })` from `ui/components.js`: the icon tile, a title, an optional line and an optional button; error lines stay a plain `<p class="empty">`), `.skel` (a page's first load is `skeleton({ label, rows, panel })` from `ui/components.js`: shimmering bars in a panel, the label for screen readers, not a "Loading…" line), `.toast` (near-black; light in the
   Dark theme), `.dialog` / `.sheet` / `.scrim` (old `.modal-overlay > .modal-box`), `.spinner` (blocking
   saves only). Dialog buttons: Cancel (ghost) on the left, one primary on the right, labelled with a verb; a destructive
   confirm (Void bill) passes `{ confirmLabel, danger: true }` to `UIManager.showModal` / `showModalWithHtml` (`.btn-danger` instead of `.btn-primary`; Cancel is `.btn-ghost`).
+  Every confirm with Cancel passes a `confirmLabel` ("Reload", "Print again", "Cancel reminder"; `tests/ci/confirm-verbs.test.js`, F50).
+  Bill-check warnings at Save are listed once, bulleted, in a `.notice.warn` (`warningsNoticeHtml`, ui/bill-highlight.js) while the bill's
+  banner hides; an edit shows them in its one "Save changes" sheet above the reason (`askEditReason`, modules/billing.js, F51/F53).
+  A native date box gets a `.date-caption` under it with the day as `formatDay` writes it (`ui/date-caption.js`, every
+  `input[type=date]` but the bill forms', whose date line already says the day; a From – To pair shares one caption, F54).
   **The app dialog (C5a)**: `showModal`, `showModalWithHtml` and `showCustomModal` share one controller (`ui/ui-manager.js`)
   and one template (`#modalOverlay.scrim.app-scrim > #modalBox.app-dialog` with `.dialog-title`, `.dialog-body` and `.dialog-actions`): a `.dialog` from 600 px, a bottom `.sheet` with a grabber
   below. It takes focus, keeps Tab inside (`trapFocus`, shared with the More and Rentals sheets) and gives focus back; Esc,

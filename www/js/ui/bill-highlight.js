@@ -30,6 +30,7 @@ import { tip } from '../tip/index.js';
 import { AUTO_ROLLBACK_REASON } from '../tip/scenarios/bill-save.js';
 import { awaitingServer } from '../utils/data-freshness.js';
 import { on, DATA_FRESHNESS_CHANGED } from '../utils/events.js';
+import { icon } from './icons.js';
 
 export const CHECK_DEBOUNCE_MS = 250;
 
@@ -270,6 +271,26 @@ function ensureBanner(section) {
     return banner;
 }
 
+/**
+ * The warnings to confirm at Save as one bulleted `.notice.warn` (F51); a combined rate warning
+ * gives one bullet per line.
+ * @param {Array<string>} lines
+ * @returns {string} HTML, '' when there is nothing to list
+ */
+export function warningsNoticeHtml(lines) {
+    if (!lines?.length) return '';
+    const items = lines.map(s => `<li>${Helpers.escapeHtml(s)}</li>`).join('');
+    return `<div class="notice warn bill-check-sheet-notice" role="status">${icon('triangle', 'i-sm')}<ul class="grow bill-check-bullets">${items}</ul></div>`;
+}
+
+const warningLines = (issues) => issues.flatMap(i => (Array.isArray(i.parts) ? i.parts.map(text) : [text(i)]));
+
+/** Hides the bill's banner while its warnings are listed in a Save dialog: one message per warning. */
+function hideBanner(kind) {
+    const banner = sectionOf(kind)?.querySelector(':scope > .bill-check-notice');
+    if (banner) banner.hidden = true;
+}
+
 function renderBanner(cfg, section, issues, unplaced, firstTarget) {
     const banner = ensureBanner(section);
     // One message per problem (U-33): a problem shown at its field needs no banner; only those with no place are listed here
@@ -459,12 +480,14 @@ export const BillChecksUI = {
     /**
      * Decide whether the bill may be saved. Hard blocks stop the save with the
      * same message as before; other blocks need an owner/manager reason;
-     * warnings need one confirm.
+     * warnings need one confirm, or with deferWarnings come back in `warnings` for the
+     * caller's own dialog (then `accept()` once confirmed, `restore()` when cancelled).
      * @param {string} kind
      * @param {Object} [draftOverrides] - e.g. the edit context from the bill editor
-     * @returns {Promise<{ok: boolean, flags: Array<Object>, overrides: Array<Object>}>}
+     * @param {{deferWarnings?: boolean}} [opts]
+     * @returns {Promise<{ok: boolean, flags: Array<Object>, overrides: Array<Object>, warnings?: Array<string>, accept?: Function, restore?: Function}>}
      */
-    async confirmSave(kind, draftOverrides = null) {
+    async confirmSave(kind, draftOverrides = null, { deferWarnings = false } = {}) {
         let issues;
         try {
             issues = evaluate(kind, draftOverrides);
@@ -539,23 +562,37 @@ export const BillChecksUI = {
         }
 
         const confirmList = [...autoOverride, ...combineRateWarnings(warns)];
+        const flags = toFlags(warns, by, Date.now());
+        const restore = () => {
+            if (sectionOf(kind)) renderIssues(kind, issues);
+        };
+        const accept = () => {
+            restore();
+            if (!autoOverride.length) return;
+            AuditService.log(AuditService.ACTIONS.OVERRIDE_CHECK, {
+                kind, rules: overrides.map(o => o.rule), reason: AUTO_ROLLBACK_REASON
+            }).catch(e => console.warn('Audit log failed:', e));
+        };
+        if (autoOverride.length) overrides = toOverrides(autoOverride, AUTO_ROLLBACK_REASON, by, Date.now());
+        if (confirmList.length) hideBanner(kind);
+        // An edit lists these in its one "Save changes" sheet with the reason (F53)
+        if (deferWarnings) {
+            return { ok: true, flags, overrides, warnings: warningLines(confirmList), accept, restore };
+        }
         if (confirmList.length) {
-            const list = confirmList.map(w => text(w)).join('\n');
-            const ok = await UIManager.showModal(
-                t('msg.checks.save_anyway_list', { list }),
+            const ok = await UIManager.showModalWithHtml(
+                warningsNoticeHtml(warningLines(confirmList)),
                 t('msg.checks.check_before_saving'),
                 true,
                 { confirmLabel: t('ui.confirm.save_anyway') }
             );
-            if (!ok) return stop;
+            if (!ok) {
+                restore();
+                return stop;
+            }
         }
-        if (autoOverride.length) {
-            overrides = toOverrides(autoOverride, AUTO_ROLLBACK_REASON, by, Date.now());
-            AuditService.log(AuditService.ACTIONS.OVERRIDE_CHECK, {
-                kind, rules: overrides.map(o => o.rule), reason: AUTO_ROLLBACK_REASON
-            }).catch(e => console.warn('Audit log failed:', e));
-        }
-        return { ok: true, flags: toFlags(warns, by, Date.now()), overrides };
+        accept();
+        return { ok: true, flags, overrides };
     }
 };
 

@@ -45,7 +45,7 @@ export const Exporter = {
             UIManager.showToast(t('msg.export.owner_only'), 'error');
             return false;
         }
-        if (names && !(await UIManager.showModal(t('msg.export.confirm_names'), t('msg.export.confirm_title'), true))) return false;
+        if (names && !(await UIManager.showModal(t('msg.export.confirm_names'), t('msg.export.confirm_title'), true, { confirmLabel: t('ui.confirm.export') }))) return false;
         const ref = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
         const record = (status) => AuditService.note(AuditService.ACTIONS.EXPORT, exportAuditDetails({ kind, format, period, rows, status, ref }));
         record('started');

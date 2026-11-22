@@ -39,7 +39,7 @@ While a bill is being typed:
   complete line (item, rate, weight) asks "Add this line and save" or "Discard
   line and save"; a half-typed one is named and the bill waits.
 - **A very different rate** (BF-RATECHECK): a rate at least 5× today's rate of the
-  item on the Rates page, or at most ⅕ of it, asks before the line is added and shows
+  item on Items & rates, or at most ⅕ of it, asks before the line is added and shows
   the money: "15 kg × ₹260.00 = ₹3,900. Today's rate ₹26.00 would give ₹390."
   **Fix rate** is the default; "Yes, ₹260.00 is right" adds the line and records who
   confirmed it. The owner sees every confirmed rate on Today's Day report and in Anomalies.
@@ -50,7 +50,7 @@ While a bill is being typed:
   totals: they are not asked. The owner sees every confirmed bag on Today's Day report and in Anomalies.
 - **The usual rate** (BF-USUAL): at Save a rate more than 2× (or under ½ of) the usual rate
   warns, always with the unit: "Wheat: ₹50/kg is 2.1× the usual ₹24/kg". The usual rate is the
-  item's rate on the Rates page; only with none there, the middle rate of its last 10 bills (at
+  item's rate on Items & rates; only with none there, the middle rate of its last 10 bills (at
   least 3, leaving out voided bills and bills that already carry a rate warning), so one wrong bill
   never becomes "usual". The warnings of all lines show as one "Check rates" message.
 - **A per-quintal rate** (BF-UNITSLIP): a rate 50–200× the usual one says "₹2,400/kg looks like a

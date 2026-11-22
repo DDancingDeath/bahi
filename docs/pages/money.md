@@ -1,4 +1,4 @@
-# Money (Profit, Cash, Spending, Worth)
+# Money (Profit, Spending, Worth)
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [money.hi.md](money.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
@@ -8,7 +8,7 @@ year (CMP; "not known" when that period's figures are not available). Periods
 today, compared with the same days of last week); ‹ › step a day or a week.
 **Worth** is where things stand today: it has no period and always shows.
 
-A loaded bill with a doubtful rate (BF-USUAL: a line 5× or ⅕ of the item's Rates-page rate, such as
+A loaded bill with a doubtful rate (BF-USUAL: a line 5× or ⅕ of the item's rate on Items & rates, such as
 ₹2,400/kg against ₹24/kg) shows a notice on Profit (any bill type) and Worth (purchases), with
 **Open bill** to check it: such a bill moves cost, profit and stock value.
 
@@ -28,12 +28,12 @@ when it is not connected).
 | Cost of what was sold (M2) | What the goods sold cost, at average cost. |
 | Profit on goods (M3) | Sales − cost of what was sold. |
 | Business expenses (M4), dues written off (M5) | Expenses of the period; dues written off in it (bad debts). |
-| **Profit (M6)** | Profit on goods − business expenses − dues written off. Labour is **not** taken off (it is already off the purchase bills). It reads **"Profit (estimate)"** while some kg was sold before its purchase was written (its cost is not known yet); the warning under it says how many kg, once. A line under it says that profit counts every sale made, credit sales too, and links to Cash for the money that came in. With no sale bill in the period it says "No sales in Nov 2026 yet" ("No sales in Oct 2026" for a past month); the figures stay. |
+| **Profit (M6)** | Profit on goods − business expenses − dues written off. Labour is **not** taken off (it is already off the purchase bills). It reads **"Profit (estimate)"** while some kg was sold before its purchase was written (its cost is not known yet); the warning under it says how many kg, once. A line under it says that profit counts every sale made, credit sales too, and links to Money in and out for the money that came in. With no sale bill in the period it says "No sales in Nov 2026 yet" ("No sales in Oct 2026" for a past month); the figures stay. |
 | Labour (M7, M20, M21, M18) | Labour deducted on purchases (M7); paid to labourers, the period's Labour expenses (M20, already in business expenses); paid − deducted (M21, shown only: profit does not change, owner decision 8 Nov 2026); labour to pay, an estimate worked out day by day (M18). |
 | Personal expenses, withdrawals (M8, M9) | Shown apart from profit. |
 | Expenses per ₹100 of sales (M19) | Spending says so when business expenses are more than ₹10 for every ₹100 of sales (personal expenses not counted). |
 | Kept in business (M10) | Profit − personal expenses − withdrawals. |
-| Money in / out / net (M12–M14) | Paid at save + due payments, and expenses; cash and online. The sentence under it says which way the money went and the biggest outflow; it does not guess why net money in differs from profit. |
+| Money in / out / net (M12–M14) | Under Profit, in **Money in and out** (there is no Cash tab any more: the cash drawer lives in Today › Cash, and a **Cash drawer** row links there). Net money in shows first; money in, money out and the day-by-day chart open below it. Paid at save + due payments, and expenses; cash and online. The sentence under it says which way the money went and the biggest outflow; it does not guess why net money in differs from profit. |
 | Breakdown count (FB-COUNT) | Tap a figure: the list ends with "Total of 168 lines in 136 bills" when every row is a bill line, else "Total of N entries". Group the rows by item, party, day or part of the sum. |
 | Net worth (M15) | Stock value + to receive + other accounts + counted drawer cash − to pay. Other accounts (bank, savings, loans) are the same on all your phones, in whole rupees; you and managers with Money add or remove them. Members don't see bank balances: their net worth leaves them out and says so. The drawer cash (C9) counts only when the cash was counted in the last 30 days; while it is loading, when it could not be loaded, or with no count in 30 days it shows "—" with the reason, and net worth leaves it out and says so. |
 | Purchases (M16) | Sum of purchase bill totals (after labour). |

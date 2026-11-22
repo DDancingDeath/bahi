@@ -1003,7 +1003,7 @@ export class SettingsManager {
         if (localStorage.getItem(RECEIPT_SHARE_ASKED_KEY) === '1' || navigator.onLine === false) return false;
         // One dialog at a time: never take over a question the user is answering
         if (AppState.modalResolve || document.getElementById('modalOverlay')?.classList.contains('active')) return false;
-        const yes = await UIManager.showModal(t('msg.settings.receipt_share_offer'), t('ui.settings.receipt_share'), true);
+        const yes = await UIManager.showModal(t('msg.settings.receipt_share_offer'), t('ui.settings.receipt_share'), true, { confirmLabel: t('ui.confirm.use_on_all_phones') });
         safeSetItem(RECEIPT_SHARE_ASKED_KEY, '1');
         return yes ? this.shareOwnReceipt() : false;
     }

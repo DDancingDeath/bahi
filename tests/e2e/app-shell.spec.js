@@ -25,7 +25,7 @@ const inSheet = (page) => page.evaluate(() => !!document.activeElement?.closest(
 test('phone: the app bar names the open page in English and Hindi; the open page is the one main landmark', async ({ page, problems }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'phone shell');
     await login(page, 'owner');
-    for (const [route, title] of [['billing', 'Billing'], ['day', 'Today'], ['due', 'Outstanding'], ['rates', 'Rates'], ['settings-common', 'Settings']]) {
+    for (const [route, title] of [['billing', 'Billing'], ['day', 'Today'], ['due', 'Outstanding'], ['rates', 'Items & rates'], ['settings-common', 'Settings']]) {
         await showTab(page, route);
         const s = await shell(page);
         expect(s.title, route).toBe(title);
@@ -161,7 +161,7 @@ const focusedIn = (page) => page.evaluate(() => {
 test('desktop: the page header names the open page (en, hi) with the sync pill and the bell; one banner, nav and main', async ({ page, problems }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'desktop shell');
     await login(page, 'owner');
-    const pages = [['billing', 'Billing'], ['day', 'Today'], ['wholesale-sales', 'Wholesale'], ['expenses', 'Expenses'], ['rates', 'Rates'],
+    const pages = [['billing', 'Billing'], ['day', 'Today'], ['wholesale-sales', 'Wholesale'], ['expenses', 'Expenses'], ['rates', 'Items & rates'],
         ['history', 'History'], ['stock', 'Stock'], ['due', 'Outstanding'], ['money', 'Money'], ['insights', 'Insights'],
         ['statements', 'Statements'], ['anomalies', 'Anomalies'], ['admin', 'Admin'], ['settings-common', 'Settings']];
     for (const [route, title] of pages) {

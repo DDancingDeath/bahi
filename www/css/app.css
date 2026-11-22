@@ -214,6 +214,25 @@
   }
 }
 
+/* Rate trends chart series (canvas lines and volume bars, and their legend swatches; rate-trends.js reads them) */
+:root {
+  --chart-purchase: #2563eb;
+  --chart-retail: #059669;
+  --chart-wholesale: #d97706;
+  --chart-bought: #93c5fd;
+  --chart-sold: #6ee7b7;
+}
+
+@media screen {
+  [data-mode="dark"] {
+    --chart-purchase: #60a5fa;
+    --chart-retail: #34d399;
+    --chart-wholesale: #fbbf24;
+    --chart-bought: #1e40af;
+    --chart-sold: #047857;
+  }
+}
+
 /* The Bahi mark (docs/brand/icon-full.svg, #375): white B with the sage corner on charcoal, fixed in every theme;
    on dark surfaces a faint ring keeps the tile's edge */
 :root {
@@ -357,6 +376,14 @@ html[lang="hi"] [data-theme] {
 /* Global Base Styles */
 * {
   box-sizing: border-box;
+}
+
+/* Form controls take the app's font, not the browser's Arial (N1) */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 html {
@@ -1914,6 +1941,41 @@ input[type="radio"] {
   align-items: center;
 }
 
+/* Radio rows: a fieldset whose legend asks the question, one 48 px row per choice with hairlines between (F52) */
+.radio-rows {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.radio-rows > legend {
+  margin-bottom: var(--sp-1);
+  padding: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+}
+
+.radio-rows > label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.radio-rows > label + label {
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.radio-rows > label > input {
+  flex: none;
+  margin: 0;
+}
+
 /* The switch draws 36 × 22 but takes taps on 62 × 48: a clear border around the track that the negative margin
    gives back to the layout */
 input[type="checkbox"].switch,
@@ -1997,6 +2059,7 @@ input[type="checkbox"].switch:focus-visible,
 /* These set display, which would otherwise beat the hidden attribute */
 .btn[hidden],
 .seg[hidden],
+.seg > button[hidden],
 .tabs[hidden] {
   display: none;
 }
@@ -2203,6 +2266,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   body textarea {
     font-size: var(--fs-input) !important;
   }
+}
+
+/* ---------- Date caption (F54) ---------- */
+/* The day in the app's format under a native date box (js/ui/date-caption.js) */
+.date-caption {
+  display: block;
+  flex-basis: 100%;
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+}
+
+.date-caption[hidden],
+input[hidden] + .date-caption {
+  display: none;
 }
 
 /* ---- css/surfaces.css ---- */
@@ -2704,6 +2781,16 @@ a.row:active {
 @keyframes skel-shimmer {
   from { background-position: 100% 0; }
   to { background-position: -100% 0; }
+}
+
+/* skeleton() in ui/components.js: a few bars in a panel while a page loads */
+.skel-list {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.skel-list .skel-short {
+  width: 60%;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5069,7 +5156,10 @@ input[type="number"] {
   --bill-tone-ink: var(--on-mode-wholesale);
 }
 
-.ws-tabs {
+.ws-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
   margin-bottom: var(--sp-3);
 }
 
@@ -5143,7 +5233,6 @@ input[type="number"] {
   text-align: center;
 }
 
-.ws-search,
 .history-search {
   position: relative;
   display: flex;
@@ -5152,7 +5241,6 @@ input[type="number"] {
   margin-bottom: var(--sp-3);
 }
 
-.ws-search > .i,
 .history-search > .i {
   position: absolute;
   top: 50%;
@@ -5162,41 +5250,14 @@ input[type="number"] {
   pointer-events: none;
 }
 
-.ws-search > .input,
 .history-search > .input {
   flex: 1;
   min-width: 0;
   padding-left: var(--sp-10);
 }
 
-.ws-search > .btn,
 .history-search > .btn {
   flex: none;
-}
-
-/* Wholesale › Outstanding: Mark as cleared is a tick box beside the bill's buttons */
-.ws-clear {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  min-height: 44px;
-  padding-right: var(--sp-2);
-}
-
-.ws-clear > label {
-  margin: 0;
-  color: var(--ink);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-label);
-  cursor: pointer;
-}
-
-.ws-clear > input {
-  width: 20px;
-  height: 20px;
-  min-height: 0;
-  margin: 0;
-  cursor: pointer;
 }
 
 /* A wholesale bill opened from a list (bill details sheet) */
@@ -6701,6 +6762,18 @@ tr.bill-check-line .bill-check-msg {
     text-align: left;
 }
 
+/* The warnings listed once in the Save dialog (F51, F53) */
+.bill-check-sheet-notice {
+    margin-bottom: var(--sp-3);
+    text-align: left;
+}
+
+.bill-check-bullets {
+    margin: 0;
+    padding-left: var(--sp-4);
+    list-style: disc;
+}
+
 .bill-check-reason {
     width: 100%;
     margin-top: 6px;
@@ -6818,9 +6891,17 @@ tr.bill-check-line .bill-check-msg {
 }
 
 .bill-view-weights {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--sp-3);
   color: var(--ink-2);
   font-size: var(--fs-sm);
-  overflow-wrap: anywhere;
+}
+
+/* A weight never breaks inside the number (F49) */
+.bill-view-w {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .bill-view-packets {
@@ -7268,11 +7349,6 @@ tr.bill-check-line .bill-check-msg {
   background: var(--accent-soft);
 }
 
-/* Wholesale › History controls */
-.wholesale-history-controls {
-  margin-bottom: var(--sp-1);
-}
-
 @media (max-width: 480px) {
   .history-apply-range {
     flex: 1 1 100%;
@@ -7586,14 +7662,32 @@ tr.bill-check-line .bill-check-msg {
   overflow-wrap: anywhere;
 }
 
-.bill-view-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+.bill-view-paid {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
 }
 
-.bill-view-chips:empty {
-  display: none;
+/* One panel (F49): the head, then each section under a hairline */
+.bill-view-sheet > .bill-view-head {
+  margin-bottom: 0;
+}
+
+.bill-view-sec {
+  padding-bottom: var(--sp-2);
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.bill-view-sec > .bill-view-title {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4) var(--sp-1);
+}
+
+.bill-view-sec > .bill-view-items {
+  margin-bottom: 0;
+}
+
+.bill-view-sec > .bill-view-packets {
+  padding-right: var(--sp-4);
 }
 
 .bill-view-more {
@@ -7884,14 +7978,25 @@ tr.bill-check-line .bill-check-msg {
     margin-bottom: var(--sp-3);
 }
 
-/* ---------- Bills: one panel per open bill (BILL-DUE); [data-history-item] is the hook (tests, search) ---------- */
-[data-history-item].due-bill {
+/* ---------- Bills: one panel of bill rows (F19); [data-history-item] is the hook (tests, search) ---------- */
+.due-bills {
     margin-bottom: var(--sp-3);
-    padding: var(--sp-4);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--r-panel);
-    background: var(--panel-bg);
-    box-shadow: var(--panel-shadow);
+    overflow: hidden;
+}
+
+[data-history-item].due-bill {
+    position: relative;
+    padding: var(--sp-3) var(--sp-4);
+}
+
+/* A hairline between rows; the first row's sits above the panel and is clipped */
+.due-bills > .due-bill::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: var(--sp-4);
+    right: 0;
+    border-top: 1px var(--rule-style) var(--line);
 }
 
 .due-bill .history-header {
@@ -7903,8 +8008,16 @@ tr.bill-check-line .bill-check-msg {
 }
 
 .due-bill-title {
+    flex: 1;
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+}
+
+.due-bill-due {
+    flex: none;
+    margin-left: auto;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .due-bill-link {
@@ -7913,7 +8026,7 @@ tr.bill-check-line .bill-check-msg {
     background: none;
     color: var(--accent-text);
     font: inherit;
-    text-decoration: underline;
+    text-decoration: none;
     cursor: pointer;
 }
 
@@ -7971,8 +8084,9 @@ tr.bill-check-line .bill-check-msg {
     margin-top: var(--sp-3);
 }
 
+/* The label sits above its Cash / Online pair (F19) */
 .due-bill-pay > label {
-    flex: none;
+    flex: 0 0 100%;
     color: var(--ink-2);
     font-size: var(--fs-sm);
     font-weight: var(--w-label);
@@ -9458,6 +9572,7 @@ body.no-perm-contacts [data-perm~="contacts"] {
   content: ''; position: absolute; top: -1px; right: 0; bottom: 0; left: -1px; pointer-events: none;
   border-top: 1px solid var(--line); border-left: 1px solid var(--line);
 }
+.cash-metrics > .metric-span { grid-column: 1 / -1; }
 
 /* Close cash: in, out and the expected drawer (C1–C7) */
 .cash-body .cash-sub-title { margin: 0 0 var(--sp-1); color: var(--ink-3); font-size: var(--fs-sm); font-weight: var(--w-label); }
@@ -10155,8 +10270,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .rt-controls select { padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: var(--fs-input); width: 100%; min-width: 0; box-sizing: border-box; }
 
 .rt-outlook { border-left: 4px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface-2); padding: 10px; margin-bottom: var(--sp-2); }
-.rt-outlook-up { border-left-color: #b91c1c; background: var(--negative-soft); }
-.rt-outlook-down { border-left-color: #059669; background: var(--positive-soft); }
+.rt-outlook-up { border-left-color: var(--negative); background: var(--negative-soft); }
+.rt-outlook-down { border-left-color: var(--positive); background: var(--positive-soft); }
 .rt-outlook-flat { border-left-color: var(--line-strong); }
 .rt-outlook-head { font-weight: var(--w-strong); font-size: var(--fs-sm); }
 .rt-outlook-meta { font-size: var(--fs-caption); margin-top: var(--sp-1); display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
@@ -10170,11 +10285,11 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .rt-chart-wrap canvas { width: 100%; display: block; }
 .rt-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: var(--fs-caption); }
 .rt-legend i { display: inline-block; width: 10px; height: 10px; border-radius: var(--r-2xs); margin-right: var(--sp-1); vertical-align: middle; }
-.rt-legend .rt-sw-purchase { background: #2563eb; }
-.rt-legend .rt-sw-retail { background: #059669; }
-.rt-legend .rt-sw-wholesale { background: #92400e; }
-.rt-legend .rt-sw-bought { background: #93c5fd; }
-.rt-legend .rt-sw-sold { background: #6ee7b7; }
+.rt-legend .rt-sw-purchase { background: var(--chart-purchase); }
+.rt-legend .rt-sw-retail { background: var(--chart-retail); }
+.rt-legend .rt-sw-wholesale { background: var(--chart-wholesale); }
+.rt-legend .rt-sw-bought { background: var(--chart-bought); }
+.rt-legend .rt-sw-sold { background: var(--chart-sold); }
 .rt-legend .rt-sw-year { background: var(--c); }
 
 .rt-scroll { overflow-x: auto; }
@@ -10914,11 +11029,12 @@ div.ins-wide,
 .ins-page .table tr[data-item], .ins-page .table tr[data-party] { cursor: pointer; }
 .ins-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* Items table on phone: tighter columns and a wrapping header; the rest scrolls behind the cue */
+/* Items table on phone: tighter columns and a wrapping header; "vs last year" is left out so Profit per ₹100 fits (F25) */
 @media (max-width: 599.98px) {
   .ins-items-table th,
   .ins-items-table td { padding-left: var(--sp-2); padding-right: var(--sp-2); }
   .ins-page .ins-items-table th.num { white-space: normal; }
+  .ins-items-table .ins-ly { display: none; }
 }
 
 /* Insights "To do": a row with an icon tile and its action */
@@ -11478,16 +11594,6 @@ div.ins-wide,
     align-self: center;
   }
 
-  .due-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 var(--sp-3);
-  }
-
-  .due-list > :not(.due-bill) {
-    grid-column: 1 / -1;
-  }
-
   /* ---------- History / Wholesale › History: one aligned row per bill ---------- */
   /* bill no | party | amount | date & by | items | payment chips (ui/bill-row.js) */
   [data-history-item][data-bill-row] {
@@ -11668,6 +11774,8 @@ div.ins-wide,
   }
 
   .day-report .anom-actions {
+    flex: 1 1 100%;
+    min-width: 0;
     justify-content: flex-start;
   }
 

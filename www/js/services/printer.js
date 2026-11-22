@@ -492,7 +492,7 @@ const PrinterService = {
         const confirmReprint = async () => {
             if (!key || !this.uncertainJobs()[key]) return true;
             release();
-            const again = await UIManager.showModal(t('msg.printer.confirm_print_again'), t('ui.print.may_have_printed_title'), true);
+            const again = await UIManager.showModal(t('msg.printer.confirm_print_again'), t('ui.print.may_have_printed_title'), true, { confirmLabel: t('ui.confirm.print_again') });
             release = UIManager.holdLoading();
             return again;
         };

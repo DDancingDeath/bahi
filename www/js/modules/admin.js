@@ -778,7 +778,7 @@ const AdminManager = {
      */
     async checkDueFields() {
         if (AppState.userRole !== 'owner' || Helpers.isBusy('due-fields')) return;
-        if (!(await UIManager.showModal(t('msg.duefix.check_confirm'), t('ui.duefix.title'), true))) return;
+        if (!(await UIManager.showModal(t('msg.duefix.check_confirm'), t('ui.duefix.title'), true, { confirmLabel: t('ui.confirm.check_bills') }))) return;
         const box = document.getElementById('adminDueFieldsResult');
         await Helpers.runExclusive('due-fields', '#adminDueFields button', async () => {
             try {
@@ -809,7 +809,7 @@ const AdminManager = {
         const check = this.dueFieldsCheck;
         if (AppState.userRole !== 'owner' || Helpers.isBusy('due-fields') || !check?.todo.length) return;
         const count = check.todo.length;
-        if (!(await UIManager.showModal(t('msg.duefix.run_confirm', { count }), t('ui.duefix.title'), true))) return;
+        if (!(await UIManager.showModal(t('msg.duefix.run_confirm', { count }), t('ui.duefix.title'), true, { confirmLabel: t('ui.confirm.update_bills') }))) return;
         const box = document.getElementById('adminDueFieldsResult');
         await Helpers.runExclusive('due-fields', '#adminDueFields button', async () => {
             try {
@@ -1074,7 +1074,7 @@ const AdminManager = {
         let selectedCollections = [];
         
         const confirmed = await new Promise((resolve) => {
-            UIManager.showModalWithHtml(modalHTML, t('msg.admin.clear_data'), true).then((result) => {
+            UIManager.showModalWithHtml(modalHTML, t('msg.admin.clear_data'), true, { confirmLabel: t('ui.confirm.continue') }).then((result) => {
                 if (result) {
                     // Capture checkbox values while modal content still exists
                     const checkboxes = document.querySelectorAll('.collection-checkbox:checked');
@@ -1123,7 +1123,7 @@ const AdminManager = {
                         <label for="clearDataConfirmInput">${t('ui.admin.type_word_to_confirm', { word: `<strong>${Helpers.escapeHtml(DELETE_CONFIRM_WORD)}</strong>` })}</label>
                         <input id="clearDataConfirmInput" class="input" type="text" autocomplete="off" autocapitalize="characters">
                     </div>
-                </div>`, t('msg.admin.final_confirmation'), true).then((result) => {
+                </div>`, t('msg.admin.final_confirmation'), true, { confirmLabel: t('ui.confirm.delete_data'), danger: true }).then((result) => {
                 typed = document.getElementById('clearDataConfirmInput')?.value || '';
                 resolve(result);
             });
@@ -1153,7 +1153,7 @@ const AdminManager = {
                     <input type="checkbox" id="clearDataBackupSaved">
                     <span>${tx('msg.admin.confirm_backup_saved_title')}</span>
                 </label>
-            </div>`, t('msg.admin.final_confirmation'), true).then((result) => {
+            </div>`, t('msg.admin.final_confirmation'), true, { confirmLabel: t('ui.confirm.delete_data'), danger: true }).then((result) => {
             backupTicked = document.getElementById('clearDataBackupSaved')?.checked === true;
             return result;
         });

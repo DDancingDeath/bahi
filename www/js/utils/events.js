@@ -20,7 +20,7 @@
 
 /** View names (firestore-service.js VIEWS) → their refresh event. */
 export const REFRESH = Object.freeze(Object.fromEntries([
-    'itemsList', 'itemsTable', 'billingDropdown', 'salesDropdown', 'wholesaleHistory', 'wholesaleOutstanding',
+    'itemsList', 'itemsTable', 'billingDropdown', 'salesDropdown', 'wholesaleHistory',
     'history', 'due', 'stockAdjustmentHistory', 'stockView', 'expensesHistory', 'money', 'insights', 'statements', 'today'
 ].map(view => [view, `refresh:${view}`])));
 

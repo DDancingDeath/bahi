@@ -235,7 +235,7 @@ export const AskManager = {
             return;
         }
         const text = a.estimate ? t('msg.ask.load_confirm', { count: a.estimate.toLocaleString('en-IN') }) : t('msg.ask.load_confirm_unknown');
-        if (!(await UIManager.showModal(text, t('msg.ask.load_title'), true))) return;
+        if (!(await UIManager.showModal(text, t('msg.ask.load_title'), true, { confirmLabel: t('ui.confirm.load_bills') }))) return;
         entry.busy = true;
         entry.answer = { ...a, loading: true, failed: false };
         this.renderAnswers();

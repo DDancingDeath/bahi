@@ -9,8 +9,8 @@
  *   - www/index.html and www/templates/*.html: the same in style="…" and <style> blocks;
  *   - www/js/**: hex / rgb() / hsl() literals and colour names after a colour property.
  * Not counted: variables.css (the token home), the built app.css, @media print blocks and the
- * print / receipt output (rent-receipt.css, services/printer.js, services/receipt-drawing.js, rentals/rent-receipt.js), which
- * stay black on white in every theme.
+ * print / receipt output (services/printer.js, services/receipt-drawing.js, rentals/rent-receipt.js), which stay black on
+ * white in every theme. rent-receipt.css styles the on-screen receipt dialog and list, so it is counted (N2).
  *
  * Strict: a file with a hard-coded colour fails unless tests/ds-allowlist.json has an entry
  * (metric "colour") for it at that count, with a reason (canvas charts, standalone pages; ds-allowlist.js).
@@ -21,7 +21,7 @@ const { expectAllowed } = require('./ds-allowlist');
 
 const ROOT = path.join(__dirname, '..', '..');
 const SKIP = new Set([
-    'www/css/app.css', 'www/css/variables.css', 'www/css/rent-receipt.css',
+    'www/css/app.css', 'www/css/variables.css',
     'www/js/services/printer.js', 'www/js/services/receipt-drawing.js', 'www/js/rentals/rent-receipt.js',
 ]);
 

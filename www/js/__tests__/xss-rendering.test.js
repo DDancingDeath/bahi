@@ -34,8 +34,8 @@ function setupDom() {
     document.body.innerHTML = `
         <input id="historySearch" value="">
         <div id="historyList"></div>
-        <div id="salesHistoryList"></div>
-        <div id="salesOutstandingList"></div>
+        <div id="salesRecentList"></div>
+        <div id="dueAging"></div>
         <div id="dueList"></div>
         <div id="cashHistoryList"></div>
         <div id="billDetailsOverlay"><div id="billDetailsContent"></div></div>
@@ -169,25 +169,32 @@ describe('wholesale screen escapes record values', () => {
         payments: [{ amount: NUM, date: IMG, recordedBy: IMG }]
     });
 
-    test('history list', () => {
+    test('recent bills list', () => {
         AppState.salesHistory = [sale()];
         WholesaleSalesManager.renderSalesHistory();
-        const list = document.getElementById('salesHistoryList');
+        const list = document.getElementById('salesRecentList');
         assertNoInjection(list);
         expect(list.textContent).toContain(`#${IMG}`);
         expect(runHandler(handlerAttr(list.querySelector('[onclick],[data-onclick]')))).toEqual([[QUOTE_ID]]);
     });
 
-    test('outstanding list: ids in onclick/onchange/id/for attributes', () => {
+    test('History bill details: its payment history (date, who) is escaped', async () => {
         AppState.salesHistory = [sale()];
-        WholesaleSalesManager.renderSalesOutstanding();
-        const list = document.getElementById('salesOutstandingList');
-        assertNoInjection(list);
-        const handlers = [...list.querySelectorAll('[onclick],[onchange],[data-onclick],[data-onchange]')]
-            .map(el => runHandler(handlerAttr(el)));
-        expect(handlers).toEqual([[[QUOTE_ID]], [[QUOTE_ID]], [[QUOTE_ID]], [[QUOTE_ID]]]);
-        expect(list.querySelector('input[type="number"]').id).toBe(`payment_${QUOTE_ID}`);
-        expect(list.querySelector('label[for]').htmlFor).toBe(`clear_${QUOTE_ID}`);
+        await HistoryManager.viewBill(`id:${QUOTE_ID}`, 'wholesale');
+        const content = document.getElementById('billDetailsContent');
+        assertNoInjection(content);
+        expect(content.querySelector('.bill-view-payments').textContent).toContain(IMG);
+    });
+
+    test('Outstanding › Wholesale: the party note\'s Complete all due keeps the name an argument', () => {
+        AppState.userRole = 'owner';
+        AppState.settings = {};
+        AppState.salesHistory = [sale()];
+        OutstandingManager.showParty('wholesale', QUOTE_ID);
+        const note = document.querySelector('.party-filter-note');
+        assertNoInjection(note);
+        expect(runHandler(handlerAttr(note.querySelector('[data-complete-all]')))).toEqual([[QUOTE_ID]]);
+        OutstandingManager.partyFilter = null;
     });
 
     test('sale details: bill number, rate, qty', async () => {

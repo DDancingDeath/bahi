@@ -75,12 +75,12 @@ export function renderEditsList(list, edits) {
 
 /**
  * Asks for a required reason (void or edit). Too short or cancelled: null.
- * @param {{titleKey: string, explainKey?: string, labelKey: string, confirmKey?: string, danger?: boolean}} keys
- *   confirmKey: the confirm button's verb ("Void bill"); danger: a destructive confirm
+ * @param {{titleKey: string, explainKey?: string, labelKey: string, confirmKey?: string, danger?: boolean, leadHtml?: string}} keys
+ *   confirmKey: the confirm button's verb ("Void bill"); danger: a destructive confirm; leadHtml: trusted, escaped HTML shown first
  * @returns {Promise<?string>}
  */
-export async function askReason({ titleKey, explainKey, labelKey, confirmKey, danger = false }) {
-    const html = `${explainKey ? `<p>${L(explainKey)}</p>` : ''}
+export async function askReason({ titleKey, explainKey, labelKey, confirmKey, danger = false, leadHtml = '' }) {
+    const html = `${leadHtml}${explainKey ? `<p>${L(explainKey)}</p>` : ''}
         <div class="field">
             <label for="reasonInput">${L(labelKey)}</label>
             <textarea id="reasonInput" class="input" rows="2" maxlength="${REASON_MAX}"></textarea>

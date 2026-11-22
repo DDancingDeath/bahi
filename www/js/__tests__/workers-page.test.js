@@ -151,3 +151,18 @@ test('a background refresh still in flight when the page loads and saves never o
     expect(payDueReminder(localStorage, 'o1', NOW)).toBeNull();
     AppState.currentUser = null;
 });
+
+test('F63/F39: a skeleton while loading; then Add worker sits on the right of the counts, above the list', async () => {
+    let done;
+    repo.loadWorkers.mockReturnValue(new Promise(r => { done = r; }));
+    const open = W.init();
+    expect(body().querySelector('.skel-list[role="status"] .skel')).not.toBeNull();
+    expect(body().querySelector('p.empty')).toBeNull();
+    expect(body().textContent).toContain('Loading…');
+    done([ramu()]);
+    await open;
+    const head = body().querySelector('.wp-list-head');
+    expect(head.querySelector('.wp-counts')).not.toBeNull();
+    expect(head.lastElementChild.matches('button.wp-add[data-onclick="workers.showForm(\'add\')"]')).toBe(true);
+    expect(head.nextElementSibling.classList.contains('wp-list')).toBe(true);
+});
