@@ -14,10 +14,9 @@ import { closedCount, drawerStatus } from '../utils/calc/cash.js';
 import { t, tn, getLang, loadAllCatalogues } from '../i18n/index.js';
 import { canOpenPage, canOpenSection } from '../utils/role-access.js';
 import { on, REFRESH, REMINDERS_CHANGED } from '../utils/events.js';
-import { overdueReminder, leaseReminder, leaseReminderText } from '../utils/reminders.js';
+import { overdueReminder } from '../utils/reminders.js';
 import { drillReminder } from '../utils/backup-verify.js';
 import { billsForKind } from '../utils/party-due.js';
-import { rentalsRole } from '../ui/business-switcher.js';
 import { formatAmount, moneyText } from '../utils/money.js';
 import { ManualReminders, TODAY_REMINDERS_KEY } from '../ui/manual-reminders.js';
 import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
@@ -54,7 +53,7 @@ const redraw = (host, html) => {
 /** Bills in memory by kind, for the owner's write-off reminder (U-08). */
 const loadedBillsByKind = () => ({ purchase: AppState.purchaseHistory || [], retail: AppState.retailSalesHistory || [], wholesale: AppState.salesHistory || [] });
 const REMINDER_ICONS = {
-    collect: icon('arrIn'), collect_wholesale: icon('truck'), pay: icon('arrOut'), rent: icon('home'), leases: icon('file'),
+    collect: icon('arrIn'), collect_wholesale: icon('truck'), pay: icon('arrOut'),
     salaries: icon('users'), bills: icon('receipt'), backup: icon('clipCheck'), join: icon('user'), writeoff: icon('alert'), firstrun: icon('clipCheck'), lock: icon('lock')
 };
 /** Opens a Today reminder: its icon tile and body (the caller closes both divs). */
@@ -411,19 +410,7 @@ export const DayManager = {
         if (canDue) add('collect', AppState.retailSalesHistory || [], "day.openDues('retail')");
         if (canWholesale) add('collect_wholesale', billsForKind(AppState, 'wholesale'), "nav.showTab('wholesale-outstanding')");
         if (canDue) add('pay', AppState.purchaseHistory || [], "day.openDues('purchase')");
-        if (rentalsRole(AppState)) {
-            // REM-4: agreements ending and rent increases due, as the Rent page last saw them this month
-            let leases = null;
-            try { leases = leaseReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now).slice(0, 7)); } catch (_) { leases = null; }
-            if (leases) {
-                chips.push(t('ui.today.rem_chip_leases', { count: leases.items.length + (leases.more || 0) }));
-                parts.push(`${reminderOpen('leases')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_leases'))}</strong></div>`
-                    + `<ul>${leases.items.map(x => `<li class="today-reminder-party"><span>${e([x.place, x.tenant].filter(Boolean).join(' · '))}</span> <span class="today-reminder-days">${e(leaseReminderText(x))}</span></li>`).join('')}</ul>`
-                    + (leases.more ? `<div class="today-reminder-more">${e(t('ui.today.reminder_more', { count: leases.more }))}</div>` : '')
-                    + `<div class="today-reminder-more">${e(t('ui.today.reminder_as_of', { time: formatDayTime(leases.at, { lang: getLang() }) }))}</div>`
-                    + `<button type="button" class="btn btn-sm" data-onclick="rentals.open('tenants', event)">${e(t('ui.today.reminder_open_tenants'))}</button></div></div>`);
-            }
-        }
+        // Rentals' own reminders (rent due REM-2, agreements REM-4) are on the Rentals home, not on Aadhat's Today; the bell and phone keep them
         // REM-3 (#63): the owner checks a backup file at least every 30 days
         if (AppState.userRole === 'owner') {
             // U-58: a new shop's first steps, until done or hidden
