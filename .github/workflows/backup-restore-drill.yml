@@ -122,7 +122,7 @@ jobs:
 
   alert:
     needs: drill
-    if: always() && github.event_name != 'pull_request' && github.repository == 'DDancingDeath/happa'
+    if: always() && github.event_name != 'pull_request' && contains(fromJSON('["DDancingDeath/happa","DDancingDeath/bahi"]'), github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

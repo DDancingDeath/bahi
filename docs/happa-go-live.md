@@ -122,7 +122,7 @@ not read any more.
 
 ```powershell
 $env:GH_TOKEN = (gh auth token -u DDancingDeath)
-$R = 'DDancingDeath/happa'
+$R = 'DDancingDeath/bahi'
 $ks = 'C:\Users\hik\AadhatManagementApp-apk\signing-happa\happa-release.keystore'
 
 [Convert]::ToBase64String([IO.File]::ReadAllBytes($ks)) | gh secret set HAPPA_KEYSTORE_BASE64 -R $R

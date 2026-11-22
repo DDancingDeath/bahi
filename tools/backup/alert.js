@@ -4,8 +4,9 @@
  * when the scheduled Firestore backup fails or is skipped two nights running,
  * when the monthly restore drill fails, or when the deploy on a push to main
  * (Firestore rules, then Hosting: firebase-hosting-merge.yml) fails, and
- * closes it once a later run succeeds. Only ever posts to DDancingDeath/happa
- * (never the old app's repo).
+ * closes it once a later run succeeds. Only ever posts to Happa's repo,
+ * DDancingDeath/bahi (DDancingDeath/happa before the rename; both are
+ * accepted), never the old app's repo.
  *
  * It never comments: a repeat failure rewrites the open issue's
  * "Last failure: <run> at <time>" line (PATCH of the body), and a recovery
@@ -20,7 +21,9 @@
  */
 'use strict';
 
-const HAPPA_REPO = 'DDancingDeath/happa';
+const HAPPA_REPO = 'DDancingDeath/bahi';
+// The repo was renamed happa → bahi; runs report whichever name is current.
+const HAPPA_REPOS = [HAPPA_REPO, 'DDancingDeath/happa'];
 const LABEL = 'ops';
 const KINDS = {
     backup: {
@@ -113,8 +116,8 @@ function guidance(kind) {
  * calls the GitHub REST API (injectable for tests); `now` gives the time.
  */
 async function runAlert({ env = process.env, request = gh, now = () => new Date() } = {}) {
-    const repo = env.GITHUB_REPOSITORY;
-    if (repo !== HAPPA_REPO) {
+    const repo = env.GITHUB_REPOSITORY || HAPPA_REPO;
+    if (!HAPPA_REPOS.includes(repo)) {
         console.log(`Not ${HAPPA_REPO} (${repo}); alerts are off.`);
         return;
     }
@@ -173,4 +176,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { HAPPA_REPO, decideAlert, runWasGood, runAlert, withLastFailure };
+module.exports = { HAPPA_REPO, HAPPA_REPOS, decideAlert, runWasGood, runAlert, withLastFailure };

@@ -372,7 +372,7 @@ issues to work on, in order, with progress per phase. It is generated from
 
 ## Bugs, features and the plan
 
-[GitHub issues](https://github.com/DDancingDeath/happa/issues)
+[GitHub issues](https://github.com/DDancingDeath/bahi/issues)
 are the only bug/feature list (labels `P0`–`P3`, `type:*`, `area:*`,
 `owner-decision`; sprint milestones). The old repo's open issues were moved here
 on 30 Oct 2026 (old links redirect). The pinned plan issue

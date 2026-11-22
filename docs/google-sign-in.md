@@ -159,7 +159,7 @@ new projects. Nothing here goes in the repo except the last step.
    (the `HAPPA_CERT_SHA256` variable) → Save. A debug build has another key, so the picker says
    "not set up" there.
 5. **`google-services.json`**: on the same card → download `google-services.json` (download it
-   **after** step 1 and the fingerprints, so it lists the OAuth clients). GitHub → DDancingDeath/happa →
+   **after** step 1 and the fingerprints, so it lists the OAuth clients). GitHub → DDancingDeath/bahi →
    Settings → Secrets and variables → Actions → New repository secret → Name `GOOGLE_SERVICES_JSON` →
    the file's whole text → Add secret. The release workflow already writes it to
    `android/app/google-services.json` before the build (the same file switches on the Crashlytics build

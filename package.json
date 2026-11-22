@@ -64,13 +64,13 @@
   "main": "www/js/main.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DDancingDeath/happa.git"
+    "url": "git+https://github.com/DDancingDeath/bahi.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/DDancingDeath/happa/issues"
+    "url": "https://github.com/DDancingDeath/bahi/issues"
   },
-  "homepage": "https://github.com/DDancingDeath/happa#readme"
+  "homepage": "https://github.com/DDancingDeath/bahi#readme"
 }

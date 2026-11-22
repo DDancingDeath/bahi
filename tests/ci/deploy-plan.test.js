@@ -76,7 +76,7 @@ describe('lastDeployedSha', () => {
         };
         return { urls, fetchImpl };
     }
-    const ask = api => lastDeployedSha({ repo: 'DDancingDeath/happa', workflow: 'firebase-hosting-merge.yml', token: 't', runId: '7', fetchImpl: api.fetchImpl });
+    const ask = api => lastDeployedSha({ repo: 'DDancingDeath/bahi', workflow: 'firebase-hosting-merge.yml', token: 't', runId: '7', fetchImpl: api.fetchImpl });
 
     test('skips this run and runs whose Hosting step did not deploy (stale or skipped)', async () => {
         const api = fakeApi(

@@ -7,8 +7,8 @@ export const APP_IDENTITY = Object.freeze({
     "siteUrl": "https://bahi-happa.web.app",
     "downloadPageUrl": "https://bahi-happa.web.app/download",
     "apkFile": "bahi.apk",
-    "apkDownloadUrl": "https://github.com/DDancingDeath/happa/releases/latest/download/bahi.apk",
-    "latestReleaseApi": "https://api.github.com/repos/DDancingDeath/happa/releases/latest",
+    "apkDownloadUrl": "https://github.com/DDancingDeath/bahi/releases/latest/download/bahi.apk",
+    "latestReleaseApi": "https://api.github.com/repos/DDancingDeath/bahi/releases/latest",
     "googleSignIn": {
         "web": false,
         "android": false

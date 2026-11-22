@@ -58,7 +58,7 @@ and the same counts as `manifest`. Timestamps are stored as `{__type: "timestamp
   credentials and no Firestore reads, checks SHA256SUMS, decrypts, gunzips, parses, checks every document (ids,
   duplicates, timestamps) and compares the counts with `manifest.json`. A failure turns the run red.
 - **Failure alert:** if the scheduled backup fails, is skipped, or fails the check **two nights running**, the
-  `alert` job opens an issue labelled `ops` in `DDancingDeath/happa` (or updates the open one's `Last failure:` line;
+  `alert` job opens an issue labelled `ops` in `DDancingDeath/bahi` (or updates the open one's `Last failure:` line;
   it never comments). It closes itself when a later run succeeds. It never posts anywhere else.
 - **Monthly restore drill:** `.github/workflows/backup-restore-drill.yml` runs on the 3rd of each month (and on
   demand). It takes the newest weekly artifact (else the newest nightly), runs the offline check, restores everything
@@ -91,8 +91,8 @@ Restoring from a nightly backup gives you all business data; take `auditLogs` / 
 ### 1. Download and check (offline)
 
 ```sh
-gh run list -R DDancingDeath/happa -w firestore-backup.yml          # pick a run
-gh run download <run id> -R DDancingDeath/happa -D backup-dl         # outside the repo
+gh run list -R DDancingDeath/bahi -w firestore-backup.yml          # pick a run
+gh run download <run id> -R DDancingDeath/bahi -D backup-dl         # outside the repo
 cd backup-dl/firestore-backup-weekly-2026-11-01_1345
 sha256sum -c SHA256SUMS
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:/path/to/passphrase.txt \

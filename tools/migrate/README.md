@@ -40,7 +40,7 @@ A rehearsal in the real project (not `--dev`) must be removed before the real mi
 
 **Rentals data in `happa-bfc07` is real (owner, 7 Nov 2026) and `wipe` never deletes it.** First take a fresh backup that holds it, and keep it outside the repo with the other data files:
 
-- the *Firestore backup* workflow (`tools/backup`, see `tools/backup/README.md`) with `mode` = **`weekly`**, which is the full copy (every `rent_*` collection, `users` and also `auditLogs`): `gh workflow run firestore-backup.yml -R DDancingDeath/happa -f mode=weekly`, then download, check and decrypt it as that README says;
+- the *Firestore backup* workflow (`tools/backup`, see `tools/backup/README.md`) with `mode` = **`weekly`**, which is the full copy (every `rent_*` collection, `users` and also `auditLogs`): `gh workflow run firestore-backup.yml -R DDancingDeath/bahi -f mode=weekly`, then download, check and decrypt it as that README says;
 - and/or the read-only Rentals export the owner keeps locally (`export-rentals.mjs`: every `rent_*` collection, `users` and the `RENT_*` audit entries, with a manifest and `SHA256SUMS`), run with the `happa-bfc07` key into `$D`.
 
 Check the counts it prints against the wipe's dry run below (the `KEEP` lines).

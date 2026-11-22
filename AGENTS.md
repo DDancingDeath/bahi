@@ -13,8 +13,10 @@ small-scale grain/produce traders. It runs on **Firebase Hosting + Firestore +
 Auth**, is built as **vanilla ES module-style JS** (no bundler, no framework),
 and is wrapped in **Capacitor** for Android distribution.
 
-- **Owner**: `DDancingDeath` (https://github.com/DDancingDeath/happa; the old repo
+- **Owner**: `DDancingDeath` (https://github.com/DDancingDeath/bahi; the old repo
   https://github.com/DDancingDeath/AadhatManagementApp is kept as is and still holds the existing issues)
+  - The repo was renamed `DDancingDeath/happa` → `DDancingDeath/bahi`. **Never create a repo named `happa`**:
+    installed APKs (rc14/rc15) call `api.github.com/repos/DDancingDeath/happa/releases/latest` and rely on GitHub's redirect.
 - **App**: **Bahi** by the brand **happa** (#375; Android `com.happa`, unchanged so installs update in place; the app
   name is "Bahi" in English and Hindi, the brand is always lowercase "happa"). Its name, Android
   package, Firebase project and site all come from `happa.config.json`
@@ -53,7 +55,7 @@ and is wrapped in **Capacitor** for Android distribution.
   v1.6.1. No workflow may deploy to it; the CI guard
   (`scripts/happa-config.js guard`) fails if anything resolves to it. Its
   release notes are archived in `docs/aadhat-changelog-archive.json`.
-- **Bug / feature list**: GitHub issues in `DDancingDeath/happa` (labels,
+- **Bug / feature list**: GitHub issues in `DDancingDeath/bahi` (labels,
   milestones and the pinned plan issue — see section 5). The open issues of
   `DDancingDeath/AadhatManagementApp` were moved here on 30 Oct 2026 (old URLs
   redirect; `imported.map` in `tools/plan/order.json` maps old → new numbers).
@@ -403,7 +405,7 @@ In order:
 
 ### Issues: the bug and feature list
 
-GitHub issues (in `DDancingDeath/happa`, with the code) are the single list of
+GitHub issues (in `DDancingDeath/bahi`, with the code) are the single list of
 bugs, features and decisions. (The staging clone's `docs/REVIEW_ISSUES.md`
 is archived history — don't add to it or cite it as the master list.)
 

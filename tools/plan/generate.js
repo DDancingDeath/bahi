@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_REPO = 'DDancingDeath/happa';
+const DEFAULT_REPO = 'DDancingDeath/bahi';
 const MARKER = '<!-- plan-page -->';
 const PLAN_TITLE = '[Plan] Roadmap: pick order (auto-updated)';
 const PLAN_LABELS = ['type:docs', 'P0'];

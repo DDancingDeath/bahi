@@ -147,7 +147,7 @@ jobs:
 
   alert:
     needs: [backup, verify]
-    if: always() && github.repository == 'DDancingDeath/happa'
+    if: always() && contains(fromJSON('["DDancingDeath/happa","DDancingDeath/bahi"]'), github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

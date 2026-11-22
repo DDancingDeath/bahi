@@ -33,7 +33,7 @@ describe('/download release info', () => {
     afterEach(() => { delete global.fetch; });
 
     test('the shop page shows the latest release tag and the changelog notes', async () => {
-        const api = 'https://api.github.com/repos/DDancingDeath/happa/releases/latest';
+        const api = 'https://api.github.com/repos/DDancingDeath/bahi/releases/latest';
         const r = await render(api, { tag_name: 'v1.0.0-rc14', prerelease: false, name: 'happa v1.0.0-rc14', body: 'x', published_at: '2026-11-15T12:00:00Z' });
         expect(r.calls).toContain(api);
         expect(r.version).toBe('v1.0.0-rc14');
@@ -41,7 +41,7 @@ describe('/download release info', () => {
     });
 
     test('a test app page shows its dev-latest version and notes, not the shop changelog', async () => {
-        const api = 'https://api.github.com/repos/DDancingDeath/happa/releases/tags/dev-latest';
+        const api = 'https://api.github.com/repos/DDancingDeath/bahi/releases/tags/dev-latest';
         const r = await render(api, {
             tag_name: 'dev-latest', prerelease: true, name: 'bahi-dev 1.0.0-dev.20261115.2',
             body: 'Test app Bahi Dev (com.happa.dev), version 1.0.0-dev.20261115.2.\r\n\r\nIt installs next to the shop\'s Bahi app.',
@@ -53,7 +53,7 @@ describe('/download release info', () => {
     });
 
     test('the release day reads "15 Nov 2026" (Hindi month names in Hindi), not ISO, and the language switch is a .seg', async () => {
-        const api = 'https://api.github.com/repos/DDancingDeath/happa/releases/latest';
+        const api = 'https://api.github.com/repos/DDancingDeath/bahi/releases/latest';
         await render(api, { tag_name: 'v1.0.0-rc14', prerelease: false, name: 'happa v1.0.0-rc14', body: 'x', published_at: '2026-11-15T12:00:00Z' });
         expect(document.getElementById('latestDate').textContent).toBe('(15 Nov 2026)');
         const hi = document.querySelector('.seg [data-lang-option="hi"]');
