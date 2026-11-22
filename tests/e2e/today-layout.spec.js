@@ -65,8 +65,10 @@ test.describe('Today layout', () => {
                 const r = el.getBoundingClientRect();
                 const title = el.querySelector('.disclosure-title, .row-title')?.getBoundingClientRect();
                 const sum = el.querySelector('.disclosure-summary, .row-trail')?.getBoundingClientRect();
+                // A trail holding a button (Open cash) is as tall as the button; its text line is what must not wrap
+                const text = el.querySelector('.disclosure-summary, .row-trail .row-amt, .row-trail:not(:has(.btn))')?.getBoundingClientRect();
                 return { id: el.id || el.parentElement.id, h: Math.round(r.height), right: Math.round(r.right),
-                    same: !!title && !!sum && Math.abs((title.top + title.bottom) / 2 - (sum.top + sum.bottom) / 2) < 6, sumH: sum ? Math.round(sum.height) : 0 };
+                    same: !!title && !!sum && Math.abs((title.top + title.bottom) / 2 - (sum.top + sum.bottom) / 2) < 6, sumH: text ? Math.round(text.height) : 0 };
             }));
         expect(rows.length).toBeGreaterThanOrEqual(6);
         rows.forEach(r => {
@@ -104,6 +106,7 @@ test.describe('Today layout', () => {
         await expect(page.locator('#todayBillsCount')).toHaveText('4', { timeout: 30000 });
         await expect(page.locator('#appBarRefresh')).toBeVisible();
         await expect(page.locator('#appBarDate')).toBeVisible();
+        await expect(page.locator('#todayDrawer')).toBeVisible({ timeout: 30000 });
         const bar = await page.evaluate(() => ['#appBarRefresh', '#notifBell'].map(s => document.querySelector(s).getBoundingClientRect().left));
         expect(bar[0]).toBeLessThan(bar[1]);
 
