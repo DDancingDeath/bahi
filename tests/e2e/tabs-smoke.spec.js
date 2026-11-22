@@ -73,7 +73,7 @@ const STEPS = [
     { name: 'Money › Spending', route: 'money-spending', page: 'money', roles: OM, expect: '#moneySpending' },
     { name: 'Money › Worth', route: 'money-worth', page: 'money', roles: OM, expect: '#moneyWorth' },
     // Labour day by day: owner and manager, from the bills and expenses already loaded (no reads of its own)
-    { name: 'Money › Labour', route: 'money-labour', page: 'money', roles: OM, expect: '#moneyLabourHistory:not([hidden]) #lhBalance .i' },
+    { name: 'Money › Labour', route: 'money-labour', page: 'money', roles: OM, expect: '#moneyLabourHistory:not([hidden]) #lhBalance strong' },
     { name: 'Money › Compare with last month', route: 'money-profit', page: 'money', act: "window.app.money.setCompare('last-month')", roles: OM, expect: '#moneyCmpCard:not([hidden]) [data-cmp-row="M1"]' },
     { name: 'Insights › Actions', route: 'insights-actions', page: 'insights', roles: OM, expect: '#insights [data-insights-pane="actions"]' },
     { name: 'Insights › Items', route: 'insights-items', page: 'insights', roles: OM, expect: '#insights [data-insights-pane="items"]' },
