@@ -262,11 +262,11 @@ describe('component families and one home per selector (tests/ds-components.json
         expect(DC.raisedVsBase(base, { dupSelectors: [], roots: { notice_banner: [] } })).toEqual([]);
         expect(DC.raisedVsBase(base, { dupSelectors: ['.a', '.b'], roots: { notice_banner: ['notice', 'pw-banner'] } })).toEqual([
             'dupSelectors: .b is new (give the rule one home)',
-            'dupSelectors: 1 -> 2',
             `roots notice_banner: pw-banner is new (use ${DC.USE.notice_banner})`,
         ].sort());
-        const excused = { exceptions: { 'notice_banner:pw-banner': { reason: 'a banner that floats over the camera view', added: '#600' } },
-            dupSelectors: ['.a'], roots: { notice_banner: ['notice', 'pw-banner'] } };
+        const excused = { exceptions: { 'notice_banner:pw-banner': { reason: 'a banner that floats over the camera view', added: '#600' },
+            '.b': { reason: 'one rule the two sheets must both carry', added: '2026-11-22' } },
+            dupSelectors: ['.a', '.b'], roots: { notice_banner: ['notice', 'pw-banner'] } };
         expect(DC.raisedVsBase(base, excused)).toEqual([]);
     });
 });

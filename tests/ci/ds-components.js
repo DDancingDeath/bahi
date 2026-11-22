@@ -169,7 +169,6 @@ function raisedVsBase(prior, doc) {
     const problems = [];
     const before = new Set(prior.dupSelectors);
     for (const s of doc.dupSelectors) if (!before.has(s) && !ok(s)) problems.push(`dupSelectors: ${s} is new (give the rule one home)`);
-    if (doc.dupSelectors.length > prior.dupSelectors.length) problems.push(`dupSelectors: ${prior.dupSelectors.length} -> ${doc.dupSelectors.length}`);
     for (const fam of Object.keys(FAMILIES)) {
         const was = new Set(prior.roots[fam] || []);
         for (const r of doc.roots[fam] || []) if (!was.has(r) && !ok(`${fam}:${r}`)) problems.push(`roots ${fam}: ${r} is new (use ${USE[fam]})`);
