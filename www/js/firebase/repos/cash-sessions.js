@@ -1,6 +1,6 @@
 /**
  * @fileoverview Repository of cash-drawer sessions (`cashManagement/{id}`) for the
- * Cash page's writes (docs/architecture.md phase 4): checked updates in a
+ * Cash page's writes (docs/project/ARCHITECTURE.md phase 4): checked updates in a
  * transaction (auto-close, late count), field updates (close) and entries added
  * with arrayUnion (deposits, "No bill" legs), so another device's additions are
  * never overwritten. Reads and opening a day are FirebaseService methods in

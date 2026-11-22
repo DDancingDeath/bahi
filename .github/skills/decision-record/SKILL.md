@@ -1,13 +1,13 @@
 ---
 name: decision-record
-description: 'Add or update a decision in docs/DECISIONS.md (lightweight ADR, IDs D-NNN) for Bahi (happa). Use when a PR makes, reverses or questions a consequential choice: stack, data model, money, permissions, names the shop sees, cost.'
+description: 'Add or update a decision in docs/project/DECISIONS.md (lightweight ADR, IDs D-NNN) for Bahi (happa). Use when a PR makes, reverses or questions a consequential choice: stack, data model, money, permissions, names the shop sees, cost.'
 license: Apache-2.0
 ---
 
 # Decision record (Bahi)
 
-Writes one entry in [docs/DECISIONS.md](../../../docs/DECISIONS.md). The log records *why*; the rule
-itself stays in its authoritative home ([docs/RULES.md](../../../docs/RULES.md), [AGENTS.md](../../../AGENTS.md)).
+Writes one entry in [docs/project/DECISIONS.md](../../../docs/project/DECISIONS.md). The log records *why*; the rule
+itself stays in its authoritative home ([docs/project/RULES.md](../../../docs/project/RULES.md), [AGENTS.md](../../../AGENTS.md)).
 
 ## When
 
@@ -16,7 +16,7 @@ itself stays in its authoritative home ([docs/RULES.md](../../../docs/RULES.md),
 
 ## Steps
 
-1. Read docs/DECISIONS.md: reuse an existing entry if it is the same decision.
+1. Read docs/project/DECISIONS.md: reuse an existing entry if it is the same decision.
 2. Gather evidence: the PR, issue, owner comment or file that shows the decision. No evidence → `Proposed`.
 3. Take the next free ID (`D-NNN`, never reused) and add a row to the Index table.
 4. Write the entry (≤ ~15 lines):

@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 /**
- * Architecture ratchet (docs/architecture.md §6).
+ * Architecture ratchet (docs/project/ARCHITECTURE.md §6).
  *
  * Scans every file under www/js (except __tests__ and tip/) and counts, per
  * file, the source LINES that break a layering rule:
@@ -101,7 +101,7 @@ const RENTALS_REPOSITORIES = new Set([
     'www/js/rentals/rent-expense-store.js',
     'www/js/rentals/rent-report-store.js'
 ]);
-/** Files that may talk to Firestore (docs/architecture.md: repositories). */
+/** Files that may talk to Firestore (docs/project/ARCHITECTURE.md: repositories). */
 const isRepository = (file) => file.startsWith('www/js/firebase/') || RENTALS_REPOSITORIES.has(file);
 
 /** Categories a file is allowed to have (its layer owns them). */
@@ -503,7 +503,7 @@ function writeBaseline(files, exceptions) {
         if (Object.keys(row).length) sorted[f] = row;
     });
     const doc = {
-        _readme: 'Architecture ratchet baseline (www/js/__tests__/architecture-guard.test.js, docs/architecture.md section 6). Counts may only go down: lower them with ARCH_BASELINE=lower npx jest architecture-guard. A raise needs an entry in exceptions: {file, category, from, to, reason, issue}.',
+        _readme: 'Architecture ratchet baseline (www/js/__tests__/architecture-guard.test.js, docs/project/ARCHITECTURE.md section 6). Counts may only go down: lower them with ARCH_BASELINE=lower npx jest architecture-guard. A raise needs an entry in exceptions: {file, category, from, to, reason, issue}.',
         totals: totalsOf(sorted),
         files: sorted,
         exceptions: exceptions || []
@@ -527,7 +527,7 @@ function readBaseBaseline() {
     }
 }
 
-describe('architecture ratchet (docs/architecture.md)', () => {
+describe('architecture ratchet (docs/project/ARCHITECTURE.md)', () => {
     const mode = process.env.ARCH_BASELINE;
     const current = scanAll();
     const baseline = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8'));
@@ -577,7 +577,7 @@ describe('architecture ratchet (docs/architecture.md)', () => {
             throw new Error([
                 'Architecture ratchet: code gained Firestore access outside firebase/, money/qty/date',
                 'arithmetic outside utils/, numbers read from the screen or AppState writes',
-                '(docs/architecture.md, "Dependency rules"). Move the logic to its layer or call the existing function:',
+                '(docs/project/ARCHITECTURE.md, "Dependency rules"). Move the logic to its layer or call the existing function:',
                 ...raised.map(r => `  ${r.file}: ${r.category} ${r.from} -> ${r.to}${base[r.file] ? '' : ' (new file)'}`)
             ].join('\n'));
         }

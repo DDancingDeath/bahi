@@ -1,6 +1,6 @@
 /**
  * @fileoverview The data layer's mutable state for one signed-in session, shared by
- * firestore-service.js and the core/ modules split out of it (docs/architecture.md,
+ * firestore-service.js and the core/ modules split out of it (docs/project/ARCHITECTURE.md,
  * phase 5, #69). One object, so every module reads and writes the same values;
  * FirebaseService.cleanup() resets it on sign-out.
  * @module firebase/core/session

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Repository of the audit log (`auditLogs`, docs/architecture.md
+ * @fileoverview Repository of the audit log (`auditLogs`, docs/project/ARCHITECTURE.md
  * phase 4): adds entries with the server time the rules require (#55), reads the
  * recent ones and deletes old ones. services/audit.js decides what to log and when.
  * @module firebase/repos/audit-logs

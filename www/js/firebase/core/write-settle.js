@@ -2,7 +2,7 @@
  * @fileoverview When a write counts as saved (#70, #153): the server acknowledged
  * it, or this phone confirmed it stored it (offline at once, online after a short
  * wait), never when the phone refused it. Moved verbatim out of
- * firestore-service.js (docs/architecture.md, phase 5, #69).
+ * firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/core/write-settle
  */
 

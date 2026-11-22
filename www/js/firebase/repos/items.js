@@ -1,6 +1,6 @@
 /**
  * @fileoverview Repository of the item list (`items`) and its rate history
- * (`rateHistory`, #82): moved verbatim out of firestore-service.js (docs/architecture.md,
+ * (`rateHistory`, #82): moved verbatim out of firestore-service.js (docs/project/ARCHITECTURE.md,
  * phase 5); still called as FirebaseService.loadItems() etc.
  * @module firebase/repos/items
  */

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Whole-collection operations of Admin › Data and Storage: read a
  * collection for a backup, delete documents in batches, count documents. Moved verbatim
- * out of firestore-service.js (docs/architecture.md, phase 5).
+ * out of firestore-service.js (docs/project/ARCHITECTURE.md, phase 5).
  * @module firebase/repos/collection-admin
  */
 

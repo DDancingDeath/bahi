@@ -628,7 +628,7 @@ and Auth from a script, so every check above must stay in the rules, not only in
 App Check (reCAPTCHA Enterprise for the web, Play Integrity for the APK) would also refuse
 calls that don't come from the real app. It is assessed but not enabled; the costs, the
 tenant-link-page and old-APK blockers and the rollout order are in
-[security.md](security.md#app-check-assessment-not-enabled).
+[security.md](security.md#app-check-monitor-mode-off-until-a-site-key-is-set).
 
 ## Migration and old APKs
 

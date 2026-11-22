@@ -1,19 +1,19 @@
 ---
 name: prd
-description: 'Write or update the product requirements for Bahi (happa): docs/PRD.md or one feature section in the same format. Use when asked to "write a PRD", "document requirements" or "plan a feature" in this repo.'
+description: 'Write or update the product requirements for Bahi (happa): docs/project/PRD.md or one feature section in the same format. Use when asked to "write a PRD", "document requirements" or "plan a feature" in this repo.'
 license: MIT
 ---
 
 # PRD (Bahi)
 
-Produces or updates [docs/PRD.md](../../../docs/PRD.md), or a feature section in its format.
+Produces or updates [docs/project/PRD.md](../../../docs/project/PRD.md), or a feature section in its format.
 The PRD says *what and why* in 1–2 pages; it links to the authoritative homes and never copies
-them (rules: [docs/RULES.md](../../../docs/RULES.md); agent rules: [AGENTS.md](../../../AGENTS.md)).
+them (rules: [docs/project/RULES.md](../../../docs/project/RULES.md); agent rules: [AGENTS.md](../../../AGENTS.md)).
 
 ## Workflow
 
-1. **Discovery.** Read docs/PRD.md, the related [docs/pages/](../../../docs/pages/) doc, the GitHub
-   issue and [docs/DECISIONS.md](../../../docs/DECISIONS.md). Ask the owner at least 2 questions when
+1. **Discovery.** Read docs/project/PRD.md, the related [docs/pages/](../../../docs/pages/) doc, the GitHub
+   issue and [docs/project/DECISIONS.md](../../../docs/project/DECISIONS.md). Ask the owner at least 2 questions when
    the problem, success measure or constraints are unclear. Never guess: write `TBD`.
 2. **Scope.** Map the user flow for each role (owner, manager, member, Rentals helper;
    [docs/role-permissions.md](../../../docs/role-permissions.md)). Write non-goals.
@@ -38,7 +38,7 @@ A feature section uses the same headings one level lower, plus **Acceptance crit
 - Concrete and checkable: "a page reads ≤ its baseline + 25%", not "fast".
 - Header keeps `Status: Draft` until the owner approves; ISO dates; relative links.
 - No shop data (names, amounts, phone numbers): the repo is public.
-- A choice made while writing goes to docs/DECISIONS.md (skill `decision-record`).
+- A choice made while writing goes to docs/project/DECISIONS.md (skill `decision-record`).
 - Run `npx jest tests/ci/docs-links.test.js` after editing.
 
 ---

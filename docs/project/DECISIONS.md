@@ -4,7 +4,7 @@
 >
 > **What this file is:** a short record of decisions already made, and why, so nobody re-argues
 > them. It links to the authoritative home of each rule and never replaces it: the rules
-> themselves live in [AGENTS.md](../AGENTS.md), [firestore.rules](../firestore.rules) and the
+> themselves live in [AGENTS.md](../../AGENTS.md), [firestore.rules](../../firestore.rules) and the
 > docs indexed in [RULES.md](RULES.md). Work items live in GitHub issues ([TASKS.md](TASKS.md)).
 
 ## How to use
@@ -19,7 +19,7 @@
 - Every entry cites evidence (a file or PR). Unknown facts say `not recorded` or `TBD`, never a guess.
 - Add or update an entry **in the same PR** that makes or changes the decision. To reverse one, add a
   new entry and mark the old one `Superseded by D-NNN`; don't delete history.
-- The skill [.github/skills/decision-record](../.github/skills/decision-record/SKILL.md) writes entries in this format.
+- The skill [.github/skills/decision-record](../../.github/skills/decision-record/SKILL.md) writes entries in this format.
 
 PR links point to `https://github.com/DDancingDeath/happa/pull/N`; `#N` alone is an issue or PR in
 this repo.
@@ -54,16 +54,16 @@ this repo.
 ---
 
 ### D-001 — No build step or framework
-- **Status** Accepted · **Date** 2026-05-09 (recorded) · **Decider** Owner · **Related** [AGENTS.md §2 rule 3](../AGENTS.md), #89
+- **Status** Accepted · **Date** 2026-05-09 (recorded) · **Decider** Owner · **Related** [AGENTS.md §2 rule 3](../../AGENTS.md), #89
 - **Context** Recorded in AGENTS.md as "a deliberate choice": what is in `www/` is exactly what phones run.
 - **Options** Bundler + framework (Vite/React) · vanilla ES modules with `window.app` globals.
 - **Decision** Vanilla ES modules, no bundler, no framework; files under `www/` are served as written.
   UI handlers are delegated `data-on*` attributes since the CSP work (#89, [PR #337](https://github.com/DDancingDeath/happa/pull/337)).
 - **Consequences** No tree-shaking: start-up weight is managed by lazy `import()` and the precache budget.
-- **Confirmation** Review rules `framework-import`, `ts-file-introduced` ([review-rules.yml](../.github/review-rules.yml)); `inline-handlers.test.js`.
+- **Confirmation** Review rules `framework-import`, `ts-file-introduced` ([review-rules.yml](../../.github/review-rules.yml)); `inline-handlers.test.js`.
 
 ### D-002 — Firebase compat SDK (modular only for AI Logic)
-- **Status** Accepted · **Date** 2026-05-09 (recorded) · **Decider** Owner · **Related** [AGENTS.md §4](../AGENTS.md), D-015
+- **Status** Accepted · **Date** 2026-05-09 (recorded) · **Decider** Owner · **Related** [AGENTS.md §4](../../AGENTS.md), D-015
 - **Context** The app relies on `firebase.*` compat globals across all repositories.
 - **Decision** Keep the compat SDK. Only exception: the vendored modular `firebase/ai` for photo of
   weights, run as a second app without Firestore ([PR #487](https://github.com/DDancingDeath/happa/pull/487)).
@@ -71,7 +71,7 @@ this repo.
 - **Confirmation** `firebase-app-shadow.test.js`; architecture guard (no Firebase imports outside repositories).
 
 ### D-003 — Android = Capacitor APK from tagged GitHub Releases
-- **Status** Accepted · **Date** 2026-11-08 (tag flow) · **Decider** Owner · **Related** [AGENTS.md §5 "Releasing"](../AGENTS.md), [release-checklist.md](release-checklist.md)
+- **Status** Accepted · **Date** 2026-11-08 (tag flow) · **Decider** Owner · **Related** [AGENTS.md §5 "Releasing"](../../AGENTS.md), [release-checklist.md](../release-checklist.md)
 - **Context** Users in the field run the Android build as well as the website (AGENTS.md §2).
 - **Decision** Wrap `www/` with Capacitor; a `v*` tag builds and signs `bahi.apk` and publishes a GitHub
   Release; rc tags publish as latest; `/download` links the latest APK ([PR #384](https://github.com/DDancingDeath/happa/pull/384)).
@@ -79,7 +79,7 @@ this repo.
 - **Confirmation** `android-release.yml`; `npm run check:release`.
 
 ### D-004 — Live on `bahi-happa`, test on `bahi-happa-dev`; old projects never written
-- **Status** Accepted · **Date** 2026-11-16 · **Decider** Owner · **Related** #72, [PR #429](https://github.com/DDancingDeath/happa/pull/429), [PR #531](https://github.com/DDancingDeath/happa/pull/531), [happa-go-live.md](happa-go-live.md)
+- **Status** Accepted · **Date** 2026-11-16 · **Decider** Owner · **Related** #72, [PR #429](https://github.com/DDancingDeath/happa/pull/429), [PR #531](https://github.com/DDancingDeath/happa/pull/531), [happa-go-live.md](../happa-go-live.md)
 - **Context** Production data had to move to the shop's own Google account, with a separate test project.
 - **Decision** `main` deploys prod `bahi-happa` and test `bahi-happa-dev`; PR previews use dev only. The old
   app's `aadhat-management` is archived and never deployed to; `happa-bfc07` is retired (redirects, read-only rules).
@@ -89,10 +89,10 @@ this repo.
 ### D-005 — App name Bahi, brand happa
 - **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner · **Related** #375, [PR #392](https://github.com/DDancingDeath/happa/pull/392)
 - **Decision** App name "Bahi" (en and hi); brand always lowercase "happa"; Android package stays `com.happa` so installs update in place.
-- **Confirmation** Values come from [happa.config.json](../happa.config.json); `npm run check:happa-config`.
+- **Confirmation** Values come from [happa.config.json](../../happa.config.json); `npm run check:happa-config`.
 
 ### D-006 — Migration: fresh start with opening dues
-- **Status** Accepted · **Date** 2026-10-25 · **Decider** not recorded · **Related** [tools/migrate/README.md](../tools/migrate/README.md)
+- **Status** Accepted · **Date** 2026-10-25 · **Decider** not recorded · **Related** [tools/migrate/README.md](../../tools/migrate/README.md)
 - **Context** Moving from the old app without copying years of bills (reads, risk).
 - **Options** `--mode full` (copy every bill) · `--mode fresh` (default).
 - **Decision** Fresh start: old bills stay in the old project and the encrypted backup; each old unpaid bill
@@ -101,13 +101,13 @@ this repo.
 - **Confirmation** `migrate-plan.test.js`, `migrate-apply.test.js`, `npm run test:migration-e2e`.
 
 ### D-007 — Rentals data and roles come from happa only
-- **Status** Accepted · **Date** 2026-11-07 · **Decider** Owner · **Related** [PR #370](https://github.com/DDancingDeath/happa/pull/370), [tools/migrate/README.md](../tools/migrate/README.md)
+- **Status** Accepted · **Date** 2026-11-07 · **Decider** Owner · **Related** [PR #370](https://github.com/DDancingDeath/happa/pull/370), [tools/migrate/README.md](../../tools/migrate/README.md)
 - **Context** The owner decided the Rentals data already entered in happa (`happa-bfc07`) is real and must survive go-live.
 - **Decision** Migration never writes `rent_*` or `rentRole` from the old app; `wipe` keeps Rentals data and helpers.
 - **Confirmation** `migrate-plan.test.js` / `migrate-apply.test.js` refuse `rent_*` writes.
 
 ### D-008 — Hindi weight unit stays "kg"
-- **Status** Accepted · **Date** 2026-11-01 · **Decider** Owner · **Related** [AGENTS.md §4](../AGENTS.md), [glossary.md](glossary.md), [PR #510](https://github.com/DDancingDeath/happa/pull/510)
+- **Status** Accepted · **Date** 2026-11-01 · **Decider** Owner · **Related** [AGENTS.md §4](../../AGENTS.md), [glossary.md](../glossary.md), [PR #510](https://github.com/DDancingDeath/happa/pull/510)
 - **Decision** In Hindi the weight unit is always "kg" ("50 kg", "₹/kg"), never a Hindi word for kilo or quintal.
 - **Confirmation** `hindi-kg-unit.test.js`; the mixed-language guard allows `kg`.
 
@@ -117,7 +117,7 @@ this repo.
 - **Consequences** Code ids keep supplier naming; only `t()` text changed.
 
 ### D-010 — Billing: option C floating labels
-- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner · **Related** [PR #500](https://github.com/DDancingDeath/happa/pull/500), [design-system.md](design-system.md)
+- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner · **Related** [PR #500](https://github.com/DDancingDeath/happa/pull/500), [design-system.md](../design-system.md)
 - **Options** Three phone mock-ups (A, B, C).
 - **Decision** Option C: labels float on the field border, 14 px labels, Item wider than Rate; `.field-float` reusable (later also Wholesale, [PR #514](https://github.com/DDancingDeath/happa/pull/514)).
 - **Consequences** Later UX fixes must leave this layout alone (respected in PR #519).
@@ -128,7 +128,7 @@ this repo.
 - **Decision** The phone tab bar shows **Dues** (`ui.nav.outstanding_short`; Hindi बकाया unchanged); the page title stays "Outstanding".
 
 ### D-012 — Members' default permissions are narrow
-- **Status** Accepted · **Date** 2026-11-15 · **Decider** UX review, shipped with owner approval · **Related** [PR #516](https://github.com/DDancingDeath/happa/pull/516) (U-09), [role-permissions.md](role-permissions.md)
+- **Status** Accepted · **Date** 2026-11-15 · **Decider** UX review, shipped with owner approval · **Related** [PR #516](https://github.com/DDancingDeath/happa/pull/516) (U-09), [role-permissions.md](../role-permissions.md)
 - **Decision** For shops that never saved Roles & access, Members default to **off** for profit, stock ₹ value,
   purchase rates and past cash days; saved choices are kept. The owner can change them in Settings › Team › Roles & access.
 - **Confirmation** `role-access.test.js`; the defaults table in role-permissions.md.
@@ -144,14 +144,14 @@ this repo.
 - **On merge** set Accepted and the merge date.
 
 ### D-015 — Photo of weights via Firebase AI Logic + App Check
-- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner (switch is off until the owner turns it on) · **Related** #374, [photo-weights.md](photo-weights.md), [PR #487](https://github.com/DDancingDeath/happa/pull/487), [PR #494](https://github.com/DDancingDeath/happa/pull/494)
+- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner (switch is off until the owner turns it on) · **Related** #374, [photo-weights.md](../photo-weights.md), [PR #487](https://github.com/DDancingDeath/happa/pull/487), [PR #494](https://github.com/DDancingDeath/happa/pull/494)
 - **Decision** Read handwritten weight sheets with Gemini through Firebase AI Logic (no API key in the app);
   calls require App Check (reCAPTCHA Enterprise, limited-use tokens); the user reviews before lines are added.
 - **Consequences** No photo feature on a build without an App Check key.
 - **Confirmation** `photo-weights.test.js`, `app-check.test.js`; review rule `no-external-ml-api`.
 
 ### D-016 — Free Spark plan, read budget, no Cloud Functions
-- **Status** Accepted · **Date** 2026-11-01 (read budget recorded) · **Decider** not recorded · **Related** #159, [read-budget.md](read-budget.md), [notifications.md](notifications.md), [performance-budget.md](performance-budget.md)
+- **Status** Accepted · **Date** 2026-11-01 (read budget recorded) · **Decider** not recorded · **Related** #159, [read-budget.md](../read-budget.md), [notifications.md](../notifications.md), [performance-budget.md](../performance-budget.md)
 - **Context** Spark gives 50,000 reads and 20,000 writes a day for the whole project; the old project ran out on 2026-10-21.
 - **Decision** Stay on the free plan: no Cloud Functions or triggers (they need Blaze), recent-history window
   plus stock checkpoint, per-page read baselines, session read cap and a kill switch.
@@ -159,13 +159,13 @@ this repo.
 - **Confirmation** Read budget in `tabs-smoke.spec.js` (`tests/e2e/read-baselines.json`); `quota-guards.test.js`; nightly bench.
 
 ### D-017 — Void, never delete; owner edits recorded too
-- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-13, OD-14) · **Related** #75, #121, [PR #380](https://github.com/DDancingDeath/happa/pull/380), [role-permissions.md](role-permissions.md)
+- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-13, OD-14) · **Related** #75, #121, [PR #380](https://github.com/DDancingDeath/happa/pull/380), [role-permissions.md](../role-permissions.md)
 - **Decision** Bills and expenses are voided, not deleted (only the owner deletes, and only a voided bill).
   Every money change, including the owner's, writes an edit record, a payment / write-off or a void.
 - **Confirmation** `firestore.rules` + `rules-tests/test.js`; AGENTS.md §7.
 
 ### D-018 — "Overdue" = bills more than 30 days old
-- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-08) · **Related** #92, [PR #389](https://github.com/DDancingDeath/happa/pull/389), [calculations.md](calculations.md)
+- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-08) · **Related** #92, [PR #389](https://github.com/DDancingDeath/happa/pull/389), [calculations.md](../calculations.md)
 - **Decision** One meaning of overdue everywhere; party lists show the total and, separately, the overdue part.
 
 ### D-019 — One stored due per bill: `payment.due`
@@ -179,7 +179,7 @@ this repo.
 - **Confirmation** Rules tests and the owner-roles E2E.
 
 ### D-021 — Offline bill numbers per device
-- **Status** Accepted · **Date** not recorded · **Decider** not recorded · **Related** #41 (Q28), [AGENTS.md §8](../AGENTS.md)
+- **Status** Accepted · **Date** not recorded · **Decider** not recorded · **Related** #41 (Q28), [AGENTS.md §8](../../AGENTS.md)
 - **Options** Pre-issued number blocks · per-device numbers.
 - **Decision** Online: a transaction on a daily counter. Offline: `{prefix}{YYYYMMDD}-{device}-{seq}`, which needs no server round-trip.
 - **Confirmation** Review rule `bill-numbering-count-plus-one`.

@@ -1,6 +1,6 @@
 /**
  * @fileoverview The data layer tells pages what changed through utils/events.js
- * (docs/architecture.md, phase 4) instead of calling them via window.app: each
+ * (docs/project/ARCHITECTURE.md, phase 4) instead of calling them via window.app: each
  * refresh event re-renders the same page method the old VIEWS table called, the
  * item-order listener reloads the same dropdowns, every event has a subscriber, and
  * firebase/ no longer names window.app.

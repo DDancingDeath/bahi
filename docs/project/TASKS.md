@@ -4,7 +4,7 @@
 >
 > **What this file is:** how work is listed and ordered. It is **not** a task list. GitHub issues
 > are the source of truth; issue conventions are authoritative in
-> [AGENTS.md §5](../AGENTS.md#5-standard-workflows). Product scope: [PRD.md](PRD.md).
+> [AGENTS.md §5](../../AGENTS.md#5-standard-workflows). Product scope: [PRD.md](PRD.md).
 
 ## Source of truth
 
@@ -12,8 +12,8 @@
 |---|---|
 | Every bug, feature, decision, ops task | [GitHub issues](https://github.com/DDancingDeath/happa/issues) in `DDancingDeath/happa` (old repo's open issues moved here on 2026-10-30) |
 | Pick order | Pinned issue [#172 "[Plan] Roadmap: pick order (auto-updated)"](https://github.com/DDancingDeath/happa/issues/172) |
-| Order data | [tools/plan/order.json](../tools/plan/order.json) (phases, position, `note`, `after`) |
-| Generator | [tools/plan/generate.js](../tools/plan/generate.js), run by [plan-page.yml](../.github/workflows/plan-page.yml) on issue changes and daily |
+| Order data | [tools/plan/order.json](../../tools/plan/order.json) (phases, position, `note`, `after`) |
+| Generator | [tools/plan/generate.js](../../tools/plan/generate.js), run by [plan-page.yml](../../.github/workflows/plan-page.yml) on issue changes and daily |
 
 **Never edit #172 by hand**: its body is regenerated from `order.json` and the live issues, so a
 manual edit is overwritten. There is no second checklist (no `TODO.md`, no list in this file).
@@ -25,7 +25,7 @@ manual edit is overwritten. There is no second checklist (no `TODO.md`, no list 
    a milestone, and a body with problem, evidence, impact, fix, acceptance criteria.
    Label `owner-decision` if it needs the owner's answer (don't implement a guess) or
    `owner-action` for a console/secret/release step only the owner can do.
-3. Place it in [tools/plan/order.json](../tools/plan/order.json) (right phase and position) in a PR.
+3. Place it in [tools/plan/order.json](../../tools/plan/order.json) (right phase and position) in a PR.
    Unplaced open issues appear under 🆕 Unplaced in #172.
 
 ## Pick work

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Repository of the bill editor's unsaved state (docs/architecture.md,
+ * @fileoverview Repository of the bill editor's unsaved state (docs/project/ARCHITECTURE.md,
  * phase 4): drafts (`drafts/{id}`), the per-user auto-save (`autoSaves/{uid}`) and
  * the shared item order (`itemFrequency/global`). The only code that touches those
  * collections from the app; billing.js gets plain data back. Uses the `db` global

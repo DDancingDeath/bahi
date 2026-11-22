@@ -195,7 +195,7 @@ calculations, so it needs its own design. It is listed as the follow-up after A.
      | **Personal expense day totals** | **Gap:** `rebuildPersonalExpenseDays` (`listeners.js:355`, `repos/expenses.js:286`) relies on `personalRowsLoaded()`, which only checks `live.delivered` and is also true for a cache answer. It can "fix" the shared day totals from stale rows. It must require `live.server`. |
      | TIP number checks, daily anomaly scan | To be checked in PR 2. They should start only in the `server` state, so they don't report false mismatches. |
    - **The next-bill-number hint** (`renderBillNumber`) is only a hint. A saved bill's number
-     comes from the counter transaction (`docs/architecture.md`, item 10), so a stale cache can't
+     comes from the counter transaction (`docs/project/ARCHITECTURE.md`, item 10), so a stale cache can't
      give two bills the same number.
 3. **The warn-never-block rule (owner, 8 Nov).** Checks that run on cached data may only warn.
    - Oversell is the one stock check that blocks. While the state is `cache`, stock is treated as

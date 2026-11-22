@@ -3,7 +3,7 @@
  * open (the version check, labour, bill checks, business details, receipt, TIP
  * and Roles & access use the same read), each section saved by a transaction on
  * its `<section>UpdatedAt` stamp (#113). Moved verbatim out of
- * firestore-service.js (docs/architecture.md, phase 5, #69).
+ * firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/repos/settings
  */
 

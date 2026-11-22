@@ -2,7 +2,7 @@
  * @fileoverview Stock for the screens: the replay of the stock checkpoint's state plus the
  * loaded window, or of all history when no checkpoint is usable (and then the rebuild), the
  * approximate stock members get from a stale checkpoint, and its cache. Moved verbatim out of
- * firestore-service.js (docs/architecture.md, phase 5, #69).
+ * firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/core/stock
  */
 
