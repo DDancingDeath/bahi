@@ -196,3 +196,9 @@ this repo.
   and Moved out (N), the property screen's ⋯ (This month, Expenses), Reports always a tab, Roles & access in the page ⋯ (owner).
   The old per-phone choice is ignored and cleared; old calls open the new equivalent. No data, rules or role changes.
 - **Confirmation** `rent-views-page.test.js` (every former Advanced action reachable for the same roles; old calls), E2E tabs-smoke.
+
+### D-024 — Push while closed: Google Apps Script sends, as the project owner
+- **Status** Accepted · **Date** 2026-11-23 · **Decider** Owner · **Related** #12, [notifications.md](../notifications.md) "Stage 2"
+- **Options** Cloudflare Worker (free, new account, service-account key as a secret) · Cloud Functions trigger (Blaze, needs a card) · Google Apps Script under the shop's Google account.
+- **Decision** Apps Script: a web app the writing phone calls with the event id (instant) plus a 5-minute sweep for offline writers. It uses the owner account's OAuth token (no key anywhere), sends with FCM v1, marks docs `pushed` and deletes stale tokens. Stays on the free plan (D-016).
+- **Confirmation** `tests/push-sender/core.test.js`; rules tests "push devices" and "no client sets pushed".

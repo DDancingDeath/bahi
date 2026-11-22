@@ -1,0 +1,67 @@
+# Deploys the push sender (push-sender/, Google Apps Script; docs/notifications.md "Stage 2") with
+# clasp, as the account that owns bahi-happa and bahi-happa-dev. Needs three secrets the owner sets
+# once (docs/notifications.md, owner checklist): CLASPRC_JSON (that account's ~/.clasprc.json after
+# `clasp login`), PUSH_SENDER_SCRIPT_ID and PUSH_SENDER_DEPLOYMENT_ID (the web app deployment, so its
+# URL never changes). While any is missing the job only says so and succeeds.
+name: Deploy push sender (Apps Script)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'push-sender/**'
+      - '.github/workflows/push-sender-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-sender
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Apps Script push sender
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Secrets set?
+        id: ready
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets.PUSH_SENDER_SCRIPT_ID }}
+          DEPLOYMENT_ID: ${{ secrets.PUSH_SENDER_DEPLOYMENT_ID }}
+        run: |
+          if [ -n "$CLASPRC_JSON" ] && [ -n "$SCRIPT_ID" ] && [ -n "$DEPLOYMENT_ID" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Push sender not deployed: set CLASPRC_JSON, PUSH_SENDER_SCRIPT_ID and PUSH_SENDER_DEPLOYMENT_ID (docs/notifications.md, owner checklist)."
+          fi
+      - uses: actions/checkout@v4
+        if: steps.ready.outputs.ok == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.ready.outputs.ok == 'true'
+        with:
+          node-version: '20'
+      - name: Core tests
+        if: steps.ready.outputs.ok == 'true'
+        run: |
+          npm ci --no-audit --no-fund
+          npx jest tests/push-sender
+      - name: Push and redeploy the web app
+        if: steps.ready.outputs.ok == 'true'
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets.PUSH_SENDER_SCRIPT_ID }}
+          DEPLOYMENT_ID: ${{ secrets.PUSH_SENDER_DEPLOYMENT_ID }}
+        run: |
+          npm install -g @google/clasp@2.4.2 --no-audit --no-fund
+          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          cd push-sender
+          printf '{"scriptId":"%s","rootDir":"."}' "$SCRIPT_ID" > .clasp.json
+          clasp push --force
+          clasp deploy --deploymentId "$DEPLOYMENT_ID" --description "main ${GITHUB_SHA::7}"
+          rm -f .clasp.json ~/.clasprc.json

@@ -12,5 +12,9 @@ export const APP_IDENTITY = Object.freeze({
     "googleSignIn": {
         "web": false,
         "android": false
+    },
+    "push": {
+        "url": "",
+        "vapidKey": ""
     }
 });

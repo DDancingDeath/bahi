@@ -22,6 +22,7 @@ const SW_PATH = path.join(WWW, 'service-worker.js');
 // Firebase AI Logic (modular 13.2.0): loaded only on the first photo of weights (#374), which the owner switches on.
 const RUNTIME_ONLY = [
     '/vendor/firebase/10.7.1/firebase-app-check-compat.js',
+    '/vendor/firebase/10.7.1/firebase-messaging-compat.js',
     '/vendor/firebase/13.2.0/firebase-app.js',
     '/vendor/firebase/13.2.0/firebase-ai.js',
     '/vendor/firebase/13.2.0/firebase-app-check.js'

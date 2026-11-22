@@ -142,3 +142,7 @@ tests/backup/.artifact-test-*/
 
 # tests/ci scratch dirs
 tests/ci/.work-*/
+
+# Apps Script deploy (push-sender): local clasp files
+push-sender/.clasp.json
+.clasprc.json

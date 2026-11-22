@@ -106,6 +106,20 @@ module.exports = [
         rules: realErrors
     },
     {
+        // Push sender (Google Apps Script, V8): files share one global scope; Core.js also loads in Node.
+        files: ['push-sender/**/*.js'],
+        languageOptions: {
+            ecmaVersion: 2022,
+            sourceType: 'script',
+            globals: {
+                console: 'readonly', module: 'readonly', PushCore: 'writable',
+                UrlFetchApp: 'readonly', ScriptApp: 'readonly', Utilities: 'readonly', ContentService: 'readonly',
+                CacheService: 'readonly', LockService: 'readonly', PropertiesService: 'readonly'
+            }
+        },
+        rules: { ...realErrors, 'no-unused-vars': 'off', 'no-redeclare': 'off' }
+    },
+    {
         // tools/migrate is an ES module package (it imports the app's www/js utils).
         files: ['tools/migrate/**/*.js'],
         languageOptions: {

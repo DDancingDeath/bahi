@@ -13,6 +13,7 @@ import { afterLoginFailure, isStaleBackoff, loginWaitMs, waitParts } from '../ut
 import { safeSetItem } from '../utils/storage-full.js';
 import { SyncStatus } from '../ui/sync-status.js';
 import { AuditService } from '../services/audit.js';
+import { PushNotify } from '../modules/push-notify.js';
 
 const BACKOFF_KEY = 'happaLoginBackoff';
 /** How long Wait and sync waits for the server before saying it is still not sent (U-03). */
@@ -830,6 +831,7 @@ const AuthManager = {
         UIManager.showLoading();
         
         try {
+            await PushNotify.forget();
             await firebase.auth().signOut();
             AppState.currentUser = null;
             AppState.userRole = 'staff';

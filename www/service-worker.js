@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v767';
+const CACHE_NAME = 'happa-v765';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -32,6 +32,8 @@ const STATIC_ASSETS = [
     '/js/firebase/firestore-service.js',
     '/js/firebase/firestore-meter.js',
     '/js/firebase/db.js',
+    '/js/firebase/push-trigger.js',
+    '/js/firebase/web-push.js',
     '/js/firebase/core/history-window.js',
     '/js/firebase/core/legacy-scan.js',
     '/js/firebase/core/listeners.js',
@@ -63,6 +65,7 @@ const STATIC_ASSETS = [
     '/js/firebase/repos/expenses.js',
     '/js/firebase/repos/items.js',
     '/js/firebase/repos/notifications.js',
+    '/js/firebase/repos/push-devices.js',
     '/js/firebase/repos/settings.js',
     '/js/firebase/repos/stock-records.js',
     '/js/firebase/repos/telemetry.js',
@@ -84,6 +87,7 @@ const STATIC_ASSETS = [
     '/js/modules/miscellaneous.js',
     '/js/modules/notifications.js',
     '/js/modules/phone-notify.js',
+    '/js/modules/push-notify.js',
     '/js/modules/outstanding.js',
     '/js/modules/purchase.js',
     '/js/modules/rate-trends.js',
@@ -222,6 +226,7 @@ const STATIC_ASSETS = [
     '/js/utils/number-check-flags.js',
     '/js/utils/notification-format.js',
     '/js/utils/phone-reminders.js',
+    '/js/utils/push-device.js',
     '/js/utils/record-permissions.js',
     '/js/utils/role-access.js',
     '/js/utils/personal-expenses.js',
@@ -388,6 +393,28 @@ self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
+});
+
+/**
+ * Push while the app is closed (docs/notifications.md, stage 2): a data message from the push sender.
+ * Shown unless the app is on screen (then the bell and its toast tell); the tag merges it with the
+ * app's own bell notification.
+ */
+self.addEventListener('push', (event) => {
+    let payload = {};
+    try { payload = event.data ? event.data.json() : {}; } catch (_) { payload = {}; }
+    const d = (payload && payload.data) || payload || {};
+    if (!d.title) return;
+    event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        if (list.some((c) => c.visibilityState === 'visible')) return undefined;
+        return self.registration.showNotification(String(d.title), {
+            body: String(d.body || ''),
+            tag: String(d.tag || 'happa-bell'),
+            icon: '/icons/icon-192.png',
+            badge: '/icons/favicon-32.png',
+            data: { route: String(d.route || 'bell') }
+        });
+    }));
 });
 
 /**

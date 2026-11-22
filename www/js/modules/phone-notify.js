@@ -9,7 +9,7 @@
 
 import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
-import { t } from '../i18n/index.js';
+import { t, getLang } from '../i18n/index.js';
 import { pickLang } from '../i18n/localize.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { on, REFRESH, REMINDERS_CHANGED, TODOS_CHANGED } from '../utils/events.js';
@@ -23,6 +23,7 @@ import { safeSetItem } from '../utils/storage-full.js';
 import { rentalsRole } from '../ui/business-switcher.js';
 import { ManualReminders, TODAY_REMINDERS_KEY } from '../ui/manual-reminders.js';
 import { setDisclosureOpen } from '../ui/disclosure.js';
+import { PushNotify } from './push-notify.js';
 import {
     NOTIFY_PREFS_KEY, LEGACY_SYSTEM_KEY, NOTIFY_TYPES, NOTIFY_IDS, notifyPrefs, planReminders, planKey,
     ownReminderIds, udhaarSummary, webTimers, inMs, isTimeText
@@ -145,6 +146,8 @@ export const PhoneNotify = {
     init() {
         if (this.bound || typeof window === 'undefined') return;
         this.bound = true;
+        PushNotify.init((r) => this.route(r));
+        PushNotify.onToken = () => this.syncPush();
         const native = this.plugin();
         if (native) {
             try {
@@ -187,6 +190,7 @@ export const PhoneNotify = {
         [REMINDERS_CHANGED, TODOS_CHANGED, REFRESH.due, REFRESH.today, REFRESH.history].forEach(name => on(name, () => this.reschedule()));
         window.addEventListener('aadhat:langchange', () => {
             this.reschedule();
+            this.syncPush();
             this.renderSettings().catch(e => console.warn('Notification settings failed:', e?.message || e));
         });
     },
@@ -208,6 +212,7 @@ export const PhoneNotify = {
             }
         }
         await this.readNotifyPermission();
+        this.syncPush();
         this.listenTodos();
         clearTimeout(this.timer);
         this.timer = setTimeout(() => { this.ready = true; this.planNow(); }, FIRST_PLAN_MS);
@@ -226,6 +231,12 @@ export const PhoneNotify = {
         this.clearWebTimers();
         this.lastKey = null;
         this.apply([]);
+    },
+
+    /** Push while closed: this phone's device doc follows the switches (stage 2; no-op without a sender). */
+    syncPush() {
+        if (!this.uid || !PushNotify.kind()) return Promise.resolve();
+        return PushNotify.sync(this.uid, this.prefs(), getLang());
     },
 
     /** To do reminders come from Today's listener; started here too when they may notify. */
@@ -351,6 +362,7 @@ export const PhoneNotify = {
      */
     bell(fresh, uid) {
         if (!uid || uid !== this.uid || !this.prefs().on || this.foreground()) return false;
+        if (isNative() && PushNotify.handlesBell(uid)) return false;
         const list = (fresh || []).filter(n => n && n.byUid !== uid && n.createdBy !== uid && this.wants(n));
         if (!list.length) return false;
         const d = describeNotification(list[0]);
@@ -403,6 +415,7 @@ export const PhoneNotify = {
         this.lastKey = null;
         this.renderSettings();
         this.reschedule();
+        this.syncPush();
         return true;
     },
 
@@ -412,6 +425,7 @@ export const PhoneNotify = {
         if (type === 'todo') this.listenTodos();
         this.renderSettings();
         this.reschedule();
+        this.syncPush();
     },
 
     /** A switch under "Updates from others": the bell's toast and badge and the phone, on this phone. */
@@ -419,6 +433,7 @@ export const PhoneNotify = {
         if (!UPDATE_KINDS.includes(kind) || ALWAYS_ON_KINDS.includes(kind)) return;
         this.save({ [kind]: !!checked });
         this.renderSettings();
+        this.syncPush();
     },
 
     setTime(value) {
@@ -496,6 +511,11 @@ export const PhoneNotify = {
             perm.textContent = t(kind === 'native' ? 'ui.notify.denied_app' : 'ui.notify.denied_web');
         }
         const note = document.getElementById('notifPlatformNote');
-        if (note) note.textContent = t(kind === 'native' ? 'ui.notify.note_app' : 'ui.notify.note_web');
+        if (note) {
+            const push = !!PushNotify.kind();
+            note.textContent = kind === 'native'
+                ? t(push ? 'ui.notify.note_app_push' : 'ui.notify.note_app')
+                : t(push ? 'ui.notify.note_web_push' : 'ui.notify.note_web');
+        }
     }
 };

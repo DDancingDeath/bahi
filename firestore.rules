@@ -2088,6 +2088,17 @@ service cloud.firestore {
       allow read: if isApprovedIn('users') && request.auth.uid == userId;
     }
 
+    match /users/{uid}/devices/{id} {
+      allow read, delete: if request.auth.uid == uid;
+      allow create, update: if request.auth.uid == uid && pushDeviceOk(request.resource.data);
+    }
+
+    function pushDeviceOk(d) {
+      return d.keys().hasOnly(['token', 'platform', 'on', 'kinds', 'lang', 'updatedAt'])
+        && d.token is string && d.token.size() < 4096 && d.platform in ['android', 'web']
+        && d.on is bool && d.kinds is map && d.lang in ['en', 'hi'] && d.updatedAt == request.time;
+    }
+
     match /dev_purchases/{billId}/edits/{editId} {
       allow read: if isApprovedIn('dev_users');
       allow create: if validEditCreate('dev_users', 'purchases', billId, editId);
