@@ -153,7 +153,8 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   needs no knowledge of the surface behind it (page, panel or sheet, any theme or mode). Leave about `--sp-3` free above
   the field for the label's upper half. A field error or a party line goes after the `.field-float`
   (`bill-highlight.js`, `party-due-line.js` and `party-suggest.js` look for it, as for `.bill-form-field`). Used by
-  Purchase and Retail sale (name, and the line's Item, Rate and Weight); other forms can take it as they are redesigned.
+  Purchase, Retail sale and Wholesale (name, and the line's Item, Rate and Weight), Expenses and Today › Cash (NEW-10: one
+  field style for the app's entry forms); Settings and dialogs keep `.field` (label above) for now.
   ```html
   <div class="field-float">
       <label for="billRate" data-i18n="ui.common.rate">Rate</label>
@@ -165,7 +166,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   billing on), then Weight (kg) | 📷 `[data-photo-weights]` (Purchase, only with Photo of weights on) | Add. The 🎙 and 📷
   are 48 px `-tonal -icon` squares (`.bill-entry-tool`) with an `aria-label` and a `title`; a hidden one leaves its room
   to the fields. What voice heard, and Undo voice, show right under the first row. Packets · Total and Add to bill share
-  the last row. Wholesale keeps its own entry (`.bill-line-grid.ws-entry-grid`, labels above) for now.
+  the last row. Wholesale's entry uses the same floating-label fields (Item | Rate, then Weight).
 - **One rule for switches (C3)**: page sections are **Tabs** `.tabs` (underline; `role="tablist"`, each
   button `role="tab"` with `aria-selected`); filters and modes are a **Segmented control** `.seg`
   (`role="group"`, each button `aria-pressed`; a `.mode-dot` span for purchase / sale); on / off is a **chip**
@@ -226,16 +227,16 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   days, `.neg` after 90). The rule is `dueTone(days, amount)` in `utils/aging.js` (History's Due tag and Workers' dues use it too): ₹0 is never coloured, so an empty age group shows a muted dot and amount. Party rows are `.row`s in a panel with an initials avatar drawn from
   `data-initials` (CSS, so the row's text is unchanged); the bills are one `.panel.due-bills` of `.due-bill` rows with hairlines (bill no. in accent without underline, the due right-aligned, the Received / Pay label above its Cash / Online pair).
 - **Today › Cash (5.2a)**: Available cash is the hero figure, the day's other figures a `.metrics` panel (each figure draws its
-  own hairlines, so the grid holds whichever ones show); Open, Record and Close are panels of `.field`s with ₹ as an `.adorn-pre`,
+  own hairlines, so the grid holds whichever ones show); Open, Record and Close are panels of `.field-float`s with ₹ as an `.adorn-pre`,
   one primary button each (Record is tonal while Close shows); the Difference figure takes a tone class. The script's markup
   (5.2b): the count check is a `.notice` with an icon per line; each history day is a `.row` with its figures in two columns and
   a `.tag` status; "not counted" and duplicate days are notices; a day's details are `.metrics`, in / out sums and entry lines.
   Every figure is `moneyHtml()`.
 - **Wholesale (5.5)**: Billing's components (customer field, line panel, row-list bill lines, totals panel with "Fill", Notes |
   Date, the phone action bar) on the page's `.bill-page` class: Billing's `#billing` rules read `:is(#billing, .bill-page)`,
-  and its tones read `--bill-tone-text / -soft / -fill / -ink`, which `.bill-page` sets to the wholesale mode (violet fills and
-  soft, ink text). Sales | History | Dues is a `.seg`; stock and average rate are `.metrics`; wholesale dues are
-  Dues' `.due-bills` panel of rows; a bill opened from a list is panels of `.row`s and a `.table`.
+  so it looks like Purchase: indigo Save, accent Fill and Change date, the Due row folded until "Rest → due", the line entry
+  in floating-label fields. Violet is only the wholesale `.mode-dot` (beside the action bar's total; NEW-04, decision 3).
+  Its bills and dues open History and Dues on their Wholesale filter; stock and average rate are `.metrics`.
   `moneyInText(text, amounts, opts)` (`components.js`) draws the figure (or an array of figures, found in order) inside a
   translated sentence with `moneyHtml` (`opts` as `formatRupees`, e.g. the preset `'rate'`; a missing amount
   leaves its text as it is).
@@ -306,8 +307,10 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   Every confirm with Cancel passes a `confirmLabel` ("Reload", "Print again", "Cancel reminder"; `tests/ci/confirm-verbs.test.js`, F50).
   Bill-check warnings at Save are listed once, bulleted, in a `.notice.warn` (`warningsNoticeHtml`, ui/bill-highlight.js) while the bill's
   banner hides; an edit shows them in its one "Save changes" sheet above the reason (`askEditReason`, modules/billing.js, F51/F53).
-  A native date box gets a `.date-caption` under it with the day as `formatDay` writes it (`ui/date-caption.js`, every
-  `input[type=date]` but the bill forms', whose date line already says the day; a From – To pair shares one caption, F54).
+  A native date box shows its day as `formatDay` writes it ("21 Nov 2026", never the device's "11/21/2026", F54):
+  `ui/date-field.js` wraps every `input[type=date]` (not `[data-native-date]`) in a `.date-field` and draws a `.date-field-text`
+  over the box's own hidden text. The input stays the control (its `<label for>`, the phone's picker, scripts); a click opens
+  the picker on a desktop (`showPicker()`), Enter or Space from the keyboard, and typed digits show the native fields.
   **The app dialog (C5a)**: `showModal`, `showModalWithHtml` and `showCustomModal` share one controller (`ui/ui-manager.js`)
   and one template (`#modalOverlay.scrim.app-scrim > #modalBox.app-dialog` with `.dialog-title`, `.dialog-body` and `.dialog-actions`): a `.dialog` from 600 px, a bottom `.sheet` with a grabber
   below. It takes focus, keeps Tab inside (`trapFocus`, shared with the More and Rentals sheets) and gives focus back; Esc,

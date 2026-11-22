@@ -60,7 +60,7 @@ import { chooseStartPage, routeFromHash } from './utils/start-page.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
-import { installDateCaptions } from './ui/date-caption.js';
+import { installDateFields } from './ui/date-field.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
 import { friendlyError } from './utils/friendly-error.js';
 
@@ -72,7 +72,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261121g-numbers-anom-rows';
+const BUILD_ID = '20261121h-forms-dates';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -280,7 +280,7 @@ let pagesReady = Promise.resolve();
 /** What startup renders into a page that is put in later, run when it is added. */
 const PAGE_ADDED = {
     items: () => ItemsManager.renderItems(),
-    'wholesale-sales': () => withWholesale(m => m.loadItemsDropdown()),
+    'wholesale-sales': () => withWholesale(m => { m.loadItemsDropdown(); m.updatePaymentTotal(); }),
     expenses: () => withExpenses(m => { m.updateExpensePersonOptions(); m.renderexpensesHistory(); }),
     settings: () => {
         PrinterService.updateStatus();
@@ -676,7 +676,8 @@ async function initializeUserData() {
                 SettingsManager.syncPrinterPanel();
                 SettingsManager.updatePrinterStatus().catch(e => console.warn('Printer status:', e));
                 return document.getElementById('printerPanel');
-            }
+            },
+            openSettings: (evt) => NavigationManager.showTab('settings-printing', evt)
         });
 
         BottomNav.init({
@@ -833,7 +834,7 @@ async function initializeUserData() {
 // data-on* attributes (delegated handlers, #89) work from the first template on
 installActions();
 installTablistKeys();
-installDateCaptions();
+installDateFields();
 
 // Before the templates go in, so their text never changes weight (variables.css: --w-strong)
 if (window.Capacitor?.getPlatform?.() === 'android') document.documentElement.classList.add('platform-android');
@@ -1157,7 +1158,8 @@ window.app = {
     // Billing's Bluetooth printer sheet (app bar, next to the bell)
     printerSheet: {
         open: () => PrinterShortcut.open(),
-        close: () => PrinterShortcut.close()
+        close: () => PrinterShortcut.close(),
+        receiptOptions: (evt) => PrinterShortcut.receiptOptions(evt)
     },
 
     // Notifications inbox (#12)

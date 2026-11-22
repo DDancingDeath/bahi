@@ -194,6 +194,13 @@
   display: none;
 }
 
+/* "Receipt options ›" under the panel: the rest of Settings › Printing & receipts (NEW-12) */
+.printer-sheet .printer-sheet-receipt {
+  margin-top: var(--sp-3);
+  padding-inline: 0;
+  border-top: 1px var(--rule-style) var(--line);
+}
+
 .usage-list {
   margin: 0;
   padding-left: var(--sp-5);

@@ -91,10 +91,11 @@
         <div class="app-dialog dialog" role="dialog" aria-modal="true" aria-labelledby="printerSheetTitle" tabindex="-1">
             <div class="grabber" aria-hidden="true"></div>
             <div class="dialog-head">
-                <h2 class="dialog-title grow" id="printerSheetTitle" data-i18n="ui.printer.shortcut">Printer (Bluetooth)</h2>
+                <h2 class="dialog-title grow" id="printerSheetTitle" data-i18n="ui.printer.sheet_title">Printer</h2>
                 <button type="button" class="btn btn-ghost btn-icon" data-dismiss data-onclick="printerSheet.close()" aria-label="Close" data-i18n-aria-label="ui.common.close"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
             </div>
             <div class="dialog-body" id="printerSheetBody"></div>
+            <button type="button" class="row printer-sheet-receipt" data-onclick="printerSheet.receiptOptions(event)"><span class="row-main"><span class="row-title" data-i18n="ui.printer.receipt_options">Receipt options</span></span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
         </div>
     </div>
 

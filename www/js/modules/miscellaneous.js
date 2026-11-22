@@ -20,7 +20,7 @@ import { t } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { saveFailedText, EXPENSE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { refusedForClock } from '../utils/clock-skew.js';
-import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
+import { moneyHtml, moneyInText, emptyState, skeleton } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -492,8 +492,14 @@ export class ExpensesManager {
     static renderExpenseList(category, container) {
         if (!container) return;
         const expenses = this.listedExpenses(category);
+        // First load (F63): the rows' first answer is not in yet, so grey rows, not "No expenses"
+        const loading = expenses.length === 0 && !isExpenseSearch(this.search[category]) && FirebaseService.expenseRowsLoaded?.() === false;
         this.attachExpenseScroll(container);
         this.renderSectionTools(category, expenses);
+        if (loading) {
+            container.innerHTML = skeleton({ label: t('ui.expenses.loading') });
+            return;
+        }
         if (expenses.length === 0) {
             const empty = isExpenseSearch(this.search[category]) ? t('ui.expenses.no_match') : this.emptyExpenseMessage(category);
             container.innerHTML = emptyState({ icon: 'banknote', title: empty });
@@ -522,11 +528,17 @@ export class ExpensesManager {
     }
 
     /**
-     * Older expenses load one month at a time as the user scrolls the list.
+     * Older expenses load one month at a time as the user scrolls the list: not before the first rows are in, a
+     * skeleton while a month loads, then "No older expenses" at the end (F36).
      * @param {HTMLElement} container
      */
     static attachExpenseScroll(container) {
-        attachOlderHistoryScroll(container, { noun: 'expenses', onLoaded: () => this.renderexpensesHistory() });
+        attachOlderHistoryScroll(container, {
+            noun: 'expenses',
+            skeleton: true,
+            enabled: () => FirebaseService.expenseRowsLoaded?.() !== false,
+            onLoaded: () => this.renderexpensesHistory()
+        });
     }
 
     /**
