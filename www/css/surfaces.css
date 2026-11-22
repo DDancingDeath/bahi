@@ -21,6 +21,32 @@
   padding: var(--sp-4);
 }
 
+/* A panel with its title on its top border, like a .field-float label (a fieldset legend):
+   .panel.panel-float > .panel-legend. Leave about --sp-3 free above it. */
+.panel-float {
+  position: relative;
+  margin-top: var(--sp-3);
+}
+
+.panel-float > .panel-legend {
+  position: absolute;
+  top: 0;
+  left: var(--sp-3);
+  z-index: var(--z-base);
+  max-width: calc(100% - var(--sp-6));
+  margin: 0;
+  padding: 0 var(--sp-1);
+  overflow: hidden;
+  background: linear-gradient(transparent 50%, var(--panel-bg) 50%);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  font-weight: var(--w-label);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transform: translateY(-50%);
+}
+
 .row {
   position: relative;
   display: flex;

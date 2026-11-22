@@ -124,9 +124,11 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   `-block` (`-danger-outline`: a risky choice that is not the main action, e.g. Discard the line, Save anyway at a rate check). One primary button per screen. Hover is a veil over the button's own colour; a busy
   save sets `aria-busy` (the `runExclusive` lock). Every button, `-sm` too, and the payment actions
   (`[data-record-payment]`, `[data-mark-cleared]`), fields, segments and tabs are at least `--tap-min` tall (48 px on phones). A chip draws 40 px with a 48 px tap area (`::after`); a switch draws 36 × 22 inside a clear 48 px border; a check box is 24 px and a `label` holding one is a 48 px row; a bill-number link (`.due-bill-link`) has an invisible 48 px tap area. No page has a button class with its own
-  look (C2): Billing and Wholesale use Save `-primary`, Print and Share (`-icon`) the default (the bill's action row is
-  Share, Save, Print: Print, the most used, is right-most, in DOM and tab order too; Share is a 48 px icon and Save and Print
-  share the rest of the row in equal widths), Add to bill and
+  look (C2): Billing and Wholesale use Save & print `-primary` (`.bill-print`, with its printer icon), Save (`.bill-save`)
+  and Share (`-icon`) the default (the bill's action row is Share, Save, Save & print: Save & print, the most used, is the row's
+  one primary and right-most, in DOM and tab order too; Share is a 48 px icon and Save and Save & print share the rest of the
+  row in equal widths; Ctrl S / Ctrl P stay on their buttons, and Enter in a field never saves or prints; a bill with a red
+  problem turns Save into "Fix 2" in the danger colour), Add to bill and
   Rest → due `-tonal`, the bill menu (⋯ `.bill-menu`, a `<details>` like `.rent-menu` whose `.panel` list floats; `ui/menus.js` closes it on a pick, a tap elsewhere, Esc or Tab out, moves through it with Up / Down and keeps it in the window, also for the Anomalies rows' ⋯; at the end of the Purchase / Retail sale
   row `.bill-mode-row`: Drafts with its count only when there are some, Save draft, Clear; `.bill-menu-badge` on ⋯ counts the
   drafts) and the contact picker `-ghost`; inside `.bill-sale` (Retail sale) and
@@ -154,7 +156,8 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   needs no knowledge of the surface behind it (page, panel or sheet, any theme or mode). Leave about `--sp-3` free above
   the field for the label's upper half. A field error or a party line goes after the `.field-float`
   (`bill-highlight.js`, `party-due-line.js` and `party-suggest.js` look for it, as for `.bill-form-field`). Used by
-  Purchase, Retail sale and Wholesale (name, and the line's Item, Rate and Weight), Expenses and Today › Cash (NEW-10: one
+  Purchase, Retail sale and Wholesale (name, the line's Item, Rate and Weight, and Notes, with "Print in bill" a check row
+  under the field, never in its label), Expenses and Today › Cash (NEW-10: one
   field style for the app's entry forms); Settings and dialogs keep `.field` (label above) for now.
   ```html
   <div class="field-float">
@@ -162,11 +165,13 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
       <div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input type="number" class="input" id="billRate" placeholder="Pick"/></div>
   </div>
   ```
-- **Billing line entry (option C)**: no "New line" heading (the card is `role="group"` named by `ui.billing.new_line`);
-  `.bill-entry-row`s: Item (wider, flex 1.6) | Rate (flex 1, ₹ in the field) | 🎙 `[data-voice-mic]` (only with Voice
-  billing on), then Weight (kg) | 📷 `[data-photo-weights]` (Purchase, only with Photo of weights on) | Add. The 🎙 and 📷
-  are 48 px `-tonal -icon` squares (`.bill-entry-tool`) with an `aria-label` and a `title`; a hidden one leaves its room
-  to the fields. What voice heard, and Undo voice, show right under the first row. Packets · Total and Add to bill share
+- **Billing line entry (option C)**: `.bill-head`: Customer | 🎙 `[data-voice-mic]` (the one whole-page voice
+  mic, hold-to-talk, only with Voice billing on; nothing else is a mic, the name field has only its contact button and
+  takes the keyboard's own voice typing). No "New line" heading (the card is `role="group"` named by `ui.billing.new_line`);
+  `.bill-entry-row`s: Item (wider, flex 1.6) | Rate (flex 1, ₹ in the field), then Weight (kg) | 📷 `[data-photo-weights]`
+  (Purchase, only with Photo of weights on) | Add. The 🎙 and 📷 are 48 px `-tonal -icon` squares (`.bill-entry-tool`) with
+  an `aria-label` and a `title`; a hidden one leaves its room to the fields. What voice heard, and Undo voice, show right
+  under Customer | 🎙. Packets · Total and Add to bill share
   the last row. Wholesale's entry uses the same floating-label fields (Item | Rate, then Weight).
 - **One rule for switches (C3)**: page sections are **Tabs** `.tabs` (underline; `role="tablist"`, each
   button `role="tab"` with `aria-selected`); filters and modes are a **Segmented control** `.seg`
@@ -181,6 +186,9 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   tabindex (only the selected tab is a Tab stop) and Left / Right / Home / End select a tab through its own
   click handler, also for tablists drawn later.
 - **Mode dot** `.mode-dot` (`.sale`, `.wholesale`): 8 px identity dot beside a purchase / sale / wholesale label, never a status.
+- **Panel with a legend** `.panel.panel-float > .panel-legend` (`surfaces.css`): the panel's title sits on its top
+  border like a `.field-float` label (14 px `--fs-label`, `--ink-2`, its lower half `--panel-bg` cuts the border), so the
+  title needs no row of its own; leave about `--sp-3` above. Used by Today › Labour.
 - **Panel and rows** `.panel`, `.row` (`.row-main`, `.row-title`, `.row-meta`, `.row-trail`,
   `.row-amt`, `.lead-icon`). **Metrics** `.metrics > .metric`, `.hero-num`, `.display-num`, `.meter`.
   `.panel-tap` is a panel that opens something (hover and focus ring).

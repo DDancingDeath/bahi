@@ -34,13 +34,14 @@ export function billsForKind(state, kind) {
  * marked `matchedName` so the line says whose bills those are (never merged).
  * @param {Array<?Bill>} bills
  * @param {string} name Name typed on the bill
- * @param {{excludeId?: *, today?: Date}} [opts] excludeId: the bill being edited / retried
+ * @param {{excludeId?: *, today?: Date, noFallback?: boolean}} [opts] excludeId: the bill being edited / retried;
+ *   noFallback: the exact name only (a keyboard is still composing it)
  * @returns {?{key: string, total: number, count: number, oldestDays: ?number, bucket: number, matchedName?: string}}
  *   null when the name is blank or nothing is owed
  */
 export function partyDue(bills, name, opts = {}) {
     const due = exactPartyDue(bills, name, opts);
-    if (due) return due;
+    if (due || opts.noFallback) return due;
     const plain = nameWithoutPhone(name);
     if (partyNameKey(plain) === partyNameKey(name)) return null;
     const under = exactPartyDue(bills, plain, opts);

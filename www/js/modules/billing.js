@@ -7,6 +7,7 @@
 import { showAmount } from '../ui/number-input.js';
 import { showUndo, hideUndo } from '../ui/undo-bar.js';
 import { AppState } from '../utils/state.js';
+import { printNoteDefault } from '../utils/print-note.js';
 import { SecurityMonitor } from '../services/security-monitor.js';
 import { on, REFRESH, ITEM_FREQUENCY_CHANGED } from '../utils/events.js';
 import { UIManager, buildSheet, closeSheet, openSheet } from '../ui/ui-manager.js';
@@ -116,7 +117,8 @@ export function syncBillNotes(inputId, open = false) {
     const input = document.getElementById(inputId);
     const field = input?.closest('.bill-notes');
     if (!field) return;
-    const hasNote = !!input.value.trim() || !!field.querySelector('input[type="checkbox"]')?.checked;
+    // A tick that is only this phone's usual choice does not open the field
+    const hasNote = !!input.value.trim() || (!!field.querySelector('input[type="checkbox"]')?.checked && !printNoteDefault());
     const shown = open || hasNote;
     field.hidden = !shown;
     const toggle = field.parentElement?.querySelector('.bill-note-toggle');
@@ -274,6 +276,10 @@ const BillingManager = {
         // Initialize child managers with reference to this
         PurchaseManager.init(this);
         RetailSaleManager.init(this);
+        ['billPrintComments', 'salePrintComments'].forEach(id => {
+            const box = document.getElementById(id);
+            if (box) box.checked = printNoteDefault();
+        });
     },
 
     // -------------------- MODE SWITCHING --------------------

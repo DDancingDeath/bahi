@@ -1,14 +1,15 @@
 # Voice billing (#81, #131, #498)
 
 Status: in the app, **off by default**: the whole bill by voice (#498: party, lines, bag
-weights, rate, payment, labour, note, day) through one check sheet, a name mic in the
+weights, rate, payment, labour, note, day) through one check sheet, from one mic beside the
 Customer field (Purchase and Retail sale), hold-to-talk, and a spoken readback (#81 A1–A3). The web header
 (#266) and the Android recogniser (#267) are in, so it runs in Chrome and in the Android
 app; #498 fixed the Android microphone flow (see "Android app").
 
 ## Whole bill by voice (#498)
 
-**Hold to talk.** Press and hold the 🎤 beside Rate, speak, let go. While held the mic is
+**Hold to talk.** Press and hold the 🎤 to the right of Customer (a 48 px square, the page's only
+mic; with voice off the field takes the whole row), speak, let go. While held the mic is
 marked and the words heard so far show under it ("Hearing: …"; the Android recogniser and
 Chrome both give partial words). Let go off the mic (more than 48 px away) or have the press
 cancelled by the system, and nothing is used ("Let go off the mic: nothing used"). A quick tap
@@ -62,12 +63,14 @@ matches in any script and spelling (`looseWord`: "रमेश" = "ramesh"), hon
 party only when exactly one fits exactly and no other is close; otherwise the pick list starts
 on "Use '<as said>'" and is marked, and the user chooses.
 
-**Name mic.** A small 🎤 inside the Customer field (Purchase and Retail sale), beside the contact button
-(44+ px, en/hi label; only while voice billing is on). A tap listens once for a name ("Ramesh
-bhai se" → "Ramesh Bhai"), then lists the closest known parties (with what is open on them),
-"Use '<as said>'" and, where the phone can pick contacts, "Pick from phone contacts". Nothing
-is picked for the user. A pick fills the field as typing would. Phone contacts are not read in
-bulk: the contact picker shows only the one contact chosen.
+**A name alone.** Said into the same mic with nothing else ("Ramesh bhai se" → "Ramesh Bhai", or a
+known party's name with no party word), it lists the closest known parties (with what is open on
+them), "Use '<as said>'" and, where the phone can pick contacts, "Pick from phone contacts", as the
+old name mic in the field did (removed, v760: the phone keyboard's own mic types a name into the
+field, and the party suggestions follow it letter by letter). Words that are no known
+party and have no party word stay "not understood". With the check sheet open, a name sets its
+party. Nothing is picked for the user. A pick fills the field as typing would. Phone contacts are
+not read in bulk: the contact picker shows only the one contact chosen.
 
 ## Android app (#498)
 
@@ -95,7 +98,7 @@ Needs a new APK (the app bundles `www/`).
 ## What it does
 
 Settings › **Voice billing** (per device, off until switched on). When on, Billing shows a 🎤
-button on the purchase and the retail sale form (and the name mic). One tap (or hold, above):
+button beside Customer on the purchase and the retail sale form. One tap (or hold, above):
 
 1. listens (the language follows the app: Hindi `hi-IN`, English `en-IN`);
 2. reads the party and each line's item, weight and rate from what was

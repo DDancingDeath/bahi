@@ -34,7 +34,7 @@ import { BillingManager, PurchaseManager, RetailSaleManager, syncBillNotes } fro
 const FIELDS = {
     purchase: {
         key: 'purchase', kind: 'purchase',
-        mic: 'voiceMicPurchase', nameMic: 'voiceNamePurchase', item: 'billItem', rate: 'billRate', weight: 'newWeight',
+        mic: 'voiceMicPurchase', item: 'billItem', rate: 'billRate', weight: 'newWeight',
         customer: 'customerName', customerNames: 'customerOptions',
         transcript: 'voiceTranscriptPurchase', undo: 'voiceUndoPurchase', lock: 'purchase',
         cash: 'cashPayment', online: 'onlinePayment', due: 'dueAmount', note: 'billComments', date: 'billDate',
@@ -57,7 +57,7 @@ const FIELDS = {
     },
     sale: {
         key: 'sale', kind: 'retail',
-        mic: 'voiceMicSale', nameMic: 'voiceNameSale', item: 'saleItem', rate: 'saleRate', weight: 'saleWeight',
+        mic: 'voiceMicSale', item: 'saleItem', rate: 'saleRate', weight: 'saleWeight',
         customer: 'saleCustomerName', customerNames: 'saleCustomerOptions',
         transcript: 'voiceTranscriptSale', undo: 'voiceUndoSale', lock: 'retail',
         cash: 'saleCashPayment', online: 'saleOnlinePayment', due: 'saleDueAmount', note: 'saleComments', date: 'saleDate',
@@ -533,14 +533,37 @@ const HONORIFIC_END = new Set(['ji', 'जी']);
 const NAME_DROP = new Set([...VOICE_WORDS.CUSTOMER_WORDS, ...VOICE_WORDS.NAME_FILLER, ...VOICE_WORDS.NAME_END,
     'from', 'supplier', 'seller', 'farmer', 'mr', 'mrs', 'shri', 'please', 'सप्लायर', 'श्री']);
 
-/** The name in what was said for the name mic: "Ramesh bhai se" → "Ramesh Bhai", "customer Suresh" → "Suresh". */
-export function nameFromSpeech(text) {
+/** The name words in what was said: "Ramesh bhai se" → ramesh bhai, "customer Suresh" → suresh. */
+function nameWords(text) {
     const words = voiceTokens(text).filter(w => !/\d/.test(w));
     let a = 0;
     let b = words.length;
     while (a < b && NAME_DROP.has(words[a])) a++;
     while (b > a && NAME_DROP.has(words[b - 1]) && !HONORIFIC_END.has(words[b - 1])) b--;
-    return voiceNameCase(words.slice(a, Math.min(b, a + 4)));
+    return words.slice(a, b);
+}
+
+/** The name in what was said: "Ramesh bhai se" → "Ramesh Bhai", "customer Suresh" → "Suresh". */
+export function nameFromSpeech(text) {
+    return voiceNameCase(nameWords(text).slice(0, 4));
+}
+
+/**
+ * Only a name was said ("Ramesh", "Ramesh bhai se"; no item, amount, payment, note or day):
+ * the names heard, most likely first, else an empty list.
+ * @param {*} bill pickWholeBill's result
+ * @param {string[]} heard the recogniser's alternatives
+ * @returns {string[]}
+ */
+export function namesOnly(bill, heard) {
+    const p = bill.payment || {};
+    if (bill.lines.length || bill.rate !== null || bill.labour || bill.note || bill.date
+        || ['cash', 'online', 'due', 'rest', 'full'].some(k => p[k] !== null && p[k] !== undefined)) return [];
+    const said = (heard || []).map(h => String(h || '').trim()).filter(h => h && !/\d/.test(h));
+    const names = said.filter(h => { const n = nameWords(h).length; return n > 0 && n <= 4; }).map(nameFromSpeech);
+    if (bill.party?.spoken) names.unshift(bill.party.spoken);
+    else if (bill.unclear.length !== 1 || !names.length) return [];
+    return [...new Set(names.filter(Boolean))];
 }
 
 export const VoiceBilling = {
@@ -671,7 +694,7 @@ export const VoiceBilling = {
             return;
         }
         const toast = byId('toast');
-        if (toast && [t('msg.voice.listening'), t('msg.voice.hold_listening'), t('msg.voice.name_listening')].includes(toast.textContent)) toast.classList.remove('show');
+        if (toast && [t('msg.voice.listening'), t('msg.voice.hold_listening')].includes(toast.textContent)) toast.classList.remove('show');
     },
 
     /** Words so far while the mic is held, under the mic (and in the open check sheet). */
@@ -723,6 +746,18 @@ export const VoiceBilling = {
         }
         const bill = pickWholeBill(heard, AppState.items, { knownNames: this.knownNames(f) });
         this.heardNow = bill.heard;
+        let names = namesOnly(bill, heard);
+        const ranked = names.map(n => this.partyMatches(f, n));
+        // Words with no party word ("Ramesh") are a name only when a known party sounds like them
+        if (!bill.party && !ranked.some(r => r.matches.length)) names = [];
+        if (names.length && this.sheet?.key !== key) {
+            beep('ok');
+            return this.pickName(key, heard, names, ranked);
+        }
+        if (names.length) {
+            bill.party = { spoken: names[0], role: null, ...bill.party, ...ranked[0] };
+            bill.unclear = [];
+        }
         if (!hasWholeBillValues(bill)) {
             beep('fail');
             trackVoiceMiss(bill.heard);
@@ -737,7 +772,7 @@ export const VoiceBilling = {
         }
         beep('ok');
         bill.lines = bill.lines.map(l => ({ ...l, item: lineItem(l) }));
-        if (bill.party) bill.party = { ...bill.party, ...this.partyMatches(f, bill.party.spoken) };
+        if (bill.party && !bill.party.matches) bill.party = { ...bill.party, ...this.partyMatches(f, bill.party.spoken) };
         if (this.sheet?.key === key) {
             this.captureSheet();
             this.sheet.history.push(this.sheet.acc);
@@ -1411,46 +1446,22 @@ export const VoiceBilling = {
     },
 
     /**
-     * The mic in the name field (#498): listen once, then the known parties closest to what was
-     * said (any script, honorifics left out) and "Use '<as said>'". Nothing is picked for the user;
-     * a pick fills the field as typing would (the due line and suggestions follow).
-     * @param {'purchase'|'sale'} mode
-     * @param {'native'|'web'} engine
+     * Only a name was said into the mic (#498): the known parties closest to it (any script, honorifics
+     * left out), "Use '<as said>'" and the phone's contacts. Nothing is picked for the user; a pick
+     * fills the field as typing would (the due line and suggestions follow).
+     * @param {'purchase'|'sale'} key
+     * @param {string[]} heard the recogniser's alternatives
+     * @param {string[]} names the names in them, most likely first
+     * @param {Array<{matches: Array<*>}>} [ranked] the parties each name may be
      * @returns {Promise<boolean>} true when the name was filled
      */
-    async listenName(mode, engine) {
-        const key = formKey(mode);
+    async pickName(key, heard, names, ranked = names.map(n => this.partyMatches(FIELDS[key], n))) {
         const f = FIELDS[key];
-        if (this.listening || this.busy) return false;
-        this.listening = true;
-        this.heardNow = '';
-        const mic = byId(f.nameMic);
-        this.showListening(f, mic, true, t('msg.voice.name_listening'));
-        let heard;
-        try {
-            heard = engine === 'native'
-                ? await listenNative(this.lang(), window.Capacitor?.Plugins?.SpeechRecognition)
-                : await listenWeb(this.lang());
-        } catch (e) {
-            this.listenFailed(f, e);
-            return false;
-        } finally {
-            this.listening = false;
-            this.showListening(f, mic, false);
-        }
-        const names = [...new Set((heard || []).map(nameFromSpeech).filter(Boolean))];
-        if (!names.length) {
-            beep('fail');
-            this.setStrip(f, '', t('msg.voice.no_speech'));
-            UIManager.showToast(t('msg.voice.no_speech'));
-            return false;
-        }
-        beep('ok');
         const spoken = names[0];
         this.heardNow = spoken;
         /** @type {Map<string, any>} */
         const best = new Map();
-        names.forEach((n, alt) => this.partyMatches(f, n).matches.forEach(m => {
+        ranked.forEach((r, alt) => r.matches.forEach(m => {
             const score = m.score + alt * 0.5;
             if (!best.has(m.key) || best.get(m.key).score > score) best.set(m.key, { ...m, score });
         }));

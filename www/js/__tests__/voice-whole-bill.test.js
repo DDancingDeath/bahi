@@ -2,7 +2,7 @@
  * @fileoverview Whole-bill voice on the Billing page (#498): the check sheet puts the party,
  * lines, labour, payment, note and day on the page only on "Fill bill" (never saves), keeps
  * adding across holds, marks what is unclear and never picks a party when more than one fits;
- * the name mic's pick list; hold-to-talk with pointer events; the Android app's recogniser and
+ * a name said alone opens the party pick list; hold-to-talk with pointer events; the Android app's recogniser and
  * its microphone permission (mocked plugin).
  */
 import { BillingManager } from '../modules/billing.js';
@@ -24,8 +24,7 @@ jest.mock('../firebase/repos/bill-drafts.js', () => ({
 
 const DOM = `
   <div id="purchaseSection">
-    <div class="bill-party"><input id="customerName"><button data-onclick="billing.pickContact()"></button>
-      <button data-voice-mic id="voiceNamePurchase" class="voice-name-mic"></button></div>
+    <div class="bill-party"><input id="customerName"><button data-onclick="billing.pickContact()"></button></div>
     <datalist id="customerOptions"></datalist>
     <button data-voice-mic data-voice-hold="purchase" id="voiceMicPurchase"></button>
     <div class="voice-strip"><p id="voiceTranscriptPurchase" aria-live="polite"></p><button id="voiceUndoPurchase" hidden></button></div>
@@ -43,7 +42,7 @@ const DOM = `
     <div class="bill-date" hidden><input type="date" id="billDate"></div>
   </div>
   <div id="saleSection">
-    <input id="saleCustomerName"><button data-voice-mic id="voiceNameSale" class="voice-name-mic"></button>
+    <input id="saleCustomerName">
     <datalist id="saleCustomerOptions"></datalist>
     <button data-voice-mic data-voice-hold="sale" id="voiceMicSale"></button>
     <p id="voiceTranscriptSale"></p><button id="voiceUndoSale" hidden></button>
@@ -252,16 +251,18 @@ describe('several holds add to one sheet', () => {
     });
 });
 
-describe('the name mic (#498)', () => {
+describe('a name said alone: the party pick list (#498)', () => {
     test('lists the closest parties and "Use as said"; a pick fills the field as typing would', async () => {
         known('customerOptions', ['Ramesh Bhai', 'Ramesh Kumar', 'Suresh']);
         window.webkitSpeechRecognition = fakeWebSpeech(['रमेश से']);
         const pick = jest.spyOn(UIManager, 'showCustomModal').mockResolvedValue('m1');
+        const check = jest.spyOn(UIManager, 'showModalWithHtml');
         const events = [];
         $('customerName').addEventListener('input', () => events.push('input'));
         $('customerName').addEventListener('change', () => events.push('change'));
 
-        await expect(VoiceMic.name('purchase')).resolves.toBe(true);
+        await expect(VoiceMic.start('purchase')).resolves.toBe(true);
+        expect(check).not.toHaveBeenCalled();
 
         const html = pick.mock.calls[0][0];
         expect(html.match(/voice\.pickName\('m\d'\)/g)).toEqual(["voice.pickName('m0')", "voice.pickName('m1')"]);
@@ -277,13 +278,54 @@ describe('the name mic (#498)', () => {
         known('saleCustomerOptions', ['Mohan Lal']);
         window.webkitSpeechRecognition = fakeWebSpeech(['customer Mohan']);
         jest.spyOn(UIManager, 'showCustomModal').mockResolvedValueOnce(null).mockResolvedValueOnce('spoken').mockResolvedValueOnce('m0');
-        await expect(VoiceMic.name('sale')).resolves.toBe(false);
+        await expect(VoiceMic.start('sale')).resolves.toBe(false);
         expect(val('saleCustomerName')).toBe('');
-        await VoiceMic.name('sale');
+        await VoiceMic.start('sale');
         expect(val('saleCustomerName')).toBe('Mohan');
         known('saleCustomerOptions', ['Mohan Lal']);
-        await VoiceMic.name('sale');
+        await VoiceMic.start('sale');
         expect(val('saleCustomerName')).toBe('Mohan Lal');
+    });
+
+    test('a bare name with no party word, and "Pick from phone contacts" in the list', async () => {
+        known('customerOptions', ['Ramesh Bhai', 'Suresh']);
+        window.webkitSpeechRecognition = fakeWebSpeech(['Ramesh']);
+        window.ContactsManager = function ContactsManager() {};
+        Object.defineProperty(navigator, 'contacts', { value: { select: jest.fn() }, configurable: true });
+        const pick = jest.spyOn(UIManager, 'showCustomModal').mockResolvedValue('m0');
+        jest.spyOn(UIManager, 'showModalWithHtml');
+        try {
+            await expect(VoiceMic.start('purchase')).resolves.toBe(true);
+        } finally {
+            delete window.ContactsManager;
+            delete navigator.contacts;
+        }
+        expect(pick.mock.calls[0][0]).toContain('Use “Ramesh” as said');
+        expect(pick.mock.calls[0][0]).toContain("voice.pickName('contacts')");
+        expect(UIManager.showModalWithHtml).not.toHaveBeenCalled();
+        expect(val('customerName')).toBe('Ramesh Bhai');
+    });
+
+    test('a name with an item or amount is a whole bill: the check sheet, not the pick list', async () => {
+        window.webkitSpeechRecognition = fakeWebSpeech(['Ramesh se, cash 100']);
+        const pick = jest.spyOn(UIManager, 'showCustomModal');
+        const modal = sheet(true);
+        await VoiceMic.start('purchase');
+        expect(pick).not.toHaveBeenCalled();
+        expect(modal).toHaveBeenCalledTimes(1);
+    });
+
+    test('a name said while the check sheet is open sets its party', async () => {
+        known('customerOptions', ['Ramesh Bhai']);
+        window.webkitSpeechRecognition = fakeWebSpeech(['wheat 10 kg 24']);
+        const pick = jest.spyOn(UIManager, 'showCustomModal');
+        sheet(true, async () => {
+            await VoiceBilling.handleHeard('purchase', ['Ramesh']);
+            expect($('voiceCheck').textContent).toContain('Ramesh Bhai');
+        });
+        await VoiceBilling.listenOnce('purchase', 'web');
+        expect(pick).not.toHaveBeenCalled();
+        expect(val('customerName')).toBe('Ramesh Bhai');
     });
 });
 

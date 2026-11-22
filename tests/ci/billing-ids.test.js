@@ -18,7 +18,7 @@ const BILLING_E2E_IDS = [
     'printSaleBtn', 'purchaseModeBtn', 'purchaseSection', 'saleCashCheckbox', 'saleCashPayment',
     'saleCustomerName', 'saleDateText', 'saleNoteToggle', 'saleDueAmount', 'saleDueCheckbox', 'saleItem', 'saleModeBtn', 'saleRate',
     'saleSection', 'saleTotal', 'saleWeight', 'saveBillBtn', 'saveSaleBtn',
-    'voiceMicPurchase', 'voiceMicSale', 'voiceNamePurchase', 'voiceTranscriptPurchase', 'voiceTranscriptSale', 'voiceUndoPurchase', 'voiceUndoSale',
+    'voiceMicPurchase', 'voiceMicSale', 'voiceTranscriptPurchase', 'voiceTranscriptSale', 'voiceUndoPurchase', 'voiceUndoSale',
 ];
 
 function walk(dir, out = []) {

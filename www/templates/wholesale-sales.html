@@ -18,7 +18,7 @@
             <div class="field-float bill-customer">
                 <label for="wholesaleCustomerName"><span data-i18n="ui.billing.customer_label">Customer</span><span class="party-needed-note" data-i18n="ui.billing.needed_for_due">needed if anything is in Due</span></label>
                 <div class="bill-party">
-                    <input type="text" class="input" id="wholesaleCustomerName" enterkeyhint="next" list="wholesaleCustomerOptions" autocomplete="off" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
+                    <input type="text" class="input" id="wholesaleCustomerName" enterkeyhint="next" autocapitalize="words" list="wholesaleCustomerOptions" autocomplete="off" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
                     <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="wholesaleSales.pickContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
                 </div>
                 <datalist id="wholesaleCustomerOptions"></datalist>
@@ -156,9 +156,11 @@
                 </span>
                 <button type="button" class="btn btn-ghost btn-sm bill-note-toggle" id="wholesaleNoteToggle" data-onclick="billing.showNotes('salesComments')"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.billing.add_note">Add note</span></button>
             </div>
-            <div class="bill-form-field field bill-notes" hidden>
-                <label for="salesComments" data-i18n="ui.billing.notes_label">Notes</label>
-                <input type="text" class="input" id="salesComments" enterkeyhint="done" />
+            <div class="bill-notes" hidden>
+                <div class="field-float">
+                    <label for="salesComments" data-i18n="ui.billing.notes_label">Notes</label>
+                    <input type="text" class="input" id="salesComments" enterkeyhint="done" />
+                </div>
             </div>
 
             <div class="bill-form-field field bill-date" hidden>
@@ -177,8 +179,8 @@
                     <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
                     <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
                 </button>
-                <button type="button" class="btn btn-primary" id="saveWholesaleBtn" data-onclick="wholesaleSales.completeSale()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
-                <button type="button" class="btn bill-print" id="printWholesaleBtn" data-onclick="wholesaleSales.printWholesaleSale()" data-kbd="Ctrl P">
+                <button type="button" class="btn bill-save" id="saveWholesaleBtn" data-onclick="wholesaleSales.completeSale()" data-i18n="ui.common.save" data-kbd="Ctrl S">Save</button>
+                <button type="button" class="btn btn-primary bill-print" id="printWholesaleBtn" data-onclick="wholesaleSales.printWholesaleSale()" data-kbd="Ctrl P">
                     <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
                     <span class="bill-print-label" data-i18n="ui.billing.save_print">Save &amp; print</span>
                 </button>

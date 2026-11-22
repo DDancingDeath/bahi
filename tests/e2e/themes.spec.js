@@ -171,7 +171,7 @@ test('printing from the serif and 4.6 themes looks like Modern: colours, faces, 
             page: [cs('body').backgroundColor, cs('body').color],
             title: [title.fontFamily, title.fontStyle, title.color],
             total: [total.fontFamily, total.fontWeight, total.fontVariantNumeric],
-            rules: [head.borderBottomColor, cs('#saveBillBtn').backgroundColor],
+            rules: [head.borderBottomColor, cs('#printBillBtn').backgroundColor],
             card: [card.backgroundColor, card.borderTopLeftRadius],
         };
     }, [theme, mode]);

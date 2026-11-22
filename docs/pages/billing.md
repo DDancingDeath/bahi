@@ -59,7 +59,9 @@ While a bill is being typed:
 - **Share draft (not saved)**: the WhatsApp icon is always in the bottom row (with no lines yet it
   says "No items in bill"); it sends the bill on the form without saving it, and the message itself
   says "DRAFT, not saved". Save first to record it. Both say "Customer".
-- **Save & print** saves the bill, then prints it. In the Android app with no printer to print on,
+- **Save & print** (the filled, right-most button: the most used; **Save** beside it is outlined, both the same
+  width; the desktop shortcuts stay on their buttons; the Enter key never saves or prints: in the Weight box it adds the weight, elsewhere
+  the phone keyboard's key goes to the next box) saves the bill, then prints it. In the Android app with no printer to print on,
   it asks first: **Save only**, or Cancel to connect the printer in Settings. A print that fails
   after the save keeps the bill saved and shows the picture with Print to try again.
 - **Back-dated**: a bill for another day than today shows "Back-dated: 12 Nov" beside the total
@@ -102,13 +104,17 @@ While a bill is being typed:
   first asks, showing both totals (BF-RESTORE).
 - **A short form**: the bill's lines and "Total packets" show once a line is added; "Not split yet"
   shows only while Cash + Online + Due do not add up to the bill; Labour shows its working and amount only when
-  switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note).
+  switched on. Notes and "Print in bill" are behind **Add note** (open by themselves when the bill has a note);
+  "Notes" sits on the box's top edge like the other fields, with "Print in bill" a small tick row under it.
   The bill is for today ("Today"); the owner can tap **Change date** to pick another day ("Back-dated: 12 Nov"). Save draft and Clear
   (which asks first when the bill has lines) are in the ⋯ menu beside Purchase / Retail sale; **Drafts** is there too, with
   its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Customer, Item, Rate,
-  Weight) sits on the field's top edge and stays there after typing. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
+  Weight, Notes) sits on the field's top edge and stays there after typing. A name can be typed with the phone
+  keyboard's own 🎤 (voice typing): the name suggestions follow letter by letter as with typing, and the "Already owes"
+  line's match under the plain name of a "Name - Number" waits until the keyboard has put the words in. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
   screen the Save / Print row starts with the bill's total: a short label (Payable / Receivable, 14 px) over the amount in large bold figures.
-- **Voice** (VB-1, #498; off until switched on in Settings › Billing tools › Voice billing): **hold** 🎤
+- **Voice** (VB-1, #498; off until switched on in Settings › Billing tools › Voice billing): one 🎤 for the whole
+  page, a square button right of the Customer box (the box takes the whole row while voice is off). **Hold** it
   and speak, let go when done (a quick tap listens to the first pause). Say the bill in any order, in one
   hold or several: the party ("Ramesh se", "customer Ramesh", "Ramesh ko"), lines ("gehun 10 kilo 25,
   chawal 5 kilo 30"), bag weights ("wheat bags 23, 24.5, 22 at 25"), "rate 26", the payment ("cash 500",
@@ -116,8 +122,8 @@ While a bill is being typed:
   owner, the day ("kal"). A **check sheet** shows everything understood, marks what is unclear, lets each
   part be changed or unticked, and **Hold to add more** adds to it. Only **Fill bill** puts it on the page,
   as typing would; voice never saves. A party is picked only when exactly one known party fits; otherwise
-  the sheet asks. The small 🎤 in the Customer field (Purchase and Retail sale) (beside the contact button) listens for a
-  name and lists the closest parties (any script: "रमेश" ~ "Ramesh Bhai") and "Use … as said". A heard
+  the sheet asks. Saying only a name ("Ramesh se", or a known party's name alone) lists the closest parties
+  (any script: "रमेश" ~ "Ramesh Bhai"), "Use … as said" and "Pick from phone contacts". A heard
   line can be corrected in the sheet (**Correct**: item, kg, rate); what was heard stays in a line under
   🎤; **Undo voice** (or saying "undo") takes back the last voice change; Settings can add a short beep
   after listening. In the Android app the first press asks for the microphone. See

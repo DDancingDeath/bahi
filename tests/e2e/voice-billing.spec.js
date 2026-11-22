@@ -165,22 +165,26 @@ test('tier B: correct a line, the transcript, undo by keyboard and by voice, Eng
     await page.evaluate(() => window.app.i18n.setLang('en'));
 });
 
-test('name mic and whole bill: the mic in the name field, then party, line and payment from one sentence (#498)', async ({ page, problems }) => {
+test('one whole-page mic beside Customer: a name alone opens the pick list, then party, line and payment from one sentence (#498)', async ({ page, problems }) => {
     await fakeSpeech(page);
     await login(page, 'staff');
     await showTab(page, 'billing');
     await page.click('#purchaseModeBtn');
 
-    // The small mic sits in the Supplier field beside the contact button
-    const nameMic = page.locator('#voiceNamePurchase');
-    await expect(nameMic).toBeVisible();
+    // One mic, a 48 px square to the right of the Customer field, on its row; none inside the field or the Item row
+    await expect(page.locator('#purchaseSection [data-voice-mic]:visible')).toHaveCount(1);
+    await expect(page.locator('#purchaseSection .bill-entry-row [data-voice-mic]')).toHaveCount(0);
+    const pageMic = page.locator('#voiceMicPurchase');
+    await expect(pageMic).toBeVisible();
     const field = await page.locator('#customerName').boundingBox();
-    const mic = await nameMic.boundingBox();
-    expect(mic.y).toBeGreaterThanOrEqual(field.y - 1);
-    expect(mic.x + mic.width).toBeLessThanOrEqual(field.x + field.width + 1);
+    const mic = await pageMic.boundingBox();
+    expect(mic.x).toBeGreaterThanOrEqual(field.x + field.width - 1);
+    expect(Math.abs((mic.y + mic.height / 2) - (field.y + field.height / 2))).toBeLessThanOrEqual(4);
+    expect(Math.round(mic.width)).toBe(48);
     expect(mic.height).toBeGreaterThanOrEqual(44);
+    await expect(page.locator('#customerName').locator('xpath=..').locator('[data-onclick*="ontact"]')).toBeVisible();
     await say(page, 'Zorawar se');
-    await nameMic.click();
+    await pageMic.click();
     const pickList = page.locator('#modalMessage #voiceNamePick');
     await expect(pickList).toBeVisible();
     await pickList.locator('[data-onclick*="spoken"]').click();
@@ -201,5 +205,44 @@ test('name mic and whole bill: the mic in the name field, then party, line and p
 
     const saved = await listDocs('dev_purchases');
     expect(saved.filter(b => b.customerName === 'Zorawar')).toEqual([]);
+    expect(problems.pageErrors).toEqual([]);
+});
+
+test('header at 360 px: Customer | 🎙 with voice on, Customer full width with voice off; Item | Rate fits', async ({ page, problems }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await fakeSpeech(page);
+    await login(page, 'staff');
+    await showTab(page, 'billing');
+    for (const mode of ['purchase', 'sale']) {
+        const [btn, section, name, item, rate, mic] = mode === 'purchase'
+            ? ['#purchaseModeBtn', '#purchaseSection', '#customerName', '#billItem', '#billRate', '#voiceMicPurchase']
+            : ['#saleModeBtn', '#saleSection', '#saleCustomerName', '#saleItem', '#saleRate', '#voiceMicSale'];
+        await page.click(btn);
+        const row = await page.locator(`${section} .bill-head`).boundingBox();
+        const micBox = await page.locator(mic).boundingBox();
+        expect(micBox.x + micBox.width).toBeLessThanOrEqual(row.x + row.width + 1);
+        const line = await page.locator(`${section} .bill-line-form`).boundingBox();
+        const itemBox = await page.locator(item).boundingBox();
+        const rateBox = await page.locator(`${section} .bill-entry-rate`).boundingBox();
+        expect(rateBox.x + rateBox.width).toBeLessThanOrEqual(line.x + line.width + 1);
+        expect(Math.abs(rateBox.y - (await page.locator(`${section} .bill-entry-item`).boundingBox()).y)).toBeLessThanOrEqual(1);
+        expect(itemBox.width).toBeGreaterThan(rateBox.width);
+        // Rate's chevron is drawn at the same offset from its box's right edge as Item's: both boxes end at their field's edge
+        const itemField = await page.locator(`${section} .bill-entry-item`).boundingBox();
+        const rateInput = await page.locator(rate).boundingBox();
+        expect(Math.abs((itemBox.x + itemBox.width) - (itemField.x + itemField.width))).toBeLessThanOrEqual(1);
+        expect(Math.abs((rateInput.x + rateInput.width) - (rateBox.x + rateBox.width))).toBeLessThanOrEqual(1);
+        expect(await page.locator(rate).evaluate(el => getComputedStyle(el).backgroundPosition))
+            .toBe(await page.locator(item).evaluate(el => getComputedStyle(el).backgroundPosition));
+        await expect(page.locator(rate)).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+    }
+
+    await page.evaluate(() => window.app.voice.setOn(false));
+    await page.click('#purchaseModeBtn');
+    await expect(page.locator('#voiceMicPurchase')).toBeHidden();
+    const row = await page.locator('#purchaseSection .bill-head').boundingBox();
+    const field = await page.locator('#purchaseSection .bill-customer').boundingBox();
+    expect(Math.abs(field.width - row.width)).toBeLessThanOrEqual(1);
     expect(problems.pageErrors).toEqual([]);
 });

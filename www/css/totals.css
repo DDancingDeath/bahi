@@ -436,7 +436,7 @@
   }
 }
 
-:is(#billing, .bill-page) .bill-form-field.field > .bill-note-print {
+:is(#billing, .bill-page) .bill-notes > .bill-note-print {
   align-self: flex-start;
   min-height: 44px;
   font-weight: var(--w-regular);
@@ -509,31 +509,15 @@
   margin-bottom: 0;
 }
 
-:is(#billing, .bill-page) .bill-form-field.field.bill-notes:not([hidden]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--sp-2);
-  row-gap: 0;
+/* Notes: a floating-label field (the label on its border), "Print in bill" a small check row right under it */
+:is(#billing, .bill-page) .bill-notes:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--sp-3);
 }
 
-:is(#billing, .bill-page) .bill-notes > label[for] {
-  grid-row: 1;
-  grid-column: 1;
-  padding-bottom: 6px;
-  align-self: end;
-}
-
-:is(#billing, .bill-page) .bill-notes > .input {
-  grid-row: 2;
-  grid-column: 1 / -1;
-}
-
-:is(#billing, .bill-page) .bill-form-field.field.bill-notes > .bill-note-print {
-  grid-row: 1;
-  grid-column: 2;
-  align-self: end;
-  gap: 6px;
+:is(#billing, .bill-page) .bill-notes > .bill-note-print {
+  gap: var(--sp-2);
   min-height: var(--tap-min);
   color: var(--ink-2);
   font-size: var(--fs-sm);
@@ -548,7 +532,7 @@
   margin-top: var(--sp-5);
 }
 
-/* Total · Share / Save / Print (3.2; Print right-most, the most used): the summary footer on desktop, the action bar on the phone.
+/* Total · Share / Save / Print (3.2; Print right-most and the one primary, the most used): the summary footer on desktop, the action bar on the phone.
    The row starts with the payable (BF-PAYABLE) or receivable figure, on every width, written in purchase.js / retail-sale.js /
    wholesale-sales.js. */
 .bill-actions {
@@ -592,7 +576,7 @@
 }
 
 /* Save and Print share the rest of the row equally (on desktop with their Ctrl hints) */
-.bill-actions > :is(.btn-primary, .bill-print) {
+.bill-actions > :is(.bill-save, .bill-print) {
   flex: 1 1 0;
   min-width: min-content;
   padding: 0 var(--sp-2);
@@ -644,7 +628,7 @@
 
 /* Phone and tablet: the row is compact (payable, Share icon, Save and Print of equal width) */
 @media (max-width: 1023.98px) {
-  :is(#billing, .bill-page) .bill-actions > :is(.btn-primary, .bill-print) {
+  :is(#billing, .bill-page) .bill-actions > :is(.bill-save, .bill-print) {
     padding: 0 var(--sp-2);
   }
 

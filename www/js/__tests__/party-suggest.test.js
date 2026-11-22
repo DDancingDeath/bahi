@@ -187,6 +187,40 @@ describe('Billing name field (ui/party-suggest)', () => {
         expect(input.value).toBe('Ramesh Kumar');
     });
 
+    const compose = (partial) => {
+        input.value = partial;
+        input.dispatchEvent(new CompositionEvent('compositionupdate', { bubbles: true, data: partial }));
+        input.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: partial }));
+    };
+
+    test('a keyboard composition (Gboard typing): the list follows letter by letter', () => {
+        input.focus();
+        input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+        compose('ra');
+        expect(list().hidden).toBe(false);
+        expect([...list().querySelectorAll('.party-suggest-name')].map(n => n.textContent)).toEqual(['Ramesh Kumar', 'सीता राम']);
+        compose('rame');
+        expect([...list().querySelectorAll('.party-suggest-name')].map(n => n.textContent)).toEqual(['Ramesh Kumar']);
+    });
+
+    test('mid-composition the arrows and Enter are the keyboard\'s; at its end the list is fresh and they pick again', () => {
+        input.focus();
+        input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+        compose('Sit');
+        const key = (k, isComposing) => input.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, isComposing }));
+        key('ArrowDown', true);
+        expect(input.getAttribute('aria-activedescendant')).toBeNull();
+        key('Enter', true);
+        expect(input.value).toBe('Sit');
+        input.value = 'Sita D';
+        input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: 'Sita D' }));
+        expect(list().hidden).toBe(false);
+        expect(list().querySelector('[role="option"]').textContent).toContain('Sita Devi');
+        key('ArrowDown', false);
+        key('Enter', false);
+        expect(input.value).toBe('Sita Devi');
+    });
+
     test('"Did you mean" shows only after leaving the field; Use fills it, "Yes, it\'s right" keeps the name', () => {
         type('Seeta Devi');
         expect(renderNameHint('retail')).toBeNull();

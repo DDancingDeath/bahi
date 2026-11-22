@@ -10,6 +10,7 @@ import { BillChecksUI } from '../ui/bill-highlight.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
+import { PRINT_NOTE_KEY, printNoteDefault, rememberPrintNote } from '../utils/print-note.js';
 import { NAME_REQUIRED_FOR_DUE_KEY, round2 } from '../utils/money.js';
 import { t } from '../i18n/index.js';
 import { withCanonicalDue } from '../firebase/repos/bill-due.js';
@@ -299,6 +300,24 @@ describe('Print comments toggle survives edit (#86)', () => {
         BillingManager.currentMode = 'purchase';
         await BillingManager.editBill(0, 'purchase');
         expect(document.getElementById('billPrintComments').checked).toBe(true);
+    });
+
+    it('this phone\'s last choice starts a new bill; an edited bill shows what it was saved with', async () => {
+        localStorage.removeItem(PRINT_NOTE_KEY);
+        expect(printNoteDefault()).toBe(false);
+        BillingManager.init();
+        expect(document.getElementById('billPrintComments').checked).toBe(false);
+        rememberPrintNote(true);
+        expect(localStorage.getItem('bahi.printNote')).toBe('1');
+        PurchaseManager.resetForm.call({ updateTotals: () => {} });
+        expect(document.getElementById('billPrintComments').checked).toBe(true);
+
+        AppState.purchaseHistory = [{ ...BILL, comments: 'Paid via GPay', printComments: false }];
+        window.currentBillId = 'b1';
+        BillingManager.currentMode = 'purchase';
+        await BillingManager.editBill(0, 'purchase');
+        expect(document.getElementById('billPrintComments').checked).toBe(false);
+        localStorage.removeItem(PRINT_NOTE_KEY);
     });
 
     it('saving a purchase edit stores the toggle instead of dropping it', async () => {

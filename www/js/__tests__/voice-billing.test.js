@@ -301,17 +301,16 @@ describe('customer name (#81 A3)', () => {
     });
 
     test('says which name it replaces; unticked, the name stays', async () => {
-        window.webkitSpeechRecognition = fakeWebSpeech(['customer Suresh']);
+        window.webkitSpeechRecognition = fakeWebSpeech(['customer Suresh, note truck']);
         document.getElementById('customerName').value = 'Old Name';
         const modal = dialog(true, untick('#voiceCustomerTick'));
-        await expect(VoiceBilling.listenOnce('purchase', 'web')).resolves.toBe(false);
+        await VoiceBilling.listenOnce('purchase', 'web');
         expect(modal.mock.calls[0][0]).toContain('Replaces “Old Name”');
         expect(name()).toBe('Old Name');
 
         dialog(true);
         await expect(VoiceBilling.listenOnce('purchase', 'web')).resolves.toBe(true);
         expect(name()).toBe('Suresh');
-        expect(UIManager.showToast).toHaveBeenLastCalledWith('Customer name filled: Suresh.', 4000);
     });
 
     test('Cancel leaves the customer box alone', async () => {

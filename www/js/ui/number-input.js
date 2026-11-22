@@ -4,6 +4,8 @@
  * - amount boxes (`data-money`, text boxes with the number keypad) show Indian grouping
  *   (1,25,000) when left, and plain digits again while typed in.
  * Values are read with Helpers.getInputNumber (utils/number-text.js), which reads both.
+ * - a rate box with a list of rates (`data-pick-list`) opens that list when tapped anywhere: its chevron
+ *   is drawn at the right edge like a select's, not the browser's own list button.
  * @module ui/number-input
  */
 
@@ -65,6 +67,11 @@ export function installNumberInputs() {
     document.addEventListener('focusout', (e) => {
         const el = /** @type {HTMLInputElement} */ (e.target);
         if (isMoneyBox(el) && el.value) el.value = groupIndianText(el.value);
+    });
+    document.addEventListener('click', (e) => {
+        const el = /** @type {HTMLInputElement} */ (e.target);
+        if (!(el instanceof HTMLInputElement) || !el.hasAttribute('data-pick-list') || el.disabled || el.readOnly) return;
+        try { el.showPicker?.(); } catch { /* no list picker here: typing still shows the list */ }
     });
 }
 

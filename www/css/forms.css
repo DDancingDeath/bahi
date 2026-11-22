@@ -219,9 +219,11 @@ input:focus {
   border-color: var(--negative);
 }
 
-/* Native select drawn as an input with a chevron (two gradient halves, so it follows the theme) */
+/* Native select drawn as an input with a chevron (two gradient halves, so it follows the theme); a box with a list of
+   values to pick (`data-pick-list`, the bill's Rate) has the same chevron at its right edge instead of the browser's */
 .input:is(select):not([multiple]):not([size]),
-select:not([multiple]):not([size]) {
+select:not([multiple]):not([size]),
+.input[data-pick-list] {
   -webkit-appearance: none;
   appearance: none;
   padding-right: 36px;
@@ -231,6 +233,16 @@ select:not([multiple]):not([size]) {
   background-position: calc(100% - 19px) 50%, calc(100% - 14px) 50%;
   background-size: 5px 5px;
   background-repeat: no-repeat;
+}
+
+.input[data-pick-list] {
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.input[data-pick-list]::-webkit-calendar-picker-indicator,
+.input[data-pick-list]::-webkit-list-button {
+  display: none;
 }
 
 .adorn {

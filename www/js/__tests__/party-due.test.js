@@ -61,6 +61,8 @@ describe('#166 partyDue lookup', () => {
 
     test('"Name - Number" from a picked contact: nothing under it → the plain name\'s due, marked (v730)', () => {
         expect(partyDue(bills, 'Ram - 9876543210', { today: TODAY })).toMatchObject({ total: 70, count: 1, matchedName: 'Ram' });
+        // still being typed by the keyboard (a composition): the plain-name fallback waits for its end
+        expect(partyDue(bills, 'Ram - 9876543210', { today: TODAY, noFallback: true })).toBeNull();
         const own = [...bills, bill('n', 'Ram - 9876543210', 40)];
         expect(partyDue(own, 'Ram - 9876543210', { today: TODAY })).toEqual(expect.objectContaining({ total: 40 }));
         expect(partyDue(own, 'Ram - 9876543210', { today: TODAY }).matchedName).toBeUndefined();

@@ -31,8 +31,7 @@ import { SyncStatus } from '../ui/sync-status.js';
 
 // Use helper functions
 const formatDate = (date) => Helpers.formatDate(date);
-const LABOUR_GAP_KEYS = { same: 'ui.today.labour_same', more: 'ui.today.labour_more', less: 'ui.today.labour_less' };
-const LABOUR_PAID_KEYS = { same: 'ui.today.labour_paid_same', more: 'ui.today.labour_paid_more', less: 'ui.today.labour_paid_less' };
+const LABOUR_PAID_KEYS = { more: 'ui.today.labour_paid_more', less: 'ui.today.labour_paid_less' };
 const CHANNELS = { retail: 'Retail', wholesale: 'Wholesale', purchase: 'Purchase' };
 const BILL_KIND_KEYS = { retail: 'ui.finance.bill_retail', wholesale: 'ui.finance.bill_wholesale', purchase: 'ui.reports.pdf_purchase' };
 const BILLS_SHOWN = 8;
@@ -624,22 +623,26 @@ export const DayManager = {
     },
 
     /**
-     * Today › Labour card: deducted from farmers (T-LAB-1), paid to labourers (T-LAB-4) and the difference
-     * (T-LAB-5), and the estimate to pay (T-LAB-2) with its gap (T-LAB-3).
+     * Today › Labour card: Deducted (T-LAB-1), Paid (T-LAB-4) and Pay, the estimate (T-LAB-2). An amber line under
+     * Paid (T-LAB-5) or Pay (T-LAB-3) only when it differs from deducted; the working is in the breakdown.
      * @param {Object} labour - todaySummary().labour (labourSummary + gap + packets)
      */
     renderLabour(labour) {
         this.lastLabour = labour;
-        const { deducted, toPay, gap, paid, paidGap } = labour;
-        this.updateElement('todayLabourDeductedBills', tn('ui.today.labour_deducted_bills', deducted.bills));
+        const { toPay, gap, paid, paidGap } = labour;
+        const diffLine = (id, text) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            el.hidden = !text;
+        };
         if (paid) {
             this.updateElement('todayLabourPaid', moneyText(paid.amount));
-            this.updateElement('todayLabourPaidCount', tn('ui.today.labour_paid_count', paid.count));
-            this.updateElement('todayLabourPaidDiff', t(LABOUR_PAID_KEYS[paidGap.kind], { amount: moneyText(paidGap.amount) }));
+            const key = LABOUR_PAID_KEYS[paidGap.kind];
+            diffLine('todayLabourPaidDiff', key ? t(key, { amount: moneyText(paidGap.amount) }) : '');
         }
         this.updateElement('todayLabourToPay', moneyText(toPay.amount));
-        this.updateElement('todayLabourToPayCalc', labourCalcText(toPay, 'ui.today.labour_to_pay_calc'));
-        this.updateElement('todayLabourDiff', t(LABOUR_GAP_KEYS[gap.kind], { amount: moneyText(gap.amount) }));
+        diffLine('todayLabourDiff', gap.kind === 'same' ? '' : t('ui.today.labour_pay_differs', { amount: moneyText(gap.amount) }));
     },
 
     /** Tap on the Labour card: today's purchase bills with kg, packets and labour deducted. */
@@ -659,6 +662,7 @@ export const DayManager = {
                 <tfoot><tr><th>${esc(t('ui.today.labour_total'))}</th><th>${esc(formatKg(toPay.kg))}</th><th>${esc(packets)}</th><th>${esc(moneyText(deducted.amount))}</th></tr></tfoot>
             </table>
             <p class="labour-breakdown-note"><strong>${esc(t('ui.today.labour_to_pay'))}</strong> ${esc(moneyText(toPay.amount))} ${esc(labourCalcText(toPay, 'ui.today.labour_to_pay_calc'))}</p>
+            <p class="labour-breakdown-note">${esc(t('ui.today.labour_part_package'))}</p>
             <p class="labour-breakdown-note">${esc(t('ui.today.labour_note'))}</p>`;
         return UIManager.showModalWithHtml(html, t('ui.today.labour_breakdown_title'));
     },
