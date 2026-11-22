@@ -67,7 +67,7 @@ on "Use '<as said>'" and is marked, and the user chooses.
 known party's name with no party word), it lists the closest known parties (with what is open on
 them), "Use '<as said>'" and, where the phone can pick contacts, "Pick from phone contacts", as the
 old name mic in the field did (removed, v760: the phone keyboard's own mic types a name into the
-field, and the party suggestions follow when it ends its composition). Words that are no known
+field, and the party suggestions follow it letter by letter). Words that are no known
 party and have no party word stay "not understood". With the check sheet open, a name sets its
 party. Nothing is picked for the user. A pick fills the field as typing would. Phone contacts are
 not read in bulk: the contact picker shows only the one contact chosen.

@@ -110,8 +110,8 @@ While a bill is being typed:
   (which asks first when the bill has lines) are in the ⋯ menu beside Purchase / Retail sale; **Drafts** is there too, with
   its count, only when there are drafts (a number on ⋯ shows how many). Each field's name (Customer, Item, Rate,
   Weight, Notes) sits on the field's top edge and stays there after typing. A name can be typed with the phone
-  keyboard's own 🎤 (voice typing): the name suggestions, "Did you mean" and the "Already owes" line follow once the
-  keyboard has put the words in. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
+  keyboard's own 🎤 (voice typing): the name suggestions follow letter by letter as with typing, and the "Already owes"
+  line's match under the plain name of a "Name - Number" waits until the keyboard has put the words in. On a phone the "Next bill no." hint is left out, and Save and Print are the same width. On every
   screen the Save / Print row starts with the bill's total: a short label (Payable / Receivable, 14 px) over the amount in large bold figures.
 - **Voice** (VB-1, #498; off until switched on in Settings › Billing tools › Voice billing): one 🎤 for the whole
   page, a square button right of the Customer box (the box takes the whole row while voice is off). **Hold** it
