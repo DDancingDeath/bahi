@@ -10,9 +10,9 @@ the simple shop Hindi workers speak: short words, English loan words where shops
 | Idea | English | Hindi | Notes |
 |---|---|---|---|
 | Money still to come or to go on a bill | **due** / **dues** | **बकाया** | Never "udhaar", "outstanding amount" or "payables" in sentences. |
-| The page listing dues | **Outstanding** (page name only) | **बकाया** | In Hindi say "बकाया पेज" when pointing to it, not "उधार पेज". |
+| The page listing dues | **Dues** (page name: tab bar, title, sidebar, links; route id stays `due`) | **बकाया** | Never "Outstanding". In Hindi say "बकाया पेज" when pointing to it, not "उधार पेज". |
 | Paying later, as a payment way on a bill (next to Cash, Online) | **Due** | **उधार** | Only for the payment way: "Cash + Online + Due" = "नकद + ऑनलाइन + उधार". |
-| Due older than 30 days | **overdue** | **समय निकला** (बकाया) | Same word on Outstanding, Today, Insights and Recurring bills. Not "पुराना बकाया" (पुराना = from the old app) or "देर हो गई". |
+| Due older than 30 days | **overdue** | **समय निकला** (बकाया) | Same word on Dues, Today, Insights and Recurring bills. Not "पुराना बकाया" (पुराना = from the old app) or "देर हो गई". |
 | Dues from before the app | **old dues** | **पुराना बकाया** | |
 | Lists by age | **To receive, by age** / **To pay, by age** | **लेना बाकी, कितना पुराना** / **देना बाकी, कितना पुराना** | Not "receivables" / "payables". |
 | Written off | **written off** (bad debt) | **डूबा उधार** | |
@@ -31,7 +31,7 @@ the simple shop Hindi workers speak: short words, English loan words where shops
 
 | Idea | English | Hindi | Notes |
 |---|---|---|---|
-| The price list page | **Rates** | **रेट** | |
+| The price list page | **Items & rates** | **आइटम और रेट** | One name in the menu, the page title and its search. |
 | One entry on it (names + three rate lists) | **item** — **Add item**, **Edit item** | **आइटम** — आइटम जोड़ें, आइटम बदलें | Not "Add rate" for a whole item. |
 | Goods in general | **stock**, **goods** | **स्टॉक**, **माल** | |
 | Stock value per kg (average purchase cost) | **Avg cost ₹…/kg** | **औसत लागत ₹…/kg** | Not "Rate" on Stock. |

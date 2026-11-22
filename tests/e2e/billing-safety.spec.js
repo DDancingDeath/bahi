@@ -32,7 +32,7 @@ async function retailWithTypedLine(page, customer) {
     await page.fill('#saleCashPayment', '52');
 }
 
-test('Save with a typed retail line asks; "Add this line and save" bills it (S-1)', async ({ page, problems }, testInfo) => {
+test('Save with a typed retail line asks; "Add & save" bills it (S-1)', async ({ page, problems }, testInfo) => {
     const customer = `Safety add ${testInfo.project.name} ${Date.now()}`;
     await login(page, 'owner');
     await retailWithTypedLine(page, customer);
@@ -40,8 +40,14 @@ test('Save with a typed retail line asks; "Add this line and save" bills it (S-1
     const dialog = page.locator('.pending-line-sheet');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('#pendingLineMessage')).toHaveText('Rice 4 kg × ₹36 = ₹144 is typed but not on the bill.');
-    await expect(dialog.locator('[data-choice="add"]')).toHaveText('Add this line and save');
-    await expect(dialog.locator('[data-choice="discard"]')).toHaveText('Discard line and save');
+    await expect(dialog.locator('[data-choice="add"]')).toHaveText('Add & save');
+    await expect(dialog.locator('[data-choice="discard"]')).toHaveText('Save without it');
+    // NEW-08: the two saves stacked full width, Add on top, each on one line; Cancel is the head's ×
+    const [add, discard] = await Promise.all(['add', 'discard'].map(c => dialog.locator(`[data-choice="${c}"]`).boundingBox()));
+    expect(add.y).toBeLessThan(discard.y);
+    expect(Math.abs(add.width - discard.width)).toBeLessThan(1);
+    expect(add.height).toBeLessThan(60);
+    await expect(dialog.locator('.dialog-head [data-choice="cancel"]')).toBeVisible();
     await shot(page, testInfo, 'S1-after-prompt');
     await dialog.locator('[data-choice="add"]').click();
     // The line is on the bill now; the payment check still guards the new total (unchanged rule)
@@ -62,7 +68,7 @@ test('Save with a typed retail line asks; "Add this line and save" bills it (S-1
     expect(problems.pageErrors).toEqual([]);
 });
 
-test('"Discard line and save" saves the added lines only; Cancel saves nothing (S-1)', async ({ page, problems }, testInfo) => {
+test('"Save without it" saves the added lines only; Cancel saves nothing (S-1)', async ({ page, problems }, testInfo) => {
     const customer = `Safety discard ${testInfo.project.name} ${Date.now()}`;
     await login(page, 'owner');
     await showTab(page, 'billing');

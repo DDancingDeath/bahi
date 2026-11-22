@@ -5,7 +5,7 @@
 import {
     detectAnomalies, anomalyId, planAnomalyWrites, mergeAnomalies, summarizeAnomalies, buildDayReportText,
     filterAnomalies, presetRange, anomalyPatterns, istDayKey, istHour, addDaysToKey, istDayStartMs, summaryLine,
-    voidedByOthers, withoutStoredVoidTwins, anomalyText, withoutVoidedBillChecks
+    voidedByOthers, withoutStoredVoidTwins, anomalyText, anomalyAmountPreset, withoutVoidedBillChecks
 } from '../utils/anomalies.js';
 
 const T = (h, m = 0, d = 22) => new Date(2026, 9, d, h, m, 0).getTime(); // Oct 2026, IST
@@ -160,7 +160,21 @@ describe('bill rules', () => {
         const other = { type: 'stock-adjust', en: 'Bags 10-25 kg; Stock changed by -3 kg (2-for-1)', hi: '' };
         expect(anomalyText(other).en).toBe('Bags 10-25 kg; Stock changed by −3 kg (2-for-1)');
         const plain = { type: 'cash-short', en: 'Short ₹-12', hi: '' };
-        expect(anomalyText(plain)).toBe(plain);
+        expect(anomalyText(plain).en).toBe('Short −₹12');
+        const same = { type: 'cash-short', en: 'Short ₹12.00', hi: '' };
+        expect(anomalyText(same)).toBe(same);
+    });
+
+    test('NEW-05/F43: a number check\'s stored amounts lose paise from ₹100 up and take the true minus; stored text kept', () => {
+        const stored = {
+            type: 'numcheck-ac3', en: 'Bill split: expected ₹1,33,710.57, found -₹2,636, gap ₹26.88', hi: 'होना था ₹9,87,333.77, मिला -₹2,193.43'
+        };
+        expect(anomalyText(stored)).toEqual({ ...stored, en: 'Bill split: expected ₹1,33,711, found −₹2,636, gap ₹26.88', hi: 'होना था ₹9,87,334, मिला −₹2,193' });
+        expect(stored.en).toContain('-₹2,636');
+        const old = { type: 'bill-voided', en: 'Bill #1 voided (₹987.50); range 10-₹20', hi: '' };
+        expect(anomalyText(old)).toBe(old);
+        expect(anomalyAmountPreset(stored)).toBe('small');
+        expect(anomalyAmountPreset(old)).toBe('exact');
     });
 
     test('old-bill edit and edit after payment are dated by the edit', () => {

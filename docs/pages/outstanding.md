@@ -1,4 +1,4 @@
-# Outstanding (and Wholesale › Outstanding)
+# Dues
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [outstanding.hi.md](outstanding.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
@@ -7,7 +7,7 @@ The page opens with the total owed (O3 or O4) in large figures, the overdue part
 | On screen | How it is worked out |
 |---|---|
 | Purchase dues per party (O1) | Sum of the due on that customer's purchases. |
-| Sale dues per party (O2) | Sum of the due on that customer's sales. Sales shows **All** (retail and wholesale), **Retail** or **Wholesale**; in All each bill has a Retail / Wholesale tag. Wholesale › Outstanding still lists the wholesale dues too. |
+| Sale dues per party (O2) | Sum of the due on that customer's sales. Sales shows **All** (retail and wholesale), **Retail** or **Wholesale**; in All each bill has a Retail / Wholesale tag. The Wholesale page has no list of its own any more: its **Wholesale dues** link opens this page on Wholesale for that visit only; opened from the tab bar or menu, the page shows the list you last picked here (Sales › All at first). The total on the Sales button follows the All / Retail / Wholesale chip, so it always matches the list. With one wholesale party picked, owners and managers also get **Complete all due** (DUE-ALL). |
 | Payables / receivables totals (O3, O4) | Sum over all parties. The All total is the same as "To receive" on Money › Worth. |
 | Overdue (> 30 days) (O5) | The part of that total on bills **more than 30 days old** (the 31–60, 61–90 and 90+ groups; a bill with no date counts). One meaning everywhere (OVERDUE, owner decision, 8 Nov 2026): Sales › All is the same ₹ as Insights "owe you … overdue", Purchases as "You owe … overdue" and Today's Pay customers "of which overdue", Retail as Today's Collect udhaar "of which overdue" (Collect wholesale dues follows the Wholesale page's own list). |
 | "₹Y overdue" on a party (O6) | That party's part on overdue bills, next to its whole due. "Over 90 days" marks a party whose oldest due is more than 90 days old. |

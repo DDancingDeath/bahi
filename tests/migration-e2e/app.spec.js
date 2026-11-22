@@ -118,7 +118,7 @@ const bucketOf = (d) => (d === null ? 3 : BUCKETS.findIndex(max => d <= max));
 const amount = (text) => Number(String(text).replace(/[^\d.-]/g, ''));
 const r2 = (v) => Math.round(v * 100) / 100;
 // Rows without a bill number show the record id (Outstanding: its first 8 characters).
-const rowLabel = (b) => b.billNumber || (b.billType === 'retail' ? 'opening-' : `opening-wholesale-${b.id}`);
+const rowLabel = (b) => b.billNumber || 'opening-';
 const multiset = (list) => list.slice().sort();
 const retailBills = expected.dues.bills.filter(b => b.billType === 'retail');
 const wholesaleBills = expected.dues.bills.filter(b => b.billType === 'wholesale');
@@ -173,13 +173,13 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         expect(all.chips.every(c => c === 'Old app'), 'every carried due has the "Old app" chip').toBe(true);
     });
 
-    await test.step('Wholesale › Outstanding: the carried wholesale dues', async () => {
+    await test.step('Outstanding › Wholesale (Wholesale\'s "Wholesale dues" link, F14): the carried wholesale dues', async () => {
         if (!wholesaleBills.length) return; // none in this backup
-        await showTab(page, 'wholesale-sales');
-        await page.evaluate(() => window.app.wholesaleSales.filterTab('outstanding'));
-        const rows = page.locator('#salesOutstandingSection [data-history-item]');
+        await showTab(page, 'wholesale-outstanding');
+        await expect(page.locator('#dueSaleKinds [data-due-kind="wholesale"]')).toHaveClass(/active/);
+        const rows = page.locator('#dueList [data-history-item]');
         await expect(rows).toHaveCount(wholesaleBills.length);
-        const got = await rows.evaluateAll(els => els.map(el => [el.querySelector('.history-header span span').textContent.trim().replace(/^#/, ''), el.querySelector('.history-header > span:last-child').textContent]));
+        const got = await rows.evaluateAll(els => els.map(el => [el.querySelector('.due-bill-no').textContent.trim().replace(/^#/, ''), el.querySelector('.due-bill-due').textContent]));
         expect(multiset(got.map(([no, due]) => `${no}|${amount(due)}`))).toEqual(multiset(wholesaleBills.map(b => `${rowLabel(b)}|${Math.round(b.due)}`)));
     });
 
@@ -236,7 +236,7 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         await page.evaluate((k) => window.app.statements.openParty(k, 'customer'), key);
         await expect(list).toContainText('Old app balance');
         expect(amount(await list.locator('.st-balance [data-metric-export="O4"]').textContent()), 'balance = the party\'s carried dues').toBe(Math.round(total));
-        await expect(list.locator('.st-balance')).toContainText('Matches Outstanding');
+        await expect(list.locator('.st-balance')).toContainText('Matches Dues');
     });
 
     await test.step('Rates shows the items', async () => {

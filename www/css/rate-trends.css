@@ -22,8 +22,8 @@
 .rt-controls select { padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: var(--fs-input); width: 100%; min-width: 0; box-sizing: border-box; }
 
 .rt-outlook { border-left: 4px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface-2); padding: 10px; margin-bottom: var(--sp-2); }
-.rt-outlook-up { border-left-color: #b91c1c; background: var(--negative-soft); }
-.rt-outlook-down { border-left-color: #059669; background: var(--positive-soft); }
+.rt-outlook-up { border-left-color: var(--negative); background: var(--negative-soft); }
+.rt-outlook-down { border-left-color: var(--positive); background: var(--positive-soft); }
 .rt-outlook-flat { border-left-color: var(--line-strong); }
 .rt-outlook-head { font-weight: var(--w-strong); font-size: var(--fs-sm); }
 .rt-outlook-meta { font-size: var(--fs-caption); margin-top: var(--sp-1); display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
@@ -37,11 +37,11 @@
 .rt-chart-wrap canvas { width: 100%; display: block; }
 .rt-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: var(--fs-caption); }
 .rt-legend i { display: inline-block; width: 10px; height: 10px; border-radius: var(--r-2xs); margin-right: var(--sp-1); vertical-align: middle; }
-.rt-legend .rt-sw-purchase { background: #2563eb; }
-.rt-legend .rt-sw-retail { background: #059669; }
-.rt-legend .rt-sw-wholesale { background: #92400e; }
-.rt-legend .rt-sw-bought { background: #93c5fd; }
-.rt-legend .rt-sw-sold { background: #6ee7b7; }
+.rt-legend .rt-sw-purchase { background: var(--chart-purchase); }
+.rt-legend .rt-sw-retail { background: var(--chart-retail); }
+.rt-legend .rt-sw-wholesale { background: var(--chart-wholesale); }
+.rt-legend .rt-sw-bought { background: var(--chart-bought); }
+.rt-legend .rt-sw-sold { background: var(--chart-sold); }
 .rt-legend .rt-sw-year { background: var(--c); }
 
 .rt-scroll { overflow-x: auto; }

@@ -48,7 +48,7 @@ Each page has its own short file in `docs/pages/` (English and Hindi): what it s
 - [Today](pages/today.md)
 - [Billing (purchase, retail sale) and Wholesale](pages/billing.md)
 - [History](pages/history.md)
-- [Outstanding (and Wholesale › Outstanding)](pages/outstanding.md)
+- [Dues](pages/outstanding.md)
 - [Stocks](pages/stock.md)
 - [Cash (the drawer)](pages/cash.md)
 - [Expenses](pages/expenses.md)
@@ -56,7 +56,7 @@ Each page has its own short file in `docs/pages/` (English and Hindi): what it s
 - [Insights (To do, Items, Parties, Seasons)](pages/insights.md)
 - [Statements](pages/statements.md)
 - [Ask](pages/ask.md)
-- [Rates](pages/rates.md)
+- [Items & rates](pages/rates.md)
 - [Rentals](pages/rentals.md)
 - [Workers / Salaries (owner)](pages/workers.md)
 - [Recurring bills (owner)](pages/recurring.md)
@@ -77,7 +77,7 @@ Each page has its own short file in `docs/pages/` (English and Hindi): what it s
 
 ### Every week
 
-- **Outstanding**: call parties with overdue dues, bills more than 30 days old (Insights › To do; the same ₹ as Outstanding's "Overdue (> 30 days)").
+- **Dues**: call parties with overdue dues, bills more than 30 days old (Insights › To do; the same ₹ as Dues' "Overdue (> 30 days)").
 - **Anomalies**: clear the pending ones.
 - **Diagnostics › Number checks**: all should pass.
 - Days left "Not counted" on Cash: count them if the cash is still known.

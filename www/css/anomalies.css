@@ -62,10 +62,6 @@
 }
 
 /* Rows (card and page): the severity dot, the reason and who / what, then the review buttons */
-.anom-list {
-  overflow: hidden;
-}
-
 .anom-row {
   flex-wrap: wrap;
   align-items: flex-start;
@@ -131,8 +127,52 @@
 
 .anom-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: var(--sp-2);
+}
+
+.anom-actions .btn {
+  white-space: nowrap;
+}
+
+/* ⋯ floats its list over the rows below (ui/menus.js keeps it in the window), as Billing's ⋯ does: the row never moves */
+.anom-overflow {
+  position: relative;
+  flex: none;
+}
+
+.anom-overflow > summary {
+  list-style: none;
+}
+
+.anom-overflow > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anom-overflow-menu {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: calc(100vw - var(--sp-4));
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
+}
+
+.anom-overflow-menu[data-up] {
+  top: auto;
+  bottom: calc(100% + var(--sp-1));
+}
+
+.anom-overflow-menu > .btn {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
 }
 
 /* Page: filters, sections and summary */

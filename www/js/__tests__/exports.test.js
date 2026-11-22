@@ -265,7 +265,7 @@ describe('Exporter.printPage: a statement printed in its own window (#444)', () 
         w.print = jest.fn();
         jest.spyOn(window, 'open').mockReturnValue(w);
         const html = `<div class="notice warn">${icon('triangle', 'i-sm')}<span class="grow"><span class="sr-only">⚠ </span>Cost not known</span></div>`
-            + `<div class="notice pos">${icon('check', 'i-sm')}<span class="grow"><span class="sr-only">✓ </span>Matches Outstanding</span></div>`;
+            + `<div class="notice pos">${icon('check', 'i-sm')}<span class="grow"><span class="sr-only">✓ </span>Matches Dues</span></div>`;
         expect(Exporter.printPage({ title: 'Party ledger', html, stampText: 'Gupta Traders', lang: 'en' })).toBe(true);
         const doc = w.document;
         const svgs = [...doc.querySelectorAll('svg')];
@@ -277,7 +277,7 @@ describe('Exporter.printPage: a statement printed in its own window (#444)', () 
         }
         for (const sr of doc.querySelectorAll('.sr-only')) expect(w.getComputedStyle(sr).position).toBe('static');
         expect(doc.body.textContent).toContain('⚠ Cost not known');
-        expect(doc.body.textContent).toContain('✓ Matches Outstanding');
+        expect(doc.body.textContent).toContain('✓ Matches Dues');
         frame.remove();
     });
 

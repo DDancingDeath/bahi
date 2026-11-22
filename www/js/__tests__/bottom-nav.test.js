@@ -105,11 +105,11 @@ test('the app bar shows the open page\'s menu name, and follows the language (re
     BottomNav.init();
     const title = () => document.getElementById('appBarTitle').textContent;
     window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'due' } }));
-    expect(title()).toBe('Outstanding');
+    expect(title()).toBe('Dues');
     window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'items' } }));
-    expect(title()).toBe('Rates');
+    expect(title()).toBe('Items & rates');
     await setLang('hi');
-    expect(title()).toBe('रेट');
+    expect(title()).toBe('आइटम और रेट');
     expect(pageTitleKey('cash-management')).toBe('ui.today.cash_management');
     expect(pageTitleKey('settings')).toBe('ui.nav.settings');
     expect(pageTitleKey('rentals')).toBe('ui.biz.rentals');

@@ -60,6 +60,8 @@ import { chooseStartPage, routeFromHash } from './utils/start-page.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
+import { installDateFields } from './ui/date-field.js';
+import { installMenus } from './ui/menus.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
 import { friendlyError } from './utils/friendly-error.js';
 
@@ -71,7 +73,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261118a-show-wa-due';
+const BUILD_ID = '20261121k-show-wa-due';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -279,7 +281,7 @@ let pagesReady = Promise.resolve();
 /** What startup renders into a page that is put in later, run when it is added. */
 const PAGE_ADDED = {
     items: () => ItemsManager.renderItems(),
-    'wholesale-sales': () => withWholesale(m => m.loadItemsDropdown()),
+    'wholesale-sales': () => withWholesale(m => { m.loadItemsDropdown(); m.updatePaymentTotal(); }),
     expenses: () => withExpenses(m => { m.updateExpensePersonOptions(); m.renderexpensesHistory(); }),
     settings: () => {
         PrinterService.updateStatus();
@@ -346,7 +348,7 @@ function refreshForLanguage(lang) {
             HistoryManager.refreshHistory();
         },
         'cash-management': () => CashManagementManager.refreshForLanguage(),
-        'wholesale-sales': () => withWholesale(m => { m.renderSalesHistory(); m.renderSalesOutstanding(); }),
+        'wholesale-sales': () => withWholesale(m => m.renderSalesHistory()),
         settings: () => { SettingsManager.loadSettings(); RolesAccessManager.render(); RolesAccessManager.renderPeople(); SettingsManager.renderSections(); },
         expenses: () => withExpenses(m => m.renderexpensesHistory()),
         items: () => ItemsManager.renderItemsTable(document.getElementById('itemsSearchInput')?.value || ''),
@@ -675,7 +677,10 @@ async function initializeUserData() {
                 SettingsManager.syncPrinterPanel();
                 SettingsManager.updatePrinterStatus().catch(e => console.warn('Printer status:', e));
                 return document.getElementById('printerPanel');
-            }
+            },
+            // As the menu opens it (settings.load runs after 100 ms), then the sheet scrolls to the printed bill
+            openSettings: () => Promise.resolve(NavigationManager.showTabFromNav('settings-printing'))
+                .then(() => new Promise(resolve => setTimeout(resolve, 150)))
         });
 
         BottomNav.init({
@@ -832,6 +837,8 @@ async function initializeUserData() {
 // data-on* attributes (delegated handlers, #89) work from the first template on
 installActions();
 installTablistKeys();
+installDateFields();
+installMenus();
 
 // Before the templates go in, so their text never changes weight (variables.css: --w-strong)
 if (window.Capacitor?.getPlatform?.() === 'android') document.documentElement.classList.add('platform-android');
@@ -1155,7 +1162,8 @@ window.app = {
     // Billing's Bluetooth printer sheet (app bar, next to the bell)
     printerSheet: {
         open: () => PrinterShortcut.open(),
-        close: () => PrinterShortcut.close()
+        close: () => PrinterShortcut.close(),
+        receiptOptions: () => PrinterShortcut.receiptOptions()
     },
 
     // Notifications inbox (#12)
@@ -1382,18 +1390,8 @@ window.app = {
         completeSale: () => withWholesale(m => m.completeSale()),
         printWholesaleSale: () => withWholesale(m => m.printWholesaleSale()),
         shareViaWhatsApp: () => withWholesale(m => m.shareViaWhatsApp()),
-        filterTab: (view) => withWholesale(m => m.filterSalesTab(view)),
         renderHistory: () => withWholesale(m => m.renderSalesHistory()),
-        setHistoryPreset: (preset) => withWholesale(m => m.setHistoryPreset(preset)),
-        applyHistoryRange: (from, to) => withWholesale(m => m.applyHistoryRange(from, to)),
-        searchHistory: (term) => withWholesale(m => m.searchHistory(term)),
-        toggleHistoryView: () => withWholesale(m => m.toggleHistoryView()),
-        renderOutstanding: () => withWholesale(m => m.renderSalesOutstanding()),
-        recordPayment: (saleId) => withWholesale(m => m.recordPayment(saleId)),
-        markSaleAsCleared: (saleId) => withWholesale(m => m.markSaleAsCleared(saleId)),
-        writeOffSale: (saleId) => withWholesale(m => m.writeOffSale(saleId)),
         completeAllDue: (name) => withWholesale(m => m.completeAllDue(name)),
-        receiveFromParty: (name) => withWholesale(m => m.receiveFromParty(name)),
         reprintSale: (index) => withWholesale(m => m.reprintSale(index)),
         reprintSaleById: (saleId) => withWholesale(m => m.reprintSaleById(saleId)),
         updateProfitCalculation: () => withWholesale(m => m.updateProfitCalculation()),
@@ -1401,7 +1399,6 @@ window.app = {
         fillReceivableAmount: (type) => withWholesale(m => m.fillReceivableAmount(type)),
         putRestInDue: () => withWholesale(m => m.putRestInDue()),
         pickContact: () => withWholesale(m => m.pickContact()),
-        clearOutstandingParty: () => withWholesale(m => m.clearOutstandingParty()),
         // Edit a saved sale (U-30): the page is put in first when it was never opened (#66)
         openEditor: async (bill) => {
             await NavigationManager.showTab('wholesale-sales');
@@ -1415,6 +1412,8 @@ window.app = {
         render: () => HistoryManager.renderHistory(),
         // Re-render keeping the selected Purchase/Sale filter and search text (used by live sync)
         refresh: () => HistoryManager.refreshHistory(),
+        // Opened from the menu / tab bar, or 'wholesale' from Wholesale bills (that visit only)
+        open: (section) => HistoryManager.open(section),
         viewBill: (index, type) => HistoryManager.viewBill(index, type),
         
         closeBillDetails: () => HistoryManager.closeBillDetails(),
@@ -1451,6 +1450,8 @@ window.app = {
     outstanding: {
         filterDue: (filter, evt) => OutstandingManager.filterDue(filter, evt),
         currentFilter: () => OutstandingManager.dueFilter(),
+        // Opened from the menu / tab bar, or 'wholesale' from Wholesale dues (that visit only)
+        open: (section) => OutstandingManager.open(section),
         toggleBills: () => OutstandingManager.toggleBills(),
         billMoreToggled: (id, open) => OutstandingManager.billMoreToggled(id, open),
         openParty: (partyKey) => OutstandingManager.openParty(partyKey),
@@ -1458,6 +1459,7 @@ window.app = {
         clearSearch: () => OutstandingManager.clearSearch(),
         partyPayQuick: (what) => OutstandingManager.partyPayQuick(what),
         partyPaySplitShow: () => OutstandingManager.partyPaySplitShow(),
+        clearFieldError: (errorId, inputId) => OutstandingManager.clearFieldError(errorId, inputId),
         render: () => OutstandingManager.renderDue(),
         renderDue: () => OutstandingManager.renderDue(),
         searchOutstanding: () => OutstandingManager.searchOutstanding(),
@@ -1474,13 +1476,12 @@ window.app = {
         partyPaySum: () => OutstandingManager.partyPaySum(),
         printStatement: (partyKey) => OutstandingManager.printStatement(partyKey),
         clearPartyFilter: () => OutstandingManager.clearPartyFilter(),
-        // Tap on a bill's "Already owes" line (#166); wholesale dues live on the Wholesale page
+        // Tap on a bill's "Already owes" line (#166)
         showParty: (kind, name) => {
-            const tab = kind === 'wholesale' ? 'wholesale-sales' : 'due';
+            const tab = 'due';
             const open = () => {
                 NavigationManager.setActiveNavLink(tab);
-                if (kind === 'wholesale') withWholesale(m => m.showOutstandingParty(name));
-                else OutstandingManager.showParty(kind === 'purchase' ? 'purchase' : kind === 'sale' ? 'sale' : 'retail', name);
+                OutstandingManager.showParty(['purchase', 'sale', 'wholesale'].includes(kind) ? kind : 'retail', name);
             };
             // A page loaded on first visit (#66) is put in first
             const shown = NavigationManager.showTab(tab);
@@ -1517,7 +1518,7 @@ window.app = {
     },
 
     // Rate trends (#65): monthly rate history per item + seasonal estimate
-    // App health / Test in Production (#217): owner/manager page + Today banner (health.js is imported on first use)
+    // App health / Test in Production (#217): owner/manager page + the Day report's health line (health.js is imported on first use)
     health: {
         ...Object.fromEntries(['init', 'refresh', 'openPage', 'savePolicies']
             .map(name => [name, (...args) => loadHealth().then(m => m[name](...args))]))
@@ -1686,6 +1687,8 @@ window.app = {
     // Settings › Team (U-54, U-56): people and worker accounts; admin.js is imported on first use
     team: {
         render: () => loadAdmin().then(a => a.renderTeam()),
+        // The one "Show people" (NEW-11): everyone with their Aadhat role, then each one's Rentals role
+        showPeople: () => Promise.all([loadAdmin().then(a => a.renderTeam()), RolesAccessManager.loadPeople()]),
         addWorker: () => loadAdmin().then(a => a.addWorker()),
         // From the waiting-to-join alerts (U-24): Team with its people shown
         openWaiting: () => Promise.resolve(NavigationManager.showTabFromNav('settings-team'))

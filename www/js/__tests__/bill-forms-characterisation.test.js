@@ -66,7 +66,7 @@ const WHOLESALE_DOM = `
   <input type="checkbox" id="wholesaleOnlineCheckbox"><input type="checkbox" id="wholesaleCashCheckbox"><input type="checkbox" id="wholesaleDueCheckbox">
   <input id="wholesaleCustomerName"><input id="salesComments"><datalist id="wholesaleCustomerOptions"></datalist>
   <button data-onclick="wholesaleSales.completeSale()"></button>
-  <div id="salesRecentList"></div><div id="salesHistoryList"></div><div id="salesOutstandingList"></div><div id="toast"></div>`;
+  <div id="salesRecentList"></div><div id="dueAging"></div><div id="dueList"></div><div id="toast"></div>`;
 
 const $ = (id) => document.getElementById(id);
 const text = (id) => $(id).textContent;
@@ -554,16 +554,17 @@ describe('wholesale sale form', () => {
         ];
         beforeEach(() => { AppState.salesHistory = JSON.parse(JSON.stringify(SALES)); });
 
-        test('Wholesale › Outstanding: total, received and due of each open bill', () => {
-            WholesaleSalesManager.renderSalesOutstanding();
-            const cards = [...$('salesOutstandingList').querySelectorAll('[data-history-item]')].map(c => c.textContent.replace(/\s+/g, ' ').trim());
+        test('Outstanding › Wholesale: total, received and due of each open bill', async () => {
+            const { OutstandingManager } = await import('../modules/outstanding.js');
+            OutstandingManager.filterDue('wholesale');
+            const cards = [...$('dueList').querySelectorAll('[data-history-item]')].map(c => c.textContent.replace(/\s+/g, ' ').trim());
             expect(cards).toHaveLength(2);
             expect(cards[0]).toContain('Due ₹500');
-            expect(cards[0]).toMatch(/Total receivable:? ₹1,001 .*Received:? ₹500 .*Outstanding:? ₹500/);
+            expect(cards[0]).toMatch(/Total to receive ₹1,001 .*Received ₹500 .*Due ₹500/);
             expect(cards[1]).toContain('Due ₹2,000');
             expect(cards[1]).toContain('₹3,501');
             expect(cards[1]).toContain('₹1,500');
-            expect(cards[1]).toMatch(/Total receivable:? ₹2,000 .*Received:? ₹0 .*Outstanding:? ₹2,000/);
+            expect(cards[1]).toMatch(/Total to receive ₹2,000 .*Received ₹0 .*Due ₹2,000/);
         });
 
         test('recent sales leave the opening record out; the form figures ignore the history', async () => {
@@ -575,30 +576,32 @@ describe('wholesale sale form', () => {
         });
 
         test('recording a due payment checks the amount against the bill\'s due', async () => {
-            WholesaleSalesManager.renderSalesOutstanding();
             const apply = jest.fn();
             const { OutstandingManager } = await import('../modules/outstanding.js');
+            OutstandingManager.filterDue('wholesale');
+            const pay = (id, v) => setVal(OutstandingManager.paymentInputIds(id, 'wholesale').cash, v);
+            const record = (id) => OutstandingManager.recordPayment(id, 'wholesale');
             // The Due screen's payment path (D-1): the amount comes as { cash, online }
             jest.spyOn(OutstandingManager, 'applyPaymentTransaction').mockImplementation(async (kind, sale, amount) => { apply(amount.cash); return {}; });
-            setVal('payment_w1', 0);
-            await WholesaleSalesManager.recordPayment('w1');
+            pay('w1', 0);
+            await record('w1');
             expect(toast).toHaveBeenLastCalledWith('Please enter a valid payment amount');
-            setVal('payment_w1', -5);
-            await WholesaleSalesManager.recordPayment('w1');
+            pay('w1', -5);
+            await record('w1');
             expect(toast).toHaveBeenLastCalledWith('Please enter a valid payment amount');
-            setVal('payment_w1', 501);
-            await WholesaleSalesManager.recordPayment('w1');
-            expect(toast).toHaveBeenLastCalledWith('Payment amount exceeds outstanding amount');
+            pay('w1', 501);
+            await record('w1');
+            expect(toast).toHaveBeenLastCalledWith('Payment is more than the due');
             // #129: an amount that is not the due is saved in whole rupees (500.27 was refused as above the due)
-            setVal('payment_w1', 500.27);
-            await WholesaleSalesManager.recordPayment('w1');
+            pay('w1', 500.27);
+            await record('w1');
             expect(apply).toHaveBeenLastCalledWith(500);
             // The exact due of a bill saved with paise (₹500.25, within a paisa) pays it off: only its paise remainder carries paise
-            setVal('payment_w1', 500.26);
-            await WholesaleSalesManager.recordPayment('w1');
+            pay('w1', 500.26);
+            await record('w1');
             expect(apply).toHaveBeenLastCalledWith(500.25);
-            setVal('payment_opening-x', 2000.004);
-            await WholesaleSalesManager.recordPayment('opening-x');
+            pay('opening-x', 2000.004);
+            await record('opening-x');
             expect(apply).toHaveBeenLastCalledWith(2000);
         });
     });

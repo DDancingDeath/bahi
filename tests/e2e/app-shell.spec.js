@@ -25,7 +25,7 @@ const inSheet = (page) => page.evaluate(() => !!document.activeElement?.closest(
 test('phone: the app bar names the open page in English and Hindi; the open page is the one main landmark', async ({ page, problems }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'phone shell');
     await login(page, 'owner');
-    for (const [route, title] of [['billing', 'Billing'], ['day', 'Today'], ['due', 'Outstanding'], ['rates', 'Rates'], ['settings-common', 'Settings']]) {
+    for (const [route, title] of [['billing', 'Billing'], ['day', 'Today'], ['due', 'Dues'], ['rates', 'Items & rates'], ['settings-common', 'Settings']]) {
         await showTab(page, route);
         const s = await shell(page);
         expect(s.title, route).toBe(title);
@@ -161,8 +161,8 @@ const focusedIn = (page) => page.evaluate(() => {
 test('desktop: the page header names the open page (en, hi) with the sync pill and the bell; one banner, nav and main', async ({ page, problems }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'desktop shell');
     await login(page, 'owner');
-    const pages = [['billing', 'Billing'], ['day', 'Today'], ['wholesale-sales', 'Wholesale'], ['expenses', 'Expenses'], ['rates', 'Rates'],
-        ['history', 'History'], ['stock', 'Stock'], ['due', 'Outstanding'], ['money', 'Money'], ['insights', 'Insights'],
+    const pages = [['billing', 'Billing'], ['day', 'Today'], ['wholesale-sales', 'Wholesale'], ['expenses', 'Expenses'], ['rates', 'Items & rates'],
+        ['history', 'History'], ['stock', 'Stock'], ['due', 'Dues'], ['money', 'Money'], ['insights', 'Insights'],
         ['statements', 'Statements'], ['anomalies', 'Anomalies'], ['admin', 'Admin'], ['settings-common', 'Settings']];
     for (const [route, title] of pages) {
         await showTab(page, route);
@@ -251,8 +251,8 @@ test('desktop 1024: the sidebar is a 64 px icon rail; links keep their names', a
     await showTab(page, 'billing');
     const nav = await page.locator('#sideNav').boundingBox();
     expect(nav.width).toBe(64);
-    await expect(page.getByRole('link', { name: 'Outstanding' })).toBeVisible();
-    await expect(page.locator('#sideNav a[data-onclick*="\'due\'"]')).toHaveAttribute('title', 'Outstanding (Alt+8)');
+    await expect(page.getByRole('link', { name: 'Dues' })).toBeVisible();
+    await expect(page.locator('#sideNav a[data-onclick*="\'due\'"]')).toHaveAttribute('title', 'Dues (Alt+8)');
     const bar = await page.locator('header.app-bar').boundingBox();
     expect(bar.x).toBe(64);
     await expect(page.locator('#appBarTitle')).toHaveText('Billing');

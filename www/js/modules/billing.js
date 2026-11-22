@@ -17,7 +17,7 @@ import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
 import { billLabour, isActiveBill, readPayment, sumMoney, formatRupees } from '../utils/money.js';
 import { buildPaymentSplit, computeRetailTotals, editKeepsMoney } from '../utils/calc/billing.js';
-import { BillChecksUI, clearFieldError } from '../ui/bill-highlight.js';
+import { BillChecksUI, clearFieldError, warningsNoticeHtml } from '../ui/bill-highlight.js';
 import { bindPartySuggest } from '../ui/party-suggest.js';
 import { findBillIndex } from '../utils/history-window.js';
 import { TIME_MS, AUTO_SAVE_DELAY } from '../utils/constants.js';
@@ -69,13 +69,31 @@ export const editCheckContext = (bill) => ({
 });
 
 /**
- * The reason for an edit (#121), asked only when the edit changes something
- * that is recorded: '' when nothing recorded changes, null when cancelled.
- * @returns {Promise<?string>}
+ * The one "Save changes" sheet of an edit (F53): the bill-check warnings (confirmSave with
+ * deferWarnings) as a notice above the reason for the edit (#121). The reason is asked only
+ * when the edit changes something that is recorded; with neither, it saves at once.
+ * @param {Object} bill
+ * @param {Object} updated
+ * @param {{warnings?: Array<string>, accept?: Function, restore?: Function}} [checks]
+ * @returns {Promise<?string>} the reason ('' when none is needed), null when cancelled
  */
-export async function askEditReason(bill, updated) {
-    if (!hasEditChanges(billEditChanges(bill, updated))) return '';
-    return askReason({ titleKey: 'ui.edits.reason_title', explainKey: 'ui.edits.reason_explain', labelKey: 'ui.edits.reason_label', confirmKey: 'ui.common.save' });
+export async function askEditReason(bill, updated, checks = null) {
+    const warnings = checks?.warnings || [];
+    const needReason = hasEditChanges(billEditChanges(bill, updated));
+    let reason = '';
+    if (needReason) {
+        reason = await askReason({
+            titleKey: 'ui.edits.save_title', explainKey: 'ui.edits.reason_explain', labelKey: 'ui.edits.reason_label',
+            confirmKey: 'ui.confirm.save_changes', leadHtml: warningsNoticeHtml(warnings)
+        });
+    } else if (warnings.length) {
+        const ok = await UIManager.showModalWithHtml(warningsNoticeHtml(warnings), t('ui.edits.save_title'), true,
+            { confirmLabel: t('ui.confirm.save_changes') });
+        if (!ok) reason = null;
+    }
+    if (reason === null) checks?.restore?.();
+    else checks?.accept?.();
+    return reason;
 }
 
 // Per-bill "Print comments" toggle: carried through edit, drafts and autosave.
@@ -1543,7 +1561,7 @@ const BillingManager = {
             : t('msg.billing.restore_already_saved_differs', {
                 number, saved: formatRupees(figures.saved), unsaved: formatRupees(figures.unsaved)
             });
-        return !!(await UIManager.showModal(text, t('ui.billing.already_saved_title'), true));
+        return !!(await UIManager.showModal(text, t('ui.billing.already_saved_title'), true, { confirmLabel: t('ui.confirm.open_saved_bill') }));
     },
 
     /** A save refused because its id is a bill saved on another phone (#93): offers to open it. */
@@ -1552,7 +1570,7 @@ const BillingManager = {
         const { saved, unsaved } = restoreFigures(form, billType === 'retail' ? 'sale' : 'purchase', bill);
         const open = await UIManager.showModal(t('msg.billing.saved_on_other_phone', {
             number: bill.billNumber || '—', saved: formatRupees(saved), unsaved: formatRupees(unsaved)
-        }), t('ui.billing.already_saved_title'), true);
+        }), t('ui.billing.already_saved_title'), true, { confirmLabel: t('ui.confirm.open_saved_bill') });
         if (open) this.openSavedBill({ bill, billType });
     },
 
@@ -1616,7 +1634,7 @@ const BillingManager = {
         const { saved, unsaved } = restoreFigures(form, target.mode, bill);
         const apply = await UIManager.showModal(
             t('msg.billing.restore_edit_changed', { saved: formatRupees(saved), unsaved: formatRupees(unsaved) }),
-            t('ui.billing.restore_changed_title'), true);
+            t('ui.billing.restore_changed_title'), true, { confirmLabel: t('ui.confirm.apply_edit') });
         return apply ? { bill, billType: target.billType } : false;
     },
 
@@ -1768,7 +1786,7 @@ const BillingManager = {
             return null;
         }
         if (!res.changed) return res.bill;
-        const reload = await UIManager.showModal(t('msg.billing.changed_elsewhere_reload'), t('ui.billing.changed_elsewhere_title'), true);
+        const reload = await UIManager.showModal(t('msg.billing.changed_elsewhere_reload'), t('ui.billing.changed_elsewhere_title'), true, { confirmLabel: t('ui.confirm.reload') });
         return reload ? res.bill : null;
     },
 
@@ -1799,7 +1817,7 @@ const BillingManager = {
             return false;
         }
         if (!res.changed) return true;
-        return !!(await UIManager.showModal(t('msg.billing.changed_while_editing'), t('ui.billing.changed_elsewhere_title'), true));
+        return !!(await UIManager.showModal(t('msg.billing.changed_while_editing'), t('ui.billing.changed_elsewhere_title'), true, { confirmLabel: t('ui.confirm.save_anyway') }));
     },
 
     /**
@@ -2020,7 +2038,7 @@ const BillingManager = {
                 const comments = Helpers.getInputText('billComments');
                 const printComments = readPrintComments('billPrintComments');
                 
-                const checks = await BillChecksUI.confirmSave('purchase', editCheckContext(bill));
+                const checks = await BillChecksUI.confirmSave('purchase', editCheckContext(bill), { deferWarnings: true });
                 if (!checks.ok) return undefined;
                 
                 const laborCalculationSpan = document.getElementById('laborCalculation');
@@ -2050,7 +2068,7 @@ const BillingManager = {
                 };
 
                 // Wait for the server: only a committed edit is printed, kept and cleared from the editor.
-                const reason = await askEditReason(bill, updatedBill);
+                const reason = await askEditReason(bill, updatedBill, checks);
                 if (reason === null) return undefined;
                 FirebaseService.withLoadedPaymentSignature(updatedBill, this.editingBillPaymentSig);
                 // The audit entry lands with the edit and its edit record (D-3)
@@ -2087,7 +2105,7 @@ const BillingManager = {
                 const saleComments = Helpers.getInputText('saleComments');
                 const printComments = readPrintComments('salePrintComments');
 
-                const checks = await BillChecksUI.confirmSave('retail', editCheckContext(bill));
+                const checks = await BillChecksUI.confirmSave('retail', editCheckContext(bill), { deferWarnings: true });
                 if (!checks.ok) return undefined;
 
                 const saleMoney = keepMoney ? {} : {
@@ -2110,7 +2128,7 @@ const BillingManager = {
                     ...BillChecksUI.billFields(checks, bill)
                 };
 
-                const reason = await askEditReason(bill, updatedSale);
+                const reason = await askEditReason(bill, updatedSale, checks);
                 if (reason === null) return undefined;
                 FirebaseService.withLoadedPaymentSignature(updatedSale, this.editingBillPaymentSig);
                 await commitBillEdit(FirebaseService.updateRetailSale(updatedSale, {
@@ -2252,19 +2270,6 @@ if (typeof window !== 'undefined') {
     window.addEventListener('aadhat:langchange', () => {
         renderBillDateLine('billDate');
         renderBillDateLine('saleDate');
-    });
-    // The ⋯ menu closes on a pick, a tap elsewhere or Esc
-    document.addEventListener('click', (event) => {
-        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
-            if (!menu.contains(event.target) || event.target.closest?.('.bill-menu-list .btn')) menu.open = false;
-        });
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
-            menu.open = false;
-            menu.querySelector('summary')?.focus();
-        });
     });
     // Name suggestions on the customer / supplier fields (#139 phase 1)
     bindPartySuggest();

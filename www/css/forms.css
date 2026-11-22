@@ -80,6 +80,15 @@
   width: 100%;
 }
 
+/* A <summary> drawn as a button (About, ⋯ menus, Add a worker) has no disclosure marker */
+summary.btn {
+  list-style: none;
+}
+
+summary.btn::-webkit-details-marker {
+  display: none;
+}
+
 /* Hover is a veil over any variant's colour, so mode colours (purchase / sale / cash) keep theirs */
 .btn:hover:not(:disabled) {
   background-image: linear-gradient(var(--state-hover), var(--state-hover));
@@ -177,6 +186,17 @@ input[type="text"] {
   color: var(--ink);
   font-size: var(--fs-body);
   transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+
+/* No spinner arrows on number fields */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Other text-like fields keep their own size but take the field colours in every theme and mode (no specificity: page rules win) */
@@ -291,6 +311,14 @@ select:not([multiple]):not([size]) {
   color: var(--accent-text);
 }
 
+/* Focus is drawn inside the border, so the label's notch cuts it like the border and no ring crosses the label (NEW-20) */
+.field-float :is(input, select, textarea, .input):focus,
+.field-float :is(input, select, textarea, .input):focus-visible {
+  border-color: var(--focus-ring);
+  outline: none;
+  box-shadow: var(--focus-inset);
+}
+
 /* ---------- Search field: .search-field > .i (decorative, aria-hidden) + .input with its own label ---------- */
 .search-field {
   position: relative;
@@ -324,6 +352,41 @@ input[type="radio"] {
 :where(label):has(> input[type="checkbox"], > input[type="radio"]) {
   min-height: var(--tap-min);
   align-items: center;
+}
+
+/* Radio rows: a fieldset whose legend asks the question, one 48 px row per choice with hairlines between (F52) */
+.radio-rows {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.radio-rows > legend {
+  margin-bottom: var(--sp-1);
+  padding: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-label);
+}
+
+.radio-rows > label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.radio-rows > label + label {
+  border-top: 1px var(--rule-style) var(--line);
+}
+
+.radio-rows > label > input {
+  flex: none;
+  margin: 0;
 }
 
 /* The switch draws 36 × 22 but takes taps on 62 × 48: a clear border around the track that the negative margin
@@ -409,6 +472,7 @@ input[type="checkbox"].switch:focus-visible,
 /* These set display, which would otherwise beat the hidden attribute */
 .btn[hidden],
 .seg[hidden],
+.seg > button[hidden],
 .tabs[hidden] {
   display: none;
 }
@@ -488,14 +552,14 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 /* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
-   .period is the component; .ins-period and .wp-month are its old hooks */
-:is(.period, .ins-period, .wp-month) {
+   .period is the component (Money, Insights and Statements keep .ins-period as a hook); .wp-month is an old hook */
+:is(.period, .wp-month) {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
 }
 
-:is(.period, .ins-period, .wp-month) > .btn {
+:is(.period, .wp-month) > .btn {
   flex: none;
   width: var(--tap-min);
   min-height: var(--tap-min);
@@ -547,26 +611,6 @@ input[type="checkbox"].switch:focus-visible,
   padding-block: var(--sp-3);
 }
 
-/* Text buttons, the list's Load more / Retry and the Show voided / old dues toggles get the button height (N-15) */
-.infinite-scroll-more,
-.history-range-retry,
-.chip[data-group-toggle] {
-  min-height: var(--tap-min);
-}
-
-/* A link-like button inside a line of text (a bill number): an invisible 48 px tap area round the words */
-.due-bill-link,
-.bill-edits__view {
-  position: relative;
-}
-
-.due-bill-link::after,
-.bill-edits__view::after {
-  content: '';
-  position: absolute;
-  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
-}
-
 /* -------------------- UTILITIES -------------------- */
 button, a, input[type="checkbox"] {
   -webkit-tap-highlight-color: transparent;
@@ -615,4 +659,54 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   body textarea {
     font-size: var(--fs-input) !important;
   }
+}
+
+/* ---------- Date field (F54) ---------- */
+/* A native date box showing the day in the app's format ("21 Nov 2026") over its own text (js/ui/date-field.js) */
+.date-field {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+:is(.field, .field-float, .bill-form-field) > .date-field {
+  display: block;
+}
+
+.date-field > input {
+  width: 100%;
+  -webkit-text-fill-color: transparent;
+}
+
+.date-field-text {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--date-pad, var(--sp-3));
+  right: var(--sp-10);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--date-fs, var(--fs-body));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.date-field-text.date-field-empty,
+.date-field > input:disabled + .date-field-text {
+  color: var(--ink-3);
+}
+
+/* Typing digits: the box's own fields show until it loses focus */
+.date-field--typing > input {
+  -webkit-text-fill-color: currentColor;
+}
+
+.date-field--typing > .date-field-text,
+.date-field:has(> input[hidden]) {
+  display: none;
 }

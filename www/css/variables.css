@@ -111,6 +111,8 @@
   /* A solid focus ring at 3:1 or more on every surface */
   --focus-ring: var(--accent-text);
   --focus: 0 0 0 3px var(--focus-ring);
+  /* Inside the border: floating-label fields, whose label sits on the border (NEW-20) */
+  --focus-inset: inset 0 0 0 2px var(--focus-ring);
   --table-rule: var(--line);
   --toast-bg: #1d1d24;
   --toast-ink: #f4f4f7;
@@ -212,6 +214,25 @@
   }
 }
 
+/* Rate trends chart series (canvas lines and volume bars, and their legend swatches; rate-trends.js reads them) */
+:root {
+  --chart-purchase: #2563eb;
+  --chart-retail: #059669;
+  --chart-wholesale: #d97706;
+  --chart-bought: #93c5fd;
+  --chart-sold: #6ee7b7;
+}
+
+@media screen {
+  [data-mode="dark"] {
+    --chart-purchase: #60a5fa;
+    --chart-retail: #34d399;
+    --chart-wholesale: #fbbf24;
+    --chart-bought: #1e40af;
+    --chart-sold: #047857;
+  }
+}
+
 /* The Bahi mark (docs/brand/icon-full.svg, #375): white B with the sage corner on charcoal, fixed in every theme;
    on dark surfaces a faint ring keeps the tile's edge */
 :root {
@@ -261,7 +282,9 @@
   --appbar-h: 52px;
   --bottomnav-h: 56px;
   --phone-col-max: 480px;
-  --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
+  /* A wide dialog (.dialog-wide); 680 px on desktop (desktop.css) */
+  --dialog-wide: 560px;
+  --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3) + var(--shell-notice-h, 0px));
   /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
   --tap-min: 48px;
   /* The clear border round a switch's 22 px track that makes its tap area 48 px */
@@ -355,6 +378,14 @@ html[lang="hi"] [data-theme] {
 /* Global Base Styles */
 * {
   box-sizing: border-box;
+}
+
+/* Form controls take the app's font, not the browser's Arial (N1) */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 html {

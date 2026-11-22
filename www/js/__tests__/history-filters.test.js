@@ -7,7 +7,7 @@
 import {
     billDateOf, billTimeMs, matchesHistoryType, resolveHistoryRange, isBillInRange,
     matchesHistorySearch, filterHistoryBills, normalizeHistoryFilter, formatHistoryRange,
-    validateCustomRange, olderMonthsToLoad, normalizeHistoryTab, isWholesaleHistoryLink, historyListTotal
+    validateCustomRange, olderMonthsToLoad, normalizeHistoryTab, historyListTotal
 } from '../utils/history-filters.js';
 
 const local = (y, m, d, h = 0, min = 0) => new Date(y, m - 1, d, h, min).getTime();
@@ -124,13 +124,10 @@ describe('normalizeHistoryFilter / formatHistoryRange', () => {
             .toEqual({ type: 'purchase', preset: 'custom', from: '', to: '' });
     });
 
-    test('History tabs are Purchase | Sale; old "all" / "retail" map to them, "wholesale" is a Wholesale-page link', () => {
+    test('History tabs are Purchase | Sale | Wholesale (F14); old "all" / "retail" map to them', () => {
         expect(['purchase', 'sale', 'retail', 'all', 'wholesale', undefined].map(normalizeHistoryTab))
-            .toEqual(['purchase', 'sale', 'sale', 'purchase', 'purchase', 'purchase']);
-        expect(isWholesaleHistoryLink('wholesale')).toBe(true);
-        expect(isWholesaleHistoryLink('{"type":"wholesale","preset":"all"}')).toBe(true);
-        expect(isWholesaleHistoryLink({ type: 'retail' })).toBe(false);
-        expect(isWholesaleHistoryLink('not json')).toBe(false);
+            .toEqual(['purchase', 'sale', 'sale', 'purchase', 'wholesale', 'purchase']);
+        expect(normalizeHistoryFilter('{"type":"wholesale","preset":"all"}').type).toBe('wholesale');
     });
 
     test('label uses the app date (DATE-TEXT) and the inclusive end day', () => {

@@ -125,7 +125,7 @@ describe('purchase: a line typed but not added (S-1, BF-PENDING)', () => {
         setVal('newWeight', 4); // Wheat 4 kg typed, not added
     });
 
-    test('"Add this line and save" saves both lines', async () => {
+    test('"Add & save" saves both lines', async () => {
         const saving = PurchaseManager.saveBillToHistory();
         expect(await answer('add')).toBe('Wheat 4 kg × ₹30 = ₹120 is typed but not on the bill.');
         const bill = await saving;
@@ -133,7 +133,7 @@ describe('purchase: a line typed but not added (S-1, BF-PENDING)', () => {
         expect(bill.billTotal).toBe(370);
     });
 
-    test('"Discard line and save" saves the added lines only and empties the weight box', async () => {
+    test('"Save without it" saves the added lines only and empties the weight box', async () => {
         const saving = PurchaseManager.saveBillToHistory();
         await answer('discard');
         const bill = await saving;
@@ -171,6 +171,20 @@ describe('purchase: a line typed but not added (S-1, BF-PENDING)', () => {
         expect(await saving).toBeUndefined();
         expect(FirebaseService.savePurchase).not.toHaveBeenCalled();
         expect(dialog()).toBeNull();
+    });
+
+    test('NEW-08: Cancel is the head\'s ×; "Add & save" sits above "Save without it", stacked', async () => {
+        const saving = PurchaseManager.saveBillToHistory();
+        for (let i = 0; i < 50 && !dialog(); i++) await new Promise(r => setTimeout(r, 0));
+        const cancel = dialog().querySelector('.dialog-head [data-choice="cancel"]');
+        expect(cancel.hasAttribute('data-dismiss')).toBe(true);
+        expect(cancel.getAttribute('aria-label')).toBe('Cancel');
+        const footer = dialog().querySelector('.dialog-actions');
+        expect(footer.classList.contains('dialog-actions-stack')).toBe(true);
+        expect([...footer.children].map(b => [b.dataset.choice, b.textContent])).toEqual([['add', 'Add & save'], ['discard', 'Save without it']]);
+        cancel.click();
+        expect(await saving).toBeUndefined();
+        expect(FirebaseService.savePurchase).not.toHaveBeenCalled();
     });
 
     test('Print with only a typed line asks too (it no longer says "no items")', async () => {
@@ -215,7 +229,7 @@ describe('retail sale: a line typed but not added (S-1)', () => {
         await RetailSaleManager.addToSalesBill(); // Wheat 2 kg; Add empties the boxes
     });
 
-    test('the staff case: Rice 4 kg @ ₹36 left in the boxes is added on "Add this line and save"', async () => {
+    test('the staff case: Rice 4 kg @ ₹36 left in the boxes is added on "Add & save"', async () => {
         setVal('saleItem', 0);
         setVal('saleRate', 36);
         setVal('saleWeight', 4);
@@ -264,7 +278,7 @@ describe('wholesale: a quantity typed but not added (S-1)', () => {
         setVal('sellQuantity', 5);
     });
 
-    test('"Add this line and save" adds the 5 kg', async () => {
+    test('"Add & save" adds the 5 kg', async () => {
         const saving = WholesaleSalesManager.completeSale();
         expect(await answer('add')).toBe('Rice 5 kg × ₹34 = ₹170 is typed but not on the bill.');
         expect((await saving).items.map(i => i.quantity)).toEqual([10, 5]);

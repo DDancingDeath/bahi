@@ -65,3 +65,17 @@ export function emptyState({ icon = '', title, text = '', tone = '', action = nu
     const btn = action ? `<button type="button" class="btn btn-sm btn-tonal" data-onclick="${esc(action.onclick)}">${esc(action.label)}</button>` : '';
     return `<div class="empty">${tile}<b>${esc(title ?? '')}</b>${text ? `<p>${esc(text)}</p>` : ''}${btn}</div>`;
 }
+
+/**
+ * A loading placeholder (`.skel` bars, docs/design-system.md §3) in place of a "Loading…" line: grey rows that
+ * shimmer until the page draws; screen readers hear the label.
+ * @param {{rows?: number, label: *, panel?: boolean}} o rows: bars to draw (1–8); label: plain text, escaped here;
+ *   panel: false inside a host that is already a panel
+ * @returns {string}
+ */
+export function skeleton({ rows = 3, label, panel = true }) {
+    const n = Math.min(8, Math.max(1, Math.floor(Number(rows)) || 1));
+    let bars = '';
+    for (let i = 0; i < n; i++) bars += i % 3 === 2 ? '<div class="skel skel-short"></div>' : '<div class="skel"></div>';
+    return `<div class="${panel ? 'panel ' : ''}panel-pad skel-list" role="status" aria-busy="true"><span class="sr-only">${esc(label ?? '')}</span>${bars}</div>`;
+}

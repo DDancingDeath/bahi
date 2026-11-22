@@ -6,6 +6,7 @@ import { canOpenTab, canOpenPage, canOpenSection, roleMayOpenTab, SECTION_TABS }
 import { t } from '../i18n/index.js';
 import { closeTopDialog, trapFocus } from '../utils/keyboard-shortcuts.js';
 import { TemplateLoader } from '../utils/template-loader.js';
+import { MENU } from './menus.js';
 
 export { trapFocus };
 
@@ -57,9 +58,9 @@ const ROUTES = Object.freeze({
     'rates-trends': { tab: 'insights', section: 'trends', needs: 'rate-trends', id: 'insights-trends' },
     'rates-traffic': { tab: 'insights', section: 'traffic', needs: 'rate-trends', id: 'insights-traffic' },
 
-    // Wholesale › History (old History 'wholesale' links land here).
-    'wholesale-history': { tab: 'wholesale-sales', section: 'history', nav: 'wholesale-sales' },
-    'wholesale-outstanding': { tab: 'wholesale-sales', section: 'outstanding', nav: 'wholesale-sales' },
+    // Wholesale's old History and Outstanding tabs (F14) open History and Outstanding with the Wholesale filter.
+    'wholesale-history': { tab: 'history', section: 'wholesale', needs: 'wholesale-sales', nav: 'history' },
+    'wholesale-outstanding': { tab: 'due', section: 'wholesale', needs: 'wholesale-sales', nav: 'due' },
 
     // Settings groups (sub-pages of the Settings list; parent: Back returns there). Aadhat = internal 'shop'.
     // Old ids: settings-common (the list), settings-roles (Team), settings-aadhat and admin-configure (Aadhat).
@@ -278,21 +279,14 @@ const NavigationManager = {
             setTimeout(() => window.app.items.renderTable(), 100);
         }
         
-        // Render history when History tab is shown (keeps the session's filter, #160)
-        if (tabId === 'history' && window.app?.history) {
-            setTimeout(() => window.app.history.refresh(), 100);
+        // History: the remembered tab (#160); 'wholesale-history' shows Wholesale for this visit only
+        if (route.tab === 'history' && window.app?.history) {
+            setTimeout(() => window.app.history.open(route.section), 100);
         }
         
-        // Render outstanding when Due tab is shown
-        if (tabId === 'due' && window.app?.outstanding) {
-            // Sales first (collecting is the daily job, U-69), or the list last opened this session
-            setTimeout(() => window.app.outstanding.filterDue(window.app.outstanding.currentFilter?.() || 'sale'), 100);
-        }
-        
-        // Wholesale page: Sales (entry) tab, or History for 'wholesale-history'
-        if (route.tab === 'wholesale-sales' && window.app?.wholesaleSales) {
-            const view = route.section || 'sales';
-            setTimeout(() => window.app.wholesaleSales.filterTab(view), 100);
+        // Outstanding: the list last picked here (Sales first, U-69); 'wholesale-outstanding' shows Wholesale for this visit only
+        if (route.tab === 'due' && window.app?.outstanding) {
+            setTimeout(() => window.app.outstanding.open(route.section), 100);
         }
         
         // Render stock when Stock tab is shown
@@ -512,7 +506,7 @@ const NavigationManager = {
     // Closes the menu, the notifications panel or the top dialog; true when something was open
     closeOverlay() {
         if (this.isMenuOpen()) { this.setMenuOpen(false); return true; }
-        const menu = /** @type {HTMLDetailsElement|null} */ (document.querySelector('details.bill-menu[open]'));
+        const menu = /** @type {HTMLDetailsElement|null} */ (document.querySelector(`:is(${MENU})[open]`));
         if (menu) { menu.open = false; return true; }
         const notif = document.getElementById('notifPanel');
         if (notif && !notif.hidden && window.app?.notifications?.close) {

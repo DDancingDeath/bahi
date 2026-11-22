@@ -55,7 +55,6 @@ describe('pages re-render on the same data changes as before (old VIEWS → wind
         ['billingDropdown', 'BillingManager', 'loadItemsDropdown', BillingManager],
         ['salesDropdown', 'WholesaleSalesManager', 'loadItemsDropdown', WholesaleSalesManager],
         ['wholesaleHistory', 'WholesaleSalesManager', 'renderSalesHistory', WholesaleSalesManager],
-        ['wholesaleOutstanding', 'WholesaleSalesManager', 'renderSalesOutstanding', WholesaleSalesManager],
         ['history', 'HistoryManager', 'refreshHistory', HistoryManager],
         ['due', 'OutstandingManager', 'renderDue', OutstandingManager],
         ['stockAdjustmentHistory', 'StockManager', 'renderAdjustmentHistory', StockManager],

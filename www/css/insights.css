@@ -150,11 +150,12 @@ div.ins-wide,
 .ins-page .table tr[data-item], .ins-page .table tr[data-party] { cursor: pointer; }
 .ins-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* Items table on phone: tighter columns and a wrapping header; the rest scrolls behind the cue */
+/* Items table on phone: tighter columns and a wrapping header; "vs last year" is left out so Profit per ₹100 fits (F25) */
 @media (max-width: 599.98px) {
   .ins-items-table th,
   .ins-items-table td { padding-left: var(--sp-2); padding-right: var(--sp-2); }
   .ins-page .ins-items-table th.num { white-space: normal; }
+  .ins-items-table .ins-ly { display: none; }
 }
 
 /* Insights "To do": a row with an icon tile and its action */
@@ -254,7 +255,7 @@ div.ins-wide,
 
 /* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */
 .st-day-step { flex-wrap: wrap; }
-.st-day-pick { flex: 1 1 100%; }
+.st-day-pick, .date-field:has(> .st-day-pick) { flex: 1 1 100%; }
 
 /* Month statement: the month chip sits between ‹ and › (U-61) */
 .st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }

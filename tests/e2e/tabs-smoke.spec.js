@@ -43,14 +43,21 @@ const STEPS = [
     { name: 'Billing › Purchase', route: 'billing', page: 'billing', roles: A, expect: '#purchaseSection' },
     { name: 'Billing › Retail sale', route: 'billing', page: 'billing', act: "window.app.billing.switchMode('sale', { currentTarget: document.getElementById('saleModeBtn') })", roles: A, expect: '#saleSection' },
     { name: 'Wholesale › Sale', route: 'wholesale-sales', page: 'wholesale-sales', roles: OM, expect: '#salesEntrySection' },
-    { name: 'Wholesale › History', route: 'wholesale-history', page: 'wholesale-sales', roles: OM, expect: '#salesHistorySection' },
-    { name: 'Wholesale › Outstanding', route: 'wholesale-sales', page: 'wholesale-sales', act: "window.app.wholesaleSales.filterTab('outstanding')", roles: OM, expect: '#salesOutstandingSection' },
+    // Wholesale has no History / Outstanding tabs of its own (F14): its links open the global pages with Wholesale picked
+    { name: 'Wholesale › Wholesale bills', route: 'wholesale-sales', page: 'history', act: "document.querySelector('#wholesale-sales .ws-links [data-onclick*=\"wholesale-history\"]').click()", timers: 150, roles: OM, expect: '#history .filter-wholesale.active' },
+    { name: 'Wholesale › Wholesale dues', route: 'wholesale-sales', page: 'due', act: "document.querySelector('#wholesale-sales .ws-links [data-onclick*=\"wholesale-outstanding\"]').click()", timers: 150, roles: OM, expect: '#dueSaleKinds [data-due-kind="wholesale"].active' },
+    // NEW-01: the links' Wholesale filter is for that visit only; the tab bar opens the pages as usual
+    { name: 'History from the tab bar after Wholesale bills', route: 'history', page: 'history', roles: OM, expect: '#history .filter-purchase.active', hidden: ['#history .filter-wholesale.active'] },
+    { name: 'Outstanding from the tab bar after Wholesale dues', route: 'due', page: 'due', roles: OM, expect: '#dueSaleKinds [data-due-kind="sale"].active', hidden: ['#dueSaleKinds [data-due-kind="wholesale"].active'] },
     { name: 'Expenses › Business', route: 'expenses', page: 'expenses', roles: A, expect: '#businessExpenseSection' },
     // Off for managers and members until the owner turns it on (#98)
     { name: 'Expenses › Personal', route: 'expenses', page: 'expenses', act: "window.app.expenses.filterExpenseTab('personal')", roles: O, expect: '#personalExpenseSection' },
     { name: 'Rates', route: 'rates', page: 'items', roles: A },
     { name: 'History › Purchase', route: 'history', page: 'history', act: "window.app.history.filterHistory('purchase')", roles: A, expect: '#history .filter-purchase.active' },
     { name: 'History › Sale', route: 'history', page: 'history', act: "window.app.history.filterHistory('sale')", roles: A, expect: '#history .filter-sale.active' },
+    { name: 'History › Wholesale', route: 'wholesale-history', page: 'history', roles: OM, expect: '#history .filter-wholesale.active' },
+    // A member without Wholesale has no Wholesale tab; the old link lands on History unfiltered
+    { name: 'History › no Wholesale for a member', route: 'wholesale-history', page: 'history', roles: M, expect: '#history .history-type-filter .active', hidden: ['#history .filter-wholesale'] },
     { name: 'Stock › Current', route: 'stock', page: 'stock', roles: A, expect: '#currentStockSection' },
     { name: 'Stock › Not selling', route: 'stock', page: 'stock', act: "window.app.stock.filterTab('dead')", roles: OM, expect: '#deadStockSection' },
     { name: 'Stock › Adjustment', route: 'stock', page: 'stock', act: "window.app.stock.filterTab('adjustment')", roles: OM, expect: '#stockAdjustmentSection' },
@@ -59,8 +66,10 @@ const STEPS = [
     { name: 'Stock › Not selling and Adjustment stay closed', route: 'stock', page: 'stock', act: "(window.app.stock.filterTab('dead'), window.app.stock.filterTab('adjustment'))", roles: M, expect: '#currentStockSection', hidden: ['#deadStockSection', '#stockAdjustmentSection', '#deadStockTabBtn'] },
     { name: 'Outstanding › Purchase', route: 'due', page: 'due', act: "window.app.outstanding.filterDue('purchase', { target: document.querySelector('#due .filter-purchase') })", roles: A, expect: '#due .filter-purchase.active' },
     { name: 'Outstanding › Sale', route: 'due', page: 'due', act: "window.app.outstanding.filterDue('sale', { target: document.querySelector('#due .filter-sale') })", roles: A, expect: '#due .filter-sale.active' },
+    { name: 'Outstanding › Wholesale', route: 'wholesale-outstanding', page: 'due', roles: OM, expect: '#dueSaleKinds [data-due-kind="wholesale"].active' },
     { name: 'Money › Profit', route: 'money-profit', page: 'money', roles: OM, expect: '#moneyProfit' },
-    { name: 'Money › Cash', route: 'money-cash', page: 'money', roles: OM, expect: '#moneyCash' },
+    // One Cash home (F62): money-cash opens Profit's "Money in and out", which links to Today › Cash
+    { name: 'Money › Money in and out', route: 'money-cash', page: 'money', roles: OM, expect: '#moneyProfit #moneyCash [data-go="day-cash"]' },
     { name: 'Money › Spending', route: 'money-spending', page: 'money', roles: OM, expect: '#moneySpending' },
     { name: 'Money › Worth', route: 'money-worth', page: 'money', roles: OM, expect: '#moneyWorth' },
     { name: 'Money › Compare with last month', route: 'money-profit', page: 'money', act: "window.app.money.setCompare('last-month')", roles: OM, expect: '#moneyCmpCard:not([hidden]) [data-cmp-row="M1"]' },
@@ -130,7 +139,7 @@ const ROUTE_READY = {
 // Pages each role may not open: showTab must land somewhere else.
 const BLOCKED = {
     manager: [['admin', 'admin'], ['workers', 'workers'], ['recurring', 'recurring']],
-    staff: [['wholesale-sales', 'wholesale-sales'], ['wholesale-history', 'wholesale-sales'], ['money', 'money'], ['money-cash', 'money'],
+    staff: [['wholesale-sales', 'wholesale-sales'], ['money', 'money'], ['money-cash', 'money'],
         ['insights', 'insights'], ['insights-seasons', 'insights'], ['insights-trends', 'insights'], ['rate-trends', 'insights'],
         ['statements', 'statements'], ['anomalies', 'anomalies'], ['health', 'health'], ['admin', 'admin'], ['diagnostics', 'diagnostics'], ['workers', 'workers'], ['recurring', 'recurring']]
 };
@@ -203,6 +212,14 @@ for (const role of A) {
         test(`${role} (${lang}) opens every page and section without errors`, async ({ page, problems }) => {
             test.setTimeout(360000);
             await login(page, role);
+            // Two jobs read on a timer, not because a page opened: the rate-stats roll-forward (main.js, 20 s after start,
+            // owner / manager) and the old-notifications cleanup (30 s). Mark them as just run so they never land on
+            // whichever page is open then (they did on History, 22 Nov).
+            await page.evaluate(() => {
+                const uid = window.firebase.auth().currentUser.uid;
+                localStorage.setItem('aadhatRateStatsRoll', JSON.stringify({ uid, at: Date.now() }));
+                localStorage.setItem(`aadhat.notifications.cleanupAt.${uid}`, String(Date.now()));
+            });
             await page.evaluate((l) => window.app.i18n.setLang(l), lang);
             await page.waitForTimeout(300);
             // Start-up reads: login until the read meter is still. Background start-up work reads too (legacy
@@ -268,9 +285,9 @@ for (const role of A) {
                             expect(await activeTab(page)).toBe(tab);
                         });
                     }
-                    await test.step('Rates has no Trends; Insights › Seasons hosts it', async () => {
+                    await test.step('Items & rates has no Trends; Insights › Seasons hosts it', async () => {
                         const nav = await page.locator('.nav-menu').first().textContent();
-                        expect(nav).toContain('Rates');
+                        expect(nav).toContain('Items & rates');
                         expect(nav).not.toContain('Rate trends');
                         await expect(page.locator('#items .rates-subtabs')).toHaveCount(0);
                         await expect(page.locator('#insights #rate-trends')).toHaveCount(1);

@@ -285,7 +285,6 @@ www/js/modules/statements.js: Number.isFinite(from) ? from : 'null' ← from
 www/js/modules/statements.js: b.from ← b = monthBounds(this.month) (markup via this.notLoaded)
 www/js/modules/statements.js: c !== undefined ? ` (${c})` : '' ← c
 www/js/modules/statements.js: d.getTime() (markup via this.notLoaded)
-www/js/modules/statements.js: formatAmount(r.avgCost, 'rate')
 www/js/modules/statements.js: id ? ` data-metric-export="${id}"` : '' ← id
 www/js/modules/statements.js: k
 www/js/modules/statements.js: m.M1.total ← m = moneySummary({ ...this.src(), items: AppState.items || [], base, sessions: sessi (markup via map(([k, v, id, perm]) => `<div class="ins-line${/eq$|kept|net_money/.test(k) ? ' ins-total' : ''}${id ? '' : ' ins-sub'}"${perm ? ` data-perm="))
@@ -318,7 +317,6 @@ www/js/modules/statements.js: totals.salesCount ← totals from dayBook(this.src
 www/js/modules/statements.js: totals.withdrawals ← totals from dayBook(this.src(), { from, to }, { personal: perms.personalExpenses, sessions:  (markup via map(([k, v, c]) => `<div class="ins-line"><span>${esc(t(k))}${c !== undefined ? ` (${c})` : ''}</span><span data-metric-export="${k === 'ui.stat))
 www/js/modules/stock.js: doubtfulRatesNoticeHtml(['purchase']) (sink)
 www/js/modules/voice-billing.js: value
-www/js/modules/wholesale-sales.js: billTableHtml(bills, { openings: this.historyOpenings, voided: this.historyVoided, onclickFor: (sale) => `wholesaleSales.reprintSaleById('${ (sink)
 www/js/modules/wholesale-sales.js: editsRowHtml(sale, 'history.showEdits()')
 www/js/modules/wholesale-sales.js: index
 www/js/modules/wholesale-sales.js: index
@@ -432,6 +430,7 @@ www/js/ui/bill-row.js: opening ? '' : SyncStatus.chipHtml(bill?.id) ← SyncStat
 www/js/ui/bill-row.js: st.s ← st = printStatusOf(bill)
 www/js/ui/bill-row.js: tag.cls ← tag = TYPE_TAGS[type]
 www/js/ui/bill-status.js: REASON_MAX
+www/js/ui/bill-status.js: leadHtml
 www/js/ui/bill-status.js: onclick
 www/js/ui/disclosure.js: bodyId ← o.id
 www/js/ui/disclosure.js: bodyId ← o.id

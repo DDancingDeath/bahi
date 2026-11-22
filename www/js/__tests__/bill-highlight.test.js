@@ -239,18 +239,48 @@ describe('save gate', () => {
         expect(html.mock.calls[1][0]).not.toContain('<script');
     });
 
-    test('warnings need one confirm; accepted ones come back as flags, declined stops', async () => {
+    test('warnings need one confirm: one bulleted warn notice, the banner not repeated behind it (F51); accepted ones come back as flags, declined stops', async () => {
         state.items[0] = { itemId: 'rice', name: 'Rice', rate: 90, qty: 10, total: 900 };
         $('cash').value = '900';
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(false);
+        AppState.salesHistory = [{ id: 'old', customerName: '', timestamp: Date.now() - 5000, total: 900, items: [{ itemId: 'rice', rate: 90, quantity: 10 }] }];
+        BillChecksUI.run('test');
+        expect(banner().hidden).toBe(false);
+        let bannerHiddenInDialog = null;
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockImplementation(async () => {
+            bannerHiddenInDialog = banner().hidden;
+            return false;
+        });
         expect((await BillChecksUI.confirmSave('test')).ok).toBe(false);
-        expect(modal).toHaveBeenCalledWith(expect.stringMatching(/^Rice: ₹90\/kg is 2\.3× .*\n\nSave anyway\?$/), 'Check before saving', true, { confirmLabel: 'Save anyway' });
+        expect(modal).toHaveBeenCalledWith(expect.any(String), 'Check before saving', true, { confirmLabel: 'Save anyway' });
+        const box = document.createElement('div');
+        box.innerHTML = modal.mock.calls[0][0];
+        const items = [...box.querySelectorAll('.notice.warn ul li')].map(li => li.textContent);
+        expect(items).toHaveLength(2);
+        expect(items).toEqual(expect.arrayContaining([expect.stringMatching(/^Rice: ₹90\/kg is 2\.3× /), expect.stringMatching(/^Same bill was saved/)]));
+        expect(bannerHiddenInDialog).toBe(true);
+        expect(banner().hidden).toBe(false); // Cancel: back on the bill
         modal.mockResolvedValue(true);
         const ok = await BillChecksUI.confirmSave('test');
         expect(ok.ok).toBe(true);
-        expect(ok.flags).toEqual([expect.objectContaining({ rule: 'rate-high', by: 'u1' })]);
-        expect(ok.flags[0].en).toBe('Rice: ₹90.00/kg is 2.3× the usual ₹40.00/kg');
+        expect(banner().hidden).toBe(false); // back while the save runs (it may still fail)
+        expect(ok.flags).toEqual(expect.arrayContaining([expect.objectContaining({ rule: 'rate-high', by: 'u1' })]));
+        expect(ok.flags.find(f => f.rule === 'rate-high').en).toBe('Rice: ₹90.00/kg is 2.3× the usual ₹40.00/kg');
         expect(modal).toHaveBeenCalledTimes(2);
+    });
+
+    test('deferWarnings (an edit, F53): no dialog here, the warnings come back for the one Save changes sheet', async () => {
+        state.items[0] = { itemId: 'rice', name: 'Rice', rate: 90, qty: 10, total: 900 };
+        $('cash').value = '900';
+        const html = jest.spyOn(UIManager, 'showModalWithHtml');
+        const modal = jest.spyOn(UIManager, 'showModal');
+        const res = await BillChecksUI.confirmSave('test', null, { deferWarnings: true });
+        expect(html).not.toHaveBeenCalled();
+        expect(modal).not.toHaveBeenCalled();
+        expect(res).toMatchObject({ ok: true, warnings: [expect.stringMatching(/^Rice: ₹90\/kg is 2\.3× /)] });
+        expect(res.flags).toEqual([expect.objectContaining({ rule: 'rate-high' })]);
+        expect(typeof res.accept).toBe('function');
+        res.restore();
+        expect(document.querySelector('#testTable tbody tr').classList.contains('bill-check-warn')).toBe(true);
     });
 
     test('OD-02 at Save: an extreme rate not confirmed yet asks "Fix rate" first; confirmed, the one-tap 2× "Save anyway?" is not stacked on it', async () => {
@@ -258,7 +288,7 @@ describe('save gate', () => {
         renderRows();
         $('cash').value = '4000';
         const toast = jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         const dialog = () => document.querySelector('.rate-check-sheet');
 
         const fixed = BillChecksUI.confirmSave('test');
@@ -293,8 +323,7 @@ describe('save gate', () => {
         state.items[0] = { itemId: 'rice', name: 'Rice', rate: 40, qty: 110, total: 4400 };
         $('cash').value = '4400';
         const toast = jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
-        const modal = jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
-        const html = jest.spyOn(UIManager, 'showModalWithHtml');
+        const modal = jest.spyOn(UIManager, 'showModalWithHtml').mockResolvedValue(true);
         jest.spyOn(tip, 'isRolledBack').mockReturnValue(true);
 
         // A member who could not override before is still blocked
@@ -306,8 +335,8 @@ describe('save gate', () => {
         AppState.userRole = 'manager';
         const ok = await BillChecksUI.confirmSave('test');
         expect(tip.isRolledBack).toHaveBeenCalledWith(BILL_CHECKS_BLOCKING_POLICY);
-        expect(html).not.toHaveBeenCalled(); // no reason prompt
-        expect(modal).toHaveBeenCalledTimes(1); // one "save anyway?" confirm
+        expect(modal).toHaveBeenCalledTimes(1); // one "save anyway?" confirm, no reason prompt
+        expect(modal.mock.calls[0][0]).not.toContain('billCheckOverrideReason');
         expect(ok).toMatchObject({ ok: true, flags: [] });
         expect(ok.overrides).toEqual([{ rule: 'oversell', reason: AUTO_ROLLBACK_REASON, by: 'u1', at: expect.any(Number) }]);
         expect(AuditService.log).toHaveBeenCalledWith('OVERRIDE_CHECK', { kind: 'test', rules: ['oversell'], reason: AUTO_ROLLBACK_REASON });

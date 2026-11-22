@@ -26,14 +26,12 @@ test('edit a purchase from History keeps its money fields and records why; then 
 
     await page.fill('#customerName', newName);
     await page.click('#saveBillBtn');
-    // #121: an edit asks why (a bill-check confirm may come first)
+    // F53: one "Save changes" sheet: any bill-check warnings listed once above the reason (#121)
     const reason = page.locator('#reasonInput');
-    for (let i = 0; i < 10 && !(await reason.isVisible()); i++) {
-        await page.waitForTimeout(300);
-        const other = await page.evaluate(() => document.getElementById('modalOverlay')?.classList.contains('active')
-            && !document.getElementById('reasonInput'));
-        if (other) await page.click('#modalConfirm');
-    }
+    await expect(reason).toBeVisible();
+    await expect(page.locator('#modalTitle')).toHaveText('Save changes');
+    await expect(page.locator('#modalConfirm')).toHaveText('Save changes');
+    expect(await page.locator('#modalMessage .notice.warn').count()).toBeLessThanOrEqual(1);
     await reason.fill('Name spelling');
     await page.click('#modalConfirm');
     await page.waitForTimeout(300);

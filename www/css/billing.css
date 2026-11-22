@@ -247,17 +247,6 @@
   margin: 0;
 }
 
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
 .bill-form-field select:focus,
 .bill-form-field input:focus {
   border-color: var(--accent-text);
@@ -272,17 +261,6 @@ label {
   font-weight: var(--w-label);
   font-size: var(--fs-sm);
   color: var(--ink);
-}
-
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 .weights-compact {
@@ -334,13 +312,6 @@ input[type="number"] {
 }
 
 /* -------------------- BILLING THEME -------------------- */
-.rates-container {
-  display: flex;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 .rate-input {
   width: 70px;
   padding: 10px;
@@ -387,8 +358,9 @@ input[type="number"] {
     display: none;
   }
 }
-/* Voice billing (#81): shown only when switched on in Settings */
-.btn[data-voice-mic].voice-listening {
+/* Voice billing (#81): shown only when switched on in Settings; the mic (also the voice check's) while it listens */
+.btn[data-voice-mic].voice-listening,
+.voice-part > .btn.voice-listening {
   background-color: var(--negative-soft);
   color: var(--negative);
 }
@@ -403,8 +375,7 @@ input[type="number"] {
   color: var(--warning);
 }
 
-/* Save with a line not added to the bill (BF-PENDING), extreme rate (BF-RATECHECK): choices wrap on a phone */
-.pending-line-sheet .dialog-actions > .btn,
+/* Extreme rate (BF-RATECHECK): choices wrap on a phone */
 .rate-check-sheet .dialog-actions > .btn {
   flex: 1 1 auto;
 }
@@ -432,12 +403,7 @@ input[type="number"] {
 
 .bill-menu > summary {
   position: relative;
-  list-style: none;
   color: var(--ink-2);
-}
-
-.bill-menu > summary::-webkit-details-marker {
-  display: none;
 }
 
 .bill-menu-badge {
@@ -470,6 +436,7 @@ input[type="number"] {
   min-width: 180px;
   padding: var(--sp-1);
   box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
 }
 
 .bill-menu-list > .btn {
@@ -554,7 +521,7 @@ input[type="number"] {
 }
 
 .bill-party > .btn-icon:hover {
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
 }
 
 /* Name suggestions while typing a customer / supplier (#139 phase 1) */
@@ -785,8 +752,8 @@ input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
 
-/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale and wholesale
-   screens give both their mode's colour */
+/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale screen gives both its
+   mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
 .bill-sale .btn-primary {
   background-color: var(--btn-sale-bg);
   color: var(--btn-sale-ink);
@@ -795,16 +762,6 @@ input[type="number"] {
 .bill-sale .btn-tonal {
   background-color: var(--positive-soft);
   color: var(--positive);
-}
-
-.ws-entry .btn-primary {
-  background-color: var(--bill-tone-fill);
-  color: var(--bill-tone-ink);
-}
-
-.ws-entry .btn-tonal {
-  background-color: var(--bill-tone-soft);
-  color: var(--bill-tone-text);
 }
 
 .bill-breakdown:not(:empty) {
@@ -947,16 +904,23 @@ input[type="number"] {
   gap: var(--sp-1);
 }
 
-/* ---------- Wholesale (5.5): Billing's components in the wholesale (violet) mode ---------- */
-/* Billing's tones are --bill-tone-* with its accent as the fallback; the wholesale page sets them */
-.bill-page {
-  --bill-tone-text: var(--ink);
-  --bill-tone-soft: var(--mode-wholesale-soft);
-  --bill-tone-fill: var(--mode-wholesale);
-  --bill-tone-ink: var(--on-mode-wholesale);
+/* ---------- Wholesale (5.5): Billing's components as they are; violet only for the mode dot (NEW-04) ---------- */
+/* The action bar's "Receivable" carries the wholesale dot, as Billing's mode switch carries its own */
+.bill-page .bill-bar-label::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--sp-1);
+  border-radius: var(--r-round);
+  background: var(--mode-wholesale);
+  vertical-align: 0.1em;
 }
 
-.ws-tabs {
+.ws-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
   margin-bottom: var(--sp-3);
 }
 
@@ -992,6 +956,7 @@ input[type="number"] {
 
 .ws-add {
   min-height: 48px;
+  margin-top: var(--sp-3);
 }
 
 /* Expenses and the live profit (WS-PROFIT): folded under "Expenses and profit" (U-36), so the margin is not on show at the counter */
@@ -1030,7 +995,6 @@ input[type="number"] {
   text-align: center;
 }
 
-.ws-search,
 .history-search {
   position: relative;
   display: flex;
@@ -1039,7 +1003,6 @@ input[type="number"] {
   margin-bottom: var(--sp-3);
 }
 
-.ws-search > .i,
 .history-search > .i {
   position: absolute;
   top: 50%;
@@ -1049,41 +1012,14 @@ input[type="number"] {
   pointer-events: none;
 }
 
-.ws-search > .input,
 .history-search > .input {
   flex: 1;
   min-width: 0;
   padding-left: var(--sp-10);
 }
 
-.ws-search > .btn,
 .history-search > .btn {
   flex: none;
-}
-
-/* Wholesale › Outstanding: Mark as cleared is a tick box beside the bill's buttons */
-.ws-clear {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  min-height: 44px;
-  padding-right: var(--sp-2);
-}
-
-.ws-clear > label {
-  margin: 0;
-  color: var(--ink);
-  font-size: var(--fs-sm);
-  font-weight: var(--w-label);
-  cursor: pointer;
-}
-
-.ws-clear > input {
-  width: 20px;
-  height: 20px;
-  min-height: 0;
-  margin: 0;
-  cursor: pointer;
 }
 
 /* A wholesale bill opened from a list (bill details sheet) */
@@ -1107,14 +1043,10 @@ input[type="number"] {
   padding: var(--sp-3) var(--sp-4) 0;
 }
 
-.bill-view-note {
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
-}
-
 .bill-view-note-text {
   color: var(--ink);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .bill-view-items {

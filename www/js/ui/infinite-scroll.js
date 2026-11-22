@@ -11,6 +11,7 @@
 
 import { loadOlderHistory, historyReachedEnd } from '../utils/history-window.js';
 import { t } from '../i18n/index.js';
+import { skeleton } from './components.js';
 
 const controllers = new WeakMap();
 
@@ -126,6 +127,10 @@ class InfiniteScrollController {
             this.observer?.unobserve(el);
             return;
         }
+        if (state === 'loading' && this.opts.skeleton) {
+            el.innerHTML = skeleton({ rows: 2, label: this.labels.loading, panel: false });
+            return;
+        }
         if (state === 'loading') {
             const spinner = document.createElement('span');
             spinner.className = 'history-range-spinner';
@@ -196,6 +201,7 @@ class InfiniteScrollController {
  * @param {() => boolean} [opts.enabled] - false hides the sentinel (e.g. while searching)
  * @param {(result: Object) => void} [opts.onLoaded] - re-render after a load
  * @param {{loading?: string, end?: string, more?: string, error?: string}} [opts.labels]
+ * @param {boolean} [opts.skeleton] - grey rows while older records load, not a spinner line
  * @param {number} [opts.maxAutoLoads=3]
  * @param {string} [opts.rootMargin]
  * @returns {InfiniteScrollController|null}
@@ -226,13 +232,15 @@ export function getInfiniteScroll(listEl) {
  * @param {string} [opts.noun='records'] - e.g. 'bills', 'expenses'
  * @param {(result: Object) => void} [opts.onLoaded]
  * @param {() => boolean} [opts.enabled]
+ * @param {boolean} [opts.skeleton]
  */
-export function attachOlderHistoryScroll(listEl, { noun = 'records', onLoaded, enabled } = {}) {
+export function attachOlderHistoryScroll(listEl, { noun = 'records', onLoaded, enabled, skeleton: skel = false } = {}) {
     return attachInfiniteScroll(listEl, {
         loadMore: () => loadOlderHistory(1),
         isEnded: historyReachedEnd,
         enabled,
         onLoaded,
+        skeleton: skel,
         // Each load reads a month of every history collection, so only auto-load
         // once per scroll-to-bottom; if the list didn't grow, ask the user.
         maxAutoLoads: 1,

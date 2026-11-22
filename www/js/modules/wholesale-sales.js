@@ -17,15 +17,13 @@ import { lineNameHtml } from '../ui/bill-line.js';
 import { BillChecksUI, clearFieldError, readTypedNumber, showFieldError } from '../ui/bill-highlight.js';
 import { settlePendingLine } from '../ui/pending-line.js';
 import { checkLineRate } from '../ui/rate-check.js';
-import { attachOlderHistoryScroll } from '../ui/infinite-scroll.js';
 import {
-    isFullHistoryLoaded, historyLoadedFrom, formatWindowDate, rangeStatus, retryRange, applyRangeState, renderStaleHistoryHint, syncAllDatesLabel
+    isFullHistoryLoaded, historyLoadedFrom, formatWindowDate
 } from '../utils/history-window.js';
-import { filterHistoryBills, resolveHistoryRange, validateCustomRange, billTimeMs } from '../utils/history-filters.js';
-import { buildBillRow, buildOpeningGroup, addOpeningToggle, addVoidedToggle, billTableHtml, byNameHtml } from '../ui/bill-row.js';
-import { editsRowHtml, payAmountHtml, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
+import { filterHistoryBills, billTimeMs } from '../utils/history-filters.js';
+import { buildBillRow } from '../ui/bill-row.js';
+import { billNoteHtml, editsRowHtml, payAmountHtml, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
 import { billPool, HistoryManager } from './history.js';
-import { todayLocalISO } from '../utils/dates.js';
 import { historyCutoff } from '../utils/role-access.js';
 import { OutstandingManager } from './outstanding.js';
 import { partyNameKey } from '../utils/parties.js';
@@ -38,13 +36,13 @@ import { buildDraftShareText } from '../utils/bill-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, prepareBillDate, resetBillDate } from '../ui/bill-date-input.js';
-import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
+import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 
 const L = (key, params) => Helpers.escapeHtml(t(key, params));
 
 import {
-    KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, readLineItem, readPayment, openingAmount, openingOldTotals, outstandingDue, isOpeningRecord, isActiveBill,
+    KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, readLineItem, readPayment, outstandingDue, isOpeningRecord, isActiveBill,
     formatAmount, formatKg, formatRate, formatRupees
 } from '../utils/money.js';
 import {
@@ -53,7 +51,7 @@ import {
 } from '../utils/calc/billing.js';
 import { askEditReason, BillingManager, commitBillEdit, editCheckContext, syncBillNotes } from './billing.js';
 
-/** Wholesale bills shown under the entry form (the rest are in Wholesale › History). */
+/** Wholesale bills shown under the entry form (the rest are in History › Wholesale). */
 const RECENT_SALES = 5;
 
 /** Buttons disabled while a wholesale save/print is in flight */
@@ -420,7 +418,6 @@ export class WholesaleSalesManager {
         prepareBillDate('wholesaleDate', bill);
         syncBillNotes('salesComments');
         this.showEditNotice();
-        this.filterSalesTab('sales');
         this.renderWholesaleBill();
         BillChecksUI.run('wholesale');
     }
@@ -488,7 +485,7 @@ export class WholesaleSalesManager {
             const customerName = Helpers.getInputText('wholesaleCustomerName');
             const comments = Helpers.getInputText('salesComments');
             this.updatePaymentTotal();
-            const checks = await BillChecksUI.confirmSave('wholesale', editCheckContext(bill));
+            const checks = await BillChecksUI.confirmSave('wholesale', editCheckContext(bill), { deferWarnings: true });
             if (!checks.ok) return undefined;
             const keepMoney = editKeepsMoney({ bill, items: wholesaleSaleItems, typed: this.readTypedSplit() })
                 && expenses === (typedAmount(Number(bill.expenses) || 0));
@@ -520,7 +517,7 @@ export class WholesaleSalesManager {
                 editedBy: AppState.currentUser?.uid || 'unknown',
                 ...BillChecksUI.billFields(checks, bill)
             };
-            const reason = await askEditReason(bill, updated);
+            const reason = await askEditReason(bill, updated, checks);
             if (reason === null) return undefined;
             FirebaseService.withLoadedPaymentSignature(updated, editing.paymentSig);
             await commitBillEdit(FirebaseService.updateWholesaleSale(updated, {
@@ -937,33 +934,6 @@ export class WholesaleSalesManager {
         openExternal(url);
     }
 
-    /**
-     * Wholesale page tabs: Sales (entry + recent bills), History (every
-     * wholesale bill, with date filter, search and Table View), Outstanding.
-     * @param {'sales'|'history'|'outstanding'} view
-     */
-    static filterSalesTab(view) {
-        this.outstandingParty = null;
-        document.querySelectorAll('#wholesale-sales .ws-tabs > [data-view]').forEach(btn => {
-            const on = btn.dataset.view === view;
-            btn.classList.toggle('active', on);
-            btn.setAttribute('aria-selected', String(on));
-        });
-        
-        const sections = {
-            sales: document.getElementById('salesEntrySection'),
-            history: document.getElementById('salesHistorySection'),
-            outstanding: document.getElementById('salesOutstandingSection')
-        };
-        Object.entries(sections).forEach(([key, el]) => {
-            if (!el) return;
-            el.hidden = key !== view;
-            el.style.display = key === view ? 'block' : 'none';
-        });
-        if (view === 'outstanding') this.renderSalesOutstanding();
-        else if (view === 'history') this.renderWholesaleHistory();
-    }
-
     static updateWholesaleCustomerOptions(newCustomer) {
         const salesHistory = AppState.salesHistory;
         const uniqueCustomers = [...new Set(
@@ -980,41 +950,6 @@ export class WholesaleSalesManager {
         if (datalist) {
             datalist.innerHTML = uniqueCustomers.map(name => `<option value="${Helpers.escapeHtml(name)}">`).join('');
         }
-    }
-
-    static async recordPayment(saleId) {
-        const sale = (AppState.salesHistory || []).find(s => s.id == saleId);
-        if (!sale) {
-            UIManager.showToast(t('msg.wholesale.error_sale_not_found'));
-            return;
-        }
-
-        // The Due screen's one payment path (#98), with its lock: same transaction, retry id kept
-        // until the payment is known to be recorded (D-1), audit entry in the same commit (D-3)
-        const value = document.getElementById(`payment_${saleId}`)?.value;
-        const ok = await OutstandingManager.recordDuePayment({ billType: 'wholesale', billId: sale.id, cash: Number(value) || 0, online: 0 });
-        if (!ok) return;
-        this.renderSalesOutstanding();
-        this.renderSalesHistory();
-        window.app?.outstanding?.renderDue?.();
-    }
-
-    static async markSaleAsCleared(saleId) {
-        const checkbox = document.getElementById(`clear_${saleId}`);
-        if (checkbox) checkbox.checked = false;
-        // Same honest clearing as Outstanding (#104): received in cash/online, or written off with a reason
-        const cleared = await OutstandingManager.markAsCleared(saleId, 'wholesale');
-        if (cleared) this.renderSalesHistory();
-    }
-
-    /** "Write off as bad debt" (OD-13), the Due screen's action. */
-    static async writeOffSale(saleId) {
-        if (await OutstandingManager.writeOffDue(saleId, 'wholesale')) this.renderSalesHistory();
-    }
-
-    /** One payment from a party spread over their bills, oldest first (#152). */
-    static receiveFromParty(name) {
-        return OutstandingManager.receiveFromParty(partyNameKey(name), 'wholesale');
     }
 
     /** "Complete all due" is for the owner and managers (#150, Q36). */
@@ -1097,7 +1032,7 @@ export class WholesaleSalesManager {
             } else {
                 UIManager.showToast(await OutstandingManager.paymentRefusedText(error));
             }
-            this.renderSalesOutstanding();
+            OutstandingManager.renderDue();
             return;
         }
         this.pendingSettle = null;
@@ -1107,7 +1042,6 @@ export class WholesaleSalesManager {
             UIManager.showToast(t('msg.wholesale.complete_all_due_already'));
             try {
                 OutstandingManager.refreshAfterPayment();
-                this.renderSalesOutstanding();
             } catch (e) {
                 console.warn('Redraw after Complete all due failed:', e);
             }
@@ -1119,125 +1053,15 @@ export class WholesaleSalesManager {
         // Saved: a screen that fails to redraw must not look like a failed payment
         try {
             OutstandingManager.refreshAfterPayment();
-            this.renderSalesOutstanding();
             this.renderSalesHistory();
         } catch (e) {
             console.warn('Redraw after Complete all due failed:', e);
         }
     }
 
-    /** Party opened from the bill's "Already owes" line (#166): {key, name} or null. */
-    static outstandingParty = null;
-
-    /**
-     * Open the Outstanding view showing only one customer's open bills.
-     * @param {string} name Customer name as typed on the bill
-     */
-    static showOutstandingParty(name) {
-        this.filterSalesTab('outstanding');
-        const key = partyNameKey(name);
-        if (!key) return;
-        this.outstandingParty = { key, name: String(name).trim() };
-        this.renderSalesOutstanding();
-    }
-
-    static clearOutstandingParty() {
-        this.outstandingParty = null;
-        this.renderSalesOutstanding();
-    }
-
-    static renderSalesOutstanding() {
-        // Wholesale loads on first visit (#66): nothing to draw before then
-        if (!document.getElementById("salesOutstandingList")) return;
-        const salesHistory = AppState.salesHistory;
-        const container = document.getElementById("salesOutstandingList");
-        const party = this.outstandingParty;
-        
-        const outstandingSales = salesHistory
-            .filter(sale => {
-                if (sale.source !== 'sales-tab') return false;
-                if (sale.cleared) return false;
-                if (party && partyNameKey(sale.customerName) !== party.key) return false;
-                return outstandingDue(sale) > 0;
-            })
-            .map(sale => {
-                const pay = readPayment(sale);
-                return {
-                    ...sale,
-                    outstanding: outstandingDue(sale),
-                    totalAmount: pay.total || openingAmount(sale),
-                    paidAmount: pay.paid
-                };
-            })
-            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
-        const partyNote = party ? `
-            <div class="party-filter-note notice info">
-                <span class="grow">${L('ui.outstanding.showing_only')} <strong>${Helpers.escapeHtml(party.name)}</strong></span>
-                <button type="button" class="btn btn-sm" data-onclick="wholesaleSales.clearOutstandingParty()">${L('ui.outstanding.show_all')}</button>
-                ${OutstandingManager.canReceiveFromParty() ? `<button type="button" class="btn btn-sm" data-party-pay data-onclick="wholesaleSales.receiveFromParty('${Helpers.escapeJsAttr(party.name)}')">${L('ui.outstanding.party_pay_receive')}</button>` : ''}
-                            ${this.canCompleteAllDue() ? `<button type="button" class="btn btn-sm" data-complete-all data-onclick="wholesaleSales.completeAllDue('${Helpers.escapeJsAttr(party.name)}')">${L('ui.wholesale.complete_all_due')}</button>` : ''}
-            </div>` : '';
-
-        if (outstandingSales.length === 0) {
-            container.innerHTML = `${partyNote}${emptyState({ icon: 'wallet', title: t(party ? 'ui.outstanding.nothing_for_party' : 'ui.wholesale.no_outstanding_payments') })}`;
-            return;
-        }
-
-        container.innerHTML = partyNote;
-
-        outstandingSales.forEach(sale => {
-                const div = document.createElement("div");
-                div.className = "due-bill";
-                div.dataset.historyItem = '';
-                
-                const billNumber = sale.billNumber || sale.id;
-                const id = Helpers.escapeJsAttr(sale.id);
-                const domId = Helpers.escapeHtml(sale.id);
-                div.innerHTML = `
-                    <div class="history-header">
-                        <span class="due-bill-title"><span class="due-bill-no"><button type="button" class="due-bill-link" data-onclick="wholesaleSales.reprintSaleById('${id}')">#${Helpers.escapeHtml(billNumber)}</button></span>${sale.customerName ? `  <strong>${Helpers.escapeHtml(sale.customerName)}</strong>` : ''}</span>
-                        <span class="due-bill-due">${moneyInText(t('ui.outstanding.due_amount', { amount: formatAmount(sale.outstanding) }), sale.outstanding)}</span>
-                    </div>
-                    <div class="history-date">${Helpers.escapeHtml(sale.date)}${sale.createdByName ? ` • ${byNameHtml(sale.createdByName)}` : ''}</div>
-                    ${openingOldTotals(sale) ? `<div class="history-date">${L('ui.outstanding.opening_balance', { total: formatAmount(openingOldTotals(sale).total), paid: formatAmount(openingOldTotals(sale).paid) })}</div>` : ''}
-                    <div class="due-bill-body">
-                        <div class="due-bill-line">
-                            <span>${L('ui.common.total_receivable')}</span>
-                            <strong>${moneyHtml(sale.totalAmount)}</strong>
-                        </div>
-                        <div class="due-bill-line">
-                            <span>${L('ui.outstanding.received_label')}</span>
-                            <strong>${moneyHtml(sale.paidAmount)}</strong>
-                        </div>
-                        <div class="due-bill-line due-bill-out">
-                            <span>${L('ui.outstanding.outstanding_label')}</span>
-                            <strong>${moneyHtml(sale.outstanding)}</strong>
-                        </div>
-                        <div class="due-bill-pay">
-                            <label>${L('ui.wholesale.payment_rs')}</label>
-                            <input type="number" class="input" inputmode="decimal" id="payment_${domId}" placeholder="${L('ui.cash.enter_amount')}" />
-                            <button type="button" class="btn btn-tonal" data-record-payment data-onclick="wholesaleSales.recordPayment('${id}')">${L('ui.outstanding.record')}</button>
-                        </div>
-                        <div class="due-bill-actions">
-                            <div class="ws-clear">
-                                <input type="checkbox" data-mark-cleared id="clear_${domId}" data-onchange="wholesaleSales.markSaleAsCleared('${id}')" />
-                                <label for="clear_${domId}">${L('ui.wholesale.mark_as_cleared')}</label>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-ghost due-write-off" data-write-off data-onclick="wholesaleSales.writeOffSale('${id}')">${L('ui.outstanding.write_off_bad_debt')}</button>
-                            ${this.canCompleteAllDue() && sale.customerName && !party ? `<button type="button" class="btn btn-sm btn-ghost" data-complete-all data-onclick="wholesaleSales.completeAllDue('${Helpers.escapeJsAttr(sale.customerName)}')">${L('ui.wholesale.complete_all_due_party', { party: sale.customerName })}</button>` : ''}
-                        </div>
-                    </div>
-                `;
-                
-                container.appendChild(div);
-        });
-    }
-    /** Re-render the recent bills under the entry form and Wholesale › History. */
+    /** Re-render the recent bills under the entry form. */
     static renderSalesHistory() {
-        syncAllDatesLabel(/** @type {?HTMLSelectElement} */ (document.getElementById('wholesaleHistoryPreset')));
         this.renderRecentSales();
-        this.renderWholesaleHistory();
     }
 
     /** Oldest time (ms) this role may see in History lists (role's "days back"); null = no limit. */
@@ -1281,152 +1105,6 @@ export class WholesaleSalesManager {
         const fragment = document.createDocumentFragment();
         recent.forEach(sale => fragment.appendChild(this.buildSaleRow(sale)));
         container.appendChild(fragment);
-    }
-
-    /** Wholesale › History state (date filter, search, view, old-app dues toggle). */
-    static historyFilter = { preset: 'all', from: '', to: '' };
-    static historySearch = '';
-    static historyView = 'card';
-    static showOpening = false;
-    static historyOpenings = [];
-    /** "Show voided bills" toggle (#75) and the voided bills of the last render. */
-    static showVoided = false;
-    static historyVoided = [];
-
-    /**
-     * Wholesale › History: every wholesale bill (not only outstanding), newest
-     * first, same row and Table View as History. Old-app carried dues are
-     * hidden unless the toggle is on.
-     */
-    static renderWholesaleHistory() {
-        const container = document.getElementById('salesHistoryList');
-        if (!container) return;
-        const f = this.historyFilter;
-        const range = resolveHistoryRange(f.preset, new Date(), f);
-        // Never load months the role may not see: the load starts at the cutoff at the earliest.
-        const cutoff = this.historyCutoff();
-        const loadFrom = cutoff === null ? range.from : Math.max(range.from ?? cutoff, cutoff);
-        const status = loadFrom !== null ? rangeStatus('wholesaleHistory', loadFrom, () => this.renderWholesaleHistory()) : 'ready';
-        applyRangeState(container, status, {
-            loadingText: t('ui.history.loading_older_bills'),
-            errorText: t('ui.history.older_load_failed', { date: formatWindowDate(historyLoadedFrom()) }),
-            onRetry: () => { retryRange('wholesaleHistory'); this.renderWholesaleHistory(); }
-        });
-        this.syncHistoryUi();
-
-        const matched = filterHistoryBills(this.wholesaleBills(), { type: 'wholesale', range, search: this.historySearch });
-        const voided = matched.filter(b => !isActiveBill(b));
-        const live = matched.filter(isActiveBill);
-        const openings = live.filter(b => isOpeningRecord(b));
-        const bills = live.filter(b => !isOpeningRecord(b));
-        const showOpenings = this.showOpening && openings.length > 0;
-        const showVoided = this.showVoided && voided.length > 0;
-        this.historyOpenings = showOpenings ? openings : [];
-        this.historyVoided = showVoided ? voided : [];
-        const placeToggle = () => {
-            addVoidedToggle(container, {
-                id: 'wholesaleVoidedToggle', count: voided.length, on: showVoided,
-                onToggle: () => { this.showVoided = !this.showVoided; this.renderWholesaleHistory(); }
-            });
-            addOpeningToggle(container, {
-                id: 'wholesaleOpeningToggle', count: openings.length, on: showOpenings,
-                onToggle: () => { this.showOpening = !this.showOpening; this.renderWholesaleHistory(); }
-            });
-        };
-
-        const ranged = range.from !== null || range.to !== null;
-        // Older months load one at a time as the user scrolls (all dates, no search).
-        attachOlderHistoryScroll(container, {
-            noun: 'sales',
-            enabled: () => !this.historySearch && !ranged && cutoff === null,
-            onLoaded: () => this.renderSalesHistory()
-        });
-        const shown = [...this.historyOpenings, ...this.historyVoided, ...bills];
-        renderStaleHistoryHint(container, {
-            id: 'wholesaleStaleHint',
-            onRefreshed: () => this.renderSalesHistory(),
-            isRelevant: (info) => shown.some(b => { const ms = billTimeMs(b); return ms !== null && ms < info.liveFrom; })
-        });
-
-        if (bills.length === 0 && !showOpenings && !showVoided) {
-            let message;
-            if (this.historySearch) message = t('ui.history.no_results_for', { searchTerm: this.historySearch });
-            else if (ranged) message = t('ui.history.none_in_period', { noun: t('ui.history.noun_wholesale') });
-            else message = isFullHistoryLoaded() ? t('ui.wholesale.no_sales_yet') : t('ui.wholesale.no_sales_since', { date: formatWindowDate(historyLoadedFrom()) });
-            container.innerHTML = emptyState({ icon: 'receipt', title: message });
-            placeToggle();
-            return;
-        }
-
-        if (this.historyView === 'table') {
-            container.innerHTML = billTableHtml(bills, {
-                openings: this.historyOpenings,
-                voided: this.historyVoided,
-                onclickFor: (sale) => `wholesaleSales.reprintSaleById('${Helpers.escapeJsAttr(sale.id)}')`
-            });
-            placeToggle();
-            return;
-        }
-        container.innerHTML = '';
-        const fragment = document.createDocumentFragment();
-        if (showOpenings) fragment.appendChild(buildOpeningGroup(openings, sale => this.buildSaleRow(sale)));
-        if (showVoided) fragment.appendChild(buildOpeningGroup(voided, sale => this.buildSaleRow(sale), 'voided'));
-        bills.forEach(sale => fragment.appendChild(this.buildSaleRow(sale)));
-        container.appendChild(fragment);
-        placeToggle();
-    }
-
-    /** Reflect the Wholesale › History filter in its controls. */
-    static syncHistoryUi() {
-        const f = this.historyFilter;
-        const preset = document.getElementById('wholesaleHistoryPreset');
-        if (preset && preset.value !== f.preset) preset.value = f.preset;
-        const custom = document.getElementById('wholesaleHistoryCustomRange');
-        if (custom) custom.hidden = f.preset !== 'custom';
-        const toggle = document.getElementById('wholesaleHistoryViewToggle');
-        if (toggle) toggle.textContent = t(this.historyView === 'card' ? 'ui.history.table_view' : 'ui.history.card_view');
-    }
-
-    static setHistoryPreset(preset) {
-        const f = { ...this.historyFilter, preset };
-        if (preset === 'custom' && !f.from && !f.to) {
-            f.from = f.to = todayLocalISO();
-            const from = document.getElementById('wholesaleHistoryFrom');
-            const to = document.getElementById('wholesaleHistoryTo');
-            if (from && to) { from.value = f.from; to.value = f.to; }
-        }
-        this.historyFilter = f;
-        this.showHistoryRangeHint('');
-        this.renderWholesaleHistory();
-    }
-
-    /** Apply the custom From/To dates (invalid dates show a hint, nothing loads). */
-    static applyHistoryRange(from, to) {
-        if (from === undefined) from = document.getElementById('wholesaleHistoryFrom')?.value || '';
-        if (to === undefined) to = document.getElementById('wholesaleHistoryTo')?.value || '';
-        const check = validateCustomRange(from, to);
-        this.showHistoryRangeHint(check.ok ? '' : check.error);
-        if (!check.ok) return false;
-        this.historyFilter = { preset: 'custom', from: check.from, to: check.to };
-        this.renderWholesaleHistory();
-        return true;
-    }
-
-    static showHistoryRangeHint(text) {
-        const hint = document.getElementById('wholesaleHistoryRangeHint');
-        if (!hint) return;
-        hint.textContent = text || '';
-        hint.hidden = !text;
-    }
-
-    static searchHistory(term) {
-        this.historySearch = String(term || '').trim();
-        this.renderWholesaleHistory();
-    }
-
-    static toggleHistoryView() {
-        this.historyView = this.historyView === 'card' ? 'table' : 'card';
-        this.renderWholesaleHistory();
     }
 
     static async reprintSale(index) {
@@ -1503,19 +1181,8 @@ export class WholesaleSalesManager {
                             <span>${Helpers.escapeHtml(sale.createdByName)}</span>
                         </div>
                     ` : ''}
-                    ${sale.customerName ? `
-                        <div class="row bill-view-row">
-                            <span class="row-main">${L('ui.common.customer')}</span>
-                            <strong>${Helpers.escapeHtml(sale.customerName)}</strong>
-                        </div>
-                    ` : ''}
                 </div>
-                                ${sale.comments ? `
-                    <div class="notice warn bill-view-note">
-                        <span>${L('ui.wholesale.comments')}</span>
-                        <div class="bill-view-note-text">${Helpers.escapeHtml(sale.comments)}</div>
-                    </div>
-                ` : ''}
+                ${billNoteHtml(sale)}
                 
                 <h3 class="bill-view-title">${L('ui.history.sale_items')}</h3>
                 <table class="table bill-view-items">
@@ -1592,7 +1259,6 @@ onUnsavedBillCheck(() => wholesaleSaleItems.length > 0);
 // Data changes re-render this page (firestore-service.js emits, utils/events.js).
 on(REFRESH.salesDropdown, () => WholesaleSalesManager.loadItemsDropdown());
 on(REFRESH.wholesaleHistory, () => WholesaleSalesManager.renderSalesHistory());
-on(REFRESH.wholesaleOutstanding, () => WholesaleSalesManager.renderSalesOutstanding());
 on(ITEM_FREQUENCY_CHANGED, () => WholesaleSalesManager.loadItemsDropdown());
 on(PRINT_STATUS_CHANGED, () => {
     if (document.getElementById('wholesale-sales')?.classList.contains('active')) WholesaleSalesManager.renderSalesHistory();

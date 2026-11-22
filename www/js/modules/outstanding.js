@@ -130,6 +130,8 @@ export class OutstandingManager {
             }
         });
         
+        const billsPanel = container.querySelector('.due-bills');
+        if (billsPanel) billsPanel.hidden = visibleCount === 0;
         let noResultsMsg = container.querySelector('.no-results-message');
         if (visibleCount === 0 && partiesShown === 0 && searchTerm !== '') {
             if (!noResultsMsg) {
@@ -153,13 +155,18 @@ export class OutstandingManager {
         this.searchOutstanding();
     }
 
+    /** Outstanding list the user last picked here; plain visits open it (a link's list is for that visit only). */
+    static homeFilter = 'sale';
+
     /**
      * Filter outstanding payments by type (#125): Purchases, or Sales with All /
      * Retail / Wholesale (wholesale only for roles that may open Wholesale).
      * @param {'purchase'|'sale'|'retail'|'wholesale'} filter
+     * @param {{once?: boolean}} [opts] once: a link's list, shown this visit only (not remembered)
      */
-    static filterDue(filter) {
+    static filterDue(filter, opts) {
         AppState.currentDueFilter = DUE_FILTERS.includes(filter) ? filter : 'sale';
+        if (opts?.once !== true) this.homeFilter = AppState.currentDueFilter;
         this.agingBucket = null;
         this.partyFilter = null;
         
@@ -167,6 +174,16 @@ export class OutstandingManager {
         if (searchInput) searchInput.value = '';
         
         this.renderDue();
+    }
+
+    /**
+     * Outstanding opened from the menu or tab bar: the list last picked here (Sales at first, U-69).
+     * 'wholesale' (Wholesale dues, Today's wholesale reminder) shows the Wholesale list for this visit only.
+     * @param {?string} [section]
+     */
+    static open(section) {
+        if (section === 'wholesale') this.filterDue('wholesale', { once: true });
+        else this.filterDue(this.homeFilter, { once: true });
     }
 
     /** Whether this role sees wholesale dues here (the Wholesale page's switch). */
@@ -199,18 +216,21 @@ export class OutstandingManager {
         }
     }
 
-    /** Both totals on the Purchases | Sales buttons, so neither needs a switch to be seen (U-69). */
-    static renderSegTotals() {
+    /**
+     * Both totals on the Purchases | Sales buttons, so neither needs a switch to be seen (U-69).
+     * The Sales total follows the Retail / Wholesale chip under it, so it always matches the list shown.
+     */
+    static renderSegTotals(filter = this.dueFilter()) {
         const lists = { purchases: AppState.purchaseHistory, retailSales: AppState.retailSalesHistory, wholesaleSales: AppState.salesHistory };
-        const total = (filter) => sumMoney(dueRows(lists, filter, { wholesale: this.seesWholesale() }), b => b.outstanding);
-        const set = (id, filter) => {
+        const total = (f) => sumMoney(dueRows(lists, f, { wholesale: this.seesWholesale() }), b => b.outstanding);
+        const set = (id, f) => {
             const el = document.getElementById(id);
             if (!el) return;
-            const v = total(filter);
+            const v = total(f);
             el.textContent = v > 0 ? formatRupees(v) : '';
         };
         set('dueSegTotalPurchase', 'purchase');
-        set('dueSegTotalSale', 'sale');
+        set('dueSegTotalSale', filter === 'purchase' ? 'sale' : filter);
     }
 
     /**
@@ -223,7 +243,7 @@ export class OutstandingManager {
         const currentDueFilter = this.dueFilter();
         const container = document.getElementById("dueList");
         this.syncFilterButtons(currentDueFilter);
-        this.renderSegTotals();
+        this.renderSegTotals(currentDueFilter);
         // BILL-DUE of each open bill (voided and cleared bills owe nothing, #75)
         const dueTransactions = dueRows({
             purchases: AppState.purchaseHistory, retailSales: AppState.retailSalesHistory, wholesaleSales: AppState.salesHistory
@@ -259,6 +279,10 @@ export class OutstandingManager {
         }
 
         container.innerHTML = "";
+        // One panel of bill rows (F19)
+        const list = document.createElement('div');
+        list.className = 'panel due-bills';
+        container.appendChild(list);
         
         const isPurchase = currentDueFilter === 'purchase';
         const tt = (key, params) => Helpers.escapeHtml(t(key, params));
@@ -317,7 +341,7 @@ export class OutstandingManager {
                 </details>
             `;
             
-            container.appendChild(div);
+            list.appendChild(div);
         });
     }
 
@@ -492,7 +516,7 @@ export class OutstandingManager {
      */
     static showParty(filter, name) {
         const key = partyNameKey(name);
-        this.filterDue(DUE_FILTERS.includes(filter) ? filter : 'sale');
+        this.filterDue(DUE_FILTERS.includes(filter) ? filter : 'sale', { once: true });
         if (!key) return;
         this.partyFilter = { key, name: String(name).trim() };
         this.renderDue();
@@ -506,10 +530,15 @@ export class OutstandingManager {
     static renderPartyFilterNote() {
         const el = document.getElementById('dueAging');
         if (!el || !this.partyFilter) return;
+        const esc = (v) => Helpers.escapeHtml(v);
+        // Wholesale dues keep the Wholesale page's Complete all due (F14, #150: owner and managers)
+        const completeAll = this.dueFilter() === 'wholesale' && this.partyFilter.key && ['owner', 'manager'].includes(AppState.userRole)
+            ? `<button type="button" class="btn btn-sm" data-complete-all data-onclick="wholesaleSales.completeAllDue('${Helpers.escapeJsAttr(this.partyFilter.name)}')">${esc(t('ui.wholesale.complete_all_due'))}</button>` : '';
         el.insertAdjacentHTML('afterbegin', `
             <div class="party-filter-note notice info">
-                <span class="grow">${Helpers.escapeHtml(t('ui.outstanding.showing_only'))} <strong>${Helpers.escapeHtml(this.partyFilter.name)}</strong></span>
-                <button type="button" class="btn btn-sm" data-onclick="outstanding.clearPartyFilter()">${Helpers.escapeHtml(t('ui.outstanding.show_all'))}</button>
+                <span class="grow">${esc(t('ui.outstanding.showing_only'))} <strong>${esc(this.partyFilter.name)}</strong></span>
+                <button type="button" class="btn btn-sm" data-onclick="outstanding.clearPartyFilter()">${esc(t('ui.outstanding.show_all'))}</button>
+                ${completeAll}
             </div>`);
     }
 
@@ -863,7 +892,7 @@ export class OutstandingManager {
         this.renderDue();
         const app = typeof window !== 'undefined' ? window.app : null;
         try {
-            app?.wholesaleSales?.renderOutstanding?.();
+            app?.wholesaleSales?.renderHistory?.();
             if (document.getElementById('todayTotalIn')) app?.day?.loadTodayData?.();
             if (CashManagementManager.todaySession) {
                 CashManagementManager.calculateTodayTransactions()
@@ -1029,26 +1058,25 @@ export class OutstandingManager {
             <div class="due-dlg">
                 <div>${esc(t('ui.outstanding.bill_no', { billNumber: transaction.billNumber || String(transaction.id).slice(0, 8) }))}${party}<br>
                     ${esc(t('ui.outstanding.remaining_due'))} <strong>${moneyHtml(due, { exact: true })}</strong></div>
-                <div class="due-dlg-head">${esc(t('ui.outstanding.how_settled'))}</div>
-                <label class="due-dlg-opt"><input type="radio" name="clearMethod" value="cash"> ${esc(t(isPurchase ? 'ui.outstanding.paid_in_cash' : 'ui.outstanding.received_in_cash', { amount: formatAmount(due, { exact: true }) }))}</label>
-                <label class="due-dlg-opt"><input type="radio" name="clearMethod" value="online"> ${esc(t(isPurchase ? 'ui.outstanding.paid_online' : 'ui.outstanding.received_online', { amount: formatAmount(due, { exact: true }) }))}</label>
-                <label class="due-dlg-opt"><input type="radio" name="clearMethod" value="writeOff"> ${esc(t(isPurchase ? 'ui.outstanding.write_off_not_paid' : 'ui.outstanding.write_off_not_received'))}</label>
-                <label for="clearReason">${esc(t('ui.outstanding.write_off_reason'))}</label>
-                <textarea id="clearReason" class="input" rows="2" maxlength="300"></textarea>
+                <fieldset class="radio-rows" id="clearMethodSet" aria-describedby="clearMethodError" data-onchange="outstanding.clearFieldError('clearMethodError')">
+                    <legend>${esc(t('ui.outstanding.how_settled'))}</legend>
+                    <label><input type="radio" name="clearMethod" value="cash"> ${esc(t(isPurchase ? 'ui.outstanding.paid_in_cash' : 'ui.outstanding.received_in_cash', { amount: formatAmount(due, { exact: true }) }))}</label>
+                    <label><input type="radio" name="clearMethod" value="online"> ${esc(t(isPurchase ? 'ui.outstanding.paid_online' : 'ui.outstanding.received_online', { amount: formatAmount(due, { exact: true }) }))}</label>
+                    <label><input type="radio" name="clearMethod" value="writeOff"> ${esc(t(isPurchase ? 'ui.outstanding.write_off_not_paid' : 'ui.outstanding.write_off_not_received'))}</label>
+                </fieldset>
+                <div class="field-error" id="clearMethodError" role="alert" hidden></div>
+                <div class="field">
+                    <label for="clearReason">${esc(t('ui.outstanding.write_off_reason'))}</label>
+                    <textarea id="clearReason" class="input" rows="2" maxlength="300" aria-describedby="clearReasonError" data-oninput="outstanding.clearFieldError('clearReasonError', 'clearReason')"></textarea>
+                    <div class="field-error" id="clearReasonError" role="alert" hidden></div>
+                </div>
             </div>`;
-        const confirmed = await UIManager.showModalWithHtml(html, t('msg.outstanding.mark_as_cleared'), true, { confirmLabel: t('ui.confirm.mark_cleared') });
-        if (!confirmed) return false;
+        const confirmed = await UIManager.showModalWithHtml(html, t('msg.outstanding.mark_as_cleared'), true,
+            { confirmLabel: t('ui.confirm.mark_cleared'), validate: () => this.markClearedValidate() });
+        if (!confirmed || !this.markClearedValidate()) return false;
 
         const method = document.querySelector('input[name="clearMethod"]:checked')?.value || '';
         const reason = (document.getElementById('clearReason')?.value || '').trim();
-        if (!method) {
-            UIManager.showToast(t('msg.outstanding.choose_how_due_was_settled'));
-            return false;
-        }
-        if (method === 'writeOff' && reason.length < 3) {
-            UIManager.showToast(t('msg.outstanding.write_reason_write_off'));
-            return false;
-        }
 
         if (method === 'cash' || method === 'online') {
             return this.recordDuePayment({
@@ -1061,6 +1089,38 @@ export class OutstandingManager {
             });
         }
         return this.confirmWriteOff(transactionType, transaction, reason);
+    }
+
+    /**
+     * Mark as cleared (F52): a missing choice or write-off reason is said under its field, and the dialog stays open.
+     * @returns {boolean} true when the answers can be saved
+     */
+    static markClearedValidate() {
+        const show = (id, text, input) => {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = text; el.hidden = !text; }
+            const field = input && document.getElementById(input);
+            if (field) {
+                if (text) field.setAttribute('aria-invalid', 'true');
+                else field.removeAttribute('aria-invalid');
+            }
+        };
+        const method = document.querySelector('input[name="clearMethod"]:checked')?.value || '';
+        const reason = (document.getElementById('clearReason')?.value || '').trim();
+        const methodText = method ? '' : t('msg.outstanding.choose_how_due_was_settled');
+        const reasonText = method === 'writeOff' && reason.length < 3 ? t('msg.outstanding.write_reason_write_off') : '';
+        show('clearMethodError', methodText, null);
+        show('clearReasonError', reasonText, 'clearReason');
+        if (methodText) document.querySelector('input[name="clearMethod"]')?.focus();
+        else if (reasonText) document.getElementById('clearReason')?.focus();
+        return !methodText && !reasonText;
+    }
+
+    /** Hides a dialog field's error once it is answered. */
+    static clearFieldError(errorId, inputId) {
+        const el = document.getElementById(errorId);
+        if (el) el.hidden = true;
+        if (inputId) document.getElementById(inputId)?.removeAttribute('aria-invalid');
     }
 
     /**

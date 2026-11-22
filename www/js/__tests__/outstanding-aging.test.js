@@ -270,10 +270,21 @@ describe('#46/#77 Outstanding panel', () => {
         expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(true);
         expect(document.getElementById('dueList').hidden).toBe(false);
         expect(document.querySelector('#dueList .no-results-message').textContent).toContain('Nothing matches “zzz”');
+        expect(document.querySelector('#dueList .due-bills').hidden).toBe(true);
         OutstandingManager.clearSearch();
         expect(input.value).toBe('');
         expect(document.querySelector('#dueAging .aging-hero').hidden).toBe(false);
         expect(document.querySelector('#dueList .no-results-message')).toBeNull();
+    });
+
+    test('F19: the bills are rows in one panel, with the Received label first in the Cash / Online line', () => {
+        OutstandingManager.renderDue();
+        const panels = document.querySelectorAll('#dueList > .panel.due-bills');
+        expect(panels).toHaveLength(1);
+        expect([...panels[0].children].map(el => el.matches('.due-bill[data-history-item]'))).toEqual([true, true]);
+        const pay = panels[0].querySelector('.due-bill-pay');
+        expect([...pay.children].map(el => el.tagName)).toEqual(['LABEL', 'INPUT', 'INPUT', 'BUTTON']);
+        expect(pay.firstElementChild.textContent).toBe('Received');
     });
 
     test('payables show no Remind button and no chase list', () => {
@@ -362,7 +373,44 @@ describe('#125 wholesale dues on Outstanding (All / Retail / Wholesale)', () => 
         expect(document.getElementById('dueSaleKinds').hidden).toBe(true);
         AppState.salesHistory = [];
         OutstandingManager.filterDue('wholesale');
-        expect(document.getElementById('dueList').textContent).toContain('No outstanding wholesale amounts');
+        expect(document.getElementById('dueList').textContent).toContain('No wholesale dues');
+    });
+
+    test('NEW-01: the Sales total follows the Retail / Wholesale chip, so it matches the list', () => {
+        const seg = (id) => document.getElementById(id).textContent;
+        OutstandingManager.filterDue('sale');
+        expect([seg('dueSegTotalPurchase'), seg('dueSegTotalSale')]).toEqual(['₹70', '₹1,780']);
+        OutstandingManager.filterDue('wholesale');
+        expect([seg('dueSegTotalPurchase'), seg('dueSegTotalSale'), total()]).toEqual(['₹70', '₹1,200', '₹1,200']);
+        OutstandingManager.filterDue('retail');
+        expect(seg('dueSegTotalSale')).toBe('₹580');
+        OutstandingManager.filterDue('purchase');
+        expect(seg('dueSegTotalSale')).toBe('₹1,780');
+        AppState.salesHistory = [];
+        OutstandingManager.filterDue('wholesale');
+        expect(seg('dueSegTotalSale')).toBe('');
+    });
+
+    test('NEW-01: Wholesale dues (and a party link) pick the list for that visit only', () => {
+        OutstandingManager.homeFilter = 'sale';
+        OutstandingManager.open('wholesale');
+        expect(active()).toEqual(['sale', 'wholesale']);
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'sale']);
+        expect(ids()).toEqual(['r1', 'r2', 'w1', 'w2']);
+        OutstandingManager.filterDue('retail');
+        OutstandingManager.open('wholesale');
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'retail']);
+        OutstandingManager.showParty('purchase', 'Supplier');
+        expect(active()).toEqual(['purchase']);
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'retail']);
+        // A chip the user taps is remembered, as before
+        OutstandingManager.filterDue('wholesale');
+        OutstandingManager.open(null);
+        expect(active()).toEqual(['sale', 'wholesale']);
+        OutstandingManager.homeFilter = 'sale';
     });
 
     test('a role without Wholesale: Sales is retail only, no choice, no chips', () => {

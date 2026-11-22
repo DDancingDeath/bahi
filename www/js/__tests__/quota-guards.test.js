@@ -53,10 +53,25 @@ describe('quota banner', () => {
         expect(banners).toHaveLength(1);
         expect(banners[0].textContent).toContain(quotaBannerText('en'));
         expect(banners[0].textContent).not.toMatch(/[\u0900-\u097F]/);
-        expect(banners[0].textContent).toMatch(/12:30–13:30 IST/);
         expect(banners[0].textContent).not.toMatch(/staff|स्टाफ/i);
         expect(onQuota).toHaveBeenCalledTimes(1);
         expect(guard.status().quota).toMatchObject({ count: 5, lastSource: 'purchases listen' });
+    });
+
+    test('is short (two lines on a phone) and follows a language switch (NEW-22)', async () => {
+        const { setLang } = await import('../i18n/index.js');
+        const en = (await import('../i18n/en.js')).default;
+        const hi = (await import('../i18n/hi.js')).default;
+        expect(en['ui.quota.banner'].length).toBeLessThanOrEqual(80);
+        expect(hi['ui.quota.banner'].length).toBeLessThanOrEqual(85);
+        createQuotaGuard({ log: quiet }).noteQuotaExhausted('a');
+        const text = () => document.querySelector('#quotaBanner .grow').textContent;
+        expect(text()).toBe(en['ui.quota.banner']);
+        await setLang('hi', { store: null });
+        expect(text()).toBe(hi['ui.quota.banner']);
+        expect(document.querySelector('#quotaBanner button').getAttribute('aria-label')).toBe(hi['ui.kbd.close']);
+        await setLang('en', { store: null });
+        expect(text()).toBe(en['ui.quota.banner']);
     });
 
     test('once dismissed it stays hidden for the rest of the session', () => {
@@ -66,6 +81,30 @@ describe('quota banner', () => {
         // A reload in the same tab gets a new guard.
         createQuotaGuard({ log: quiet }).noteQuotaExhausted('b');
         expect(document.getElementById('quotaBanner')).toBeNull();
+    });
+
+    test('is a warn notice under the app bar that pushes the pages down, not a fixed light strip (NEW-02)', () => {
+        createQuotaGuard({ log: quiet }).noteQuotaExhausted('a');
+        const el = document.getElementById('quotaBanner');
+        expect([...el.classList]).toEqual(expect.arrayContaining(['notice', 'warn', 'shell-notice']));
+        expect(el.getAttribute('style')).toBeNull();
+        expect(el.textContent).not.toMatch(/⚠/);
+        const root = document.documentElement;
+        expect(root.style.getPropertyValue('--shell-notice-h')).toMatch(/^\d+px$/);
+        el.querySelector('button').click();
+        expect(root.style.getPropertyValue('--shell-notice-h')).toBe('');
+    });
+
+    test('the pages and the desktop header make room for it', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const css = (f) => fs.readFileSync(path.join(__dirname, '../../css', f), 'utf8');
+        expect(css('variables.css')).toMatch(/--tab-top:[^;]*var\(--shell-notice-h, 0px\)/);
+        expect(css('desktop.css')).toMatch(/\.tab \{\s*margin: calc\(var\(--desktop-header-h\) \+ var\(--shell-notice-h, 0px\)\)/);
+        expect(css('surfaces.css')).toMatch(/\.shell-notice \{[^}]*top: calc\(var\(--appbar-h\)/);
+        // Above the sign-in screen while it shows, which leaves room for it
+        expect(css('surfaces.css')).toMatch(/\.auth-screen:not\(\[style\*="none"\]\)\) \.shell-notice \{[^}]*z-index: calc\(var\(--z-auth\) \+ 1\)/);
+        expect(css('auth.css')).toMatch(/\.auth-screen \{[^}]*padding-top: calc\(var\(--sp-5\) \+ var\(--shell-notice-h, 0px\)\)/);
     });
 });
 

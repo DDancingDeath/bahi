@@ -183,7 +183,7 @@ describe('an auto-save of an edit (#93 a)', () => {
         await restore(autoSave);
         expect(modal).toHaveBeenCalledWith(
             'This bill was changed after your unsaved edit (a payment or an edit). Saved bill: ₹100. Your unsaved edit: ₹120. Put your unsaved edit on the latest bill?',
-            'Bill changed since', true);
+            'Bill changed since', true, { confirmLabel: 'Apply my edit' });
         expect(BillingManager.editingBillIndex).toBeUndefined();
         expect(PurchaseManager.getBillItems()).toEqual([]);
         expect(BillingManager.pendingRecovery).not.toBeNull();
@@ -208,7 +208,7 @@ describe('an auto-save of an edit (#93 a)', () => {
     test('an older auto-save without the version: asked before it is applied', async () => {
         stored();
         await restore(editAutoSave({ editingBillType: undefined, editingBase: undefined }));
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('Saved bill: ₹100. Your unsaved edit: ₹100.'), 'Bill changed since', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('Saved bill: ₹100. Your unsaved edit: ₹100.'), 'Bill changed since', true, { confirmLabel: 'Apply my edit' });
         expect(BillingManager.editingBillId).toBe('p1');
     });
 
@@ -245,7 +245,7 @@ describe('an auto-save of a new bill whose bill is already saved (#93 b)', () =>
         resetForms();
 
         await restore(autoSave);
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved (P20261102-001)'), 'Already saved', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved (P20261102-001)'), 'Already saved', true, { confirmLabel: 'Open saved bill' });
         expect(PurchaseManager.getWeights()).toEqual([]);
         expect([...docs().keys()]).toEqual([autoSave.purchase.pendingBill.id]);
     });
@@ -265,7 +265,7 @@ describe('an auto-save of a new bill whose bill is already saved (#93 b)', () =>
         expect(fake.stats.reads - reads).toBe(1);
         expect(modal).toHaveBeenCalledWith(
             "This bill is already saved (P20261101-001) and won't be saved again. Saved bill: ₹150. This unsaved copy: ₹100. Open the saved bill to change it?",
-            'Already saved', true);
+            'Already saved', true, { confirmLabel: 'Open saved bill' });
         expect(viewBill).toHaveBeenCalledWith('id:p1', 'purchase');
         expect(PurchaseManager.getBillItems()).toEqual([]);
         expect(BillDrafts.deleteAutoSave).toHaveBeenCalledWith('u1');
@@ -291,7 +291,7 @@ describe('an auto-save of a new bill whose bill is already saved (#93 b)', () =>
         const onPhone = jest.spyOn(FirebaseService, 'billOnThisPhone').mockResolvedValueOnce({ ...BILL, id: 'n1' });
         await restore({ mode: 'purchase', purchase: { items: [RICE([10])], pendingBill: { id: 'n1' } }, sale: { items: [] } });
         expect(onPhone).toHaveBeenCalledWith('purchases', 'n1');
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved'), 'Already saved', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved'), 'Already saved', true, { confirmLabel: 'Open saved bill' });
         expect(PurchaseManager.getBillItems()).toEqual([]);
 
         await restore({ mode: 'purchase', purchase: { items: [RICE([10])], pendingBill: { id: 'n1' } }, sale: { items: [] } });
@@ -305,7 +305,7 @@ describe('an auto-save of a new bill whose bill is already saved (#93 b)', () =>
         await restore({ mode: 'purchase', purchase: { items: [RICE([10]), RICE([5])], pendingBill: { id: 'p1', attempted: true } }, sale: { items: [] } });
         expect(modal).toHaveBeenCalledWith(
             "This bill is already saved (P20261101-001) and won't be saved again. Saved bill: ₹100. This unsaved copy: ₹150. Open the saved bill to change it?",
-            'Already saved', true);
+            'Already saved', true, { confirmLabel: 'Open saved bill' });
     });
 });
 
@@ -329,7 +329,7 @@ describe('saving a restored new bill (#93)', () => {
         modal.mockResolvedValue(true);
         expect(await payCashAndSave()).toBeUndefined();
         expect(docs().get('n1')).toEqual(before);
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved on another phone (P20261101-001)'), 'Already saved', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved on another phone (P20261101-001)'), 'Already saved', true, { confirmLabel: 'Open saved bill' });
         expect(viewBill).toHaveBeenCalledWith('id:n1', 'purchase');
         expect(PurchaseManager.getBillItems()).toHaveLength(1);
         expect(BillDrafts.saveAutoSave.mock.calls.at(-1)[1].purchase.pendingBill).toMatchObject({ id: 'n1', knownSaved: true });
@@ -350,7 +350,7 @@ describe('saving a restored new bill (#93)', () => {
         modal.mockImplementation(async (_text, title) => title !== 'Already saved');
         await payCashAndSave();
         expect(docs().get('n1')).toEqual(before);
-        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved'), 'Already saved', true);
+        expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved'), 'Already saved', true, { confirmLabel: 'Open saved bill' });
     });
 
     test('a create-only try that failed (network), then offline: a plain first save, not a retry', async () => {
@@ -398,7 +398,7 @@ describe('two phones, one account: a first save only creates its bill (#93)', ()
         expect(docs().get('n1')).toEqual(before);
         expect(modal).toHaveBeenCalledWith(
             "This bill was already saved on another phone (P20261101-001), so this copy wasn't saved (a receipt printed for it is not the saved bill). Saved bill: ₹100. This copy: ₹100. Open the saved bill?",
-            'Already saved', true);
+            'Already saved', true, { confirmLabel: 'Open saved bill' });
         expect(PurchaseManager.getPendingBill()).toMatchObject({ knownSaved: true });
     });
 
@@ -505,7 +505,7 @@ describe('two phones, one account: a first save only creates its bill (#93)', ()
             typeOnThisPhone('n7');
             expect(await payCashAndSave()).toBeUndefined();
             expect(docs().get('n7')).toEqual(before);
-            expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved on another phone'), 'Already saved', true);
+            expect(modal).toHaveBeenCalledWith(expect.stringContaining('already saved on another phone'), 'Already saved', true, { confirmLabel: 'Open saved bill' });
             expect(toast).toHaveBeenCalledWith('Bill P20261101-001 was also saved on another phone under the same id. Check it in History.', 8000);
             expect(PurchaseManager.getPendingBill()).toMatchObject({ knownSaved: true });
         } finally {

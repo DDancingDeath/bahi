@@ -206,7 +206,7 @@ export const StatementsManager = {
             const preset = this.day === today ? 'today' : this.day === yesterday ? 'yesterday' : 'pick';
             const opt = (v, key) => `<option value="${esc(v)}"${v === preset ? ' selected' : ''}>${esc(t(key))}</option>`;
             // The shared period control (U-61): ‹ day › and a preset chip; "Choose day…" opens the phone's date picker
-            html = `<div class="ins-period st-day-step">`
+            html = `<div class="period ins-period st-day-step">`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(-1)" aria-label="${esc(t('ui.statements.day_before'))}">${icon('chevL')}</button>`
                 + `<span class="ins-period-label">${esc(formatDay(parseLocalDate(this.day) || new Date(), { lang }))}</span>`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepDay(1)" aria-label="${esc(t('ui.statements.day_after'))}"${this.day >= today ? ' disabled' : ''}>${icon('chevR')}</button>`
@@ -218,7 +218,7 @@ export const StatementsManager = {
             const opts = Array.from({ length: 24 }, (_, i) => monthKeyOf(monthStart(now, -i).getTime()));
             const at = opts.indexOf(this.month);
             // The shared period control (U-61): ‹ the month as a chip ›, as on Money and the Day book
-            html = `<div class="ins-period st-month-step">`
+            html = `<div class="period ins-period st-month-step">`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(-1)" aria-label="${esc(t('ui.money.earlier'))}"${at >= opts.length - 1 ? ' disabled' : ''}>${icon('chevL')}</button>`
                 + `<select class="ins-preset st-month-pick" aria-label="${esc(t('ui.statements.pick_month'))}" data-onchange="statements.set('month', this.value)">${opts.map(k => `<option value="${k}"${k === this.month ? ' selected' : ''}>${esc(formatMonth(monthBounds(k).from, { lang }))}</option>`).join('')}</select>`
                 + `<button type="button" class="btn btn-icon" data-onclick="statements.stepMonth(1)" aria-label="${esc(t('ui.money.later'))}"${at <= 0 ? ' disabled' : ''}>${icon('chevR')}</button></div>`;
@@ -402,12 +402,12 @@ export const StatementsManager = {
         const rateOf = (r) => (r.kind === 'purchase' && !perms.purchaseRates ? '' : r.rate);
         const body = l.rows.map(r => {
             const below = r.belowCost && perms.profit;
-            return `<tr${below || r.beforeBought ? ' class="st-flag"' : ''}><td>${esc(r.t ? formatDay(r.t, { lang }) : '')}</td><td>${esc([this.kindLabel(r.kind), r.billNo, r.party].filter(Boolean).join(' · '))}${below ? ` <span class="tone-warn" data-perm="profit">${icon('triangle', 'i-sm')}<span class="sr-only">⚠ </span>${esc(t('ui.statements.below_cost'))}</span>` : ''}${r.beforeBought ? ` <span class="tone-warn">${icon('triangle', 'i-sm')}<span class="sr-only">⚠ </span>${esc(t('ui.statements.before_bought'))}</span>` : ''}</td><td class="num">${r.qty > 0 ? '+' : ''}${formatKg(r.qty)}</td><td class="num">${formatKg(r.balanceQty)}</td>${showCost ? `<td class="num" data-perm="purchaseRates">${formatAmount(r.avgCost, 'rate')}</td>` : ''}</tr>`;
+            return `<tr${below || r.beforeBought ? ' class="st-flag"' : ''}><td>${esc(r.t ? formatDay(r.t, { lang }) : '')}</td><td>${esc([this.kindLabel(r.kind), r.billNo, r.party].filter(Boolean).join(' · '))}${below ? ` <span class="tone-warn" data-perm="profit">${icon('triangle', 'i-sm')}<span class="sr-only">⚠ </span>${esc(t('ui.statements.below_cost'))}</span>` : ''}${r.beforeBought ? ` <span class="tone-warn">${icon('triangle', 'i-sm')}<span class="sr-only">⚠ </span>${esc(t('ui.statements.before_bought'))}</span>` : ''}</td><td class="num">${r.qty > 0 ? '+' : ''}${formatKg(r.qty)}</td><td class="num">${formatKg(r.balanceQty)}</td>${showCost ? `<td class="num" data-perm="purchaseRates">${esc(formatAmount(r.avgCost, 'avgRate'))}</td>` : ''}</tr>`;
         }).join('');
         const closingText = (rate) => (perms.stockValue && perms.purchaseRates
             ? t('ui.statements.kg_at', { kg: formatKg(l.closing.qty), rate: formatAmount(l.closing.rate, rate), value: formatRupees(l.closing.value) })
             : t('ui.statements.kg_left', { kg: formatKg(l.closing.qty) }));
-        const closing = closingText('rate');
+        const closing = closingText('avgRate');
         const html = `<h3 class="st-title">${esc(title)}</h3>`
             + `<div class="ins-line ins-total"><span>${esc(t('ui.statements.closing_stock'))}</span><span data-metric-export="S4"${perms.stockValue ? ' data-perm="stockValue"' : ''}>${esc(closing)}</span></div>`
             + `<div class="ins-scroll" tabindex="0" role="region" aria-label="${esc(title)}"><table class="table"><thead><tr><th>${esc(t('ui.statements.date'))}</th><th>${esc(t('ui.statements.what'))}</th><th class="num">${esc(t('ui.insights.kg'))}</th><th class="num">${esc(t('ui.statements.stock_kg'))}</th>${showCost ? `<th class="num" data-perm="purchaseRates">${esc(t('ui.statements.avg_cost'))}</th>` : ''}</tr></thead><tbody>${body || `<tr><td colspan="5">${esc(t('ui.statements.nothing'))}</td></tr>`}</tbody></table></div>`;

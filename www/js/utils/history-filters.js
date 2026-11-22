@@ -1,8 +1,8 @@
 // @ts-check
 /**
  * @fileoverview Pure helpers for the History screen filters (#160):
- * bill tab (Purchase / Sale; Sale = retail sales, wholesale bills are on the
- * Wholesale page), date-range presets in local (IST) time, search, and the
+ * bill tab (Purchase / Sale / Wholesale; Sale = retail and wholesale sales,
+ * Wholesale = wholesale bills only, F14), date-range presets in local (IST) time, search, and the
  * filter remembered for the session (the tab is remembered per device).
  * Nothing here touches the DOM, Firestore or AppState.
  * @module utils/history-filters
@@ -12,7 +12,7 @@ import { toJsDate, parseLocalDate, formatDate } from './dates.js';
 import { t } from '../i18n/index.js';
 import { billTotal, hasBillAmount, sumMoney, outstandingDue } from './money.js';
 
-export const HISTORY_TYPES = ['purchase', 'sale'];
+export const HISTORY_TYPES = ['purchase', 'sale', 'wholesale'];
 export const HISTORY_PRESETS = ['all', 'today', 'yesterday', 'week', 'month', 'lastMonth', 'custom'];
 
 export const DEFAULT_HISTORY_FILTER = Object.freeze({ type: 'purchase', preset: 'all', from: '', to: '' });
@@ -25,28 +25,14 @@ export const HISTORY_TAB_KEY = 'aadhat.historyTab';
 
 /**
  * History tab for a stored or linked type. Old values: 'retail' is the Sale
- * tab; 'all' / unknown fall back to Purchase. 'wholesale' is not a History
- * tab any more (see isWholesaleHistoryLink).
+ * tab; 'all' / unknown fall back to Purchase.
  * @param {*} type
- * @returns {'purchase'|'sale'}
+ * @returns {'purchase'|'sale'|'wholesale'}
  */
 export function normalizeHistoryTab(type) {
     if (type === 'sale' || type === 'retail') return 'sale';
+    if (type === 'wholesale') return 'wholesale';
     return 'purchase';
-}
-
-/**
- * Old links / saved filters that asked History for wholesale bills; those now
- * open Wholesale › History.
- * @param {*} value - type string, filter object or its JSON
- * @returns {boolean}
- */
-export function isWholesaleHistoryLink(value) {
-    let v = value;
-    if (typeof v === 'string' && v.trim().startsWith('{')) {
-        try { v = JSON.parse(v); } catch { return false; }
-    }
-    return (v && typeof v === 'object' ? v.type : v) === 'wholesale';
 }
 
 /** Earliest date a custom range may start (no business data before this). */

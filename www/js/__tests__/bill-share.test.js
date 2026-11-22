@@ -104,6 +104,9 @@ describe('buildBillShareText', () => {
         expect(draft).toContain('Customer: Ram');
         expect(draft).toContain('DRAFT, not saved');
         expect(buildDraftShareText({ kind: 'retail', customer: 'Gita', items: [], total: 0 })).toContain('Customer: Gita');
+        // F54: the draft's date is the app's one date format, not the device's "21/11/2026"
+        expect(buildDraftShareText({ kind: 'retail', customer: 'Gita', date: new Date(2026, 10, 21, 17, 52), items: [], total: 0 }))
+            .toContain('Date: 21 Nov 2026\n');
         expect(text).toContain('*Purchase bill*');
         expect(text).toContain('Date: 03/10/2026 02:45 pm');
         expect(text).toContain('Labour: ₹12');

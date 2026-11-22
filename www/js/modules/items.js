@@ -26,7 +26,7 @@ import { friendlyError } from '../utils/friendly-error.js';
 import { attachScrollCue } from '../ui/scroll-cue.js';
 import { CHANGED_ELSEWHERE, isOffline, writeErrorKey } from '../utils/write-conflict.js';
 import { suggestHindiName, suggestEnglishName, autofillValue } from '../utils/item-name-autofill.js';
-import { formatRate, formatKg } from '../utils/money.js';
+import { formatRate, formatKg, UNKNOWN_AMOUNT } from '../utils/money.js';
 import { icon } from '../ui/icons.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 
@@ -601,7 +601,7 @@ const ItemsManager = {
                 return;
             }
             
-            const confirmed = await UIManager.showModalWithHtml(this.importPreviewHtml(plan), t('msg.items.confirm_import'), true);
+            const confirmed = await UIManager.showModalWithHtml(this.importPreviewHtml(plan), t('msg.items.confirm_import'), true, { confirmLabel: t('ui.confirm.import') });
             if (!confirmed) return;
             
             UIManager.showLoading();
@@ -713,20 +713,10 @@ const ItemsManager = {
                 ? item.hindiName 
                 : item.name;
             
-            // Format purchase rates
-            const purchaseRates = item.rates && item.rates.length > 0 
-                ? item.rates.map(r => `${r}`).join(', ') 
-                : '-';
-            
-            // Format wholesale rates
-            const wholesaleRates = item.wholesaleRates && item.wholesaleRates.length > 0 
-                ? item.wholesaleRates.map(r => `${r}`).join(', ') 
-                : '-';
-            
-            // Format sale rates
-            const saleRates = item.saleRates && item.saleRates.length > 0 
-                ? item.saleRates.map(r => `${r}`).join(', ') 
-                : '-';
+            const rateList = (list) => (Array.isArray(list) && list.length ? list.map(formatRate).join(', ') : UNKNOWN_AMOUNT);
+            const purchaseRates = rateList(item.rates);
+            const wholesaleRates = rateList(item.wholesaleRates);
+            const saleRates = rateList(item.saleRates);
             
             // Calculate average rate from stock for staff view
             let avgRate = '-';
@@ -980,7 +970,7 @@ const ItemsManager = {
                 `<li>${e(fieldLabel(c.field))}: ${rateHtml(c.old)} → ${rateHtml(c.new)}</li>`).join('')}</ul>
                 <p class="rates-dlg-note">${e(t('ui.rate_history.check_rate'))}</p>`);
         }
-        return UIManager.showModalWithHtml(`<div class="rates-dlg">${parts.join('')}</div>`, t('msg.items.confirm_changes'), true);
+        return UIManager.showModalWithHtml(`<div class="rates-dlg">${parts.join('')}</div>`, t('msg.items.confirm_changes'), true, { confirmLabel: t('ui.confirm.save_changes') });
     },
     
     // Render rates in modal

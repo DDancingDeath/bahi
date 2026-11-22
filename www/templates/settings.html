@@ -95,7 +95,7 @@
                 <span data-i18n="ui.settings.swipe_tabs">Swipe left or right to change page</span>
                 <input type="checkbox" class="switch" id="settingSwipeTabs" data-onchange="bottomNav.setSwipe(this.checked)">
             </label>
-            <p class="setting-description phone-only-setting" data-i18n="ui.settings.swipe_tabs_hint">Moves between Billing, Today, History and Outstanding. Saved on this phone.</p>
+            <p class="setting-description phone-only-setting" data-i18n="ui.settings.swipe_tabs_hint">Moves between Billing, Today, History and Dues. Saved on this phone.</p>
         </div>
     </section>
 
@@ -196,13 +196,16 @@
                 <span data-i18n="ui.settings.voice_billing_toggle">Fill a bill line by speaking</span>
                 <input type="checkbox" class="switch" id="settingVoiceBilling" data-onchange="voice.setOn(this.checked)">
             </label>
-            <p class="setting-description" data-i18n="ui.settings.voice_billing_hint">Off unless you switch it on. Tap "Speak the line" on Billing and say the item, weight and rate, e.g. "10 kg rice 30 rupees"; join several lines with "and", and say "customer" before a name. You see what was understood (and hear it, unless muted) before anything is filled: one line fills the form, several are added to the bill only after OK. Voice never saves. The phone's or browser's speech service turns speech into text (usually Google's; it may need the internet); the app keeps no recording or text. Saved on this device.</p>
+            <p class="setting-description" data-i18n="ui.settings.voice_billing_short">Speak a bill line on Billing; you check it before it is filled. Saved on this device.</p>
             <p class="setting-description" id="voiceBillingUnavailable" hidden data-i18n="ui.settings.voice_billing_unavailable">Not available on this device.</p>
             <label class="set-toggle">
                 <span data-i18n="ui.settings.voice_beep_toggle">Beep after listening</span>
                 <input type="checkbox" class="switch" id="settingVoiceBeep" disabled data-onchange="voice.setBeep(this.checked)">
             </label>
             <p class="setting-description" data-i18n="ui.settings.voice_beep_hint">A high beep when the line was understood, a low one when not. Saved on this device.</p>
+            <details class="page-help"><summary class="btn btn-ghost btn-sm"><span data-i18n="ui.common.about">About</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></summary>
+                <p class="setting-description" data-i18n="ui.settings.voice_billing_hint">Off unless you switch it on. Tap "Speak the line" on Billing and say the item, weight and rate, e.g. "10 kg rice 30 rupees"; join several lines with "and", and say "customer" before a name. You see what was understood (and hear it, unless muted) before anything is filled: one line fills the form, several are added to the bill only after OK. Voice never saves. The phone's or browser's speech service turns speech into text (usually Google's; it may need the internet); the app keeps no recording or text. Saved on this device.</p>
+            </details>
         </div>
 
         <div class="panel panel-pad set-panel" id="photoWeightsCard">
@@ -211,9 +214,12 @@
                 <span data-i18n="ui.settings.photo_weights_toggle">Read bag weights from a photo</span>
                 <input type="checkbox" class="switch" id="settingPhotoWeights" disabled data-onchange="photoWeights.setOn(this.checked)">
             </label>
-            <p class="setting-description" data-i18n="ui.settings.photo_weights_hint">Off unless the owner switches it on. Then everyone sees “Photo of weights” on Purchase billing: take a photo of the weight sheet, check the weights and add them to the bag weights. Nothing is saved until the bill is saved. The photo is sent to Google’s Gemini to be read and is not kept. Photograph only the weights, not names or phone numbers. Saved for everyone.</p>
+            <p class="setting-description" data-i18n="ui.settings.photo_weights_short">Purchase billing reads bag weights from a photo of the weight sheet. Saved for everyone.</p>
             <p class="setting-description" id="photoWeightsOwnerOnly" hidden data-i18n="ui.settings.photo_weights_owner_only">Only the owner can change this.</p>
             <p class="setting-description tone-warn" id="photoWeightsNeedsSetup" hidden data-i18n="ui.settings.photo_weights_needs_setup">Not working in this app yet: the app's security check (App Check) must be set up first. Until then the button stays hidden.</p>
+            <details class="page-help"><summary class="btn btn-ghost btn-sm"><span data-i18n="ui.common.about">About</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></summary>
+                <p class="setting-description" data-i18n="ui.settings.photo_weights_hint">Off unless the owner switches it on. Then everyone sees “Photo of weights” on Purchase billing: take a photo of the weight sheet, check the weights and add them to the bag weights. Nothing is saved until the bill is saved. The photo is sent to Google’s Gemini to be read and is not kept. Photograph only the weights, not names or phone numbers. Saved for everyone.</p>
+            </details>
         </div>
     </section>
 
@@ -318,11 +324,12 @@
         <!-- People (U-54): waiting to join, everyone's role, reset, remove; a worker without email (U-56) -->
         <div class="panel panel-pad set-panel" id="teamPeopleCard" hidden>
             <h3 class="set-title" data-i18n="ui.team.people_title">People</h3>
-            <p class="setting-description" data-i18n="ui.team.people_hint">Waiting to join, everyone's role, password reset and removing someone from the shop.</p>
+            <p class="setting-description" data-i18n="ui.team.people_hint">Waiting to join, everyone's role (also in Rentals), password reset and removing someone from the shop.</p>
             <div class="set-actions">
-                <button class="btn" type="button" id="teamShowPeople" data-onclick="team.render()" data-i18n="ui.roles.show_people">Show people</button>
+                <button class="btn" type="button" id="teamShowPeople" data-onclick="team.showPeople()" data-i18n="ui.roles.show_people">Show people</button>
             </div>
             <div id="teamPeople"></div>
+            <div id="rolePeopleList"></div>
             <details class="team-add" id="teamAddWorker">
                 <summary class="btn btn-tonal" data-i18n="ui.team.add_worker">Add a worker without email</summary>
                 <p class="setting-description" data-i18n="ui.team.add_worker_hint">For a worker with no email: they sign in with this username and PIN. Tell them both.</p>
@@ -361,12 +368,6 @@
                 <button class="btn btn-primary" type="button" data-onclick="roles.save()" data-i18n="ui.roles.save">Save for everyone</button>
             </div>
             <p class="setting-description" id="roleAccessStatus"></p>
-            <h4 class="set-subtitle" data-i18n="ui.roles.rentals_roles_title">Rentals roles</h4>
-            <p class="setting-description" data-i18n="ui.roles.people_load_hint">Each person's Aadhat role and Rentals role.</p>
-            <div class="set-actions">
-                <button class="btn" type="button" id="rolePeopleBtn" data-onclick="roles.loadPeople()" data-i18n="ui.roles.show_people">Show people</button>
-            </div>
-            <div id="rolePeopleList"></div>
         </div>
     </section>
 

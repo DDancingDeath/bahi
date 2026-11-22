@@ -1,7 +1,7 @@
-# Rates
+# Items & rates
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [rates.hi.md](rates.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
-The item list with purchase, sale and wholesale rates. Every change is kept in the
+The item list with purchase, sale and wholesale rates, each with ₹ ("Buy ₹25, ₹25.50"; "—" when there is none). Every change is kept in the
 rate history (also Excel imports). The most used items come first; tick **A–Z order** to sort
 by name (kept on this phone). Renaming an item asks first and is kept in the rate history.

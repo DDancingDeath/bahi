@@ -457,7 +457,7 @@ describe('#107 Outstanding: cash + online split', () => {
         const writes = ctx.fake.stats.writes;
         await OutstandingManager.recordPayment('r0', 'retail');
         expect(ctx.fake.stats.writes).toBe(writes);
-        expect(toast).toHaveBeenCalledWith('Payment amount exceeds outstanding amount');
+        expect(toast).toHaveBeenCalledWith('Payment is more than the due');
     });
 });
 
@@ -759,16 +759,48 @@ describe('#104 "Mark as cleared" asks how and records it (no silent write-off)',
     });
 
     test.each([
-        ['writeOff', '', true, 'Please write a reason for the write-off'],
-        [null, 'x', true, 'Choose how the due was settled'],
+        ['writeOff', '', true, ['clearReasonError', 'Please write a reason for the write-off']],
+        [null, 'x', true, ['clearMethodError', 'Choose how the due was settled']],
         ['writeOff', 'Moved away', false, null]
-    ])('nothing is written when method=%p reason=%p ok=%p', async (method, reason, ok, message) => {
+    ])('nothing is written when method=%p reason=%p ok=%p', async (method, reason, ok, error) => {
         answer(method, reason, ok);
         const writes = ctx.fake.stats.writes;
         expect(await OutstandingManager.markAsCleared('r1', 'retail')).toBe(false);
         expect(dialogShown).toBe(true);
         expect(ctx.fake.stats.writes).toBe(writes);
-        if (message) expect(toast).toHaveBeenCalledWith(message);
+        if (error) {
+            // F52: said under its field, not as a toast
+            const el = document.getElementById(error[0]);
+            expect([el.hidden, el.textContent]).toEqual([false, error[1]]);
+            expect(toast).not.toHaveBeenCalledWith(error[1]);
+        }
+    });
+
+    test('F52: the dialog asks in a fieldset of radio rows and stays open, with field errors, until answered', async () => {
+        let opts = null;
+        jest.spyOn(UIManager, 'showModalWithHtml').mockImplementation(async (html, title, cancel, o) => {
+            document.getElementById('modalMessage').innerHTML = html;
+            opts = o;
+            return false;
+        });
+        await OutstandingManager.markAsCleared('r1', 'retail');
+        const set = document.querySelector('#modalMessage fieldset.radio-rows');
+        expect(set.querySelector('legend').textContent).toBe('How was it settled?');
+        expect(set.querySelectorAll('label > input[type="radio"][name="clearMethod"]')).toHaveLength(3);
+        expect(document.querySelector('#modalMessage .field > label[for="clearReason"]')).not.toBeNull();
+
+        expect(opts.validate()).toBe(false);
+        expect(document.getElementById('clearMethodError').hidden).toBe(false);
+        document.querySelector('input[name="clearMethod"][value="writeOff"]').checked = true;
+        expect(opts.validate()).toBe(false);
+        expect(document.getElementById('clearMethodError').hidden).toBe(true);
+        expect(document.getElementById('clearReason').getAttribute('aria-invalid')).toBe('true');
+        expect(document.getElementById('clearReasonError').textContent).toBe('Please write a reason for the write-off');
+        document.getElementById('clearReason').value = 'Left town';
+        expect(opts.validate()).toBe(true);
+        expect(document.getElementById('clearReasonError').hidden).toBe(true);
+        expect(document.getElementById('clearReason').hasAttribute('aria-invalid')).toBe(false);
+        expect(toast).not.toHaveBeenCalled();
     });
 
     test('received in cash: records the remaining due as a cash payment (drawer leg) and marks the bill cleared', async () => {
@@ -790,13 +822,13 @@ describe('#104 "Mark as cleared" asks how and records it (no silent write-off)',
         expect(bill.payments[0]).toMatchObject({ online: 600, cash: 0, note: 'UPI ref 123' });
     });
 
-    test('wholesale "Mark as Cleared" uses the same dialog and transaction', async () => {
+    test('wholesale "Mark as cleared" (Outstanding › Wholesale) uses the same dialog and transaction', async () => {
         const W = { id: 'w1', billNumber: 'W1', customerName: 'Gupta', source: 'sales-tab', date: '2026-10-20T10:00:00', total: 5000, payment: { cash: 3000, online: 0, due: 2000 } };
         ctx.fake.seed('wholesaleSales', [W]);
         AppState.salesHistory = [{ ...W }];
         jest.spyOn(WholesaleSalesManager, 'renderSalesHistory').mockImplementation(() => {});
         answer('writeOff', 'Settled by discount');
-        await WholesaleSalesManager.markSaleAsCleared('w1');
+        await OutstandingManager.markAsCleared('w1', 'wholesale');
         expect(ctx.fake.raw('wholesaleSales').get('w1')).toMatchObject({ cleared: true, payment: { due: 0, writtenOff: 2000 } });
     });
 });

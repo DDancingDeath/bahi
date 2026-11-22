@@ -131,7 +131,7 @@ test('two phones: a due paid on the other phone can\'t be paid again from the st
         await record(page, sale.id, 360);
         await server.release();
         await expect(page.locator('#toast')).toHaveText(
-            /another payment on this bill was recorded at the same moment\. Due now ₹160|exceeds outstanding amount \(₹160\)/,
+            /another payment on this bill was recorded at the same moment\. Due now ₹160|is more than the due \(₹160\)/,
             { timeout: 60000 });
     } finally {
         await server.release();

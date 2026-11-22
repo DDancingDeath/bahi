@@ -37,6 +37,22 @@ export function voidedBannerHtml(bill) {
 }
 
 /**
+ * The bill's note (its comments) as a plain row in the details sheet (NEW-13): a note is not a warning.
+ * @param {Object} bill
+ * @returns {string} HTML ('' for a bill without a note)
+ */
+export function billNoteHtml(bill) {
+    const note = String(bill?.comments ?? '').trim();
+    if (!note) return '';
+    return `<section class="bill-view-sec bill-view-note">
+        <div class="row bill-view-row"><div class="row-main">
+            <div class="row-meta">${L('ui.wholesale.comments')}</div>
+            <div class="bill-view-note-text">${Helpers.escapeHtml(note)}</div>
+        </div></div>
+    </section>`;
+}
+
+/**
  * "Edited 2× · View changes" (nothing for a bill never edited). The changes
  * are read only when tapped.
  * @param {Object} bill
@@ -75,12 +91,12 @@ export function renderEditsList(list, edits) {
 
 /**
  * Asks for a required reason (void or edit). Too short or cancelled: null.
- * @param {{titleKey: string, explainKey?: string, labelKey: string, confirmKey?: string, danger?: boolean}} keys
- *   confirmKey: the confirm button's verb ("Void bill"); danger: a destructive confirm
+ * @param {{titleKey: string, explainKey?: string, labelKey: string, confirmKey?: string, danger?: boolean, leadHtml?: string}} keys
+ *   confirmKey: the confirm button's verb ("Void bill"); danger: a destructive confirm; leadHtml: trusted, escaped HTML shown first
  * @returns {Promise<?string>}
  */
-export async function askReason({ titleKey, explainKey, labelKey, confirmKey, danger = false }) {
-    const html = `${explainKey ? `<p>${L(explainKey)}</p>` : ''}
+export async function askReason({ titleKey, explainKey, labelKey, confirmKey, danger = false, leadHtml = '' }) {
+    const html = `${leadHtml}${explainKey ? `<p>${L(explainKey)}</p>` : ''}
         <div class="field">
             <label for="reasonInput">${L(labelKey)}</label>
             <textarea id="reasonInput" class="input" rows="2" maxlength="${REASON_MAX}"></textarea>

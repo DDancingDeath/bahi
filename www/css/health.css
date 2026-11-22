@@ -105,20 +105,15 @@
   font-size: var(--fs-caption);
 }
 
-/* Today: the banner when a check is below its target (a .notice.neg) */
-.tip-health {
+/* Today › Day report: the checks below their target today (a .notice.warn inside the closed row, NEW-06) */
+.day-report-health {
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: var(--sp-3);
 }
 
-.tip-health[hidden] {
-  display: none;
-}
-
-.tip-health-text {
+.day-report-health > .grow {
   flex: 1 1 200px;
-  font-weight: var(--w-strong);
 }
 
 /* Checks and phones as rows that fit a phone (U-70) */

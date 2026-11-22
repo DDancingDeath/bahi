@@ -143,7 +143,14 @@ describe('1. "Not split yet" shows only while some of the bill is not split', ()
         expect(document.querySelector('#purchaseSection .pay-split')).toBeNull();
 
         document.body.innerHTML = WHOLESALE;
-        shown('#salesEntrySection', ['wholesaleOnlinePayment', 'wholesaleCashPayment', 'wholesaleTotalReceived', 'wholesaleDueAmount']);
+        const ws = ['wholesaleOnlinePayment', 'wholesaleCashPayment', 'wholesaleTotalReceived', 'wholesaleDueAmount'];
+        shown('#salesEntrySection', ws);
+        Helpers.showSplitRemaining('wholesaleSplitRemaining', validatePaymentSplit(500, { cash: 100 }));
+        shown('#salesEntrySection', ws);
+        $('wholesaleCashCheckbox').checked = true;
+        Helpers.showSplitRemaining('wholesaleSplitRemaining', validatePaymentSplit(500, { cash: 500 }));
+        shown('#salesEntrySection', ws);
+        expect(document.querySelector('#salesEntrySection .pay-split')).toBeNull();
     });
 });
 
