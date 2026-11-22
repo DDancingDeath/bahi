@@ -3,7 +3,7 @@
  * collection (window and dues listeners, one-shot older records) and how it reaches AppState,
  * records written on this phone, older history on demand and its refresh, and the month
  * snapshots a write makes stale. Moved verbatim out of firestore-service.js
- * (docs/architecture.md, phase 5, #69).
+ * (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/core/history-window
  */
 

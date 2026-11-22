@@ -1,7 +1,7 @@
 /**
  * @fileoverview Repository of in-app notifications (`notifications`, #12): sending an
  * event to its recipients in batches, the unread listener, pages, marking read and
- * cleaning up. Moved verbatim out of firestore-service.js (docs/architecture.md,
+ * cleaning up. Moved verbatim out of firestore-service.js (docs/project/ARCHITECTURE.md,
  * phase 5); still called as FirebaseService.sendNotification() etc.
  * @module firebase/repos/notifications
  */

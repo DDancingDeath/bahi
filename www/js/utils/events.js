@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @fileoverview A tiny in-page event bus (docs/architecture.md, phase 4): the data
+ * @fileoverview A tiny in-page event bus (docs/project/ARCHITECTURE.md, phase 4): the data
  * layer says what changed (`emit`), pages decide what to redraw (`on`). It replaces
  * firestore-service.js calling page methods through `window.app`.
  *

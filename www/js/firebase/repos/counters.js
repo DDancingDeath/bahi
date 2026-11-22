@@ -1,6 +1,6 @@
 /**
  * @fileoverview Repository of the daily bill-number counters (`counters/{P|S|W}{YYYYMMDD}`,
- * docs/architecture.md phase 4). Helpers.generateBillNumber decides between this
+ * docs/project/ARCHITECTURE.md phase 4). Helpers.generateBillNumber decides between this
  * shared counter and the per-device offline number (#41). Uses the `db` global from
  * firebaseConfig.js, as before.
  * @module firebase/repos/counters

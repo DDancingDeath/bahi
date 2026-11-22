@@ -4,7 +4,7 @@
  * bill-edit.js (checked edits with their edit records: #121; void and delete: #75),
  * bill-fields.js (shared fields), and here the reads: the server copy before an edit (#127),
  * voided bills and edit records. This module re-exports the others' functions
- * (docs/architecture.md, phase 5).
+ * (docs/project/ARCHITECTURE.md, phase 5).
  * @module firebase/repos/bills
  */
 

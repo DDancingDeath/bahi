@@ -2,7 +2,7 @@
  * @fileoverview Cash-drawer sessions (`cashManagement`) by day: the pages and the few
  * targeted reads the Cash page needs, one day or a range of days, opening a day once
  * (#38) and saving a whole session. Moved verbatim out of firestore-service.js
- * (docs/architecture.md, phase 5); the Cash page's checked updates are in
+ * (docs/project/ARCHITECTURE.md, phase 5); the Cash page's checked updates are in
  * repos/cash-sessions.js.
  * @module firebase/repos/cash-days
  */

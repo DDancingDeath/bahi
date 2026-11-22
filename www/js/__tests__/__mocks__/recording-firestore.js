@@ -4,7 +4,7 @@
  * `['collection', 'drafts'], ['doc', 'd1'], ['set', {...}]`, transaction and batch
  * calls as `['tx.get', 'ref(drafts/d1)']` / `['batch.delete', ...]`. Used by the
  * repository characterisation tests to pin the exact reads and writes before and
- * after code moves into firebase/repos/ (docs/architecture.md, phase 4).
+ * after code moves into firebase/repos/ (docs/project/ARCHITECTURE.md, phase 4).
  */
 const LOGGED = new Set([
     'collection', 'doc', 'where', 'orderBy', 'limit', 'startAfter', 'startAt', 'endAt', 'endBefore',

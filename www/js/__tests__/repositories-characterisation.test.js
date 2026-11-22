@@ -1,6 +1,6 @@
 /**
  * @fileoverview Characterisation of the Firestore calls that move out of pages and
- * services into repositories (docs/architecture.md, phase 4): bill drafts,
+ * services into repositories (docs/project/ARCHITECTURE.md, phase 4): bill drafts,
  * auto-save, item frequency, audit log, telemetry, bill counters, user profiles,
  * cash-session transactions and updates, and the due-payment / write-off
  * transactions; and, before firestore-service.js is split (phase 5, #69), the

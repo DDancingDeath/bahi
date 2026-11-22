@@ -3,7 +3,7 @@
  * checkpoint's running state plus the loaded window; the checkpoint is rebuilt from a full read
  * (one device at a time, under a lease), rolled forward from memory, and marked stale by any
  * stock-affecting change older than it. Moved verbatim out of firestore-service.js
- * (docs/architecture.md, phase 5, #69).
+ * (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/core/stock-checkpoint
  */
 

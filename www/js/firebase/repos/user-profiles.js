@@ -2,7 +2,7 @@
  * @fileoverview Repository of user profiles for the Users / Admin pages, the people
  * lists (owner: every profile; managers: the team directory, #87) and the profile cache
  * the notification fan-out reads. Moved verbatim out of firestore-service.js
- * (docs/architecture.md, phase 5); still called as FirebaseService.loadUsers() etc.
+ * (docs/project/ARCHITECTURE.md, phase 5); still called as FirebaseService.loadUsers() etc.
  * @module firebase/repos/user-profiles
  */
 

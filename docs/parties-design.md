@@ -7,7 +7,7 @@ party's bills, merged), #103 (exports of customer data), #113 (offline edits ove
 #116 (PII in telemetry), old app #68 (name required for a due: now the `party-required` bill check).
 
 Read with: [calculations.md](calculations.md) (PARTY, BILL-DUE, OPENING, VOID, O1–O4, ST3,
-I3 / I4 / I10, REM-1), [architecture.md](architecture.md) (layers, repositories, ratchet),
+I3 / I4 / I10, REM-1), [project/ARCHITECTURE.md](project/ARCHITECTURE.md) (layers, repositories, ratchet),
 [role-permissions.md](role-permissions.md), [read-budget.md](read-budget.md),
 `tools/migrate/README.md`, and the platform proposal `docs/platform-design.md` (PR #208, open).
 

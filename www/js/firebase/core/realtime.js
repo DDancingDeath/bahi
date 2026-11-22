@@ -2,7 +2,7 @@
  * @fileoverview Realtime coordinator of the data layer: the listeners' unsubscribe and
  * first-snapshot lists, applying a snapshot's changes, and the debounced refresh that
  * recomputes stock and emits `refresh:<view>` for the open tab (utils/events.js).
- * Moved verbatim out of firestore-service.js (docs/architecture.md, phase 5, #69).
+ * Moved verbatim out of firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/core/realtime
  */
 

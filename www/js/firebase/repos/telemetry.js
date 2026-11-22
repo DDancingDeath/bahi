@@ -1,5 +1,5 @@
 /**
- * @fileoverview Repository of error reports (`telemetry`, docs/architecture.md
+ * @fileoverview Repository of error reports (`telemetry`, docs/project/ARCHITECTURE.md
  * phase 4): create-only report documents (#122), the owner's list, hiding
  * (#116) and the 90-day retention. services/telemetry.js
  * groups errors and decides when to send them.

@@ -383,7 +383,7 @@ shows the pick order — see "Planning" below. The old staging clone and its
 ## Documentation
 
 - **[AGENTS.md](AGENTS.md)** — conventions and workflows for anyone (human or AI) changing this repo
-- **[docs/architecture.md](docs/architecture.md)** — layers, which function owns each number, refactor plan, architecture ratchet test
+- **[docs/project/ARCHITECTURE.md](docs/project/ARCHITECTURE.md)** — layers, which function owns each number, refactor plan, architecture ratchet test
 - **[docs/read-budget.md](docs/read-budget.md)** — the 50,000 reads/day budget, the read guards and what to do when it runs out
 - **[ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md)** — `dev_` collection prefix, switching environments
 - **[docs/release-checklist.md](docs/release-checklist.md)** — manual checks before every release (printer, offline bills, cash, APK upgrade, timings)

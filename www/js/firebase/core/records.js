@@ -2,7 +2,7 @@
  * @fileoverview History collections and their loaded records, shared by the data layer:
  * which collections the history window loads (and who may read them), the document id
  * and loaded payment state kept with each record, and their order. Moved verbatim out
- * of firestore-service.js (docs/architecture.md, phase 5, #69).
+ * of firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69).
  * @module firebase/core/records
  */
 

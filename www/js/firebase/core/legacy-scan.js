@@ -3,7 +3,7 @@
  * numeric `timestamp` (or `openDue`) are invisible to the window and dues queries; owner and
  * manager phones find them in the background after the first screen and write the missing
  * fields (stockCheckpoints/legacyScan records how far each collection got). Moved verbatim out
- * of firestore-service.js (docs/architecture.md, phase 5, #69). Also the owner's one-time due
+ * of firestore-service.js (docs/project/ARCHITECTURE.md, phase 5, #69). Also the owner's one-time due
  * backfill (DUE-BACKFILL, #126): a check, then the bills whose due is not stored once in payment.due.
  * @module firebase/core/legacy-scan
  */

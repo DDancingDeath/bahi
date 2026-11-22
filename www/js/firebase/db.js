@@ -1,7 +1,7 @@
 /**
  * @fileoverview What every part of the data layer shares: the Firestore instance,
  * collection names with the environment prefix, and the version stamp on writes of
- * figures built from bills. Moved out of firestore-service.js (docs/architecture.md,
+ * figures built from bills. Moved out of firestore-service.js (docs/project/ARCHITECTURE.md,
  * phase 5).
  * @module firebase/db
  */
