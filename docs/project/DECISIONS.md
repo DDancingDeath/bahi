@@ -41,7 +41,7 @@ this repo.
 | D-011 | Bottom tab says "Dues" | Accepted |
 | D-012 | Members' default permissions are narrow | Accepted |
 | D-013 | PIN worker accounts are Member-only | Accepted |
-| D-014 | Billing: WhatsApp and Due always visible | Proposed |
+| D-014 | Billing: WhatsApp and Due always visible | Accepted |
 | D-015 | Photo of weights via Firebase AI Logic + App Check | Accepted |
 | D-016 | Free Spark plan, read budget, no Cloud Functions | Accepted |
 | D-017 | Void, never delete; owner edits recorded too | Accepted |
@@ -138,10 +138,9 @@ this repo.
 - **Decision** Such accounts can only ever be Member: the Add worker picker offers Member only and role changes refuse Manager/Owner.
 
 ### D-014 — Billing: WhatsApp and Due always visible
-- **Status** **Proposed** (PR open, not merged on 2026-11-21) · **Date** 2026-11-18 · **Decider** Owner (request) · **Related** [PR #534](https://github.com/DDancingDeath/happa/pull/534)
+- **Status** Accepted (merged 2026-11-22) · **Date** 2026-11-18 · **Decider** Owner (request) · **Related** [PR #534](https://github.com/DDancingDeath/happa/pull/534)
 - **Context** The UX review (U-18, U-27) hid the share button on empty bills and folded the payment rows.
-- **Proposed decision** Revert: WhatsApp share always in the footer; Cash, Online, Total paid and Due rows always shown.
-- **On merge** set Accepted and the merge date.
+- **Decision** Revert: WhatsApp share always in the footer; Cash, Online, Total paid and Due rows always shown, Wholesale included.
 
 ### D-015 — Photo of weights via Firebase AI Logic + App Check
 - **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner (switch is off until the owner turns it on) · **Related** #374, [photo-weights.md](../photo-weights.md), [PR #487](https://github.com/DDancingDeath/happa/pull/487), [PR #494](https://github.com/DDancingDeath/happa/pull/494)

@@ -12,7 +12,7 @@ Replace stale lines in the PR that changes them; delete expired ones.
 
 - 2026-11-16 · Cut-over done: the app lives on `bahi-happa`, tests on `bahi-happa-dev`; latest release `v1.0.0-rc16` · #72, [PR #429](https://github.com/DDancingDeath/happa/pull/429), D-004 · expires 2026-12-05
 - 2026-11-16 · UX review programme landed on `main` (batch PRs #502–#524, merged into `ux/android-review` first) · [PR #519](https://github.com/DDancingDeath/happa/pull/519) · expires 2026-12-05
-- 2026-11-18 · Billing "WhatsApp and Due always visible" revert is **open, not merged** · [PR #534](https://github.com/DDancingDeath/happa/pull/534), D-014 · expires 2026-12-05
+- 2026-11-22 · Billing "WhatsApp and Due always visible" revert merged (Wholesale too), v757 · [PR #534](https://github.com/DDancingDeath/happa/pull/534), D-014 · expires 2026-12-05
 - Pending owner decision **U-19**: move "Mark as cleared" / "Write off" into bill details? Not done (changes money flows) · [PR #521](https://github.com/DDancingDeath/happa/pull/521) · expires 2026-12-05
 - Pending owner decision **U-22**: post worker pay / regular bills into Expenses? Money already shows them as their own lines ([PR #512](https://github.com/DDancingDeath/happa/pull/512)); must not count twice · #437 (decision a), #373 · expires 2026-12-05
 - Concern (not yet measured, no issue yet): once full history is loaded, logins may re-read all bills to rebuild stock. Code does a full read whenever the stock checkpoint is missing, older than 7 days, doesn't match the items or is too large, and members (who can't rebuild) use full history (`www/js/firebase/core/stock-checkpoint.js`, [read-budget.md](../read-budget.md)). Next: measure reads per login on `bahi-happa-dev`, then file a `[Perf]` issue · expires 2026-12-05

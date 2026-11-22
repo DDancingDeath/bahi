@@ -84,6 +84,5 @@ Shop workers at the counter are the main users; the owner is the main reader of 
 |---|---|
 | Do worker pay and regular bills also count in Expenses / Spending? | #437 (decision a), #373, U-22 in [MEMORY.md](MEMORY.md) |
 | Where do "Mark as cleared" / "Write off" live (list or bill details)? | U-19 in [MEMORY.md](MEMORY.md) |
-| WhatsApp and Due always visible on Billing? | [PR #534](https://github.com/DDancingDeath/happa/pull/534), D-014 |
 | Read cost once full history is loaded | [MEMORY.md](MEMORY.md), [read-budget.md](../read-budget.md) |
 | Outcome targets marked TBD above | Owner |
