@@ -2,22 +2,26 @@
   "releases": [
     {
       "version": "1.0.0",
-      "date": "2026-11-17",
+      "date": "2026-11-23",
       "androidVersionCode": 1,
       "notes": {
         "en": [
+          "Billing: one mic beside Customer speaks the whole bill; Print is the main button (it saves, then prints); WhatsApp and Due are always shown; Labour is a simpler card.",
+          "Today is shorter: figures first, an in / out bar, Labour as one line (Deducted · Est. pay), a short Day report with one share button, and Today's bills as one row that opens History. Tap Purchases or Sales to see how they were paid.",
+          "Today › Cash: Expected cash in the grid; once counted, one line says how it compares.",
+          "\"Dues\" everywhere, dates like \"21 Nov 2026\", and ⋯ menus that no longer move the rows (Dues, Anomalies).",
+          "Rentals has one view; filters, property / unit views and reports are in the same screens. Rent due is at the top of Rentals, not on Aadhat's Today.",
           "Bahi now has one home: bahi-happa.web.app. Rentals, logins and the tenant link moved here from myhappa, and myhappa now opens Bahi. Phones with an old myhappa app must install this one and sign in again.",
-          "Many fixes from the Android review: the app fits the screen and keyboard better, Back works as expected, bigger buttons and text, Share / Save / Print work in the app, clearer bills and records, and better offline start.",
-          "People and roles moved to Settings › Team: approve people, change roles and reset passwords there.",
-          "Photo of weights tries again by itself when the reader is busy (\"Busy, trying again…\").",
-          "Dues are worked out one way everywhere, so every page shows the same amount due."
+          "Many smaller fixes across the app."
         ],
         "hi": [
+          "बिलिंग: ग्राहक के पास एक माइक से पूरा बिल बोलें; प्रिंट मुख्य बटन है (पहले सेव, फिर प्रिंट); WhatsApp और बकाया हमेशा दिखते हैं; मज़दूरी का कार्ड आसान हुआ।",
+          "आज पेज छोटा हुआ: पहले आँकड़े, आया / गया की पट्टी, मज़दूरी एक लाइन में (काटी गई · अनुमानित मज़दूरी), छोटी आज की रिपोर्ट एक भेजें बटन के साथ, और आज के बिल एक लाइन जो इतिहास खोलती है। खरीद या बिक्री दबाकर देखें कि भुगतान कैसे हुआ।",
+          "आज › नकद: अनुमानित नकद जाल में; गिनने के बाद एक लाइन बताती है कि मेल खाया या नहीं।",
+          "हर जगह \"बकाया\", तारीख़ \"21 नवंबर 2026\" जैसी, और ⋯ मेनू जो अब लाइनें नहीं खिसकाते (बकाया, गड़बड़ियाँ)।",
+          "किराया अब एक ही दिखावट में; छाँटना, संपत्ति / यूनिट वाले दृश्य और रिपोर्ट उन्हीं स्क्रीन में हैं। बाकी किराया किराये के पेज पर सबसे ऊपर है, आढ़त के आज पेज पर नहीं।",
           "Bahi का अब एक ही घर है: bahi-happa.web.app. किराया, लॉगिन और किरायेदार का लिंक myhappa से यहाँ आ गए हैं, और myhappa अब Bahi खोलता है। जिन फ़ोन पर पुराना myhappa ऐप है, वे यह ऐप इंस्टॉल करें और फिर से लॉगिन करें।",
-          "फ़ोन ऐप की जाँच से कई सुधार: ऐप स्क्रीन और कीबोर्ड में बेहतर बैठता है, पीछे का बटन ठीक चलता है, बड़े बटन और अक्षर, ऐप में शेयर / सेव / प्रिंट चलते हैं, साफ़ बिल और रिकॉर्ड, और बिना इंटरनेट बेहतर शुरुआत।",
-          "लोग और भूमिकाएँ सेटिंग › टीम में आ गए हैं: लोगों को मंज़ूरी, भूमिका बदलना और पासवर्ड बदलना वहीं होता है।",
-          "वज़न की फ़ोटो पढ़ने वाला व्यस्त हो तो ऐप अपने आप फिर कोशिश करता है (\"व्यस्त है, फिर कोशिश कर रहे हैं…\")।",
-          "बाक़ी (उधार) हर जगह एक ही तरीके से गिना जाता है, इसलिए हर पेज पर एक ही बाक़ी दिखती है।"
+          "पूरे ऐप में कई छोटे सुधार।"
         ]
       }
     }
