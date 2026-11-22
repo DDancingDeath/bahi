@@ -1,7 +1,7 @@
 /**
  * Billing line entry with floating labels (option C), on a phone (390 and 360 px): each label sits on its
- * field's top border, at 14 px or more, and stays there with a value; Item is wider than Rate; the 🎙 is in the
- * Item | Rate row only with Voice billing on, and the fields take its room when it is off; Packets · Total and
+ * field's top border, at 14 px or more, and stays there with a value; Item is wider than Rate; the 🎙 is to the
+ * right of Customer only with Voice billing on, and the name field takes its room when it is off; Packets · Total and
  * Add to bill share a row; every control is at least 44 px. Both Purchase and Retail sale.
  */
 const { test, expect, login, showTab, settle } = require('./support/app');
@@ -69,10 +69,12 @@ for (const width of [390, 360]) {
                     expect(l.onTop, `${l.id} label not covered (${where})`).toBe(true);
                 }
                 expect(got.item.width, `Item wider than Rate (${where})`).toBeGreaterThan(got.rate.width);
-                if (on) expect(Math.abs(got.mic.top - got.item.top), `🎙 in the Item | Rate row (${where})`).toBeLessThanOrEqual(1);
-                else {
+                expect(Math.abs(got.rate.right - got.addLine.right), `Item | Rate fill the row (${where})`).toBeLessThanOrEqual(1);
+                if (on) {
+                    expect(Math.abs((got.mic.top + got.mic.bottom) / 2 - (got.nameBox.top + got.nameBox.bottom) / 2), `🎙 on the Customer row (${where})`).toBeLessThanOrEqual(4);
+                    expect(got.mic.left, `🎙 right of Customer (${where})`).toBeGreaterThanOrEqual(got.nameBox.right - 1);
+                } else {
                     expect(got.mic, `no 🎙 with voice off (${where})`).toBeNull();
-                    expect(Math.abs(got.rate.right - got.addLine.right), `Rate takes the 🎙's room (${where})`).toBeLessThanOrEqual(1);
                 }
                 expect(got.small, `44 px targets (${where})`).toEqual([]);
                 expect(Math.abs((got.sum.top + got.sum.bottom) / 2 - (got.addLine.top + got.addLine.bottom) / 2) < got.addLine.height / 2, `Packets · Total and Add to bill on one row (${where})`).toBe(true);
