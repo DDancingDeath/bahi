@@ -36,6 +36,21 @@ export const TODAY_LABOUR_KEY = 'today-labour';
 export const TODAY_DUES_KEY = 'today-dues';
 export const TODAY_ITEMS_KEY = 'today-items';
 const ITEM_TYPES = [['purchase', 'ui.reports.pdf_purchase', ''], ['retail', 'ui.finance.bill_retail', ' sale'], ['wholesale', 'ui.finance.bill_wholesale', ' wholesale']];
+/**
+ * Writes a Today block's markup and gives the focus back to the control that had it (same id, else the same action),
+ * so a data refresh never drops a keyboard or screen-reader user to the page.
+ * @param {HTMLElement} host
+ * @param {string} html
+ */
+const redraw = (host, html) => {
+    const had = /** @type {?HTMLElement} */ (document.activeElement);
+    const inside = !!had && had !== host && host.contains(had);
+    const id = inside ? had.id : '';
+    const action = inside ? had.dataset?.onclick : '';
+    host.innerHTML = html;
+    const back = id ? document.getElementById(id) : action ? [...host.querySelectorAll('[data-onclick]')].find(x => x.dataset.onclick === action) : null;
+    back?.focus();
+};
 /** Bills in memory by kind, for the owner's write-off reminder (U-08). */
 const loadedBillsByKind = () => ({ purchase: AppState.purchaseHistory || [], retail: AppState.retailSalesHistory || [], wholesale: AppState.salesHistory || [] });
 const REMINDER_ICONS = {
@@ -123,7 +138,10 @@ export const DayManager = {
     /** Pull-to-refresh and the desktop refresh button: the day's figures again, and the Day report rescanned. */
     refresh() {
         this.init();
-        return loadAnomalies().then(m => m.refreshNow()).catch(e => console.warn('Day report refresh failed:', e));
+        if (AppState.userRole !== 'owner' && AppState.userRole !== 'manager') return Promise.resolve(true);
+        // After the redraw's own (cached) refresh, so the server rescan isn't folded into it
+        return loadAnomalies().then(m => Promise.resolve(m.refreshing).then(() => m.refreshNow()))
+            .catch(e => console.warn('Day report refresh failed:', e));
     },
 
     /**
@@ -575,9 +593,9 @@ export const DayManager = {
         }
         el.dataset.state = state;
         const main = `<span class="row-main">${title}${meta ? `<span class="row-meta">${meta}</span>` : ''}</span>`;
-        el.innerHTML = session
+        redraw(el, session
             ? `<button type="button" class="row" data-onclick="day.showSubTab('cash')">${main}<span class="row-trail">${trail}</span></button>`
-            : `<div class="row">${main}<span class="row-trail">${trail}</span></div>`;
+            : `<div class="row">${main}<span class="row-trail">${trail}</span></div>`);
     },
 
     /**
@@ -611,13 +629,12 @@ export const DayManager = {
             row('ui.today.dues_new_pay', 'todayDueToPay', s.dueToPay, { tone: 'tone-warn' })
         ].join('') + (canDue ? `<div class="today-links"><button type="button" class="btn btn-ghost btn-sm" data-onclick="nav.showTab('due', event)">${e(t('ui.today.reminder_open_dues'))}${icon('chevR', 'i-sm')}</button></div>` : '');
         const num = (v) => `<strong>${e(moneyText(v))}</strong>`;
-        const hadFocus = ['todayLabourToggle', 'todayDuesToggle'].find(id => document.activeElement?.id === id);
         if (wide) {
-            host.innerHTML = `<section class="panel panel-float today-labour" id="todayLabourCard"><h3 class="panel-legend">${e(t('ui.today.labor'))}</h3>${labourBody}</section>`
-                + `<section class="panel panel-float" id="todayDuesCard"><h3 class="panel-legend">${e(t('ui.today.dues_today'))}</h3>${duesBody}</section>`;
+            redraw(host, `<section class="panel panel-float today-labour" id="todayLabourCard"><h3 class="panel-legend">${e(t('ui.today.labor'))}</h3>${labourBody}</section>`
+                + `<section class="panel panel-float" id="todayDuesCard"><h3 class="panel-legend">${e(t('ui.today.dues_today'))}</h3>${duesBody}</section>`);
             return;
         }
-        host.innerHTML = `<div class="panel today-stack">${disclosureHtml({
+        redraw(host, `<div class="panel today-stack">${disclosureHtml({
             key: TODAY_LABOUR_KEY, id: 'todayLabour', line: true,
             title: e(t('ui.today.labor')),
             summary: `<span>${e(t('ui.today.labour_sum_deducted'))} ${num(labour.deducted.amount)}</span> <span>·</span> <span>${e(t('ui.today.labour_sum_est'))} ${num(labour.toPay.amount)}</span>`,
@@ -627,8 +644,7 @@ export const DayManager = {
             title: e(t('ui.today.dues_today')),
             summary: `<span>${e(t('ui.today.dues_sum_get'))} <strong class="tone-warn">${e(moneyText(s.dueToReceive))}</strong></span> <span>·</span> <span>${e(t('ui.today.dues_sum_pay'))} <strong class="tone-warn">${e(moneyText(s.dueToPay))}</strong></span>`,
             body: duesBody
-        })}</div>`;
-        if (hadFocus) refocusDisclosure(hadFocus.replace(/Toggle$/, ''), true);
+        })}</div>`);
     },
 
     /**
@@ -652,7 +668,7 @@ export const DayManager = {
     renderCashOnline() {
         const host = document.getElementById('todayCashOnline');
         if (!host || !this.lastSummary) return;
-        host.innerHTML = `<section class="panel panel-float" id="todayCashOnlineCard"><h3 class="panel-legend">${Helpers.escapeHtml(t('ui.today.cash_online'))}</h3>${this.cashOnlineRows(this.lastSummary, true)}</section>`;
+        redraw(host, `<section class="panel panel-float" id="todayCashOnlineCard"><h3 class="panel-legend">${Helpers.escapeHtml(t('ui.today.cash_online'))}</h3>${this.cashOnlineRows(this.lastSummary, true)}</section>`);
     },
 
     /** Total in / Total out in the hero: the day's cash and online split as a sheet. */
@@ -689,20 +705,18 @@ export const DayManager = {
         };
         const billsRow = `<button type="button" class="row today-link" id="todayBillsLink" data-onclick="nav.showTab('history-today', event)">`
             + `<span class="row-main row-title">${e(t('ui.today.bills_title'))}</span><span class="row-trail" id="todayBillsCount">${e(String(rows.length))}</span>${icon('chevR', 'i-sm')}</button>`;
-        const hadFocus = document.activeElement?.id === 'todayItemsToggle';
         if (wide) {
             const [first, ...rest] = shown;
-            host.innerHTML = (shown.length ? `<div class="today-items-grid"><div>${first ? block(first) : ''}</div><div>${rest.map(block).join('')}</div></div>` : '')
-                + `<div class="panel today-stack">${billsRow}</div>`;
+            redraw(host, (shown.length ? `<div class="today-items-grid"><div>${first ? block(first) : ''}</div><div>${rest.map(block).join('')}</div></div>` : '')
+                + `<div class="panel today-stack">${billsRow}</div>`);
             return;
         }
-        host.innerHTML = `<div class="panel today-stack">${shown.length ? disclosureHtml({
+        redraw(host, `<div class="panel today-stack">${shown.length ? disclosureHtml({
             key: TODAY_ITEMS_KEY, id: 'todayItems', line: true,
             title: e(t('ui.today.items')),
             summary: `<span>${e(t('ui.today.items_sum', { bought: s.purchaseItems.length, sold: (showWholesale ? s.saleItems : s.retailItems || []).length }))}</span>`,
             body: `<div class="today-items-wrap">${shown.map(block).join('')}</div>`
-        }) : ''}${billsRow}</div>`;
-        refocusDisclosure('todayItems', hadFocus);
+        }) : ''}${billsRow}</div>`);
     },
 
     /**

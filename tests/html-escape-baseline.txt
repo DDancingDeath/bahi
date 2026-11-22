@@ -22,6 +22,7 @@ www/js/modules/day.js: disclosureHtml({ key: TODAY_REMINDERS_KEY, id: 'todayRemi
 www/js/modules/day.js: dot
 www/js/modules/day.js: first ← first from shown (markup via block)
 www/js/modules/day.js: firstRunSteps({ shopName: AppState.settings?.shopName, itemCount: (AppState.items || []).length, teamSeen: read(FIRST_RUN_TEAM_KEY) === '1', (markup via map(s => `<li class="first-run-step${s.done ? ' done' : ''}">${s.done ? icon('check', 'i-sm') : ''}<span>${e(t(`ui.firstrun.step_${s.id}`))}</sp) .route)
+www/js/modules/day.js: html (sink)
 www/js/modules/day.js: id
 www/js/modules/day.js: ids ? ` id="${id}"` : '' ← id
 www/js/modules/day.js: ids[type] ← ids = { purchase: 'todayPurchaseItems', retail: 'todayRetailItems', wholesale: 'todayW

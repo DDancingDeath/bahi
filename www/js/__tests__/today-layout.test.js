@@ -209,6 +209,21 @@ describe('app bar and refresh', () => {
         await DayManager.refresh();
         expect(init).toHaveBeenCalledTimes(1);
         expect(rescan).toHaveBeenCalledTimes(1);
+        // A member has no Day report: no server scan (its reads would be refused)
+        AppState.userRole = 'staff';
+        await DayManager.refresh();
+        expect(init).toHaveBeenCalledTimes(2);
+        expect(rescan).toHaveBeenCalledTimes(1);
+    });
+
+    test('a redraw keeps the focus on the row or button that had it', () => {
+        DayManager.loadTodayData();
+        document.getElementById('todayBillsLink').focus();
+        DayManager.loadTodayData();
+        expect(document.activeElement.id).toBe('todayBillsLink');
+        document.querySelector('#todayLabourBody .today-links .btn').focus();
+        DayManager.loadTodayData();
+        expect(document.activeElement.dataset.onclick).toBe('day.showLabourBreakdown()');
     });
 });
 
