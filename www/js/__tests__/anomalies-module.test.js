@@ -54,6 +54,7 @@ beforeEach(() => {
     AnomaliesManager.scanQueue = null;
     AnomaliesManager.owners = null;
     AnomaliesManager.ownersAskedBy = null;
+    AnomaliesManager.healthAlerts = [];
     document.body.innerHTML = '<div id="dayReportCard" style="display:none"></div>';
 });
 
@@ -201,6 +202,25 @@ describe('Day report card', () => {
         expect(card.querySelector('[data-day-report-clear]').textContent).toBe('No anomalies · Nothing to review');
         expect(card.textContent).not.toContain('Needs review');
         expect(card.querySelector('[data-onclick="anomalies.openPage()"]')).not.toBeNull();
+    });
+
+    test('app health below target: an amber dot and a count on the closed row, the lines and Open app health inside (NEW-06)', async () => {
+        AppState.retailSalesHistory = [];
+        AnomaliesManager.renderDayReport({}, null);
+        await AnomaliesManager.refreshing;
+        expect(document.querySelector('[data-disclosure-alert], [data-day-report-health]')).toBeNull();
+        AnomaliesManager.setHealthAlerts(['Daily number checks: only 0% passed today (target 95%, 3 runs)', '<b>x</b>']);
+        const toggle = document.getElementById('dayReportToggle');
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(toggle.querySelector('[data-disclosure-alert]')).not.toBeNull();
+        expect(toggle.querySelector('[data-day-report-health]').textContent).toBe('App health 2');
+        const lines = document.querySelector('#dayReportBody [data-day-report-health-lines]');
+        expect(lines.className).toBe('notice warn day-report-health');
+        expect(lines.textContent).toContain('Daily number checks: only 0% passed today');
+        expect(lines.querySelector('b')).toBeNull();
+        expect(lines.querySelector('[data-onclick="health.openPage()"]').textContent).toBe('Open app health');
+        AnomaliesManager.setHealthAlerts([]);
+        expect(document.querySelector('[data-disclosure-alert], [data-day-report-health]')).toBeNull();
     });
 
     test('hidden for other users', () => {

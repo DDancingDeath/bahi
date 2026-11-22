@@ -36,6 +36,7 @@ const LABOUR_PAID_KEYS = { same: 'ui.today.labour_paid_same', more: 'ui.today.la
 const CHANNELS = { retail: 'Retail', wholesale: 'Wholesale', purchase: 'Purchase' };
 const BILL_KIND_KEYS = { retail: 'ui.finance.bill_retail', wholesale: 'ui.finance.bill_wholesale', purchase: 'ui.reports.pdf_purchase' };
 const BILLS_SHOWN = 8;
+const WIDE_TODAY = '(min-width: 1280px)';
 /** Bills in memory by kind, for the owner's write-off reminder (U-08). */
 const loadedBillsByKind = () => ({ purchase: AppState.purchaseHistory || [], retail: AppState.retailSalesHistory || [], wholesale: AppState.salesHistory || [] });
 const REMINDER_ICONS = {
@@ -72,6 +73,7 @@ export const DayManager = {
      */
     init() {
         ManualReminders.start(() => this.renderReminders());
+        this.watchWideToday();
         this.updateTodayHeader();
         this.loadTodayData();
         this.loadTodaySession();
@@ -83,6 +85,33 @@ export const DayManager = {
     /** Every cash session of `date` (usually one; legacy days can have more), from one query. */
     daySessions: { date: null, list: [] },
     daySessionsLoading: null,
+    /** @type {?MediaQueryList} */
+    wideToday: null,
+
+    /** Follows the ≥ 1280 px desktop width for placeDayDetails (once). */
+    watchWideToday() {
+        if (!this.wideToday && typeof window.matchMedia === 'function') {
+            this.wideToday = window.matchMedia(WIDE_TODAY);
+            this.wideToday.addEventListener?.('change', () => this.placeDayDetails());
+        }
+        this.placeDayDetails();
+    },
+
+    /**
+     * At ≥ 1280 px Labour and Payment breakdown sit in the right column under Reminders and the
+     * Day report; narrower they go back to the top of Day details, so the phone order stays (NEW-17).
+     */
+    placeDayDetails() {
+        const side = document.querySelector('#dayTodayContent .today-side');
+        const summary = document.querySelector('#todayMore > summary');
+        const blocks = ['todayLabourBlock', 'todayPayBlock'].map(id => document.getElementById(id));
+        if (!side || !summary || !blocks[0] || !blocks[1]) return;
+        if (this.wideToday?.matches) {
+            if (blocks[0].parentElement !== side) side.append(blocks[0], blocks[1]);
+        } else if (blocks[0].parentElement === side) {
+            summary.after(blocks[0], blocks[1]);
+        }
+    },
 
     /**
      * Today's cash sessions carry drawer legs of due payments whose bills may
@@ -195,6 +224,7 @@ export const DayManager = {
             more.dataset.roleSet = '1';
             more.open = AppState.userRole === 'owner' || AppState.userRole === 'manager';
         }
+        this.placeDayDetails();
 
         // Update UI - Main Stats
         this.updateElement('todayTotalPurchases', moneyText(s.purchases));
@@ -262,12 +292,13 @@ export const DayManager = {
             labourToPay: labour.toPay
         };
         const todaySession = session && session.date === todayIso ? session : null;
-        loadAnomalies().then(m => m.renderDayReport(totals, todaySession))
-            .catch(e => console.warn('Day report failed:', e));
-
-        // App health banner (#217): a live check below its target today (owner/manager)
-        import('./health.js').then(({ HealthManager }) => HealthManager.renderTodayBanner())
-            .catch(e => console.warn('App health banner failed:', e));
+        // App health (#217): a live check below its target today is a line in the Day report, not above the figures (NEW-06)
+        const healthLines = import('./health.js').then(({ HealthManager }) => HealthManager.todayAlerts())
+            .catch(e => { console.warn('App health checks failed:', e); return []; });
+        loadAnomalies().then(m => {
+            m.renderDayReport(totals, todaySession);
+            return healthLines.then(lines => m.setHealthAlerts(lines));
+        }).catch(e => console.warn('Day report failed:', e));
     },
 
     /**

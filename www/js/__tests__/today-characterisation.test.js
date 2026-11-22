@@ -65,7 +65,7 @@ async function renderToday(c) {
 beforeEach(() => {
     jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(HealthManager, 'renderTodayBanner').mockResolvedValue();
+    jest.spyOn(HealthManager, 'todayAlerts').mockResolvedValue([]);
 });
 afterEach(() => {
     jest.useRealTimers();

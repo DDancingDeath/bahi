@@ -1,4 +1,4 @@
-# Outstanding
+# Dues
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [outstanding.hi.md](outstanding.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 

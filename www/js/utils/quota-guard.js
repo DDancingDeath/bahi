@@ -165,28 +165,38 @@ export function createQuotaGuard(env = {}) {
         try { return storage?.getItem(DISMISS_KEY) === '1'; } catch (_) { return false; }
     };
 
+    // A .notice.warn under the app bar; --shell-notice-h pushes the pages down by its height (NEW-02)
     function showBanner() {
         if (bannerShown || !doc?.body || dismissed()) return false;
         bannerShown = true;
+        const root = doc.documentElement;
         const el = doc.createElement('div');
         el.id = BANNER_ID;
+        el.className = 'notice warn solid shell-notice';
         el.setAttribute('role', 'alert');
-        el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:calc(var(--z-toast, 100000) - 2);background:#fff3cd;color:#664d03;' +
-            'border-bottom:2px solid #f0ad4e;padding:10px 40px 10px 12px;font:14px/1.4 Arial,sans-serif;box-shadow:var(--e2);';
-        if (doc.getElementById('env-indicator')) el.style.paddingTop = '20px';
-        const text = doc.createElement('div');
-        text.textContent = `⚠️ ${quotaBannerText()}`;
+        const lead = doc.createElement('span');
+        lead.className = 'shell-notice-icon';
+        lead.innerHTML = icon('triangle');
+        const text = doc.createElement('span');
+        text.className = 'grow';
+        text.textContent = quotaBannerText();
         const close = doc.createElement('button');
         close.type = 'button';
+        close.className = 'btn btn-ghost btn-icon';
         close.setAttribute('aria-label', t('ui.kbd.close'));
         close.innerHTML = icon('x');
-        close.style.cssText = 'position:absolute;right:8px;top:6px;border:0;background:transparent;font-size:22px;line-height:1;color:#664d03;cursor:pointer;';
+        const fit = () => root.style.setProperty('--shell-notice-h', `${el.offsetHeight}px`);
+        const watch = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
         close.addEventListener('click', () => {
+            watch?.disconnect();
             el.remove();
+            root.style.removeProperty('--shell-notice-h');
             try { storage?.setItem(DISMISS_KEY, '1'); } catch (_) { /* private mode */ }
         });
-        el.append(text, close);
+        el.append(lead, text, close);
         doc.body.appendChild(el);
+        fit();
+        watch?.observe(el);
         return true;
     }
 

@@ -457,7 +457,7 @@ describe('#107 Outstanding: cash + online split', () => {
         const writes = ctx.fake.stats.writes;
         await OutstandingManager.recordPayment('r0', 'retail');
         expect(ctx.fake.stats.writes).toBe(writes);
-        expect(toast).toHaveBeenCalledWith('Payment amount exceeds outstanding amount');
+        expect(toast).toHaveBeenCalledWith('Payment is more than the due');
     });
 });
 

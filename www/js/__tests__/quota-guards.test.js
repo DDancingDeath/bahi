@@ -67,6 +67,30 @@ describe('quota banner', () => {
         createQuotaGuard({ log: quiet }).noteQuotaExhausted('b');
         expect(document.getElementById('quotaBanner')).toBeNull();
     });
+
+    test('is a warn notice under the app bar that pushes the pages down, not a fixed light strip (NEW-02)', () => {
+        createQuotaGuard({ log: quiet }).noteQuotaExhausted('a');
+        const el = document.getElementById('quotaBanner');
+        expect([...el.classList]).toEqual(expect.arrayContaining(['notice', 'warn', 'shell-notice']));
+        expect(el.getAttribute('style')).toBeNull();
+        expect(el.textContent).not.toMatch(/⚠/);
+        const root = document.documentElement;
+        expect(root.style.getPropertyValue('--shell-notice-h')).toMatch(/^\d+px$/);
+        el.querySelector('button').click();
+        expect(root.style.getPropertyValue('--shell-notice-h')).toBe('');
+    });
+
+    test('the pages and the desktop header make room for it', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const css = (f) => fs.readFileSync(path.join(__dirname, '../../css', f), 'utf8');
+        expect(css('variables.css')).toMatch(/--tab-top:[^;]*var\(--shell-notice-h, 0px\)/);
+        expect(css('desktop.css')).toMatch(/\.tab \{\s*margin: calc\(var\(--desktop-header-h\) \+ var\(--shell-notice-h, 0px\)\)/);
+        expect(css('surfaces.css')).toMatch(/\.shell-notice \{[^}]*top: calc\(var\(--appbar-h\)/);
+        // Above the sign-in screen while it shows, which leaves room for it
+        expect(css('surfaces.css')).toMatch(/\.auth-screen:not\(\[style\*="none"\]\)\) \.shell-notice \{[^}]*z-index: calc\(var\(--z-auth\) \+ 1\)/);
+        expect(css('auth.css')).toMatch(/\.auth-screen \{[^}]*padding-top: calc\(var\(--sp-5\) \+ var\(--shell-notice-h, 0px\)\)/);
+    });
 });
 
 describe('read counter', () => {

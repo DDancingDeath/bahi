@@ -117,6 +117,8 @@ export const AnomaliesManager = {
     refreshing: null,
     lastTotals: null,
     lastSession: null,
+    /** App health lines below target today (health.todayAlerts), shown in the Day report row */
+    healthAlerts: /** @type {string[]} */ ([]),
     page: {
         filters: { preset: '7d', type: 'all', severity: 'all', status: 'open', user: 'all', item: '' },
         view: 'list',
@@ -429,6 +431,18 @@ export const AnomaliesManager = {
     refreshNow() {
         return this.refreshDayReport({ force: true }).catch(e => console.warn('Day report refresh failed:', e));
     },
+    /**
+     * App health checks below target today: an amber dot and a count on the closed Day report row,
+     * the lines and "Open app health" inside it (NEW-06).
+     * @param {string[]} lines
+     */
+    setHealthAlerts(lines) {
+        const next = Array.isArray(lines) ? lines : [];
+        if (next.join('\n') === this.healthAlerts.join('\n')) return;
+        this.healthAlerts = next;
+        if (document.getElementById('dayReportCard')?.style.display === 'block') this.drawDayReport();
+    },
+
     drawDayReport() {
         const card = document.getElementById('dayReportCard');
         if (!card || !canSee()) return;
@@ -460,6 +474,8 @@ export const AnomaliesManager = {
         const sevTags = SEVERITIES.filter(sev => s.bySeverity[sev])
             .map(sev => `<span class="${esc(SEV_TAGS[sev])}" data-day-report-sev="${esc(sev)}">${loc(SEVERITY_LABELS[sev])} ${esc(s.bySeverity[sev])}</span>`);
         if (queue.length) sevTags.push(`<span class="tag warn" data-day-report-review>${esc(t('ui.anom.review_chip', { n: queue.length }))}</span>`);
+        const health = this.healthAlerts;
+        if (health.length) sevTags.push(`<span class="tag warn" data-day-report-health>${esc(t('ui.anom.health_chip', { n: health.length }))}</span>`);
         const day = formatDay(today, { lang: getLang(), year: false });
         const summary = sevTags.length ? `<span>${esc(day)}</span>${sevTags.join('')}` : `<span>${esc(`${day} · ${t('ui.anom.no_issues')}`)}</span>`;
 
@@ -469,8 +485,11 @@ export const AnomaliesManager = {
             key: DAY_REPORT_KEY, id: 'dayReport',
             lead: `<span class="lead-icon${s.bySeverity.high ? ' neg' : ''}">${icon('flag')}</span>`,
             title: `<span class="anom-card-title">${esc(t('ui.anom.day_report'))}</span>`,
+            alert: health.length ? esc(t('ui.anom.health_alert')) : '',
             summary,
             body: `
+            ${health.length ? `<div class="notice warn day-report-health" data-day-report-health-lines>${icon('pulse')}<span class="grow">${health.map(l => esc(l)).join('<br>')}</span>
+                <button type="button" class="btn btn-sm" data-onclick="health.openPage()">${esc(t('ui.health.open_health'))}</button></div>` : ''}
             <div class="anom-card-sub-row">
                 <span class="tone-muted anom-card-sub">${esc(formatDate(today))} · ${esc(this.cashStatusLine())}</span>
                 <button type="button" class="btn btn-ghost btn-icon" title="${esc(t('ui.anom.refresh'))}" aria-label="${esc(t('ui.anom.refresh'))}" data-onclick="anomalies.refreshNow()">${icon('refresh')}</button>

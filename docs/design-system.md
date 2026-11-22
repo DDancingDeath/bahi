@@ -111,7 +111,7 @@ fills, the toast.
   `--line-control` / `--input-border` on the page, panels and fields, the chosen segment's edge (`--seg-on-line`) on the
   track and on its fill, and the outer colour of `--focus` on every surface. A card stands out from the page by its edge
   or fill at 1.3:1 (or a shadow). A theme sets `--line-control` (not `--input-border`) when the default grey misses.
-- `tests/e2e/themes.spec.js` runs axe `color-contrast` on Billing, Today, Outstanding, Money, Insights and Statements for every
+- `tests/e2e/themes.spec.js` runs axe `color-contrast` on Billing, Today, Dues, Money, Insights and Statements for every
   theme × mode, and `tests/e2e/a11y-contrast.spec.js` covers the main pages in Modern, en and hi, phone and desktop.
 
 ## 3. Components
@@ -220,7 +220,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   each payment row's "Fill" (`.pay-fill`) is its tick box (`#cashCheckbox` …) drawn as a text button, so ticking
   still puts the whole bill there; ticked it reads "Filled ✓" on the primary (sale: sale) fill, its name is the visible word plus a hidden hint; the bill lines are a row list in a panel below 1024 px (the same `#billTable`
   cells; desktop keeps the table); Notes and Date sit side by side.
-- **Outstanding (5.3)**: the owed total is the hero figure, with a `.meter` and its legend (the age groups,
+- **Dues (5.3)**: the owed total is the hero figure, with a `.meter` and its legend (the age groups,
   still buttons that filter). Age colours: up to 30 days `--ink-3`, 31–60 `--warning-dot`, 61–90
   `--on-caution-soft`, 90+ `--negative`; dues themselves stay in ink, and ages are `.tag` (`.warn` after 30
   days, `.neg` after 90). The rule is `dueTone(days, amount)` in `utils/aging.js` (History's Due tag and Workers' dues use it too): ₹0 is never coloured, so an empty age group shows a muted dot and amount. Party rows are `.row`s in a panel with an initials avatar drawn from
@@ -234,8 +234,8 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
 - **Wholesale (5.5)**: Billing's components (customer field, line panel, row-list bill lines, totals panel with "Fill", Notes |
   Date, the phone action bar) on the page's `.bill-page` class: Billing's `#billing` rules read `:is(#billing, .bill-page)`,
   and its tones read `--bill-tone-text / -soft / -fill / -ink`, which `.bill-page` sets to the wholesale mode (violet fills and
-  soft, ink text). Sales | History | Outstanding is a `.seg`; stock and average rate are `.metrics`; Outstanding bills are
-  Outstanding's `.due-bills` panel of rows; a bill opened from a list is panels of `.row`s and a `.table`.
+  soft, ink text). Sales | History | Dues is a `.seg`; stock and average rate are `.metrics`; wholesale dues are
+  Dues' `.due-bills` panel of rows; a bill opened from a list is panels of `.row`s and a `.table`.
   `moneyInText(text, amounts, opts)` (`components.js`) draws the figure (or an array of figures, found in order) inside a
   translated sentence with `moneyHtml` (`opts` as `formatRupees`, e.g. the preset `'rate'`; a missing amount
   leaves its text as it is).
@@ -296,7 +296,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   unit and receipt-list dialogs use `.metrics`, `.table`, `.field`s, `.btn`s, `.tag` and `.notice`, with `moneyHtml()`
   figures; the receipt itself, its title and its share text are unchanged. The tenant's `/r/<token>` page is standalone
   like `/download`: `www/r/rent-history.css` copies the tokens it uses into `:root` (same test).
-- **Notices and empty states (C4b)**: the old banners are notices: unsaved bill `.autosave-notice` (warn), live bill checks `.bill-check-notice` (neg / warn, solid, sticky), wrong clock `.clock-notice` and printer permission `.printer-perm-notice` (float), the Android update `.app-update` (info, in the page at the top of Today), a voided bill `.bill-voided-notice`, the bill being edited `#billEditNotice` (info, "Editing #P12" on Billing until it is saved) and History's older-bills line `.history-range-note` (info, warn on error). Every page's empty list is an `emptyState()`.
+- **Notices and empty states (C4b)**: the old banners are notices: unsaved bill `.autosave-notice` (warn), live bill checks `.bill-check-notice` (neg / warn, solid, sticky), wrong clock `.clock-notice` and printer permission `.printer-perm-notice` (float), the Android update `.app-update` (info, in the page at the top of Today), a voided bill `.bill-voided-notice`, the bill being edited `#billEditNotice` (info, "Editing #P12" on Billing until it is saved), the daily data limit `.shell-notice` (warn, solid, a full-width strip under the app bar or desktop header; the pages move down by its height, `--shell-notice-h`, so it never covers a title) and History's older-bills line `.history-range-note` (info, warn on error). Every page's empty list is an `emptyState()`.
 - **Feedback** `.notice` (`.pos/.neg/.warn/.info`; `.solid` puts the tint on an opaque surface for a notice that sticks or floats, `.float` pins it to the top of the screen, `.notice-actions` holds its buttons; `[hidden]` always hides it), `.empty` (write it with `emptyState({ icon, title, text, action, tone })` from `ui/components.js`: the icon tile, a title, an optional line and an optional button; error lines stay a plain `<p class="empty">`), `.skel` (a page's first load is `skeleton({ label, rows, panel })` from `ui/components.js`: shimmering bars in a panel, the label for screen readers, not a "Loading…" line), `.toast` (near-black; light in the
   Dark theme), `.dialog` / `.sheet` / `.scrim` (old `.modal-overlay > .modal-box`), `.spinner` (blocking
   saves only). Dialog buttons: Cancel (ghost) on the left, one primary on the right, labelled with a verb; a destructive
@@ -371,7 +371,7 @@ type.
    tokens only, screen-only colours, **≤1.5 KB gzip**) and `tests/ci/theme-contrast.test.js` (every
    pair at 4.5:1).
 5. Bump the cache (`?v=`, `BUILD_ID`, `CACHE_NAME`) and take screenshots of Billing, Today,
-   Outstanding and Settings › Appearance in each mode, phone and desktop.
+   Dues and Settings › Appearance in each mode, phone and desktop.
 
 No screen, component, ThemeManager or `#themeBoot` change is needed (the boot script is data-only,
 so its CSP hash never changes for a new theme). A theme ships no images or fonts: the CSP has no
@@ -411,7 +411,7 @@ counts toward the 1.5 KB. A look that tokens can't express needs a new token in 
 | `tests/ci/theme-contrast.test.js` | a text / background pair under 4.5:1, or a control edge, chosen segment or focus ring under 3:1, in any theme × mode |
 | `tests/ci/icon-sprite.test.js` | a missing `#i-*` symbol, or the sprite growing too large |
 | `www/js/__tests__/theme-manager.test.js`, `theme-boot.test.js` | Appearance, System, preview and the pre-paint boot |
-| `tests/e2e/themes.spec.js` | axe contrast on Billing, Today, Outstanding, Cash, Money, Insights, Statements and the open More sheet per theme × mode; the gallery preview, Cancel, Apply |
+| `tests/e2e/themes.spec.js` | axe contrast on Billing, Today, Dues, Cash, Money, Insights, Statements and the open More sheet per theme × mode; the gallery preview, Cancel, Apply |
 | `tests/e2e/app-shell.spec.js` | the phone app bar title (en, hi), one `main`, the More sheet's focus, Tab, Esc and Back; the desktop page header title per page (en, hi), one banner / nav / main, the grouped sidebar per role, Tab order, Alt+1…9 and the 1024 px rail |
 | `tests/e2e/a11y-contrast.spec.js`, `billing-fold.spec.js` | contrast on the main pages (en, hi); Save / Print above the fold |
 

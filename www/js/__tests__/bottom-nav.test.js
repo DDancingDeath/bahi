@@ -105,7 +105,7 @@ test('the app bar shows the open page\'s menu name, and follows the language (re
     BottomNav.init();
     const title = () => document.getElementById('appBarTitle').textContent;
     window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'due' } }));
-    expect(title()).toBe('Outstanding');
+    expect(title()).toBe('Dues');
     window.dispatchEvent(new CustomEvent('aadhat:tabshown', { detail: { tabId: 'items' } }));
     expect(title()).toBe('Items & rates');
     await setLang('hi');

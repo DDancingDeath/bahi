@@ -445,6 +445,36 @@ a.row:active {
   box-shadow: var(--e2);
 }
 
+/* Shell notice (daily data limit): under the app bar; quota-guard.js sets --shell-notice-h to its height and the pages move down by it */
+.shell-notice {
+  position: fixed;
+  top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  z-index: var(--z-appbar);
+  align-items: center;
+  padding-block: var(--sp-1);
+  padding-inline: max(var(--gutter), calc(50% - var(--phone-col-max) / 2 + var(--gutter))) max(var(--sp-1), calc(50% - var(--phone-col-max) / 2 + var(--sp-1)));
+  border-radius: 0;
+}
+
+.shell-notice-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.shell-notice > .btn-icon {
+  flex: none;
+  color: inherit;
+}
+
+/* While the sign-in screen shows, the notice sits above it at the top (auth.css leaves room for it) */
+body:has(> .auth-screen:not([style*="none"])) .shell-notice {
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  z-index: calc(var(--z-auth) + 1);
+}
+
 /* Wrong phone clock notice (#115): a .notice.float */
 .clock-notice {
   z-index: calc(var(--z-sheet) + 1);

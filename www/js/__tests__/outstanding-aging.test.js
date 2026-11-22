@@ -373,7 +373,7 @@ describe('#125 wholesale dues on Outstanding (All / Retail / Wholesale)', () => 
         expect(document.getElementById('dueSaleKinds').hidden).toBe(true);
         AppState.salesHistory = [];
         OutstandingManager.filterDue('wholesale');
-        expect(document.getElementById('dueList').textContent).toContain('No outstanding wholesale amounts');
+        expect(document.getElementById('dueList').textContent).toContain('No wholesale dues');
     });
 
     test('NEW-01: the Sales total follows the Retail / Wholesale chip, so it matches the list', () => {
