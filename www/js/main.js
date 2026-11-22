@@ -61,6 +61,7 @@ import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
 import { installDateFields } from './ui/date-field.js';
+import { installMenus } from './ui/menus.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
 import { friendlyError } from './utils/friendly-error.js';
 
@@ -72,7 +73,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261121i-ds-cleanup';
+const BUILD_ID = '20261121j-anom-menu-focus-quota';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -837,6 +838,7 @@ async function initializeUserData() {
 installActions();
 installTablistKeys();
 installDateFields();
+installMenus();
 
 // Before the templates go in, so their text never changes weight (variables.css: --w-strong)
 if (window.Capacitor?.getPlatform?.() === 'android') document.documentElement.classList.add('platform-android');

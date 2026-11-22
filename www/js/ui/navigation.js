@@ -6,6 +6,7 @@ import { canOpenTab, canOpenPage, canOpenSection, roleMayOpenTab, SECTION_TABS }
 import { t } from '../i18n/index.js';
 import { closeTopDialog, trapFocus } from '../utils/keyboard-shortcuts.js';
 import { TemplateLoader } from '../utils/template-loader.js';
+import { MENU } from './menus.js';
 
 export { trapFocus };
 
@@ -505,7 +506,7 @@ const NavigationManager = {
     // Closes the menu, the notifications panel or the top dialog; true when something was open
     closeOverlay() {
         if (this.isMenuOpen()) { this.setMenuOpen(false); return true; }
-        const menu = /** @type {HTMLDetailsElement|null} */ (document.querySelector('details.bill-menu[open]'));
+        const menu = /** @type {HTMLDetailsElement|null} */ (document.querySelector(`:is(${MENU})[open]`));
         if (menu) { menu.open = false; return true; }
         const notif = document.getElementById('notifPanel');
         if (notif && !notif.hidden && window.app?.notifications?.close) {

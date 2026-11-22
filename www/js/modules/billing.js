@@ -2271,19 +2271,6 @@ if (typeof window !== 'undefined') {
         renderBillDateLine('billDate');
         renderBillDateLine('saleDate');
     });
-    // The ⋯ menu closes on a pick, a tap elsewhere or Esc
-    document.addEventListener('click', (event) => {
-        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
-            if (!menu.contains(event.target) || event.target.closest?.('.bill-menu-list .btn')) menu.open = false;
-        });
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        document.querySelectorAll('details.bill-menu[open]').forEach(menu => {
-            menu.open = false;
-            menu.querySelector('summary')?.focus();
-        });
-    });
     // Name suggestions on the customer / supplier fields (#139 phase 1)
     bindPartySuggest();
 }

@@ -75,6 +75,19 @@ describe('floating labels (.field-float)', () => {
         expect(px).toBeGreaterThanOrEqual(14);
     });
 
+    test('focus is drawn inside the border, so no ring crosses the label (NEW-20)', () => {
+        const rule = /\.field-float :is\(input, select, textarea, \.input\):focus,\s*\.field-float :is\(input, select, textarea, \.input\):focus-visible \{([^}]*)\}/.exec(css('forms.css'));
+        expect(rule).not.toBeNull();
+        expect(rule[1]).toMatch(/outline: none;/);
+        expect(rule[1]).toMatch(/box-shadow: var\(--focus-inset\);/);
+        expect(css('variables.css')).toMatch(/--focus-inset: inset [^;]*var\(--focus-ring\);/);
+        // Nothing outranks it with an outer ring on a floating-label control
+        for (const f of fs.readdirSync(path.join(WWW, 'css')).filter((n) => n.endsWith('.css') && n !== 'app.css')) {
+            const rules = css(f).replace(/\/\*[\s\S]*?\*\//g, '').split('}').filter((r) => /field-float[^{]*:focus/.test(r));
+            for (const r of rules) expect(`${f}: ${r}`).not.toMatch(/box-shadow:\s*var\(--focus\)|outline:\s*\d/);
+        }
+    });
+
     test('Hindi: every floating label and icon button is translated', async () => {
         await setLang('hi');
         applyTranslations(document);
