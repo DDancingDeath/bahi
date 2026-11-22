@@ -88,7 +88,7 @@ const ROUTES = Object.freeze({
 
 // Money / Insights / Statements (redesign): '<page>-<section>' opens a section, e.g. 'money-cash'.
 const SECTION_PAGES = Object.freeze({
-    money: ['profit', 'cash', 'spending', 'worth'],
+    money: ['profit', 'cash', 'spending', 'labour', 'worth'],
     insights: ['actions', 'items', 'parties', 'seasons', 'trends', 'traffic'],
     statements: ['day', 'month', 'party', 'item', 'csv', 'accountant']
 });

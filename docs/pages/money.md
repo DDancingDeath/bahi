@@ -1,4 +1,4 @@
-# Money (Profit, Spending, Worth)
+# Money (Profit, Spending, Labour, Worth)
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [money.hi.md](money.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
@@ -17,9 +17,9 @@ share** button next to the title (closed at first). "Choose dates…" picks any 
 (PERIOD-CUSTOM). "Also compare with" adds a period B (last month, last year, a
 financial year or chosen days): the headlines show % vs B too, and a card lists
 sales, purchases, business expenses, profit and net money in for both, with the ₹
-and % change. Insights › Items gets a "vs B" column. **☆ Save range** keeps the pair
-for you (at most 10, under "Saved ranges"; not for Today or This week); your other phones get it the next time the app starts. **WhatsApp summary** and **Print
-summary** send or print the same figures (on the receipt printer, or as a picture
+and % change. Insights › Items gets a "vs B" column. The actions are three icons in one row (long-press or hover names them). **＋** (Save range) keeps the pair
+for you (at most 10, under "Saved ranges"; not for Today or This week); your other phones get it the next time the app starts. The **WhatsApp** and **printer** icons (WhatsApp summary,
+Print summary) send or print the same figures (on the receipt printer, or as a picture
 when it is not connected).
 
 | On screen | How it is worked out |
@@ -30,6 +30,8 @@ when it is not connected).
 | Business expenses (M4), dues written off (M5) | Expenses of the period; dues written off in it (bad debts). |
 | **Profit (M6)** | Profit on goods − business expenses − dues written off. Labour is **not** taken off (it is already off the purchase bills). It reads **"Profit (estimate)"** while some kg was sold before its purchase was written (its cost is not known yet); the warning under it says how many kg, once. A line under it says that profit counts every sale made, credit sales too, and links to Money in and out for the money that came in. With no sale bill in the period it says "No sales in Nov 2026 yet" ("No sales in Oct 2026" for a past month); the figures stay. |
 | Labour (M7, M20, M21, M18) | Labour deducted on purchases (M7); paid to labourers, the period's Labour expenses (M20, already in business expenses); paid − deducted (M21, shown only: profit does not change, owner decision 8 Nov 2026); labour to pay, an estimate worked out day by day (M18). |
+| Labour tab: day by day (LH1) | You and managers only. One row per day with purchases or labour payments: Date, Deducted, Est. pay, Paid and ± (Est. pay − Paid as a signed number). Each day's figures are the same as that day's Today › Labour card. Tap a day for all its purchase bills (bill no., customer, packets, labour) and its labour payments. The period is Money's (This week, This month, Choose dates…); nothing more is read than Money reads. |
+| Labour tab: totals and balance (LH2, LH3) | Deducted, Est. pay and Paid for the period, and **Balance** with its sign: +₹X (amber) still owed to labour, −₹Y (green) paid extra. Shown only: nothing is stored and profit does not change. |
 | Personal expenses, withdrawals (M8, M9) | Shown apart from profit. |
 | Expenses per ₹100 of sales (M19) | Spending says so when business expenses are more than ₹10 for every ₹100 of sales (personal expenses not counted). |
 | Kept in business (M10) | Profit − personal expenses − withdrawals. |

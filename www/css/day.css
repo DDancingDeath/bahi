@@ -119,6 +119,8 @@
 .today-labour .disclosure-title { flex: none; }
 .today-labour .disclosure-summary { flex: 1; min-width: 0; text-align: right; }
 .today-labour-more { display: flex; width: fit-content; gap: var(--sp-1); margin: 0 var(--sp-2) var(--sp-2) auto; }
+.today-labour-actions { display: flex; align-items: center; }
+.today-labour-history { display: flex; gap: var(--sp-1); margin: 0 0 var(--sp-2) var(--sp-2); }
 
 /* The hero's meter: in and out as shares of one bar (style="--w: …"), keyed by the arrows in the line above */
 .today-meter { margin-top: var(--sp-3); }

@@ -12,7 +12,7 @@ import { CashManagementManager } from './cash-management.js';
 import { sessionForDate } from '../utils/cash-session.js';
 import { t, tn, getLang, loadAllCatalogues } from '../i18n/index.js';
 import { emptyState } from '../ui/components.js';
-import { canOpenPage } from '../utils/role-access.js';
+import { canOpenPage, canOpenSection } from '../utils/role-access.js';
 import { on, REFRESH, REMINDERS_CHANGED } from '../utils/events.js';
 import { overdueReminder, leaseReminder, leaseReminderText } from '../utils/reminders.js';
 import { drillReminder } from '../utils/backup-verify.js';
@@ -622,7 +622,10 @@ export const DayManager = {
                 title: esc(t('ui.today.labor')),
                 summary: `<span>${esc(t('ui.today.labour_ded_chip', { amount: moneyText(deducted.amount) }))}</span><span>·</span><span>${esc(t('ui.today.labour_est_chip', { amount: moneyText(toPay.amount) }))}</span>`,
                 body: row('ui.today.labour_row_deducted', 'todayLaborCost') + row('ui.today.labour_row_pay', 'todayLabourToPay') + row('ui.today.labour_row_paid', 'todayLabourPaid')
-                    + `<button type="button" class="btn btn-ghost btn-sm today-labour-more" data-onclick="day.showLabourBreakdown()">${esc(t('ui.today.labour_details'))}${icon('chevR', 'i-sm')}</button>`
+                    + '<div class="today-labour-actions">'
+                    + (canOpenSection('money', 'labour', AppState.userRole, AppState.settings?.roleAccess)
+                        ? `<button type="button" class="btn btn-ghost btn-sm today-labour-history" id="todayLabourHistory" data-onclick="nav.showTab('money-labour')">${esc(t('ui.today.labour_history'))}${icon('chevR', 'i-sm')}</button>` : '')
+                    + `<button type="button" class="btn btn-ghost btn-sm today-labour-more" data-onclick="day.showLabourBreakdown()">${esc(t('ui.today.labour_details'))}${icon('chevR', 'i-sm')}</button></div>`
             });
             refocusDisclosure('todayLabour', hadFocus);
         }

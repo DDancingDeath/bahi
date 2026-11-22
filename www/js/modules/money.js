@@ -36,7 +36,8 @@ import {
     monthKeysBetween, lastMonthKeys, monthKeyOf, snapshotsFrom, staleToRebuild, outdatedOlderMonths
 } from '../utils/month-snapshots.js';
 import { profitTakeaways, noSalesTakeaway, cashTakeaways, spendingTakeaways, worthTakeaways, caveatKey } from '../utils/takeaways.js';
-import { can, canEditWorthAccounts, canReadWorthAccounts } from '../utils/role-access.js';
+import { can, canEditWorthAccounts, canReadWorthAccounts, canOpenSection } from '../utils/role-access.js';
+import { labourDays } from '../utils/calc/labour-days.js';
 import { dataSignature } from '../utils/render-memo.js';
 import { openExternal } from '../utils/open-external.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
@@ -53,7 +54,7 @@ import {
 const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
 /** Money's on-screen minus is the true minus (−₹500). */
 const TM = { trueMinus: true };
-const SECTIONS = ['profit', 'spending', 'worth'];
+const SECTIONS = ['profit', 'spending', 'labour', 'worth'];
 /** Money in and out is a block of Profit (F62); 'cash' (route money-cash) opens it there. */
 const sectionOf = (s) => (s === 'cash' ? 'profit' : s);
 const SESSION_TTL_MS = 10 * 60 * 1000;
@@ -145,6 +146,17 @@ export function barsSvg(values, { faint = null, labels = [], height = 120, onTap
         + `<line class="ins-axis" x1="0" x2="100%" y1="${zero}" y2="${zero}"/>${bars}${line}${ticks}</svg>`;
 }
 
+/** LH1 ± / LH3: Est. pay − Paid as a signed number, "+" while still owed, the true minus when paid extra. */
+function signedHtml(b) {
+    return b.kind === 'owed' ? `+${moneyHtml(b.amount, TM)}` : moneyHtml(b.kind === 'same' ? 0 : b.difference, TM);
+}
+
+/** LH3: "Balance" and the signed number, amber while owed, green when paid extra. */
+function labourBalanceHtml(b) {
+    const tone = b.kind === 'owed' ? 'tone-warn' : b.kind === 'extra' ? 'tone-pos' : '';
+    return `<span class="metric-label">${esc(t('ui.money.lh_balance'))}</span> <strong class="${tone}">${signedHtml(b)}</strong>`;
+}
+
 export const MoneyManager = {
     section: 'profit',
     snapshots: {},
@@ -161,6 +173,7 @@ export const MoneyManager = {
     /** Opens the page (from the side menu or a route like money-cash). */
     init(section) {
         if (section && SECTIONS.includes(sectionOf(section))) this.section = sectionOf(section);
+        if (this.section === 'labour' && !this.labourAllowed()) this.section = 'profit';
         this.setupTaps();
         this.sharedAccounts = { ...this.sharedAccounts, stale: true };
         const sel = document.getElementById('moneyPreset');
@@ -174,6 +187,7 @@ export const MoneyManager = {
 
     setSection(section) {
         if (!SECTIONS.includes(sectionOf(section))) return;
+        if (section === 'labour' && !this.labourAllowed()) return;
         this.section = sectionOf(section);
         this.showSection(this.section);
         this.render();
@@ -186,6 +200,8 @@ export const MoneyManager = {
 
     showSection(section) {
         document.querySelectorAll('#money [data-money-pane]').forEach(el => { el.hidden = el.dataset.moneyPane !== section; });
+        const labourTab = document.querySelector('#money [data-money-section="labour"]');
+        if (labourTab) labourTab.hidden = !this.labourAllowed();
         document.querySelectorAll('#money [data-money-section]').forEach(b => {
             const on = b.dataset.moneySection === section;
             b.classList.toggle('active', on);
@@ -195,7 +211,7 @@ export const MoneyManager = {
         const worth = section === 'worth';
         ['moneyPeriodBar', 'moneyCmpToggle', 'moneyCmpBar'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.hidden = worth;
+            if (el) el.hidden = worth || (section === 'labour' && id === 'moneyCmpToggle');
         });
         const now = document.getElementById('moneyNow');
         if (now) now.hidden = !worth;
@@ -274,6 +290,11 @@ export const MoneyManager = {
 
     can(permission) {
         return can(AppState.userRole, permission, AppState.settings?.roleAccess);
+    },
+
+    /** Money › Labour: owner and managers who see Money (SECTION_TABS money:labour). */
+    labourAllowed() {
+        return canOpenSection('money', 'labour', AppState.userRole, AppState.settings?.roleAccess);
     },
 
     range() {
@@ -445,12 +466,17 @@ export const MoneyManager = {
         const r = this.range();
         const label = document.getElementById('moneyPeriodLabel');
         if (label) label.textContent = this.periodLabel(r);
-        writeBar('moneyCmpBar', compareBarHtml('money', { share: true }));
+        writeBar('moneyCmpBar', compareBarHtml('money', { share: true, compare: this.section !== 'labour' }));
         if (!this.covered(r.from)) {
             this.renderNotLoaded(r);
             return;
         }
         this.showBody(true);
+        if (this.section === 'labour') {
+            this.renderCompare(null, null, {});
+            this.renderLabourHistory(r);
+            return;
+        }
         const sessions = this.sessions(r);
         const m = this.summary(r, { sessions, detail: true });
         this.lastSummary = m;
@@ -787,6 +813,61 @@ export const MoneyManager = {
         const key = { same: 'ui.today.labour_same', more: 'ui.today.labour_more', less: 'ui.today.labour_less' }[gap.kind];
         this.text('moneyLabourDiff', t(key, { amount: formatRupees(gap.amount) }));
         return { deducted, toPay, paid };
+    },
+
+    /** LH1–LH3: the period's days with labour, each as Today's Labour card shows it, and the running balance. */
+    renderLabourHistory(r) {
+        const h = labourDays({
+            purchases: AppState.purchaseHistory || [], expenses: AppState.expensesHistory || [],
+            settings: AppState.settings || {}, from: r.from, to: r.to
+        });
+        this.lastLabourDays = h;
+        const { totals } = h;
+        this.html('lhDeducted', moneyHtml(totals.deducted, TM));
+        this.html('lhEst', moneyHtml(totals.toPay, TM));
+        this.html('lhPaid', moneyHtml(totals.paid, TM));
+        this.html('lhBalance', labourBalanceHtml(totals.balance));
+        const lang = getLang();
+        this.html('lhDays', h.days.length
+            ? `<table class="table"><thead><tr><th scope="col">${esc(t('ui.money.lh_date'))}</th>`
+                + `<th scope="col" class="num">${esc(t('ui.money.lh_deducted'))}</th><th scope="col" class="num">${esc(t('ui.money.lh_est'))}</th>`
+                + `<th scope="col" class="num">${esc(t('ui.money.lh_paid'))}</th>`
+                + `<th scope="col" class="num"><span aria-hidden="true">±</span><span class="sr-only">${esc(t('ui.money.lh_diff'))}</span></th></tr></thead><tbody>`
+                + h.days.map(d => {
+                    const day = formatDay(d.key, { lang, year: false });
+                    return `<tr role="button" tabindex="0" data-lh-day="${esc(d.key)}" data-onclick="money.openLabourDay('${Helpers.escapeJsAttr(d.key)}')" aria-label="${esc(t('ui.money.lh_open_day', { day }))}">`
+                        + `<th scope="row">${esc(day)}</th><td class="num">${moneyHtml(d.deducted.amount, TM)}</td>`
+                        + `<td class="num">${moneyHtml(d.toPay.amount, TM)}</td><td class="num">${moneyHtml(d.paid.amount, TM)}</td>`
+                        + `<td class="num">${signedHtml(d.balance)}</td></tr>`;
+                }).join('') + '</tbody></table>'
+            : emptyState({ icon: 'users', title: t('ui.money.lh_none') }));
+        return h;
+    },
+
+    /** A day of Money › Labour: its purchase bills (bill, customer, packets, labour) and its labour payments. */
+    openLabourDay(key) {
+        const d = (this.lastLabourDays?.days || []).find(x => x.key === key);
+        if (!d) return Promise.resolve(false);
+        const lang = getLang();
+        const bills = d.rows.length
+            ? `<div class="lh-bills"><table class="table"><thead><tr><th scope="col">${esc(t('ui.today.labour_col_bill'))}</th><th scope="col">${esc(t('ui.money.lh_col_customer'))}</th>`
+                + `<th scope="col" class="num">${esc(t('ui.today.labour_col_packets'))}</th><th scope="col" class="num">${esc(t('ui.today.labour_col_deducted'))}</th></tr></thead><tbody>`
+                + d.rows.map(({ bill, packets, labour }) => `<tr><td>${esc(bill?.billNumber ? `#${bill.billNumber}` : '—')}</td>`
+                    + `<td>${esc(bill?.customerName || bill?.seller || t('ui.reports.unknown'))}</td><td class="num">${esc(packets)}</td>`
+                    + `<td class="num">${moneyHtml(labour, TM)}</td></tr>`).join('')
+                + '</tbody></table></div>'
+            : `<p class="lh-note">${esc(t('ui.money.lh_no_bills'))}</p>`;
+        const pays = d.labourExpenses.length
+            ? `<div class="panel">${d.labourExpenses.map(x => `<div class="row"><span class="row-main"><span class="row-title">${esc(x.type || '')}</span>`
+                + (x.remarks ? `<span class="row-meta">${esc(x.remarks)}</span>` : '')
+                + `</span><span class="row-amt">${moneyHtml(Number(x.amount) || 0, TM)}</span></div>`).join('')}</div>`
+            : `<p class="lh-note">${esc(t('ui.money.lh_no_payments'))}</p>`;
+        const metric = (key, amount) => `<div class="metric"><span class="metric-label">${esc(t(key))}</span><span class="metric-value">${moneyHtml(amount, TM)}</span></div>`;
+        const html = `<div class="panel lh-totals">${metric('ui.money.lh_deducted', d.deducted.amount)}${metric('ui.money.lh_est', d.toPay.amount)}${metric('ui.money.lh_paid', d.paid.amount)}</div>`
+            + `<p class="lh-balance">${labourBalanceHtml(d.balance)}</p>`
+            + `<h3 class="section-title">${esc(t('ui.money.lh_bills'))}</h3>${bills}`
+            + `<h3 class="section-title">${esc(t('ui.money.lh_payments'))}</h3>${pays}`;
+        return UIManager.showModalWithHtml(html, formatDay(d.key, { lang }));
     },
 
     renderWithdrawals(m) {

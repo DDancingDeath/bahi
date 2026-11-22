@@ -72,6 +72,8 @@ const STEPS = [
     { name: 'Money › Money in and out', route: 'money-cash', page: 'money', roles: OM, expect: '#moneyProfit #moneyCash [data-go="day-cash"]' },
     { name: 'Money › Spending', route: 'money-spending', page: 'money', roles: OM, expect: '#moneySpending' },
     { name: 'Money › Worth', route: 'money-worth', page: 'money', roles: OM, expect: '#moneyWorth' },
+    // Labour day by day: owner and manager, from the bills and expenses already loaded (no reads of its own)
+    { name: 'Money › Labour', route: 'money-labour', page: 'money', roles: OM, expect: '#moneyLabourHistory:not([hidden]) #lhBalance strong' },
     { name: 'Money › Compare with last month', route: 'money-profit', page: 'money', act: "window.app.money.setCompare('last-month')", roles: OM, expect: '#moneyCmpCard:not([hidden]) [data-cmp-row="M1"]' },
     { name: 'Insights › Actions', route: 'insights-actions', page: 'insights', roles: OM, expect: '#insights [data-insights-pane="actions"]' },
     { name: 'Insights › Items', route: 'insights-items', page: 'insights', roles: OM, expect: '#insights [data-insights-pane="items"]' },
@@ -142,7 +144,7 @@ const ROUTE_READY = {
 // Pages each role may not open: showTab must land somewhere else.
 const BLOCKED = {
     manager: [['admin', 'admin'], ['workers', 'workers'], ['recurring', 'recurring']],
-    staff: [['wholesale-sales', 'wholesale-sales'], ['money', 'money'], ['money-cash', 'money'],
+    staff: [['wholesale-sales', 'wholesale-sales'], ['money', 'money'], ['money-cash', 'money'], ['money-labour', 'money'],
         ['insights', 'insights'], ['insights-seasons', 'insights'], ['insights-trends', 'insights'], ['rate-trends', 'insights'],
         ['statements', 'statements'], ['anomalies', 'anomalies'], ['health', 'health'], ['admin', 'admin'], ['diagnostics', 'diagnostics'], ['workers', 'workers'], ['recurring', 'recurring']]
 };
