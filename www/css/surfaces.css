@@ -468,6 +468,13 @@ a.row:active {
   color: inherit;
 }
 
+/* While the sign-in screen shows, the notice sits above it at the top (auth.css leaves room for it) */
+body:has(> .auth-screen:not([style*="none"])) .shell-notice {
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  z-index: calc(var(--z-auth) + 1);
+}
+
 /* Wrong phone clock notice (#115): a .notice.float */
 .clock-notice {
   z-index: calc(var(--z-sheet) + 1);

@@ -87,6 +87,9 @@ describe('quota banner', () => {
         expect(css('variables.css')).toMatch(/--tab-top:[^;]*var\(--shell-notice-h, 0px\)/);
         expect(css('desktop.css')).toMatch(/\.tab \{\s*margin: calc\(var\(--desktop-header-h\) \+ var\(--shell-notice-h, 0px\)\)/);
         expect(css('surfaces.css')).toMatch(/\.shell-notice \{[^}]*top: calc\(var\(--appbar-h\)/);
+        // Above the sign-in screen while it shows, which leaves room for it
+        expect(css('surfaces.css')).toMatch(/\.auth-screen:not\(\[style\*="none"\]\)\) \.shell-notice \{[^}]*z-index: calc\(var\(--z-auth\) \+ 1\)/);
+        expect(css('auth.css')).toMatch(/\.auth-screen \{[^}]*padding-top: calc\(var\(--sp-5\) \+ var\(--shell-notice-h, 0px\)\)/);
     });
 });
 
