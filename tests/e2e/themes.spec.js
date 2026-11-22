@@ -29,7 +29,7 @@ const THEME_WORKER = {
     name: 'Theme Worker', startMonth: MONTH, active: true, pays: [{ from: MONTH, amount: 9000 }],
     entries: [{ id: 'e2e-theme-entry', amount: 3000, kind: 'advance', month: MONTH, date: `${MONTH}-01`, mode: 'cash' }],
 };
-const PAGES = [['Billing', 'billing'], ['Today', 'day'], ['Outstanding', 'due'], ['Cash', 'day-cash'], ['Money', 'money'], ['Insights', 'insights'], ['Statements', 'statements']];
+const PAGES = [['Billing', 'billing'], ['Today', 'day'], ['Dues', 'due'], ['Cash', 'day-cash'], ['Money', 'money'], ['Insights', 'insights'], ['Statements', 'statements']];
 
 /** Billing with a line in the row list and the whole bill put in Cash with its "Fill" (3.5), so axe sees both. */
 async function billWithFill(page) {

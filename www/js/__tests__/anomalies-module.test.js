@@ -54,6 +54,7 @@ beforeEach(() => {
     AnomaliesManager.scanQueue = null;
     AnomaliesManager.owners = null;
     AnomaliesManager.ownersAskedBy = null;
+    AnomaliesManager.healthAlerts = [];
     document.body.innerHTML = '<div id="dayReportCard" style="display:none"></div>';
 });
 
@@ -203,6 +204,25 @@ describe('Day report card', () => {
         expect(card.querySelector('[data-onclick="anomalies.openPage()"]')).not.toBeNull();
     });
 
+    test('app health below target: an amber dot and a count on the closed row, the lines and Open app health inside (NEW-06)', async () => {
+        AppState.retailSalesHistory = [];
+        AnomaliesManager.renderDayReport({}, null);
+        await AnomaliesManager.refreshing;
+        expect(document.querySelector('[data-disclosure-alert], [data-day-report-health]')).toBeNull();
+        AnomaliesManager.setHealthAlerts(['Daily number checks: only 0% passed today (target 95%, 3 runs)', '<b>x</b>']);
+        const toggle = document.getElementById('dayReportToggle');
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(toggle.querySelector('[data-disclosure-alert]')).not.toBeNull();
+        expect(toggle.querySelector('[data-day-report-health]').textContent).toBe('App health 2');
+        const lines = document.querySelector('#dayReportBody [data-day-report-health-lines]');
+        expect(lines.className).toBe('notice warn day-report-health');
+        expect(lines.textContent).toContain('Daily number checks: only 0% passed today');
+        expect(lines.querySelector('b')).toBeNull();
+        expect(lines.querySelector('[data-onclick="health.openPage()"]').textContent).toBe('Open app health');
+        AnomaliesManager.setHealthAlerts([]);
+        expect(document.querySelector('[data-disclosure-alert], [data-day-report-health]')).toBeNull();
+    });
+
     test('hidden for other users', () => {
         AppState.userRole = 'staff';
         AnomaliesManager.renderDayReport({}, null);
@@ -343,5 +363,50 @@ describe('read budget (free plan)', () => {
         AnomaliesManager.stored = null;
         await AnomaliesManager.refreshDayReport();
         expect(serverCalls()).toHaveLength(0);
+    });
+});
+
+describe('rows (NEW-16, NEW-05)', () => {
+    const row = (a) => {
+        document.body.innerHTML = AnomaliesManager.rowHtml({ id: 'x1', severity: 'high', status: 'open', dayKey: '2026-10-21', ...a });
+        return document.querySelector('.anom-actions');
+    };
+    const styles = (el) => [...el.querySelectorAll(':scope > .btn')].map(b => [b.className, b.textContent.trim()]);
+
+    test('an open row: one tonal "Looks right", the rest as ghost buttons in the ⋯ menu', () => {
+        const actions = row({ type: 'rate-high', refKind: 'bill', refId: 'b1', amount: 400 });
+        expect(styles(actions)).toEqual([['btn btn-sm btn-tonal', 'Looks right']]);
+        const menu = actions.querySelector('details.anom-overflow');
+        expect(menu.querySelector('summary').getAttribute('aria-label')).toBe('More actions');
+        expect([...menu.querySelectorAll('.anom-overflow-menu > .btn')].map(b => [b.className, b.textContent.trim()])).toEqual([
+            ['btn btn-sm btn-ghost', 'Open'], ['btn btn-sm btn-ghost', 'Correct rate on this bill'], ['btn btn-sm btn-ghost', 'I corrected it']
+        ]);
+    });
+
+    test('a reviewed row: one tonal "Reopen"; Open in the menu', () => {
+        const actions = row({ type: 'rate-high', status: 'ok', refKind: 'cash', refId: '2026-10-21' });
+        expect(styles(actions)).toEqual([['btn btn-sm btn-tonal', 'Reopen']]);
+        expect([...actions.querySelectorAll('.anom-overflow-menu > .btn')].map(b => b.textContent.trim())).toEqual(['Open']);
+    });
+
+    test('the ⋯ list floats on a panel out of the row\'s flow, so opening it moves nothing (NEW-19)', () => {
+        const actions = row({ type: 'rate-high', refKind: 'bill', refId: 'b1' });
+        expect(actions.querySelector('details.anom-overflow > .anom-overflow-menu').classList.contains('panel')).toBe(true);
+        const css = require('fs').readFileSync(require('path').join(__dirname, '../../css/anomalies.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+        const rule = (sel) => (new RegExp(`(?:^|\\})\\s*${sel.replace(/[.[\]()>]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css) || [])[1] || '';
+        expect(rule('.anom-overflow')).toMatch(/position: relative/);
+        expect(rule('.anom-overflow-menu')).toMatch(/position: absolute/);
+        expect(rule('.anom-overflow-menu')).toMatch(/z-index: var\(--z-popover\)/);
+        expect(rule('.anom-overflow-menu')).toMatch(/box-shadow: var\(--e2\)/);
+        expect(rule('.anom-actions')).toMatch(/flex-wrap: nowrap/);
+        expect(css).not.toMatch(/\.anom-overflow\[open\]/);
+        expect(css).not.toMatch(/\.anom-list \{[^}]*overflow: hidden/);
+    });
+
+    test('a number check: its text and amount without paise from ₹100 up, the true minus', () => {
+        row({ type: 'numcheck-ac3', refKind: 'bill', refId: 'b1', amount: 2193.43, en: 'Bill split: expected ₹1,33,710.57, found -₹2,636', hi: 'x' });
+        expect(document.querySelector('.anom-why').textContent).toBe('Bill split: expected ₹1,33,711, found −₹2,636');
+        expect(document.querySelector('.anom-meta').textContent).toContain('₹2,193');
+        expect(document.querySelector('.anom-meta').textContent).not.toContain('.43');
     });
 });

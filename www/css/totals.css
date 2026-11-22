@@ -361,7 +361,7 @@
   min-width: 48px;
   min-height: 44px;
   margin: 0;
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
   cursor: pointer;
@@ -399,9 +399,9 @@
 
 :is(#billing, .bill-page) .pay-line > .pay-fill > input:checked ~ .pay-fill-on {
   display: flex;
-  border-color: var(--bill-tone-fill, var(--accent-text));
-  background: var(--bill-tone-fill, var(--btn-primary-bg));
-  color: var(--bill-tone-ink, var(--btn-primary-ink));
+  border-color: var(--accent-text);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-weight: var(--w-strong);
 }
 
@@ -490,7 +490,7 @@
 }
 
 .bill-extras .btn-sm {
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
 }
 
 .bill-sale .bill-extras .btn-sm {
@@ -601,10 +601,11 @@
   min-height: 48px;
 }
 
-/* Save and Print share the rest of the row equally */
+/* Save and Print share the rest of the row equally (on desktop with their Ctrl hints) */
 .bill-actions > :is(.btn-primary, .bill-print) {
   flex: 1 1 0;
   min-width: min-content;
+  padding: 0 var(--sp-2);
 }
 
 /* Share is an icon with a visible "Draft" under it (the bill is not saved yet, U-27); shown once the bill has a line */
@@ -766,6 +767,12 @@
 @keyframes bill-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* The bill's two columns may shrink below their content (desktop grid, landscape halves) */
+.bill-main,
+.bill-side {
+  min-width: 0;
 }
 
 /* On its side (U-41): the lines left, totals and payment right, so less of the bill is below the fold */

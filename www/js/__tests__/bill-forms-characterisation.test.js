@@ -560,11 +560,11 @@ describe('wholesale sale form', () => {
             const cards = [...$('dueList').querySelectorAll('[data-history-item]')].map(c => c.textContent.replace(/\s+/g, ' ').trim());
             expect(cards).toHaveLength(2);
             expect(cards[0]).toContain('Due ₹500');
-            expect(cards[0]).toMatch(/Total to receive ₹1,001 .*Received ₹500 .*Outstanding ₹500/);
+            expect(cards[0]).toMatch(/Total to receive ₹1,001 .*Received ₹500 .*Due ₹500/);
             expect(cards[1]).toContain('Due ₹2,000');
             expect(cards[1]).toContain('₹3,501');
             expect(cards[1]).toContain('₹1,500');
-            expect(cards[1]).toMatch(/Total to receive ₹2,000 .*Received ₹0 .*Outstanding ₹2,000/);
+            expect(cards[1]).toMatch(/Total to receive ₹2,000 .*Received ₹0 .*Due ₹2,000/);
         });
 
         test('recent sales leave the opening record out; the form figures ignore the history', async () => {
@@ -591,7 +591,7 @@ describe('wholesale sale form', () => {
             expect(toast).toHaveBeenLastCalledWith('Please enter a valid payment amount');
             pay('w1', 501);
             await record('w1');
-            expect(toast).toHaveBeenLastCalledWith('Payment amount exceeds outstanding amount');
+            expect(toast).toHaveBeenLastCalledWith('Payment is more than the due');
             // #129: an amount that is not the due is saved in whole rupees (500.27 was refused as above the due)
             pay('w1', 500.27);
             await record('w1');

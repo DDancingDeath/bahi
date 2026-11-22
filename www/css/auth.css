@@ -13,6 +13,7 @@
   overflow-y: auto;
   z-index: var(--z-auth);
   padding: var(--sp-5);
+  padding-top: calc(var(--sp-5) + var(--shell-notice-h, 0px));
 }
 
 .auth-container {

@@ -75,6 +75,19 @@ describe('floating labels (.field-float)', () => {
         expect(px).toBeGreaterThanOrEqual(14);
     });
 
+    test('focus is drawn inside the border, so no ring crosses the label (NEW-20)', () => {
+        const rule = /\.field-float :is\(input, select, textarea, \.input\):focus,\s*\.field-float :is\(input, select, textarea, \.input\):focus-visible \{([^}]*)\}/.exec(css('forms.css'));
+        expect(rule).not.toBeNull();
+        expect(rule[1]).toMatch(/outline: none;/);
+        expect(rule[1]).toMatch(/box-shadow: var\(--focus-inset\);/);
+        expect(css('variables.css')).toMatch(/--focus-inset: inset [^;]*var\(--focus-ring\);/);
+        // Nothing outranks it with an outer ring on a floating-label control
+        for (const f of fs.readdirSync(path.join(WWW, 'css')).filter((n) => n.endsWith('.css') && n !== 'app.css')) {
+            const rules = css(f).replace(/\/\*[\s\S]*?\*\//g, '').split('}').filter((r) => /field-float[^{]*:focus/.test(r));
+            for (const r of rules) expect(`${f}: ${r}`).not.toMatch(/box-shadow:\s*var\(--focus\)|outline:\s*\d/);
+        }
+    });
+
     test('Hindi: every floating label and icon button is translated', async () => {
         await setLang('hi');
         applyTranslations(document);
@@ -192,5 +205,43 @@ describe('⋯ beside Purchase / Retail sale', () => {
         expect($('draftBadge').hidden).toBe(true);
         expect($('draftsBtn').hidden).toBe(true);
         delete global.firebase;
+    });
+});
+
+describe('one field style, and Billing\'s look on Wholesale (NEW-04, NEW-10)', () => {
+    const tpl = (n) => fs.readFileSync(path.join(WWW, 'templates', n), 'utf8');
+    const ENTRY = {
+        'wholesale-sales.html': ['wholesaleCustomerName', 'sellItem', 'sellRate', 'sellQuantity'],
+        'expenses.html': ['Type', 'Amount', 'Date', 'Mode', 'Person', 'Remarks'].flatMap(f => [`businessExpense${f}`, `personalExpense${f}`]),
+        'cash-management.html': ['cashSignInAmount', 'cashSignInNotes', 'cashTransactionType', 'transactionAmount', 'partyName', 'dueBillSelect', 'transactionNotes', 'cashSignOutAmount', 'cashSignOutNotes']
+    };
+
+    test.each(Object.keys(ENTRY))('%s: every entry field is a .field-float with its own <label for>', (file) => {
+        document.body.innerHTML = tpl(file);
+        for (const id of ENTRY[file]) {
+            const field = $(id).closest('.field-float');
+            expect(field).not.toBeNull();
+            expect(field.querySelector(':scope > label').htmlFor).toBe(id);
+        }
+        if (file !== 'wholesale-sales.html') expect(document.querySelectorAll('.field')).toHaveLength(0);
+    });
+
+    test('Wholesale reuses Billing\'s payment rows and action bar', () => {
+        document.body.innerHTML = `<main>${BILLING}${tpl('wholesale-sales.html')}</main>`;
+        const shape = (root) => ({
+            pay: [...root.querySelectorAll('.bill-totals > .pay-line')].map(l => `${l.className}: ${[...l.children].map(c => c.className).join(' | ')}`),
+            bar: [...root.querySelector('.bill-actions').children].map(c => c.className)
+        });
+        expect(shape($('salesEntrySection'))).toEqual(shape($('saleSection')));
+        expect($('saveWholesaleBtn').className).toBe('btn btn-primary');
+    });
+
+    test('violet (the wholesale mode colour) is only the mode dot: no Wholesale button, link or Fill takes it', () => {
+        const all = fs.readdirSync(path.join(WWW, 'css')).filter(n => n.endsWith('.css') && n !== 'app.css' && !n.startsWith('variables'))
+            .map(css).join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
+        expect(all).not.toMatch(/--bill-tone/);
+        const selectors = all.split('}').filter(r => r.includes('var(--mode-wholesale') || r.includes('var(--on-mode-wholesale')).map(r => r.split('{')[0]);
+        for (const s of selectors.filter(s => !/mode-dot|bill-bar-label::before/.test(s))) expect(s).not.toMatch(/bill-page|\.ws-|wholesale-sales|btn|pay-fill/);
+        expect(all).toMatch(/\.bill-page \.bill-bar-label::before \{[^}]*background: var\(--mode-wholesale\)/);
     });
 });

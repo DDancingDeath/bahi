@@ -318,7 +318,9 @@
     white-space: nowrap;
 }
 
+/* An invisible 48 px tap area round the bill number's words */
 .due-bill-link {
+    position: relative;
     padding: 0;
     border: none;
     background: none;
@@ -326,6 +328,12 @@
     font: inherit;
     text-decoration: none;
     cursor: pointer;
+}
+
+.due-bill-link::after {
+    content: '';
+    position: absolute;
+    inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 /* Retail / wholesale tag on a bill in Sales › All (#125) */
@@ -514,14 +522,6 @@
     box-shadow: var(--focus);
 }
 
-.aging-more > summary {
-    list-style: none;
-}
-
-.aging-more > summary::-webkit-details-marker {
-    display: none;
-}
-
 .aging-more[open] {
     flex-basis: 100%;
 }
@@ -562,11 +562,6 @@
 
 .due-bill-more > summary {
     margin-top: var(--sp-2);
-    list-style: none;
-}
-
-.due-bill-more > summary::-webkit-details-marker {
-    display: none;
 }
 
 .due-pp-chips {

@@ -27,7 +27,7 @@ import { buildBillRow, buildOpeningGroup, addOpeningToggle, addVoidedToggle, bil
 import { printStatusOf, recordPrint } from '../utils/print-status.js';
 import { STORAGE_FULL_KEY } from '../utils/storage-full.js';
 import { accessFor, canDeleteBillWith, canOpenPage, canVoidBillWith, historyCutoff, withinBillEditWindow } from '../utils/role-access.js';
-import { askReason, editsRowHtml, payAmountHtml, renderEditsList, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
+import { askReason, billNoteHtml, editsRowHtml, payAmountHtml, renderEditsList, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
 import { voidBlocker } from '../utils/bill-edits.js';
 import { buildReprintPayload, buildBillShareText } from '../utils/bill-share.js';
 import { billTimes, refusedForClock } from '../utils/clock-skew.js';
@@ -606,15 +606,8 @@ export class HistoryManager {
         const content = `
             <div class="bill-view${isPurchase ? '' : ' is-sale'}">
                 ${voidedBannerHtml(bill)}
-                ${bill.comments ? `
-                    <div class="notice warn bill-view-note">
-                        <span>${L('ui.wholesale.comments')}</span>
-                        <div class="bill-view-note-text">${Helpers.escapeHtml(bill.comments)}</div>
-                    </div>
-                ` : ''}
-                <div class="panel bill-view-sheet">
+                <div class="panel">
                 <div class="panel-pad bill-view-head">
-                    ${bill.customerName ? `<div class="bill-view-party"><span class="row-meta">${L(isPurchase ? 'ui.common.supplier' : 'ui.common.customer')}</span> <strong>${Helpers.escapeHtml(bill.customerName)}</strong></div>` : ''}
                     <div class="bill-view-sum hero-num">${known ? moneyHtml(billTotal(bill)) : Helpers.escapeHtml(UNKNOWN_AMOUNT)}</div>
                     ${paidSoFar(parts) > 0 || parts.due > 0 ? `<div class="bill-view-paid">${[
                         paidSoFar(parts) > 0 ? `<span>${L('ui.history.chip_paid', { amount: formatAmount(paidSoFar(parts)) })}</span>` : '',
@@ -622,6 +615,7 @@ export class HistoryManager {
                     ].filter(Boolean).join('<span aria-hidden="true"> · </span>')}</div>` : ''}
                     <div class="row-meta">${Helpers.escapeHtml(shownDate.text)}${shownDate.bad ? badDateBadgeHtml() : ''}</div>
                 </div>
+                ${billNoteHtml(bill)}
                 
                 ${weightBreakdownHTML ? `
                     <section class="bill-view-sec">

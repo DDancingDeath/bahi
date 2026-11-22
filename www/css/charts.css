@@ -137,6 +137,17 @@
   flex: 1 1 0;
 }
 
+/* Long choices (Add & save / Save without it): full width, one per line, the primary on top; Cancel is the head's × */
+.app-dialog .dialog-actions.dialog-actions-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.app-dialog .dialog-actions.dialog-actions-stack > .btn {
+  flex: none;
+  width: 100%;
+}
+
 /* Retail sale open: the dialog's primary takes the sale colour */
 body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   background-color: var(--btn-sale-bg);
@@ -175,7 +186,7 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 }
 
 .dialog-wide {
-  width: min(560px, 100%);
+  width: min(var(--dialog-wide), 100%);
 }
 
 /* A title row with its own buttons (Back, Close) */

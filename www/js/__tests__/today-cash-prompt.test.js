@@ -56,7 +56,7 @@ test('members without the Wholesale page see no wholesale card or bills', () => 
     const { AnomaliesManager } = require('../modules/anomalies.js');
     const { HealthManager } = require('../modules/health.js');
     jest.spyOn(AnomaliesManager, 'renderDayReport').mockImplementation(() => {});
-    jest.spyOn(HealthManager, 'renderTodayBanner').mockResolvedValue();
+    jest.spyOn(HealthManager, 'todayAlerts').mockResolvedValue([]);
     DayManager.loadTodayData();
     expect(document.getElementById('todayChWholesale').hidden).toBe(true);
     const rows = [...document.querySelectorAll('[data-today-bill]')].map(r => r.getAttribute('data-onclick'));

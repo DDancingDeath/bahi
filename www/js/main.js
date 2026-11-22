@@ -60,7 +60,8 @@ import { chooseStartPage, routeFromHash } from './utils/start-page.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
-import { installDateCaptions } from './ui/date-caption.js';
+import { installDateFields } from './ui/date-field.js';
+import { installMenus } from './ui/menus.js';
 import { t, getLang, setLang, applyTranslations, LANG_CHANGE_EVENT, loadCatalogue, loadAllCatalogues } from './i18n/index.js';
 import { friendlyError } from './utils/friendly-error.js';
 
@@ -72,7 +73,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261122a-project-docs-folder';
+const BUILD_ID = '20261121j-anom-menu-focus-quota';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -280,7 +281,7 @@ let pagesReady = Promise.resolve();
 /** What startup renders into a page that is put in later, run when it is added. */
 const PAGE_ADDED = {
     items: () => ItemsManager.renderItems(),
-    'wholesale-sales': () => withWholesale(m => m.loadItemsDropdown()),
+    'wholesale-sales': () => withWholesale(m => { m.loadItemsDropdown(); m.updatePaymentTotal(); }),
     expenses: () => withExpenses(m => { m.updateExpensePersonOptions(); m.renderexpensesHistory(); }),
     settings: () => {
         PrinterService.updateStatus();
@@ -676,7 +677,10 @@ async function initializeUserData() {
                 SettingsManager.syncPrinterPanel();
                 SettingsManager.updatePrinterStatus().catch(e => console.warn('Printer status:', e));
                 return document.getElementById('printerPanel');
-            }
+            },
+            // As the menu opens it (settings.load runs after 100 ms), then the sheet scrolls to the printed bill
+            openSettings: () => Promise.resolve(NavigationManager.showTabFromNav('settings-printing'))
+                .then(() => new Promise(resolve => setTimeout(resolve, 150)))
         });
 
         BottomNav.init({
@@ -833,7 +837,8 @@ async function initializeUserData() {
 // data-on* attributes (delegated handlers, #89) work from the first template on
 installActions();
 installTablistKeys();
-installDateCaptions();
+installDateFields();
+installMenus();
 
 // Before the templates go in, so their text never changes weight (variables.css: --w-strong)
 if (window.Capacitor?.getPlatform?.() === 'android') document.documentElement.classList.add('platform-android');
@@ -1157,7 +1162,8 @@ window.app = {
     // Billing's Bluetooth printer sheet (app bar, next to the bell)
     printerSheet: {
         open: () => PrinterShortcut.open(),
-        close: () => PrinterShortcut.close()
+        close: () => PrinterShortcut.close(),
+        receiptOptions: () => PrinterShortcut.receiptOptions()
     },
 
     // Notifications inbox (#12)
@@ -1512,7 +1518,7 @@ window.app = {
     },
 
     // Rate trends (#65): monthly rate history per item + seasonal estimate
-    // App health / Test in Production (#217): owner/manager page + Today banner (health.js is imported on first use)
+    // App health / Test in Production (#217): owner/manager page + the Day report's health line (health.js is imported on first use)
     health: {
         ...Object.fromEntries(['init', 'refresh', 'openPage', 'savePolicies']
             .map(name => [name, (...args) => loadHealth().then(m => m[name](...args))]))
@@ -1681,6 +1687,8 @@ window.app = {
     // Settings › Team (U-54, U-56): people and worker accounts; admin.js is imported on first use
     team: {
         render: () => loadAdmin().then(a => a.renderTeam()),
+        // The one "Show people" (NEW-11): everyone with their Aadhat role, then each one's Rentals role
+        showPeople: () => Promise.all([loadAdmin().then(a => a.renderTeam()), RolesAccessManager.loadPeople()]),
         addWorker: () => loadAdmin().then(a => a.addWorker()),
         // From the waiting-to-join alerts (U-24): Team with its people shown
         openWaiting: () => Promise.resolve(NavigationManager.showTabFromNav('settings-team'))

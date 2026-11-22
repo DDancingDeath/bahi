@@ -76,6 +76,18 @@ test('loads once while visible, shows a loading row, then re-renders', async () 
     expect(sentinel().dataset.state).toBe('idle');
 });
 
+test('skeleton: a month loading shows grey rows for screen readers by name, not the spinner line (F36)', async () => {
+    const d = deferred();
+    attachInfiniteScroll(list, { loadMore: () => d.promise, skeleton: true, labels: { loading: 'Loading older expenses…', end: 'No older expenses' } });
+    observer().fire(true);
+    expect(sentinel().dataset.state).toBe('loading');
+    expect(sentinel().querySelector('.history-range-spinner')).toBeNull();
+    expect(sentinel().querySelector('.skel-list[aria-busy="true"] .sr-only').textContent).toBe('Loading older expenses…');
+    d.resolve({ reachedEnd: true });
+    await flush();
+    expect(sentinel().textContent).toBe('No older expenses');
+});
+
 test('shows the end row and stops observing when nothing older exists', async () => {
     const loadMore = jest.fn(async () => ({ reachedEnd: true }));
     attachInfiniteScroll(list, { loadMore, labels: { end: 'No older bills' } });

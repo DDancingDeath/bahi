@@ -37,7 +37,8 @@
     "skeleton": "ui/components.js: constant .skel-list / .skel markup with the HTML-escaped label",
     "byNameHtml": "ui/bill-row.js: L('ui.outstanding.by_name') with {name} replaced by the HTML-escaped name in a constant <strong>",
     "warningsNoticeHtml": "ui/bill-highlight.js: each warning line HTML-escaped in constant .notice.warn markup with icon()",
-    "payAmountHtml": "ui/bill-status.js: moneyHtml of the amount in a constant .row-amt span, or a .tag with the HTML-escaped dueTone class"
+    "payAmountHtml": "ui/bill-status.js: moneyHtml of the amount in a constant .row-amt span, or a .tag with the HTML-escaped dueTone class",
+    "billNoteHtml": "ui/bill-status.js: the bill's comments HTML-escaped and L('ui.wholesale.comments') in constant .bill-view-note markup"
   },
   "names": {},
   "properties": {

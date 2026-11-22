@@ -113,6 +113,8 @@
   /* A solid focus ring at 3:1 or more on every surface */
   --focus-ring: var(--accent-text);
   --focus: 0 0 0 3px var(--focus-ring);
+  /* Inside the border: floating-label fields, whose label sits on the border (NEW-20) */
+  --focus-inset: inset 0 0 0 2px var(--focus-ring);
   --table-rule: var(--line);
   --toast-bg: #1d1d24;
   --toast-ink: #f4f4f7;
@@ -282,7 +284,9 @@
   --appbar-h: 52px;
   --bottomnav-h: 56px;
   --phone-col-max: 480px;
-  --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3));
+  /* A wide dialog (.dialog-wide); 680 px on desktop (desktop.css) */
+  --dialog-wide: 560px;
+  --tab-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + var(--sp-3) + var(--shell-notice-h, 0px));
   /* Tap targets: 48 px on phones (Android's 48 dp), 44 px with a mouse (desktop.css) */
   --tap-min: 48px;
   /* The clear border round a switch's 22 px track that makes its tap area 48 px */
@@ -1695,6 +1699,15 @@ html[data-updating] .updating-mark {
   width: 100%;
 }
 
+/* A <summary> drawn as a button (About, ⋯ menus, Add a worker) has no disclosure marker */
+summary.btn {
+  list-style: none;
+}
+
+summary.btn::-webkit-details-marker {
+  display: none;
+}
+
 /* Hover is a veil over any variant's colour, so mode colours (purchase / sale / cash) keep theirs */
 .btn:hover:not(:disabled) {
   background-image: linear-gradient(var(--state-hover), var(--state-hover));
@@ -1792,6 +1805,17 @@ input[type="text"] {
   color: var(--ink);
   font-size: var(--fs-body);
   transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+
+/* No spinner arrows on number fields */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Other text-like fields keep their own size but take the field colours in every theme and mode (no specificity: page rules win) */
@@ -1904,6 +1928,14 @@ select:not([multiple]):not([size]) {
 
 .field-float:focus-within > label {
   color: var(--accent-text);
+}
+
+/* Focus is drawn inside the border, so the label's notch cuts it like the border and no ring crosses the label (NEW-20) */
+.field-float :is(input, select, textarea, .input):focus,
+.field-float :is(input, select, textarea, .input):focus-visible {
+  border-color: var(--focus-ring);
+  outline: none;
+  box-shadow: var(--focus-inset);
 }
 
 /* ---------- Search field: .search-field > .i (decorative, aria-hidden) + .input with its own label ---------- */
@@ -2139,14 +2171,14 @@ input[type="checkbox"].switch:focus-visible,
 }
 
 /* ---------- Period control (U-61): ‹ label › and a preset chip, one look on Money, Insights, Workers ----------
-   .period is the component; .ins-period and .wp-month are its old hooks */
-:is(.period, .ins-period, .wp-month) {
+   .period is the component (Money, Insights and Statements keep .ins-period as a hook); .wp-month is an old hook */
+:is(.period, .wp-month) {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
 }
 
-:is(.period, .ins-period, .wp-month) > .btn {
+:is(.period, .wp-month) > .btn {
   flex: none;
   width: var(--tap-min);
   min-height: var(--tap-min);
@@ -2196,26 +2228,6 @@ input[type="checkbox"].switch:focus-visible,
 :where(summary) {
   min-height: var(--tap-min);
   padding-block: var(--sp-3);
-}
-
-/* Text buttons, the list's Load more / Retry and the Show voided / old dues toggles get the button height (N-15) */
-.infinite-scroll-more,
-.history-range-retry,
-.chip[data-group-toggle] {
-  min-height: var(--tap-min);
-}
-
-/* A link-like button inside a line of text (a bill number): an invisible 48 px tap area round the words */
-.due-bill-link,
-.bill-edits__view {
-  position: relative;
-}
-
-.due-bill-link::after,
-.bill-edits__view::after {
-  content: '';
-  position: absolute;
-  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 /* -------------------- UTILITIES -------------------- */
@@ -2268,17 +2280,53 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 }
 
-/* ---------- Date caption (F54) ---------- */
-/* The day in the app's format under a native date box (js/ui/date-caption.js) */
-.date-caption {
-  display: block;
-  flex-basis: 100%;
-  color: var(--ink-2);
-  font-size: var(--fs-caption);
+/* ---------- Date field (F54) ---------- */
+/* A native date box showing the day in the app's format ("21 Nov 2026") over its own text (js/ui/date-field.js) */
+.date-field {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
 }
 
-.date-caption[hidden],
-input[hidden] + .date-caption {
+:is(.field, .field-float, .bill-form-field) > .date-field {
+  display: block;
+}
+
+.date-field > input {
+  width: 100%;
+  -webkit-text-fill-color: transparent;
+}
+
+.date-field-text {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--date-pad, var(--sp-3));
+  right: var(--sp-10);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--date-fs, var(--fs-body));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.date-field-text.date-field-empty,
+.date-field > input:disabled + .date-field-text {
+  color: var(--ink-3);
+}
+
+/* Typing digits: the box's own fields show until it loses focus */
+.date-field--typing > input {
+  -webkit-text-fill-color: currentColor;
+}
+
+.date-field--typing > .date-field-text,
+.date-field:has(> input[hidden]) {
   display: none;
 }
 
@@ -2608,6 +2656,17 @@ a.row:active {
   display: none;
 }
 
+/* "About" help (U-93): <details class="page-help"> with a ghost .btn-sm summary; the screen comes first,
+   the longer text is one tap away (Recurring bills, Workers, Settings groups) */
+.page-help > summary {
+  width: fit-content;
+}
+
+.page-help[open] {
+  display: grid;
+  gap: var(--sp-2);
+}
+
 /* Money figure: the ₹ sign smaller and muted beside the digits (<span class="cur">₹</span>) */
 .money {
   font-variant-numeric: tabular-nums;
@@ -2728,6 +2787,36 @@ a.row:active {
   align-items: center;
   width: min(92vw, 560px);
   box-shadow: var(--e2);
+}
+
+/* Shell notice (daily data limit): under the app bar; quota-guard.js sets --shell-notice-h to its height and the pages move down by it */
+.shell-notice {
+  position: fixed;
+  top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  z-index: var(--z-appbar);
+  align-items: center;
+  padding-block: var(--sp-1);
+  padding-inline: max(var(--gutter), calc(50% - var(--phone-col-max) / 2 + var(--gutter))) max(var(--sp-1), calc(50% - var(--phone-col-max) / 2 + var(--sp-1)));
+  border-radius: 0;
+}
+
+.shell-notice-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.shell-notice > .btn-icon {
+  flex: none;
+  color: inherit;
+}
+
+/* While the sign-in screen shows, the notice sits above it at the top (auth.css leaves room for it) */
+body:has(> .auth-screen:not([style*="none"])) .shell-notice {
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  z-index: calc(var(--z-auth) + 1);
 }
 
 /* Wrong phone clock notice (#115): a .notice.float */
@@ -3029,6 +3118,7 @@ a.row:active {
   overflow-y: auto;
   z-index: var(--z-auth);
   padding: var(--sp-5);
+  padding-top: calc(var(--sp-5) + var(--shell-notice-h, 0px));
 }
 
 .auth-container {
@@ -4447,17 +4537,6 @@ body:not(.biz-rentals) .bottom-nav-item[data-rent-bar],
   margin: 0;
 }
 
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
 .bill-form-field select:focus,
 .bill-form-field input:focus {
   border-color: var(--accent-text);
@@ -4472,17 +4551,6 @@ label {
   font-weight: var(--w-label);
   font-size: var(--fs-sm);
   color: var(--ink);
-}
-
-/* Remove spinner arrows from all number inputs */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 .weights-compact {
@@ -4534,13 +4602,6 @@ input[type="number"] {
 }
 
 /* -------------------- BILLING THEME -------------------- */
-.rates-container {
-  display: flex;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 .rate-input {
   width: 70px;
   padding: 10px;
@@ -4587,8 +4648,9 @@ input[type="number"] {
     display: none;
   }
 }
-/* Voice billing (#81): shown only when switched on in Settings */
-.btn[data-voice-mic].voice-listening {
+/* Voice billing (#81): shown only when switched on in Settings; the mic (also the voice check's) while it listens */
+.btn[data-voice-mic].voice-listening,
+.voice-part > .btn.voice-listening {
   background-color: var(--negative-soft);
   color: var(--negative);
 }
@@ -4603,8 +4665,7 @@ input[type="number"] {
   color: var(--warning);
 }
 
-/* Save with a line not added to the bill (BF-PENDING), extreme rate (BF-RATECHECK): choices wrap on a phone */
-.pending-line-sheet .dialog-actions > .btn,
+/* Extreme rate (BF-RATECHECK): choices wrap on a phone */
 .rate-check-sheet .dialog-actions > .btn {
   flex: 1 1 auto;
 }
@@ -4632,12 +4693,7 @@ input[type="number"] {
 
 .bill-menu > summary {
   position: relative;
-  list-style: none;
   color: var(--ink-2);
-}
-
-.bill-menu > summary::-webkit-details-marker {
-  display: none;
 }
 
 .bill-menu-badge {
@@ -4670,6 +4726,7 @@ input[type="number"] {
   min-width: 180px;
   padding: var(--sp-1);
   box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
 }
 
 .bill-menu-list > .btn {
@@ -4754,7 +4811,7 @@ input[type="number"] {
 }
 
 .bill-party > .btn-icon:hover {
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
 }
 
 /* Name suggestions while typing a customer / supplier (#139 phase 1) */
@@ -4985,8 +5042,8 @@ input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
 
-/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale and wholesale
-   screens give both their mode's colour */
+/* Save is the screen's one primary button (Add to bill, Rest → due are tonal); the sale screen gives both its
+   mode's colour, Wholesale keeps Billing's indigo (its violet is the mode dot only, NEW-04) */
 .bill-sale .btn-primary {
   background-color: var(--btn-sale-bg);
   color: var(--btn-sale-ink);
@@ -4995,16 +5052,6 @@ input[type="number"] {
 .bill-sale .btn-tonal {
   background-color: var(--positive-soft);
   color: var(--positive);
-}
-
-.ws-entry .btn-primary {
-  background-color: var(--bill-tone-fill);
-  color: var(--bill-tone-ink);
-}
-
-.ws-entry .btn-tonal {
-  background-color: var(--bill-tone-soft);
-  color: var(--bill-tone-text);
 }
 
 .bill-breakdown:not(:empty) {
@@ -5147,13 +5194,17 @@ input[type="number"] {
   gap: var(--sp-1);
 }
 
-/* ---------- Wholesale (5.5): Billing's components in the wholesale (violet) mode ---------- */
-/* Billing's tones are --bill-tone-* with its accent as the fallback; the wholesale page sets them */
-.bill-page {
-  --bill-tone-text: var(--ink);
-  --bill-tone-soft: var(--mode-wholesale-soft);
-  --bill-tone-fill: var(--mode-wholesale);
-  --bill-tone-ink: var(--on-mode-wholesale);
+/* ---------- Wholesale (5.5): Billing's components as they are; violet only for the mode dot (NEW-04) ---------- */
+/* The action bar's "Receivable" carries the wholesale dot, as Billing's mode switch carries its own */
+.bill-page .bill-bar-label::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--sp-1);
+  border-radius: var(--r-round);
+  background: var(--mode-wholesale);
+  vertical-align: 0.1em;
 }
 
 .ws-links {
@@ -5195,6 +5246,7 @@ input[type="number"] {
 
 .ws-add {
   min-height: 48px;
+  margin-top: var(--sp-3);
 }
 
 /* Expenses and the live profit (WS-PROFIT): folded under "Expenses and profit" (U-36), so the margin is not on show at the counter */
@@ -5281,14 +5333,10 @@ input[type="number"] {
   padding: var(--sp-3) var(--sp-4) 0;
 }
 
-.bill-view-note {
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
-}
-
 .bill-view-note-text {
   color: var(--ink);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .bill-view-items {
@@ -5455,11 +5503,6 @@ input[type="number"] {
   -webkit-touch-callout: none;
 }
 
-.voice-sheet-mic.voice-listening {
-  background-color: var(--negative-soft);
-  color: var(--negative);
-}
-
 /* The mic in the Supplier / Customer field, beside the contact button (#498) */
 .bill-party > .voice-name-mic {
   right: 48px;
@@ -5582,29 +5625,6 @@ select.voice-unclear {
   font-weight: var(--w-strong);
 }
 
-.voice-sheet-more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-}
-
-.voice-sheet-mic {
-  min-height: 48px;
-}
-
-.voice-sheet-live {
-  flex: 1 1 12rem;
-  margin: 0;
-  color: var(--ink-2);
-  font-size: var(--fs-label);
-}
-
-.voice-sheet-live:empty {
-  display: none;
-}
-
 /* ---- css/photo-weights.css ---- */
 /* Photo of weights check sheet (#374): the photo with numbered boxes, then the weights to check */
 .pw-status {
@@ -5681,10 +5701,9 @@ select.voice-unclear {
   list-style: none;
 }
 
+/* A .row whose field and tags wrap */
 .pw-row {
-  display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: var(--sp-2);
 }
 
@@ -6097,7 +6116,7 @@ select.voice-unclear {
   min-width: 48px;
   min-height: 44px;
   margin: 0;
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
   cursor: pointer;
@@ -6135,9 +6154,9 @@ select.voice-unclear {
 
 :is(#billing, .bill-page) .pay-line > .pay-fill > input:checked ~ .pay-fill-on {
   display: flex;
-  border-color: var(--bill-tone-fill, var(--accent-text));
-  background: var(--bill-tone-fill, var(--btn-primary-bg));
-  color: var(--bill-tone-ink, var(--btn-primary-ink));
+  border-color: var(--accent-text);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-weight: var(--w-strong);
 }
 
@@ -6226,7 +6245,7 @@ select.voice-unclear {
 }
 
 .bill-extras .btn-sm {
-  color: var(--bill-tone-text, var(--accent-text));
+  color: var(--accent-text);
 }
 
 .bill-sale .bill-extras .btn-sm {
@@ -6337,10 +6356,11 @@ select.voice-unclear {
   min-height: 48px;
 }
 
-/* Save and Print share the rest of the row equally */
+/* Save and Print share the rest of the row equally (on desktop with their Ctrl hints) */
 .bill-actions > :is(.btn-primary, .bill-print) {
   flex: 1 1 0;
   min-width: min-content;
+  padding: 0 var(--sp-2);
 }
 
 /* Share is an icon with a visible "Draft" under it (the bill is not saved yet, U-27); shown once the bill has a line */
@@ -6502,6 +6522,12 @@ select.voice-unclear {
 @keyframes bill-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* The bill's two columns may shrink below their content (desktop grid, landscape halves) */
+.bill-main,
+.bill-side {
+  min-width: 0;
 }
 
 /* On its side (U-41): the lines left, totals and payment right, so less of the bill is below the fold */
@@ -6762,12 +6788,7 @@ tr.bill-check-line .bill-check-msg {
     text-align: left;
 }
 
-/* The warnings listed once in the Save dialog (F51, F53) */
-.bill-check-sheet-notice {
-    margin-bottom: var(--sp-3);
-    text-align: left;
-}
-
+/* The warnings listed once in the Save dialog (F51, F53): a .notice.warn of bullets */
 .bill-check-bullets {
     margin: 0;
     padding-left: var(--sp-4);
@@ -6947,8 +6968,10 @@ tr.bill-check-line .bill-check-msg {
   padding: 0;
 }
 
+/* Load more / Retry get the button height (N-15) */
 .infinite-scroll-more,
 .history-range-retry {
+  min-height: var(--tap-min);
   margin-left: 6px;
   padding: 6px 14px;
   border: 1px solid var(--accent-line);
@@ -7060,7 +7083,7 @@ tr.bill-check-line .bill-check-msg {
   display: none;
 }
 
-.history-custom-range > .input {
+.history-custom-range > :is(.input, .date-field) {
   flex: 1 1 0;
   width: auto;
   min-width: 0;
@@ -7245,6 +7268,7 @@ tr.bill-check-line .bill-check-msg {
 
 /* Old-app carried dues: hidden by default, a separate group when shown */
 .chip[data-group-toggle] {
+  min-height: var(--tap-min);
   margin: 0 var(--sp-2) var(--sp-2) 0;
 }
 
@@ -7414,7 +7438,9 @@ tr.bill-check-line .bill-check-msg {
   color: var(--ink-2);
 }
 
+/* A link inside a line of text: an invisible 48 px tap area round the words (as .due-bill-link) */
 .bill-edits__view {
+  position: relative;
   border: none;
   background: none;
   padding: 0;
@@ -7422,6 +7448,12 @@ tr.bill-check-line .bill-check-msg {
   font-size: var(--fs-sm);
   text-decoration: underline;
   cursor: pointer;
+}
+
+.bill-edits__view::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 .bill-edits__list {
@@ -7473,7 +7505,7 @@ tr.bill-check-line .bill-check-msg {
 
 .exp-form {
   display: grid;
-  gap: var(--sp-3);
+  gap: var(--sp-5);
 }
 
 .exp-actions {
@@ -7651,25 +7683,16 @@ tr.bill-check-line .bill-check-msg {
   }
 }
 
-/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end */
+/* Bill details (U-67): money first (party, total, Paid / Due), the record's bookkeeping folded at the end;
+   one panel (F49): the head, then each section under a hairline */
 .bill-view-head {
   display: grid;
   gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
-}
-
-.bill-view-party {
-  overflow-wrap: anywhere;
 }
 
 .bill-view-paid {
   color: var(--ink-2);
   font-size: var(--fs-sm);
-}
-
-/* One panel (F49): the head, then each section under a hairline */
-.bill-view-sheet > .bill-view-head {
-  margin-bottom: 0;
 }
 
 .bill-view-sec {
@@ -8020,7 +8043,9 @@ tr.bill-check-line .bill-check-msg {
     white-space: nowrap;
 }
 
+/* An invisible 48 px tap area round the bill number's words */
 .due-bill-link {
+    position: relative;
     padding: 0;
     border: none;
     background: none;
@@ -8028,6 +8053,12 @@ tr.bill-check-line .bill-check-msg {
     font: inherit;
     text-decoration: none;
     cursor: pointer;
+}
+
+.due-bill-link::after {
+    content: '';
+    position: absolute;
+    inset: calc(50% - var(--tap-min) / 2) min(0px, calc(50% - var(--tap-min) / 2));
 }
 
 /* Retail / wholesale tag on a bill in Sales › All (#125) */
@@ -8216,14 +8247,6 @@ tr.bill-check-line .bill-check-msg {
     box-shadow: var(--focus);
 }
 
-.aging-more > summary {
-    list-style: none;
-}
-
-.aging-more > summary::-webkit-details-marker {
-    display: none;
-}
-
 .aging-more[open] {
     flex-basis: 100%;
 }
@@ -8264,11 +8287,6 @@ tr.bill-check-line .bill-check-msg {
 
 .due-bill-more > summary {
     margin-top: var(--sp-2);
-    list-style: none;
-}
-
-.due-bill-more > summary::-webkit-details-marker {
-    display: none;
 }
 
 .due-pp-chips {
@@ -8661,6 +8679,17 @@ tr.bill-check-line .bill-check-msg {
   flex: 1 1 0;
 }
 
+/* Long choices (Add & save / Save without it): full width, one per line, the primary on top; Cancel is the head's × */
+.app-dialog .dialog-actions.dialog-actions-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.app-dialog .dialog-actions.dialog-actions-stack > .btn {
+  flex: none;
+  width: 100%;
+}
+
 /* Retail sale open: the dialog's primary takes the sale colour */
 body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   background-color: var(--btn-sale-bg);
@@ -8699,7 +8728,7 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 }
 
 .dialog-wide {
-  width: min(560px, 100%);
+  width: min(var(--dialog-wide), 100%);
 }
 
 /* A title row with its own buttons (Back, Close) */
@@ -8968,8 +8997,8 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   background: var(--warning-dot);
 }
 
-/* The same printer panel inside Billing's sheet: no card of its own, the sheet's title is its heading */
-.printer-sheet .set-panel {
+/* A settings panel shown in an app dialog (Billing's printer sheet): no card of its own, the dialog's title is its heading */
+.app-dialog .set-panel {
   margin: 0;
   padding: 0;
   border: 0;
@@ -8977,8 +9006,15 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   box-shadow: none;
 }
 
-.printer-sheet .set-panel > .set-title {
+.app-dialog .set-panel > .set-title {
   display: none;
+}
+
+/* "Receipt options ›" under the panel: the rest of Settings › Printing & receipts (NEW-12) */
+.row.printer-sheet-receipt {
+  margin-top: var(--sp-3);
+  padding-inline: 0;
+  border-top: 1px var(--rule-style) var(--line);
 }
 
 .usage-list {
@@ -9459,14 +9495,6 @@ body.no-perm-contacts [data-perm~="contacts"] {
   margin-top: var(--sp-4);
 }
 
-.team-add > summary {
-  list-style: none;
-}
-
-.team-add > summary::-webkit-details-marker {
-  display: none;
-}
-
 .team-add form {
   margin-top: var(--sp-3);
 }
@@ -9586,10 +9614,9 @@ body.no-perm-contacts [data-perm~="contacts"] {
 .cash-sum-out .i { color: var(--ink-3); }
 .cash-sum-expected { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line-strong); color: var(--ink); font-weight: var(--w-label); }
 
-/* Fields: label above, ₹ as a prefix; the script shows a row with display: block, so the spacing doesn't rely on flex */
-.cash-form { display: flex; flex-direction: column; gap: var(--sp-4); }
-.cash-form .field { display: block; }
-.cash-form .field > * + * { margin-top: var(--sp-2); }
+/* Floating-label fields (.field-float, NEW-10), ₹ as a prefix; the script shows a row with display: block, so the spacing doesn't rely on flex */
+.cash-form { display: flex; flex-direction: column; gap: var(--sp-5); }
+.cash-form .field-float > .cash-hint { margin-top: var(--sp-2); }
 .cash-hint { color: var(--ink-3); font-size: var(--fs-caption); }
 .cash-diff-alert { display: none; padding: var(--sp-3); border-radius: var(--r-control); font-weight: var(--w-strong); }
 .cash-history-list { max-height: 400px; overflow-y: auto; }
@@ -9837,10 +9864,6 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 /* Rows (card and page): the severity dot, the reason and who / what, then the review buttons */
-.anom-list {
-  overflow: hidden;
-}
-
 .anom-row {
   flex-wrap: wrap;
   align-items: flex-start;
@@ -9906,8 +9929,52 @@ body.no-perm-contacts [data-perm~="contacts"] {
 
 .anom-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: var(--sp-2);
+}
+
+.anom-actions .btn {
+  white-space: nowrap;
+}
+
+/* ⋯ floats its list over the rows below (ui/menus.js keeps it in the window), as Billing's ⋯ does: the row never moves */
+.anom-overflow {
+  position: relative;
+  flex: none;
+}
+
+.anom-overflow > summary {
+  list-style: none;
+}
+
+.anom-overflow > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anom-overflow-menu {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: calc(100vw - var(--sp-4));
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
+}
+
+.anom-overflow-menu[data-up] {
+  top: auto;
+  bottom: calc(100% + var(--sp-1));
+}
+
+.anom-overflow-menu > .btn {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
 }
 
 /* Page: filters, sections and summary */
@@ -10416,20 +10483,15 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-size: var(--fs-caption);
 }
 
-/* Today: the banner when a check is below its target (a .notice.neg) */
-.tip-health {
+/* Today › Day report: the checks below their target today (a .notice.warn inside the closed row, NEW-06) */
+.day-report-health {
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: var(--sp-3);
 }
 
-.tip-health[hidden] {
-  display: none;
-}
-
-.tip-health-text {
+.day-report-health > .grow {
   flex: 1 1 200px;
-  font-weight: var(--w-strong);
 }
 
 /* Checks and phones as rows that fit a phone (U-70) */
@@ -11134,7 +11196,7 @@ div.ins-wide,
 
 /* Day book: ‹ day › and a preset chip (U-61); "Choose day…" shows the date box on its own row */
 .st-day-step { flex-wrap: wrap; }
-.st-day-pick { flex: 1 1 100%; }
+.st-day-pick, .date-field:has(> .st-day-pick) { flex: 1 1 100%; }
 
 /* Month statement: the month chip sits between ‹ and › (U-61) */
 .st-month-step .st-month-pick:not([multiple]):not([size]) { flex: 1 1 auto; max-width: none; }
@@ -11159,6 +11221,7 @@ div.ins-wide,
     --control-h: 36px;
     --tap-min: 44px;
     --row-h: 44px;
+    --dialog-wide: 680px;
     /* Desktop type scale (DIRECTION §3.2); html[lang="hi"] keeps its larger --fs-sm / --fs-body */
     --fs-body: 14px;
     --fs-lead: 16px;
@@ -11318,12 +11381,6 @@ div.ins-wide,
     color: var(--brand-ink);
   }
 
-  .nav-mark-bahi {
-    width: 100%;
-    height: 100%;
-    fill: var(--brand-corner);
-  }
-
   .nav-header h2 {
     grid-column: 2;
     font-size: var(--fs-body);
@@ -11440,13 +11497,19 @@ div.ins-wide,
   }
 
   .tab {
-    margin: var(--desktop-header-h) 0 0 var(--desktop-nav-width);
+    margin: calc(var(--desktop-header-h) + var(--shell-notice-h, 0px)) 0 0 var(--desktop-nav-width);
     max-width: none;
     padding: var(--sp-6) var(--desktop-gutter) var(--desktop-tab-end);
     /* The page scrolls under the header; dynamic viewport height where supported (navigation.css keeps 100vh for phones). */
     min-height: 0;
-    height: calc(100vh - var(--desktop-header-h));
-    height: calc(100dvh - var(--desktop-header-h));
+    height: calc(100vh - var(--desktop-header-h) - var(--shell-notice-h, 0px));
+    height: calc(100dvh - var(--desktop-header-h) - var(--shell-notice-h, 0px));
+  }
+
+  .shell-notice {
+    top: var(--desktop-header-h);
+    left: var(--desktop-nav-width);
+    padding-inline: var(--desktop-gutter);
   }
 
   /* A page's head (<div class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</div>; surfaces.css hides it
@@ -11535,11 +11598,6 @@ div.ins-wide,
     grid-column: 1 / -1;
   }
 
-  .bill-main,
-  .bill-side {
-    min-width: 0;
-  }
-
   .bill-side {
     position: sticky;
     top: 0;
@@ -11551,11 +11609,6 @@ div.ins-wide,
 
   .bill-side > .bill-totals:first-child {
     margin-top: 0;
-  }
-
-  /* The side column's footer holds the total, Share, then Save and Print with their Ctrl hints */
-  .bill-actions > :is(.btn-primary, .bill-print) {
-    padding: 0 var(--sp-2);
   }
 
   .bill-main > .bill-form-field:first-child {
@@ -11638,7 +11691,7 @@ div.ins-wide,
   #dayTodayContent:not([style*="none"]) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-    grid-template-rows: repeat(4, auto) 1fr;
+    grid-template-rows: repeat(3, auto) 1fr;
     grid-auto-flow: row dense;
     column-gap: var(--sp-6);
     align-items: start;
@@ -11654,11 +11707,10 @@ div.ins-wide,
 
   /* Fixed rows: the side column starts beside the key figures, whatever above it is hidden */
   .today-summary > .updating-note { grid-row: 1; }
-  .today-summary > .tip-health { grid-row: 2; }
-  .today-summary > .hero { grid-row: 3; }
-  .today-summary > .today-main-top { grid-row: 4; }
-  .today-summary > .today-side { grid-row: 4 / span 2; }
-  .today-summary > .today-main:not(.today-main-top) { grid-row: 5; }
+  .today-summary > .hero { grid-row: 2; }
+  .today-summary > .today-main-top { grid-row: 3; }
+  .today-summary > .today-side { grid-row: 3 / span 2; }
+  .today-summary > .today-main:not(.today-main-top) { grid-row: 4; }
 
   #dayTodayContent .hero {
     margin-bottom: var(--sp-2);
@@ -11693,11 +11745,7 @@ div.ins-wide,
     width: 100%;
   }
 
-  /* ---------- Modals: centered dialogs with comfortable width ---------- */
-  .dialog-wide {
-    width: min(680px, 100%);
-  }
-
+  /* ---------- Modals: centered dialogs (.dialog-wide takes --dialog-wide from :root above) ---------- */
   .bill-details-footer {
     justify-content: flex-end;
   }

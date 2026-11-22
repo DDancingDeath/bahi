@@ -6,6 +6,18 @@
     var releaseNotes = null;
     var tagShown = false;
     var testBuild = false;
+    var releaseDay = '';
+    // The app's date format (utils/dates.js formatDay): "15 Nov 2026", Hindi month names in Hindi
+    var MONTHS = {
+        en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        hi: ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर']
+    };
+
+    function showDay(lang) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(releaseDay);
+        var month = m ? MONTHS[lang === 'hi' ? 'hi' : 'en'][Number(m[2]) - 1] : '';
+        document.getElementById('latestDate').textContent = month ? '(' + Number(m[3]) + ' ' + month + ' ' + m[1] + ')' : '';
+    }
 
     function fillNotes(lang) {
         var list = document.getElementById('notesList');
@@ -30,6 +42,7 @@
         var group = document.querySelector('.lang-switch');
         group.setAttribute('aria-label', lang === 'hi' ? 'भाषा' : 'Language');
         if (releaseNotes) fillNotes(lang);
+        showDay(lang);
     }
 
     document.querySelectorAll('[data-lang-option]').forEach(function (btn) {
@@ -48,7 +61,7 @@
             if (!latest || testBuild) return;
             if (!tagShown) {
                 document.getElementById('latestVersion').textContent = 'v' + String(latest.version || '');
-                if (latest.date) document.getElementById('latestDate').textContent = '(' + String(latest.date) + ')';
+                if (latest.date) { releaseDay = String(latest.date); showDay(root.lang); }
             }
             releaseNotes = latest.notes || {};
             fillNotes(root.lang);
@@ -82,7 +95,7 @@
                 tagShown = true;
                 document.getElementById('latestVersion').textContent = version;
                 var day = String(rel.published_at || '').slice(0, 10);
-                if (/^\d{4}-\d{2}-\d{2}$/.test(day)) document.getElementById('latestDate').textContent = '(' + day + ')';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(day)) { releaseDay = day; showDay(root.lang); }
             })
             .catch(function () { /* keep the changelog's version */ });
     }

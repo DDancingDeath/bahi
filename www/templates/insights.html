@@ -8,7 +8,7 @@
             <button type="button" data-insights-section="parties" role="tab" aria-selected="false" data-onclick="insights.setSection('parties')" data-i18n="ui.insights.tab_parties">Parties</button>
             <button type="button" data-insights-section="seasons" role="tab" aria-selected="false" data-onclick="insights.setSection('seasons')" data-i18n="ui.insights.tab_seasons">Seasons</button>
         </div>
-        <div class="ins-period" id="insightsPeriodBar">
+        <div class="period ins-period" id="insightsPeriodBar">
             <button type="button" class="btn btn-icon" data-onclick="insights.step(-1)" aria-label="Earlier" data-i18n-aria-label="ui.money.earlier"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevL"/></svg></button>
             <span class="ins-period-label" id="insightsPeriodLabel"></span>
             <button type="button" class="btn btn-icon" data-onclick="insights.step(1)" aria-label="Later" data-i18n-aria-label="ui.money.later"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
@@ -74,7 +74,7 @@
             <div class="ins-takeaway ins-takeaway-dark" data-takeaway id="insightsPartiesTakeaway"></div>
             <div class="ins-scroll"><table class="table" id="insightsCustomersTable" data-metric="I3"></table></div>
             <div class="ins-scroll"><table class="table" id="insightsSuppliersTable" data-metric="I4" hidden></table></div>
-            <button type="button" class="btn btn-ghost btn-sm" data-go="due" data-metric-ref="O4"><span data-i18n="ui.insights.dues_link">Dues → Outstanding</span> ›</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-go="due" data-metric-ref="O4"><span data-i18n="ui.insights.dues_link">Open Dues</span> ›</button>
         </div>
         <div class="panel panel-pad ins-wide" id="insightsStoppedCard">
             <h3 class="section-title" data-i18n="ui.insights.stopped_title">Regular buyers who stopped coming</h3>

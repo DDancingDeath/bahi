@@ -180,4 +180,23 @@ describe('the sheet', () => {
         expect(sheet().classList.contains('active')).toBe(false);
         expect(document.getElementById('settingsPrinting').contains(panel())).toBe(true);
     });
+
+    test('NEW-12: titled "Printer", the switch reads as in Settings, and "Receipt options ›" opens Settings › Printing & receipts', async () => {
+        mockPlugin();
+        await PrinterShortcut.open();
+        expect(document.getElementById('printerSheetTitle').getAttribute('data-i18n')).toBe('ui.printer.sheet_title');
+        const label = document.querySelector('#printerSheetBody label.set-toggle > span');
+        expect(label.getAttribute('data-i18n')).toBe('ui.settings.enable_bluetooth_printer');
+        const row = sheet().querySelector('.printer-sheet-receipt');
+        expect(row.getAttribute('data-onclick')).toBe('printerSheet.receiptOptions()');
+        expect(row.querySelector('[data-i18n]').getAttribute('data-i18n')).toBe('ui.printer.receipt_options');
+        const openSettings = jest.fn(async () => showTab('settings'));
+        PrinterShortcut.openSettings = openSettings;
+        await PrinterShortcut.receiptOptions();
+        expect(openSettings).toHaveBeenCalledTimes(1);
+        // As the menu opens it (showTabFromNav: settings.load, the nav highlight), never showTab with the click event
+        expect(fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8')).toMatch(/openSettings: \(\) => Promise\.resolve\(NavigationManager\.showTabFromNav\('settings-printing'\)\)/);
+        expect(sheet().classList.contains('active')).toBe(false);
+        expect(document.getElementById('settingsPrinting').contains(panel())).toBe(true);
+    });
 });

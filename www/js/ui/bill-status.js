@@ -37,6 +37,22 @@ export function voidedBannerHtml(bill) {
 }
 
 /**
+ * The bill's note (its comments) as a plain row in the details sheet (NEW-13): a note is not a warning.
+ * @param {Object} bill
+ * @returns {string} HTML ('' for a bill without a note)
+ */
+export function billNoteHtml(bill) {
+    const note = String(bill?.comments ?? '').trim();
+    if (!note) return '';
+    return `<section class="bill-view-sec bill-view-note">
+        <div class="row bill-view-row"><div class="row-main">
+            <div class="row-meta">${L('ui.wholesale.comments')}</div>
+            <div class="bill-view-note-text">${Helpers.escapeHtml(note)}</div>
+        </div></div>
+    </section>`;
+}
+
+/**
  * "Edited 2× · View changes" (nothing for a bill never edited). The changes
  * are read only when tapped.
  * @param {Object} bill

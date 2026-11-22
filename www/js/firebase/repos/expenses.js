@@ -278,6 +278,16 @@ export const expenseMethods = {
     },
 
     /**
+     * Whether the business expense rows' first answer is in (or their listener failed or is not
+     * readable): until then Expenses shows a skeleton, not "No expenses" (F63).
+     * @returns {boolean}
+     */
+    expenseRowsLoaded() {
+        const live = S.windowState?.colls?.expenses?.live;
+        return !!(live && (live.delivered || live.initialized || live.failed));
+    },
+
+    /**
      * Owner/manager: makes personalExpenseDays of these days match the loaded
      * personal rows (one read per day, one write per wrong key; none when right).
      * @param {string[]} days YYYY-MM-DD, inside the loaded history

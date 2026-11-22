@@ -63,8 +63,6 @@ button.rent-tap { cursor: pointer; }
 .rent-box > .rent-section-title { margin-top: 0; }
 .rent-owes { font-size: var(--fs-lead); font-weight: var(--w-strong); }
 .rent-menu { position: relative; }
-.rent-menu > summary { list-style: none; }
-.rent-menu > summary::-webkit-details-marker { display: none; }
 .rent-menu-list { position: absolute; right: 0; z-index: var(--z-menu); display: flex; flex-direction: column; min-width: 180px; padding: var(--sp-1); box-shadow: var(--e2); }
 .rent-menu-list > .btn { justify-content: flex-start; }
 .rent-more { margin-top: var(--sp-3); }

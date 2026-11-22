@@ -43,7 +43,7 @@ export function describeRow(r, showTerm = false) {
         else if (r.labour) sub = t('ui.finance.labour_on_bill');
         else if (r.term === 'uncosted') sub = t('ui.finance.uncosted_line', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
         else if (r.cash !== undefined) sub = t('ui.finance.cash_online', { cash: formatAmount(r.cash, { exact: true }), online: formatAmount(r.online, { exact: true }) });
-        else if (r.term === 'cogs') sub = t('ui.finance.line_avg_cost', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
+        else if (r.term === 'cogs') sub = t('ui.finance.line_avg_cost', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, 'avgRate') });
         else sub = t('ui.finance.line_rate', { item, qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
     } else if (r.category !== undefined) {
         const cat = r.category === 'personal' ? t('ui.finance.personal_expenses')
@@ -61,7 +61,7 @@ export function describeRow(r, showTerm = false) {
         sub = t('ui.finance.gap_hint');
     } else {
         title = item;
-        sub = t('ui.finance.qty_avg_cost', { qty: qtyText(r.qty), rate: formatAmount(r.rate, 'rate') });
+        sub = t('ui.finance.qty_avg_cost', { qty: qtyText(r.qty), rate: formatAmount(r.rate, 'avgRate') });
     }
     if (showTerm && r.term) sub = `${t(CARDS[r.term]?.label || '')} · ${sub}`;
     return { title, sub };
