@@ -1477,7 +1477,6 @@ export default {
     'ui.today.items_col_rate': "₹/kg",
     'ui.today.items_col_total': "Total",
     'ui.today.bills_title': "Today's bills",
-    'ui.today.labour_details': "Details",
     'ui.today.labour_part_package': "A part package counts as a full one.",
     'ui.today.labour_breakdown_title': "Labour today",
     'ui.today.labour_col_bill': "Bill",

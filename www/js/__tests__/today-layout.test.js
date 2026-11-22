@@ -92,6 +92,11 @@ describe('order and groups (phone)', () => {
         const rows = [...document.querySelectorAll('#todayDuesBody .row')].map(r => r.textContent.replace(/\s+/g, ' ').trim());
         expect(rows).toEqual(['Collected today₹0', 'Paid off today₹0', 'New to collect₹100', 'New to pay₹0']);
         expect(document.querySelector('#todayDuesBody .today-links .btn').dataset.onclick).toBe("nav.showTab('due', event)");
+        // Labour: History › (Money › Labour) for those who may open it, then Details ›
+        expect([...document.querySelectorAll('#todayLabourBody .today-links .btn')].map(b => b.dataset.onclick)).toEqual(["nav.showTab('money-labour')", 'day.showLabourBreakdown()']);
+        AppState.userRole = 'staff';
+        DayManager.loadTodayData();
+        expect(document.getElementById('todayLabourHistory')).toBeNull();
     });
 
     test('Today\'s bills: one row with the count, opening History on Today; wholesale only for roles with Wholesale', () => {
@@ -221,7 +226,7 @@ describe('app bar and refresh', () => {
         document.getElementById('todayBillsLink').focus();
         DayManager.loadTodayData();
         expect(document.activeElement.id).toBe('todayBillsLink');
-        document.querySelector('#todayLabourBody .today-links .btn').focus();
+        document.querySelector('#todayLabourBody [data-onclick="day.showLabourBreakdown()"]').focus();
         DayManager.loadTodayData();
         expect(document.activeElement.dataset.onclick).toBe('day.showLabourBreakdown()');
     });

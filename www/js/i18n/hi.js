@@ -1477,7 +1477,6 @@ export default {
     'ui.today.items_col_rate': "₹/kg",
     'ui.today.items_col_total': "कुल",
     'ui.today.bills_title': "आज के बिल",
-    'ui.today.labour_details': "विवरण",
     'ui.today.labour_part_package': "अधूरी बोरी पूरी गिनी जाती है।",
     'ui.today.labour_breakdown_title': "आज की मज़दूरी",
     'ui.today.labour_col_bill': "बिल",
