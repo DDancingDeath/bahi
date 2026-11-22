@@ -74,7 +74,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261122b-mic-top';
+const BUILD_ID = '20261122c-rentals-one-view';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1646,7 +1646,6 @@ window.app = {
         saveUpi: () => SettingsManager.saveUpi(),
         saveCheckThresholds: () => SettingsManager.saveCheckThresholds(),
         saveRentals: () => SettingsManager.saveRentals(),
-        setRentMode: (mode) => SettingsManager.setRentMode(mode),
         openOpeningStock: () => SettingsManager.openOpeningStock(),
         setAppearance: (appearance) => SettingsManager.setAppearance(appearance),
         previewTheme: (id) => SettingsManager.previewTheme(id),

@@ -33,6 +33,17 @@ describe('closing', () => {
         expect(anom().open).toBe(false);
     });
 
+    test("Rentals' ⋯ menus (header, a property's or tenant's screen) are the same shared menu", () => {
+        document.body.insertAdjacentHTML('beforeend', menuHtml('rent-menu'));
+        const rent = document.querySelector('.rent-menu');
+        rent.open = true;
+        rent.querySelector('.panel .btn').click();
+        expect(rent.open).toBe(false);
+        rent.open = true;
+        key(rent.querySelector('.panel .btn'), 'Escape');
+        expect(rent.open).toBe(false);
+    });
+
     test('Esc closes it and gives focus back to ⋯', () => {
         anom().open = true;
         anom().querySelector('.panel .btn').focus();

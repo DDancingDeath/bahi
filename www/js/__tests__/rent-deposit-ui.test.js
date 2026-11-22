@@ -54,9 +54,8 @@ beforeEach(() => {
     _test.state.month = MONTH;
 });
 
-test('the tenant screen offers 💰 Deposit; Reports in Advanced offers Deposits held (a member too, as before)', async () => {
+test('the tenant screen offers 💰 Deposit; Reports offers Deposits held (a member too, as before)', async () => {
     _test.state.page = 'reports';
-    _test.state.mode = 'advanced';
     ['properties', 'units', 'tenants', 'leases', 'openCharges', 'monthCharges', 'monthExpenses'].forEach(k => _test.state.loaded.add(k));
     await _test.render();
     expect(document.getElementById('rentalsBody').innerHTML).toContain('data-onclick="rentals.deposits()"');

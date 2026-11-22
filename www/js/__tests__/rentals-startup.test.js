@@ -30,8 +30,8 @@ const RENT_COLLECTION = /['"`](?:dev_)?rent_[a-z]/;
 // move-out transactions. 140 → 137 KB (#157, property expenses): maths only the lazy screens use (deposit ledger,
 // expense form, receipt amounts, the change of unit's move month) moved to the lazy rent-math-ledger.js, which pays
 // for the expense summary on the Rent page. The Tenants and Properties pages moved to the lazy rent-pages.js (#157, UX
-// redesign PR1), which made room for the redesign; the budget was not raised. The redesign's Advanced
-// This month (today's property wise / unit wise Rent page) is the lazy rent-advanced.js.
+// redesign PR1), which made room for the redesign; the budget was not raised. This month's View by Property / Unit
+// (the former Advanced property wise / unit wise Rent page) is the lazy rent-advanced.js.
 const PRECACHE_BUDGET_BYTES = 137 * 1024;
 /** Loaded with import() only when used (file: its importer, or the lazy files that import it); not precached, own budget per feature. */
 const LAZY = {
@@ -52,7 +52,7 @@ const LAZY_BUDGETS = {
     'agreement and reports': [['/js/rentals/rent-report.js', '/js/rentals/rent-report-store.js', '/js/rentals/rent-math-report.js'], 18 * 1024],
     'properties page and move-in forms': [['/js/rentals/rent-pages.js'], 28 * 1024],
     'tenants page and tenant screen': [['/js/rentals/rent-tenants.js'], 24 * 1024],
-    'this month in advanced': [['/js/rentals/rent-advanced.js'], 14 * 1024],
+    'this month by property / unit': [['/js/rentals/rent-advanced.js'], 14 * 1024],
     'meter readings sheet': [['/js/rentals/rent-meter.js'], 8 * 1024]
 };
 /** Size as served (LF line endings), the same on a Windows checkout and in CI. */

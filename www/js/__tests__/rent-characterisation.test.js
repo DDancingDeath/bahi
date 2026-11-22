@@ -107,18 +107,16 @@ async function waitFor(test) {
     expect(test()).toBeTruthy();
 }
 const body = () => document.getElementById('rentalsBody');
-async function show(page, { view = 'properties', openProperty = '', mode = 'advanced' } = {}) {
+async function show(page, { by = 'properties', openProperty = '' } = {}) {
     _test.state.page = page;
-    _test.state.mode = mode;
-    _test.state.view = view;
+    _test.state.by = by;
     _test.state.openProperty = openProperty;
     _test.state.detail = '';
     await _test.render();
     return lines(body());
 }
-/** A tenant's or (`prop`) a property's own screen (Simple, or `mode`). */
-async function tenant(id, { prop = false, mode = 'simple' } = {}) {
-    _test.state.mode = mode;
+/** A tenant's or (`prop`) a property's own screen. */
+async function tenant(id, { prop = false } = {}) {
     RentalsModule.api[prop ? 'showProperty' : 'openTenant'](id);
     await flush();
     const out = lines(body());
@@ -204,16 +202,15 @@ describe.each(['en', 'hi'])('pages (%s)', (lang) => {
             propertyCards: await show('rent'),
             guptaBhawan: await show('rent', { openProperty: 'P1' }),
             aroraMarket: await show('rent', { openProperty: 'P2' }),
-            unitList: await show('rent', { view: 'units' }),
+            unitList: await show('rent', { by: 'units' }),
             tenants: await show('tenants'),
             properties: await show('properties'),
             reports: await show('reports'),
-            thisMonthSimple: await show('rent', { mode: 'simple' }),
-            tenantsSimple: await show('tenants', { mode: 'simple' }),
+            thisMonthWhoOwes: await show('rent', { by: 'owes' }),
             tenantGita: await tenant('T4'),
             tenantHari: await tenant('T5'),
             propertyGupta: await tenant('P1', { prop: true }),
-            propertyAroraAdvanced: await tenant('P2', { prop: true, mode: 'advanced' })
+            propertyArora: await tenant('P2', { prop: true })
         };
         expect(out).toMatchSnapshot();
     });
@@ -247,7 +244,7 @@ test('RENT-20 (V2 OD-07): an older month paid off this month leaves the open lis
 
 test('unit list filters: late, due, one property, sorted ascending', async () => {
     setLang('en');
-    await show('rent', { view: 'units' });
+    await show('rent', { by: 'units' });
     const ids = () => [...body().querySelectorAll('[data-unit]')].map(e => e.getAttribute('data-unit'));
     const totals = () => [...body().querySelectorAll('.metric-value')].map(e => e.textContent);
     const out = {};
@@ -281,7 +278,7 @@ test('receipts: part payment by UPI with a meter bill, paise, a moved-out tenant
     expect(charges()).toMatchSnapshot('charges after payments');
     setLang('en');
     await attach();
-    expect(await show('rent', { view: 'units' })).toMatchSnapshot('unit list after payments');
+    expect(await show('rent', { by: 'units' })).toMatchSnapshot('unit list after payments');
 });
 
 describe('change of unit and move in (RENT-11, RENT-13)', () => {

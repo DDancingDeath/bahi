@@ -33,6 +33,8 @@ import {
 import { formatRupees } from '../utils/money.js';
 
 const PAGES = ['rent', 'tenants', 'properties', 'reports'];
+/** Pages of the Simple / Advanced days: Advanced's This month and its views open View by property / unit. */
+const OLD_PAGES = { advanced: 'properties', 'rent-advanced': 'properties', 'rent-properties': 'properties', 'rent-units': 'units', units: 'units' };
 const esc = (v) => Helpers.escapeHtml(v);
 const js = (v) => Helpers.escapeJsAttr(v);
 const et = (key, p) => esc(t(key, p));
@@ -50,13 +52,12 @@ const state = {
     charging: false,
     moving: 0,
     lazyFailed: false,
-    mode: 'simple',
     onlyLate: false,
     leaseNotes: '',
     charged: new Set(),
     renderTimer: null,
     entry: 0,
-    view: savedView(),
+    by: 'owes',
     openProperty: '',
     detail: '',
     detailKey: 0,
@@ -64,14 +65,15 @@ const state = {
     filters: { propertyId: '', type: '', status: '', q: '', sort: 'desc' }
 };
 
-/** Simple or Advanced (chosen in Settings › Rentals, U-65). */
-const modeKey = () => rentModeKey(AppState.currentUser?.uid);
-function savedMode() {
-    try { return localStorage.getItem(modeKey()) === 'advanced' ? 'advanced' : 'simple'; } catch (_) { return 'simple'; }
-}
+/** This month's View by: who owes (default), property wise or unit wise. */
+const VIEWS = ['owes', 'properties', 'units'];
 
-function savedView() {
-    try { return localStorage.getItem(VIEW_KEY) === 'units' ? 'units' : 'properties'; } catch (_) { return 'properties'; }
+/** One view since the Simple / Advanced switch went: its old keys on this phone are cleared. */
+function forgetOldMode() {
+    try {
+        localStorage.removeItem(rentModeKey(AppState.currentUser?.uid));
+        localStorage.removeItem(VIEW_KEY);
+    } catch (_) { /* private mode */ }
 }
 let domReady = null;
 
@@ -189,10 +191,9 @@ const modeLabel = (m) => t(`ui.rent.mode_${PAYMENT_MODES.includes(m) ? m : 'cash
 function render() {
     const root = byId('rentalsBody');
     if (!root) return;
-    const adv = state.mode === 'advanced';
-    if (state.page === 'reports' && (!adv || !canWrite())) state.page = 'rent';
+    if (state.page === 'reports' && !canWrite()) state.page = 'rent';
     const reports = byId('rentReportsTab');
-    if (reports) reports.hidden = !adv || !canWrite();
+    if (reports) reports.hidden = !canWrite();
     document.querySelectorAll('#rentals [data-rent-page]').forEach((b) => {
         const on = b.getAttribute('data-rent-page') === state.page;
         b.classList.toggle('active', on);
@@ -200,16 +201,15 @@ function render() {
     });
     document.querySelectorAll('.bottom-nav-item[data-rent-bar]').forEach((b) => {
         const name = b.getAttribute('data-rent-bar');
-        if (name === 'reports') b.hidden = !adv || !canWrite();
+        if (name === 'reports') b.hidden = !canWrite();
         b.classList.toggle('active', name === state.page);
         if (name === state.page) b.setAttribute('aria-current', 'page');
         else b.removeAttribute('aria-current');
     });
     const links = byId('rentSettingsLinks');
     if (links) links.hidden = !canWrite();
-    byId('rentals')?.setAttribute('data-rent-mode', state.mode);
     const roles = byId('rentRolesLink');
-    if (roles) roles.hidden = !adv || !isOwner();
+    if (roles) roles.hidden = !isOwner();
     document.querySelectorAll('.nav-menu a').forEach(a => {
         a.classList.toggle('active', a.getAttribute('data-rent-nav') === state.page);
     });
@@ -224,7 +224,7 @@ function render() {
         return;
     }
     const d = store.snapshot();
-    const need = state.page === 'reports' ? '' : state.page !== 'rent' ? 'pages' : adv ? 'advanced' : '';
+    const need = state.page === 'reports' ? '' : state.page !== 'rent' ? 'pages' : state.by !== 'owes' ? 'advanced' : '';
     if (need && !lazyMods[need]) {
         root.innerHTML = `<p class="empty">${et(state.lazyFailed ? 'msg.rent.could_not_load' : 'ui.rent.loading')}</p>`;
         if (state.lazyFailed) return;
@@ -239,10 +239,10 @@ function render() {
     root.innerHTML = detail || (state.page === 'tenants' ? lazyMods.pages.renderTenants(unitCtx(), d)
         : state.page === 'properties' ? lazyMods.pages.renderProperties(unitCtx(), d)
         : state.page === 'reports' ? renderReports(d)
-        : renderRent(d, adv));
+        : renderRent(d));
 }
 
-/** Advanced › Reports: the yearly report (owner, managers), deposits held and this month's expenses per property (as before). */
+/** Reports: the yearly report (owner, managers), deposits held and this month's expenses per property (as before). */
 function renderReports(d) {
     const lead = (kind) => (kind === 'year' ? `<span class="lead-icon">${icon('calendar')}</span>` : kind === 'deposits' ? `<span class="lead-icon">${icon('coins')}</span>` : '');
     const tile = (fn, args, kind, title, sub, amount = null) => `<button type="button" class="row" data-onclick="rentals.${fn}(${args})">${lead(kind)}<span class="row-main"><span class="row-title">${esc(title)}</span>${sub ? `<span class="row-meta">${esc(sub)}</span>` : ''}</span>${amount === null ? '' : `<span class="row-trail row-amt">${moneyHtml(amount)}</span>`}</button>`;
@@ -275,19 +275,27 @@ function notePage(d, ix, rows) {
     void import('./rent-report.js').then((m) => {
         m.noteLeases(d, state.month, u => placeOf(ix, u));
         const now = JSON.stringify(leaseReminder(localStorage, AppState.currentUser?.uid, state.month)?.items || null);
-        if (state.mode === 'simple' && now !== state.leaseNotes) scheduleRender();
+        if (state.page === 'rent' && state.by === 'owes' && now !== state.leaseNotes) scheduleRender();
     }).catch(() => {});
 }
 
-function renderRent(d, adv) {
+function renderRent(d) {
     const ix = index(d);
     const rows = unitRows(d, state.month);
     notePage(d, ix, rows);
-    return adv ? lazyMods.advanced.renderAdvanced(unitCtx(), d, rows) : renderMonth(d, ix, rows);
+    const by = viewBy();
+    return state.by === 'owes' || !d.properties.length ? renderMonth(d, ix, rows, by) : lazyMods.advanced.renderAdvanced(unitCtx(), d, rows, by);
 }
 
-/** Simple: how much came in, what needs doing, and who still owes (active and moved-out tenants). */
-function renderMonth(d, ix, rows) {
+/** This month's View by: Who owes | Property | Unit. */
+function viewBy() {
+    const b = (v, key) => `<button type="button" class="${state.by === v ? 'active' : ''}" aria-pressed="${state.by === v}" data-rent-by="${v}" data-onclick="rentals.viewBy('${v}')">${et(key)}</button>`;
+    return `<div class="rent-viewby"><span class="rent-label" id="rentViewByL">${et('ui.rent.view_by')}</span>
+        <div class="seg rent-viewswitch" role="group" aria-labelledby="rentViewByL">${b('owes', 'ui.rent.view_owes')}${b('properties', 'ui.rent.view_by_property')}${b('units', 'ui.rent.view_by_unit')}</div></div>`;
+}
+
+/** Who owes: how much came in, what needs doing, and who still owes (active and moved-out tenants). */
+function renderMonth(d, ix, rows, by = '') {
     const lang = getLang();
     const sum = summarize(rows);
     const all = tenantRows(d, state.month);
@@ -312,7 +320,7 @@ function renderMonth(d, ix, rows) {
         <div class="panel">${paid.map(a => collectRow(a, ix, lang)).join('')}</div></details>` : '';
     const vacant = sum.vacant ? `<button type="button" class="btn btn-ghost btn-sm rent-vacant" data-onclick="rentals.page('properties')">${et(sum.vacant === 1 ? 'ui.rent.vacant_units_one' : 'ui.rent.vacant_units', { n: sum.vacant })}${icon('chevR', 'i-sm')}</button>` : '';
     const payAny = canWrite() && owe.length ? `<div class="rent-pay-any">${btn(' btn-primary btn-block', 'payAny', '', 'ui.rent.record_payment', '', ' data-rent-pay')}</div>` : '';
-    return `${title}${summary}${payAny}${attentionHtml(d, ix)}
+    return `${title}${by}${summary}${payAny}${attentionHtml(d, ix)}
         <h3 class="rent-section-title">${et('ui.rent.to_collect', { n: owe.length })}${owe.some(a => a.late)
             ? ` <button type="button" class="chip" aria-pressed="${state.onlyLate ? 'true' : 'false'}" data-onclick="rentals.onlyLate()">${et('ui.rent.status_late')}</button>` : ''}</h3>
         ${shown.length ? `<div class="panel">${list}</div>` : list}${paidList}${vacant}`;
@@ -397,19 +405,18 @@ async function payAny() {
     if (ok && val('rentPayWho')) await pay(val('rentPayWho'));
 }
 
-function setMode(mode) {
-    state.mode = mode === 'advanced' ? 'advanced' : 'simple';
-    try { localStorage.setItem(modeKey(), state.mode); } catch (_) { /* private mode */ }
+function viewByPick(by) {
+    state.by = VIEWS.includes(by) ? by : 'owes';
+    if (state.by === 'owes') state.openProperty = '';
     render();
 }
 
-/** Property wise / Unit wise live in Advanced, so choosing one opens Advanced. */
-function setView(view) {
-    state.view = view === 'units' ? 'units' : 'properties';
-    try { localStorage.setItem(VIEW_KEY, state.view); } catch (_) { /* private mode */ }
-    if (state.mode !== 'advanced') return setMode('advanced');
-    render();
+/** Old calls from the Simple / Advanced days: Advanced opened at property wise, its sub-views are View by choices. */
+function setMode(mode) {
+    forgetOldMode();
+    viewByPick(mode === 'advanced' ? 'properties' : 'owes');
 }
+const setView = (view) => viewByPick(view === 'units' ? 'units' : 'properties');
 
 /** A tenant's or property's screen; Back (page or phone) returns to the screen before it. */
 let popBound = false;
@@ -445,11 +452,12 @@ function openDetail(page, id) {
 const openTenant = (id) => openDetail('tenants', id);
 const showProperty = (id) => openDetail('properties', id);
 
-/** Advanced's This month, opened at property `pid`. */
+/** This month by property, opened at property `pid`. */
 function propertyMonth(pid) {
-    state.view = 'properties';
-    state.openProperty = pid || '';
-    return RentalsModule.enter('rent');
+    return RentalsModule.enter('rent-properties').then(() => {
+        state.openProperty = pid || '';
+        if (isVisible()) render();
+    });
 }
 
 function back() {
@@ -659,7 +667,7 @@ function findLease(leaseId) {
 // ---------- Unit picker / change of unit (rent-unit.js) and link actions (rent-link.js), loaded on first use ----------
 
 const unitMod = () => import('./rent-unit.js');
-/** Tenants / Properties pages and their forms (rent-pages.js), and Advanced's This month (rent-advanced.js), loaded on first use. */
+/** Tenants / Properties pages and their forms (rent-pages.js), and This month by property / unit (rent-advanced.js), loaded on first use. */
 const lazyMods = {};
 const loadMod = (name) => (name === 'pages'
     ? Promise.all([import('./rent-pages.js'), import('./rent-tenants.js')]).then(([a, b]) => ({ ...a.pages, ...b.tenants }))
@@ -765,6 +773,9 @@ export const RentalsModule = {
         staleKeys = detailSeq;
         NavigationManager.showTab('rentals');
         if (!store.isAttached()) {
+            // A new visit starts at Who owes.
+            state.by = 'owes';
+            state.openProperty = '';
             state.month = monthKey();
             state.loaded.clear();
             state.errors.clear();
@@ -772,9 +783,10 @@ export const RentalsModule = {
             state.charged.clear();
             store.attach(state.month, onData);
         }
+        if (OLD_PAGES[page]) state.by = OLD_PAGES[page];
         state.lazyFailed = false;
         state.onlyLate = false;
-        state.mode = savedMode();
+        forgetOldMode();
         render();
     },
 
@@ -789,8 +801,9 @@ export const RentalsModule = {
     api: {
         page: (p) => RentalsModule.enter(p),
         dialogClose: (v) => dialogResolve?.(v),
-        pay: (id) => pay(id), fillDue, fillAmount, payMode, payHint, remind, payAny, setMode, onlyLate: (on) => { state.onlyLate = on === undefined ? !state.onlyLate : !!on; render(); },
+        pay: (id) => pay(id), fillDue, fillAmount, payMode, payHint, remind, payAny, setMode, viewBy: viewByPick, onlyLate: (on) => { state.onlyLate = on === undefined ? !state.onlyLate : !!on; render(); },
         settings: (which) => NavigationManager.showTabFromNav(which === 'roles' ? 'settings-roles' : 'settings-rentals'),
+        tenantFilters: pg('tenantFilters'),
         filterUnits: lazyCall('advanced', 'filterUnits'),
         ...Object.fromEntries(['meter', 'editLease', 'addTenant', 'editTenant', 'archiveTenant', 'moveIn', 'moveOut', 'fillRent', 'addProperty', 'editProperty',
             'archiveProperty', 'addUnit', 'editUnit', 'archiveUnit', 'tenantToggle', 'tenantPick', 'tenantElec', 'changeUnit', 'tenantList', 'remindTenant'].map(n => [n, pg(n)])),

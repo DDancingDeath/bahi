@@ -16,7 +16,7 @@ jest.mock('../services/audit.js', () => ({ AuditService: { log: jest.fn(async ()
 import * as store from '../rentals/rent-store.js';
 import { rentalsRole } from '../ui/business-switcher.js';
 import { RentalsModule, _test } from '../rentals/rentals.js';
-import { mount, save, setViewMode } from '../rentals/rent-settings.js';
+import { mount, save } from '../rentals/rent-settings.js';
 import { normalizeRentSettings, monthKey, RENT_SETTINGS_DEFAULTS } from '../rentals/rent-math.js';
 import { AppState } from '../utils/state.js';
 
@@ -120,20 +120,17 @@ test('Settings › Rentals form: view-only without edit rights; saves normalized
     expect(saved).toMatchObject({ dueDay: 15, tenantLink: true });
 });
 
-test('Settings › Rentals: Simple / Advanced lives here (U-65), per user, also for a view-only member', async () => {
+test('Settings › Rentals has no Simple / Advanced switch any more; an old saved Advanced is ignored and cleared', async () => {
     AppState.currentUser = { uid: 'u7' };
-    localStorage.removeItem('happa.rentMode.u7');
+    localStorage.setItem('happa.rentMode.u7', 'advanced');
     store.loadSettings.mockResolvedValue(normalizeRentSettings({}));
     const el = document.createElement('div');
     document.body.appendChild(el);
     await mount(el, { editable: false });
-    const pressed = () => el.querySelector('#rentViewCard [aria-pressed="true"]').getAttribute('data-rent-mode');
-    expect(pressed()).toBe('simple');
-    expect(setViewMode('advanced')).toBe('advanced');
-    expect(localStorage.getItem('happa.rentMode.u7')).toBe('advanced');
-    expect(pressed()).toBe('advanced');
-    _test.state.mode = 'simple';
+    expect(el.querySelector('#rentViewCard, [data-rent-mode], .rent-mode')).toBeNull();
+    expect(el.textContent).not.toMatch(/Simple|Advanced/);
+    _test.state.by = 'owes';
     await RentalsModule.enter('rent');
-    expect(_test.state.mode).toBe('advanced');
-    expect(document.querySelector('#rentals [data-rent-mode]')).toBeNull();
+    expect(_test.state.by).toBe('owes');
+    expect(localStorage.getItem('happa.rentMode.u7')).toBeNull();
 });

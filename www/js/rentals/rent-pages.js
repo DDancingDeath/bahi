@@ -232,20 +232,18 @@ const menuHtml = (items, label) => (items.length ? `<details class="rent-menu"><
 
 /** Properties A–Z: units, how many are let and what is owed there; tap opens the property. */
 function renderProperties(d) {
-    const adv = c.state.mode === 'advanced';
     const add = c.canWrite ? btn(' btn-primary', 'addProperty', '', 'ui.rent.add_property', icon('plus', 'i-sm')) : '';
     const rows = propertyRows(d, tenantRows(d, c.state.month)).map(({ property: p, units, let: n, owed, late }) => `
         <button type="button" class="row rent-entry" data-property="${esc(p.id)}" data-onclick="rentals.showProperty('${js(p.id)}')">
             <span class="rent-entry-head"><span class="row-main"><span class="row-title">${esc(p.name)}</span>
-                <span class="row-meta">${units.length ? et(units.length === 1 ? 'ui.rent.prop_unit_let' : 'ui.rent.prop_units_let', { units: units.length, n }) : et('ui.rent.no_units')}</span>
-                ${adv ? `<span class="row-meta">${esc([p.address, kindLabel(p.kind)].filter(Boolean).join(' · '))}</span>` : ''}</span>
+                <span class="row-meta">${units.length ? et(units.length === 1 ? 'ui.rent.prop_unit_let' : 'ui.rent.prop_units_let', { units: units.length, n }) : et('ui.rent.no_units')}</span></span>
             <span class="row-trail">${owed > 0 ? `<span class="row-amt">${moneyInText(t('ui.rent.owed', { amount: formatRupees(owed) }), owed)}</span>` : ''}${late ? c.badge('late', 'ui.rent.status_late') : ''}</span></span>
         </button>`).join('');
     return `<div class="rent-toolbar">${add}</div>
         ${rows ? `<div class="panel">${rows}</div>` : emptyState({ icon: 'building', title: t(c.canWrite ? 'ui.rent.start_hint' : 'ui.rent.no_properties') })}`;
 }
 
-/** A property: its units with the tenant (tap opens them) or Vacant (Let out); Advanced adds Expenses and This month. */
+/** A property: address and kind, its units (size, floor) with the tenant (tap opens them) or Vacant (Let out); ⋯ has This month and Expenses. */
 function renderProperty(d, id) {
     const p = d.properties.find(x => x.id === id);
     if (!p) return null;
@@ -255,12 +253,11 @@ function renderProperty(d, id) {
     const leases = new Map(d.leases.filter(l => l.status === 'active').map(l => [l.unitId, l]));
     const names = new Map(d.tenants.map(x => [x.id, x.name]));
     const units = d.units.filter(u => u.propertyId === id).sort((a, b) => a.label.localeCompare(b.label));
-    const adv = c.state.mode === 'advanced';
     const rows = units.map((u) => {
         const lease = leases.get(u.id) || null;
         const r = lease ? tRows.get(lease.id) : null;
         const uid = js(u.id);
-        const size = adv ? [u.floor ? t('ui.rent.floor_value', { floor: u.floor }) : '', Number.isFinite(u.area) ? t('ui.rent.area_value', { area: u.area }) : ''].filter(Boolean).join(' · ') : '';
+        const size = [u.floor ? t('ui.rent.floor_value', { floor: u.floor }) : '', Number.isFinite(u.area) ? t('ui.rent.area_value', { area: u.area }) : ''].filter(Boolean).join(' · ');
         const sub = [lease ? names.get(lease.tenantId) || t('ui.rent.occupied') : t('ui.rent.vacant'), size].filter(Boolean).join(' · ');
         const right = `<span class="row-trail"><span class="row-amt">${moneyHtml(lease ? lease.rent : u.rent || 0)}</span>${r?.dues.total > 0 ? c.badge(r.late ? 'late' : 'due', r.late ? 'ui.rent.status_late' : 'ui.rent.status_due') : ''}</span>`;
         const main = `<span class="rent-entry-head"><span class="row-main"><span class="row-title">${esc(typedPlace(c.typeWord(unitType(u)), u.label, ''))}</span><span class="row-meta">${esc(sub)}</span></span>${right}</span>`;
@@ -271,13 +268,12 @@ function renderProperty(d, id) {
         </div>`;
     }).join('');
     const occupied = units.some(u => u.leaseId || leases.has(u.id));
-    const menu = w ? menuHtml([btn(' btn-ghost', 'editProperty', `'${pid}'`, 'ui.rent.edit'), occupied ? '' : btn(' btn-ghost tone-neg', 'archiveProperty', `'${pid}'`, 'ui.rent.remove')].filter(Boolean), t('ui.rent.more_actions')) : '';
-    const more = adv ? `<div class="rent-actions">${w ? btn('', 'expenses', `'${pid}'`, 'ui.rent.exp_btn') : ''}${btn('', 'propertyMonth', `'${pid}'`, 'ui.nav.rent')}</div>` : '';
+    const menu = menuHtml([btn(' btn-ghost', 'propertyMonth', `'${pid}'`, 'ui.nav.rent', icon('calendar', 'i-sm')), w ? btn(' btn-ghost', 'expenses', `'${pid}'`, 'ui.rent.exp_btn', icon('wallet', 'i-sm')) : '',
+        w ? btn(' btn-ghost', 'editProperty', `'${pid}'`, 'ui.rent.edit') : '', w && !occupied ? btn(' btn-ghost tone-neg', 'archiveProperty', `'${pid}'`, 'ui.rent.remove') : ''].filter(Boolean), t('ui.rent.more_actions'));
     return `<div class="rent-detail" data-property-detail="${esc(id)}">
         <div class="rent-detail-bar">${btn(' btn-ghost btn-sm', 'back', '', 'ui.nav.properties', icon('chevL', 'i-sm'))}${menu}</div>
         <h3 class="rent-detail-title" id="rentDetailTitle" tabindex="-1">${esc(p.name)}</h3>
-        <div class="rent-sub">${esc([p.address, kindLabel(p.kind)].filter(Boolean).join(' · '))}</div>
-        ${more}
+        <div class="rent-sub" data-property-place>${esc([p.address, kindLabel(p.kind)].filter(Boolean).join(' · '))}</div>
         <div class="rent-section-title"><span>${et('ui.rent.units')}</span>${w ? btn(' btn-primary btn-sm', 'addUnit', `'${pid}'`, 'ui.rent.add_unit', icon('plus', 'i-sm')) : ''}</div>
         ${rows ? `<div class="panel">${rows}</div>` : emptyState({ icon: 'home', title: t('ui.rent.no_units') })}
     </div>`;
