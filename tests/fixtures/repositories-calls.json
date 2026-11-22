@@ -1041,6 +1041,45 @@
         "date": "2026-10-21T04:30:00.000Z",
         "serverTime": "SERVER_TIME"
       }
+    ],
+    [
+      "collection",
+      "dev_users"
+    ],
+    [
+      "get"
+    ],
+    [
+      "collection",
+      "dev_settings"
+    ],
+    [
+      "doc",
+      "team"
+    ],
+    [
+      "get"
+    ],
+    [
+      "collection",
+      "dev_settings"
+    ],
+    [
+      "doc",
+      "team"
+    ],
+    [
+      "set",
+      {
+        "people": {},
+        "updatedAt": "SERVER_TIME"
+      },
+      {
+        "mergeFields": [
+          "people",
+          "updatedAt"
+        ]
+      }
     ]
   ],
   "bills.payment": [

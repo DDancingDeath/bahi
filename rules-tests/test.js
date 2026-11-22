@@ -3620,6 +3620,28 @@ function defineSuite(prefix) {
         await assertFails(sendAs('pending1', rateNote('pending1', 'owner2')));
     });
 
+    t('notifications: anyone who opens / closes the cash drawer tells owners and managers only', async () => {
+        const cashNote = (actor, recipient, extra = {}) => ({
+            type: 'cash_open', date: '2026-11-23', amount: 5000, changedBy: 'Ramesh', changedByUserId: actor,
+            read: false, timestamp: serverTimestamp(), userId: recipient, eventKey: 'cash-open-cash_2026-11-23', ...extra });
+        for (const actor of ['staff1', 'manager1', 'legacyOwner']) {
+            const to = actor === 'manager1' ? 'owner2' : 'manager1';
+            await assertSucceeds(sendAs(actor, cashNote(actor, to, { eventKey: `cash-open-${actor}` })));
+            await assertSucceeds(sendAs(actor, cashNote(actor, to, { type: 'cash_close', amount: 12300, difference: -200, eventKey: `cash-close-${actor}` })));
+            // never to a member, nor with other fields, forged actor or bad shape
+            await assertFails(sendAs(actor, cashNote(actor, 'staff1', { eventKey: `x-${actor}` })));
+            await assertFails(sendAs(actor, cashNote(actor, to, { eventKey: `m-${actor}`, message: 'Pay me' })));
+            await assertFails(sendAs(actor, cashNote(actor, to, { eventKey: `i-${actor}`, itemName: 'Gehu' })));
+            await assertFails(sendAs(actor, cashNote('owner2', to, { eventKey: `f-${actor}` })));
+            await assertFails(sendAs(actor, cashNote(actor, to, { eventKey: `a-${actor}`, amount: 'lots' })));
+            await assertFails(sendAs(actor, cashNote(actor, to, { eventKey: `d-${actor}`, difference: '200' })));
+            await assertFails(sendAs(actor, cashNote(actor, to, { eventKey: `r-${actor}`, read: true })));
+            // a member still cannot send any other kind
+            await assertFails(sendAs(actor, rateNote(actor, to, { type: 'cash_open' })));
+        }
+        await assertFails(sendAs('pending1', cashNote('pending1', 'owner2')));
+    });
+
     t('notifications: a sender cannot forge the actor, type, fields or read state', async () => {
         for (const actor of ['manager1', 'legacyOwner']) {
             // "changed by" someone else

@@ -8,7 +8,7 @@
 
 import { AppState } from '../../utils/state.js';
 import { getDb, col } from '../db.js';
-import { planNotificationDocs, newEventId } from '../../utils/notification-format.js';
+import { planNotificationDocs, newEventId, cashEventId } from '../../utils/notification-format.js';
 import { getUsersForNotifications } from './user-profiles.js';
 
 /**
@@ -123,6 +123,31 @@ export const notificationMethods = {
             });
         } catch (error) {
             console.error('Error notifying item edit:', error);
+        }
+    },
+
+    /**
+     * Tells owners and managers that the cash drawer was opened or closed (the actor is left out).
+     * One event id per transition (cashEventId). Never rejects.
+     * @param {'open'|'close'} kind
+     * @param {Object} session - the opened / closed session
+     * @returns {Promise<void>}
+     */
+    async notifyCash(kind, session) {
+        try {
+            const users = await getUsersForNotifications();
+            const ids = users.filter(u => u.role === 'owner' || u.role === 'manager').map(u => u.id);
+            const closing = kind === 'close';
+            await this.sendNotification(cashEventId(kind, session), ids, {
+                type: closing ? 'cash_close' : 'cash_open',
+                date: String(session?.date || ''),
+                amount: Number(closing ? session?.closingBalance : session?.openingBalance) || 0,
+                ...(closing ? { difference: Number(session?.difference) || 0 } : {}),
+                changedBy: AppState.userName || 'Unknown',
+                changedByUserId: AppState.currentUser?.uid || null
+            });
+        } catch (error) {
+            console.error('Error notifying cash change:', error);
         }
     },
 

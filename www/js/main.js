@@ -74,7 +74,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261122b-mic-top';
+const BUILD_ID = '20261122f-cash-notify';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1178,6 +1178,10 @@ window.app = {
         openOwnerItem: (key) => NotificationsManager.openOwnerItem(key),
         setPhone: (checked) => PhoneNotify.setOn(checked),
         setType: (type, checked) => PhoneNotify.setType(type, checked),
+        setUpdate: (kind, checked) => {
+            PhoneNotify.setUpdate(kind, checked);
+            NotificationsManager.renderBadge();
+        },
         setTime: (value) => PhoneNotify.setTime(value),
         test: () => PhoneNotify.sendTest(),
         refreshSettings: () => NotificationsManager.refreshSettings()

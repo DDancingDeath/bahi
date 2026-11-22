@@ -32,7 +32,7 @@ import { toLocalISODate } from '../utils/dates.js';
 import {
     describeNotification, notificationText, formatWhen, badgeText, idsToMarkRead,
     prepareList, newArrivals, planNotificationDocs, createRateEditTracker,
-    diffItemRates, diffItemFields, UNREAD_LIMIT
+    diffItemRates, diffItemFields, UNREAD_LIMIT, UPDATE_KINDS, notificationKind, wantsUpdate, cashEventId
 } from '../utils/notification-format.js';
 
 const NOW = Date.UTC(2026, 9, 22, 6, 30); // 22 Oct 2026, 12:00 IST
@@ -67,6 +67,40 @@ describe('notification text', () => {
         expect(describeNotification(SAMPLES[5]).en).toBe('Payment edited');
         expect(describeNotification(SAMPLES[6])).toMatchObject({ en: 'Cash count differs by ₹200', hi: 'नकद में ₹200 का अंतर' });
         expect(describeNotification(SAMPLES[7])).toMatchObject({ en: 'New update', hi: 'नई सूचना', target: null });
+    });
+
+    test('cash opened / closed: who, opening or count, short / extra only when not zero; opens Today › Cash', () => {
+        const open = { type: 'cash_open', amount: 5000, changedBy: 'Ramesh' };
+        expect(describeNotification(open)).toEqual({
+            icon: '💵', en: 'Cash opened by Ramesh · ₹5,000 opening', hi: 'Ramesh ने नकद खोला · ₹5,000 शुरुआती', who: '', target: { tab: 'day-cash' }
+        });
+        const close = { type: 'cash_close', amount: 12300, difference: -200, changedBy: 'Ramesh' };
+        expect(describeNotification(close)).toMatchObject({
+            en: 'Cash closed by Ramesh · counted ₹12,300 · short ₹200', hi: 'Ramesh ने नकद बंद किया · गिना ₹12,300 · ₹200 कम'
+        });
+        expect(describeNotification({ ...close, difference: 50.5 }).en).toBe('Cash closed by Ramesh · counted ₹12,300 · extra ₹50.50');
+        expect(describeNotification({ ...close, difference: 0.001 }).en).toBe('Cash closed by Ramesh · counted ₹12,300');
+        expect(notificationText(open, 'en')).toBe('💵 Cash opened by Ramesh · ₹5,000 opening');
+    });
+
+    test('per-kind switches: unset = on, role changes always on, other types always shown', () => {
+        expect(UPDATE_KINDS).toEqual(['rate', 'item', 'cashOpen', 'cashClose', 'role']);
+        expect(notificationKind({ type: 'cash_close' })).toBe('cashClose');
+        expect(notificationKind({ type: 'edit' })).toBeNull();
+        const off = { rate: false, cashOpen: false, role: false };
+        expect(wantsUpdate({ type: 'rate_change' }, off)).toBe(false);
+        expect(wantsUpdate({ type: 'cash_open' }, off)).toBe(false);
+        expect(wantsUpdate({ type: 'cash_close' }, off)).toBe(true);
+        expect(wantsUpdate({ type: 'role_change' }, off)).toBe(true);
+        expect(wantsUpdate({ type: 'something_new' }, off)).toBe(true);
+        expect(wantsUpdate({ type: 'rate_change' }, null)).toBe(true);
+    });
+
+    test('one event id per cash transition', () => {
+        const s = { id: 'cash_2026-11-23', date: '2026-11-23', signOutTime: '2026-11-23T14:00:00.000Z' };
+        expect(cashEventId('open', s)).toBe('cash-open-cash_2026-11-23');
+        expect(cashEventId('close', s)).toBe(cashEventId('close', { ...s }));
+        expect(cashEventId('close', s)).not.toBe(cashEventId('close', { ...s, signOutTime: '2026-11-23T18:00:00.000Z' }));
     });
 
     test('every type has English and Hindi text, and never says "staff"', () => {
@@ -228,6 +262,24 @@ describe('Firestore paths (fake Firestore)', () => {
         expect(users).toEqual(['owner2']);
     });
 
+    test('cash open / close go to owners and managers but the actor, once per transition', async () => {
+        const session = { id: 'cash_2026-11-23', date: '2026-11-23', openingBalance: 5000 };
+        await FirebaseService.notifyCash('open', session);
+        await FirebaseService.notifyCash('open', session);
+        const closed = { ...session, closingBalance: 12300, difference: -200, signOutTime: '2026-11-23T14:00:00.000Z' };
+        await FirebaseService.notifyCash('close', closed);
+        const docs = [...fake.raw('notifications').entries()];
+        expect(docs.map(([id]) => id).sort()).toEqual([
+            'cash-close-cash_2026-11-23-' + Date.parse(closed.signOutTime).toString(36) + '_mgr',
+            'cash-close-cash_2026-11-23-' + Date.parse(closed.signOutTime).toString(36) + '_owner2',
+            'cash-open-cash_2026-11-23_mgr', 'cash-open-cash_2026-11-23_owner2'
+        ].sort());
+        const open = docs.find(([id]) => id.startsWith('cash-open'))[1];
+        expect(open).toMatchObject({ type: 'cash_open', date: '2026-11-23', amount: 5000, changedBy: 'Owner', changedByUserId: 'owner1', read: false });
+        expect(open).not.toHaveProperty('difference');
+        expect(docs.find(([id]) => id.startsWith('cash-close'))[1]).toMatchObject({ type: 'cash_close', amount: 12300, difference: -200 });
+    });
+
     test('inbox pages newest first with "show more", and marks read in a batch', async () => {
         fake.seed('notifications', Array.from({ length: 35 }, (_, i) => ({
             id: `n${String(i).padStart(2, '0')}`, userId: 'owner1', read: i % 2 === 0, timestamp: NOW - i * MIN, type: 'rate_change'
@@ -325,6 +377,25 @@ describe('Firestore paths (fake Firestore)', () => {
             expect(items[0].textContent).not.toMatch(/\p{Extended_Pictographic}/u);
             expect([...fake.raw('notifications').values()].filter(d => d.userId === 'owner1').every(d => d.read === true)).toBe(true);
             expect(document.getElementById('notifBadge').hidden).toBe(true);
+        });
+
+        test('a switched-off kind is listed in the inbox but gives no toast or badge', async () => {
+            localStorage.setItem('happa.notify', JSON.stringify({ cashOpen: false }));
+            NotificationsManager.start('owner1');
+            await fake.settle();
+            UIManager.showToast.mockClear();
+            AppState.currentUser = { uid: 'mgr' };
+            AppState.userName = 'Manager';
+            await FirebaseService.notifyCash('open', { id: 'cash_x', date: '2026-11-23', openingBalance: 5000 });
+            await fake.settle();
+            expect(UIManager.showToast).not.toHaveBeenCalled();
+            expect(document.getElementById('notifBadge').hidden).toBe(true);
+            await NotificationsManager.openInbox();
+            await fake.settle();
+            const rows = document.querySelectorAll('#notifList button.row');
+            expect(rows).toHaveLength(1);
+            expect(rows[0].textContent).toContain('Cash opened by Manager');
+            localStorage.removeItem('happa.notify');
         });
 
         test('"Mark all read" clears unread beyond the 20 in the listener, so the badge stays empty', async () => {

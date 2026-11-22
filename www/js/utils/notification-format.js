@@ -8,7 +8,65 @@
 
 import { toJsDate, displayLocale } from './dates.js';
 import { getLang } from '../i18n/index.js';
-import { formatRate } from './money.js';
+import { formatRate, formatRupees } from './money.js';
+
+/**
+ * Per-kind switches for updates from others, stored in localStorage `happa.notify` under these
+ * keys (true / false, unset = on). Stable names: stage-2 push reads them too.
+ */
+export const UPDATE_KINDS = Object.freeze(['rate', 'item', 'cashOpen', 'cashClose', 'role']);
+/** Kinds that cannot be switched off (a role change is about the person's own access). */
+export const ALWAYS_ON_KINDS = Object.freeze(['role']);
+/** @type {Readonly<Object<string, string>>} notification `type` → update kind */
+export const TYPE_KINDS = Object.freeze({
+    rate_change: 'rate', item_edit: 'item', cash_open: 'cashOpen', cash_close: 'cashClose', role_change: 'role'
+});
+
+/**
+ * Update kinds a role can receive (and so is offered a switch for): rates go to everyone,
+ * item edits to owners, cash open / close to owners and managers.
+ * @param {?string|undefined} role
+ * @returns {Object<string, boolean>}
+ */
+export function updateKindsFor(role) {
+    const manager = role === 'owner' || role === 'manager';
+    return { rate: true, item: role === 'owner', cashOpen: manager, cashClose: manager, role: true };
+}
+
+/**
+ * The update kind of a notification, or null (other types are always shown).
+ * @param {?Rec|undefined} n
+ * @returns {?string}
+ */
+export function notificationKind(n) {
+    return TYPE_KINDS[n?.type || ''] || null;
+}
+
+/**
+ * Whether this person wants a toast, badge and phone notification for `n` (the inbox lists it anyway).
+ * @param {?Rec|undefined} n
+ * @param {?Rec|undefined} stored - the `happa.notify` object
+ * @returns {boolean}
+ */
+export function wantsUpdate(n, stored) {
+    const kind = notificationKind(n);
+    if (!kind || ALWAYS_ON_KINDS.includes(kind)) return true;
+    return !(stored && typeof stored === 'object' && stored[kind] === false);
+}
+
+/**
+ * One event id per cash transition: the day's open, or a close at its sign-out time, so a retried
+ * or re-sent write never notifies twice.
+ * @param {'open'|'close'} kind
+ * @param {Rec} session
+ * @returns {string}
+ */
+export function cashEventId(kind, session) {
+    const id = String(session?.id || session?.date || 'cash');
+    if (kind === 'open') return `cash-open-${id}`;
+    const at = Date.parse(session?.signOutTime || '') || 0;
+    return `cash-close-${id}-${at.toString(36)}`;
+}
 
 /** Unread notifications the live listener keeps (also the badge cap). */
 export const UNREAD_LIMIT = 20;
@@ -157,6 +215,31 @@ export function describeNotification(n = {}) {
             hi: `${who || 'एक मालिक'} ने आपकी भूमिका बदलकर ${role.hi} कर दी`,
             who: '',
             target: null
+        };
+    }
+
+    if (type === 'cash_open' || type === 'cash_close') {
+        const name = who || 'Someone';
+        const hiName = who || 'किसी';
+        const amount = formatRupees(Number(n.amount) || 0, { exact: true });
+        const target = { tab: 'day-cash' };
+        if (type === 'cash_open') {
+            return {
+                icon: '💵',
+                en: `Cash opened by ${name} · ${amount} opening`,
+                hi: `${hiName} ने नकद खोला · ${amount} शुरुआती`,
+                who: '',
+                target
+            };
+        }
+        const diff = Math.round((Number(n.difference) || 0) * 100) / 100;
+        const off = diff ? formatRupees(Math.abs(diff), { exact: true }) : '';
+        return {
+            icon: '💵',
+            en: `Cash closed by ${name} · counted ${amount}${off ? ` · ${diff < 0 ? 'short' : 'extra'} ${off}` : ''}`,
+            hi: `${hiName} ने नकद बंद किया · गिना ${amount}${off ? ` · ${off} ${diff < 0 ? 'कम' : 'ज़्यादा'}` : ''}`,
+            who: '',
+            target
         };
     }
 

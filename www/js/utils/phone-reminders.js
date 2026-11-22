@@ -11,11 +11,13 @@ import { formatRupees, round2 } from './money.js';
 import { parseLocalDate, toLocalISODate, addLocalDays } from './dates.js';
 import { reminderAt, REMINDER_TIME_RE, REMINDER_LISTEN_LIMIT } from './manual-reminders.js';
 import { t, tn } from '../i18n/index.js';
+import { UPDATE_KINDS, ALWAYS_ON_KINDS, updateKindsFor } from './notification-format.js';
 
 export const NOTIFY_PREFS_KEY = 'happa.notify';
 /** The old "Desktop notifications" switch ('1' = on). */
 export const LEGACY_SYSTEM_KEY = 'aadhat.notifications.system';
-export const NOTIFY_TYPES = Object.freeze(['bell', 'todo', 'udhaar', 'rent', 'backup']);
+/** Reminder kinds (updates from others are notification-format.js UPDATE_KINDS). */
+export const NOTIFY_TYPES = Object.freeze(['todo', 'udhaar', 'rent', 'backup']);
 export const DEFAULT_SUMMARY_TIME = '09:30';
 /** A backup is checked every this many days (REM-3). */
 export const BACKUP_EVERY_DAYS = 30;
@@ -68,7 +70,7 @@ export const inMs = (ms, nowMs = Date.now()) => new Date(nowMs + ms);
  */
 export function allowedTypes({ role, rentals = false }) {
     const manager = role === 'owner' || role === 'manager';
-    return { bell: true, todo: true, udhaar: manager, rent: !!rentals, backup: role === 'owner' };
+    return { todo: true, udhaar: manager, rent: !!rentals, backup: role === 'owner' };
 }
 
 /**
@@ -77,7 +79,10 @@ export function allowedTypes({ role, rentals = false }) {
  * browser: the old Desktop notifications switch).
  * @param {?Rec} stored
  * @param {{role?: ?string, rentals?: boolean, granted?: boolean, defaultOn?: boolean}} who
- * @returns {{on: boolean, chosen: boolean, time: string, types: Object<string, boolean>, allowed: Object<string, boolean>}}
+ * `updates` (per update kind; a role change is always on) also decide the bell's toast and badge,
+ * so they do not depend on `on`.
+ * @returns {{on: boolean, chosen: boolean, time: string, types: Object<string, boolean>, allowed: Object<string, boolean>,
+ *   updates: Object<string, boolean>, updatesAllowed: Object<string, boolean>}}
  */
 export function notifyPrefs(stored, { role, rentals = false, granted = false, defaultOn = false }) {
     const s = stored && typeof stored === 'object' ? stored : {};
@@ -88,7 +93,11 @@ export function notifyPrefs(stored, { role, rentals = false, granted = false, de
     const types = {};
     NOTIFY_TYPES.forEach(k => { types[k] = allowed[k] && (typeof s[k] === 'boolean' ? s[k] : true); });
     const time = REMINDER_TIME_RE.test(String(s.time || '')) ? String(s.time) : DEFAULT_SUMMARY_TIME;
-    return { on, chosen, time, types, allowed };
+    const updatesAllowed = updateKindsFor(role);
+    /** @type {Object<string, boolean>} */
+    const updates = {};
+    UPDATE_KINDS.forEach(k => { updates[k] = updatesAllowed[k] && (ALWAYS_ON_KINDS.includes(k) || s[k] !== false); });
+    return { on, chosen, time, types, allowed, updates, updatesAllowed };
 }
 
 /**

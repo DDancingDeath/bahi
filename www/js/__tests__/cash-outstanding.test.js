@@ -127,6 +127,35 @@ describe('#66 ₹0 opening/closing and session notes', () => {
         }));
     });
 
+    test('owners and managers hear of the actual open and close only (not a joined day, not a failed close)', async () => {
+        const notify = jest.spyOn(FirebaseService, 'notifyCash').mockResolvedValue();
+        setVal('cashSignInAmount', 5000);
+        await CashManagementManager.signIn();
+        expect(notify).toHaveBeenCalledTimes(1);
+        expect(notify).toHaveBeenCalledWith('open', expect.objectContaining({ id: expect.stringMatching(/^cash_/), openingBalance: 5000 }));
+
+        FirebaseService.openCashSession.mockImplementation(async (s) => ({ session: { ...s, id: `cash_${s.date}` }, joined: true }));
+        setVal('cashSignInAmount', 100);
+        await CashManagementManager.signIn();
+        expect(notify).toHaveBeenCalledTimes(1);
+
+        jest.spyOn(UIManager, 'showModal').mockResolvedValue(true);
+        const update = jest.fn(async () => { throw new Error('refused'); });
+        jest.spyOn(FirebaseService, 'db', 'get').mockReturnValue({ collection: () => ({ doc: () => ({ update }) }) });
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        CashManagementManager.todaySession = { id: 's1', date: '2026-10-21', openingBalance: 300, signedOut: false, duePayments: [] };
+        CashManagementManager.todayTransactions = { cashSales: 0, cashPurchases: 0, businessExpenses: 0, personalExpenses: 0, dueReceived: 0, duePaid: 0, cashDeposits: 0 };
+        setVal('cashSignOutAmount', 280);
+        await CashManagementManager.signOut();
+        expect(notify).toHaveBeenCalledTimes(1);
+
+        update.mockImplementation(async () => {});
+        setVal('cashSignOutAmount', 280);
+        await CashManagementManager.signOut();
+        expect(notify).toHaveBeenCalledTimes(2);
+        expect(notify).toHaveBeenLastCalledWith('close', expect.objectContaining({ id: 's1', closingBalance: 280, difference: -20, signedOut: true }));
+    });
+
     test('closing with an empty amount is rejected', async () => {
         CashManagementManager.todaySession = { id: 's1', date: '2026-10-21', openingBalance: 300, signedOut: false };
         setVal('cashSignOutAmount', '');
