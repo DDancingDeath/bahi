@@ -850,10 +850,10 @@ export const MoneyManager = {
         if (!d) return Promise.resolve(false);
         const lang = getLang();
         const bills = d.rows.length
-            ? `<div class="lh-bills"><table class="table"><thead><tr><th scope="col">${esc(t('ui.today.labour_col_bill'))}</th><th scope="col">${esc(t('ui.money.lh_col_customer'))}</th>`
+            ? `<div class="lh-bills"><table class="table"><thead><tr><th scope="col">${esc(t('ui.money.lh_col_customer'))}</th>`
                 + `<th scope="col" class="num">${esc(t('ui.today.labour_col_packets'))}</th><th scope="col" class="num">${esc(t('ui.today.labour_col_deducted'))}</th></tr></thead><tbody>`
-                + d.rows.map(({ bill, packets, labour }) => `<tr><td>${esc(bill?.billNumber ? `#${bill.billNumber}` : '—')}</td>`
-                    + `<td>${esc(bill?.customerName || bill?.seller || t('ui.reports.unknown'))}</td><td class="num">${esc(packets)}</td>`
+                + d.rows.map(({ bill, packets, labour }) => `<tr><td><span class="lh-cust">${esc(bill?.customerName || bill?.seller || t('ui.reports.unknown'))}</span>`
+                    + `<span class="row-meta">${esc(bill?.billNumber ? `#${bill.billNumber}` : '—')}</span></td><td class="num">${esc(packets)}</td>`
                     + `<td class="num">${moneyHtml(labour, TM)}</td></tr>`).join('')
                 + '</tbody></table></div>'
             : `<p class="lh-note">${esc(t('ui.money.lh_no_bills'))}</p>`;

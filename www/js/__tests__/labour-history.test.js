@@ -224,8 +224,8 @@ describe('Money › Labour', () => {
         const box = document.createElement('div');
         box.innerHTML = html;
         expect([...box.querySelectorAll('table tbody tr')].map(tr => [...tr.children].map(c => c.textContent))).toEqual([
-            ['#P1', 'Ram <b>Lal</b>', '12', '₹72'],
-            ['#P2', 'Shyam', '8', '₹0']
+            ['Ram <b>Lal</b>#P1', '12', '₹72'],
+            ['Shyam#P2', '8', '₹0']
         ]);
         expect([...box.querySelectorAll('.row')].map(r => r.textContent)).toEqual(['LabourEvening gang₹100']);
         expect(box.querySelector('.lh-balance').textContent).toBe('Balance +₹74');
