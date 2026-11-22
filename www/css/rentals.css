@@ -1,10 +1,9 @@
 /* Rentals (#170, 5.9): page layout on the shared components (forms.css, surfaces.css). Loaded on demand by
    js/rentals/rentals.js, not linked from index.html; desktop rules are in desktop.css (higher specificity). */
 .rent-head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3); }
-.rent-mode > button { flex: none; }
 .rent-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-4); }
 .rent-nav > .tabs { flex: 1 1 auto; }
-.rent-settings-links { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); margin-left: auto; }
+.rent-settings-links { margin-left: auto; }
 .rent-settings-links[hidden] { display: none; }
 .rent-notice-bar { margin-bottom: var(--sp-3); }
 .rent-body > .panel, .rent-detail > .panel { margin-bottom: var(--sp-4); }
@@ -16,7 +15,10 @@
 .rent-help { color: var(--ink-3); font-size: var(--fs-sm); }
 .rent-field-error { margin: var(--sp-1) 0 0; color: var(--negative); font-size: var(--fs-sm); }
 
-/* Simple: what came in this month */
+/* This month: View by, then what came in */
+.rent-viewby { margin-bottom: var(--sp-3); }
+.rent-viewby > .rent-label { display: block; margin: 0 0 var(--sp-1); }
+.rent-viewby > .rent-viewswitch { margin-bottom: 0; }
 .rent-collect-line { font-size: var(--fs-lead); font-weight: var(--w-strong); }
 .rent-bar { height: var(--sp-2); margin: var(--sp-2) 0 var(--sp-1); overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--r-full); background: var(--surface-2); }
 .rent-bar-fill { display: block; width: var(--w); height: 100%; background: var(--mode-rentals); }
@@ -62,8 +64,11 @@ button.rent-tap { cursor: pointer; }
 .rent-box { margin-top: var(--sp-3); }
 .rent-box > .rent-section-title { margin-top: 0; }
 .rent-owes { font-size: var(--fs-lead); font-weight: var(--w-strong); }
-.rent-menu { position: relative; }
-.rent-menu-list { position: absolute; right: 0; z-index: var(--z-menu); display: flex; flex-direction: column; min-width: 180px; padding: var(--sp-1); box-shadow: var(--e2); }
+.rent-menu { position: relative; flex: none; }
+.rent-menu > summary { list-style: none; }
+.rent-menu > summary::-webkit-details-marker { display: none; }
+.rent-menu-list { position: absolute; right: 0; z-index: var(--z-menu); display: flex; flex-direction: column; min-width: 180px; padding: var(--sp-1); box-shadow: var(--e2); translate: var(--menu-shift, 0px) 0; }
+.rent-menu-list[data-up] { bottom: calc(100% + var(--sp-1)); }
 .rent-menu-list > .btn { justify-content: flex-start; }
 .rent-more { margin-top: var(--sp-3); }
 .rent-more > summary { padding: var(--sp-2) 0; font-weight: var(--w-strong); cursor: pointer; }

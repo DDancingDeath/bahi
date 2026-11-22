@@ -1,6 +1,6 @@
 /**
- * @fileoverview Rentals › This month in Advanced: the property wise and unit wise views with their totals
- * (RENT-9/10, RENT-17/18), filters and unit rows. Loaded with import() by rentals.js only in Advanced.
+ * @fileoverview Rentals › This month › View by Property / Unit: the property wise and unit wise views with their
+ * totals (RENT-9/10, RENT-17/18), filters and unit rows. Loaded with import() by rentals.js when one is chosen.
  * @module rentals/rent-advanced
  */
 
@@ -62,15 +62,11 @@ function typeCounts(byType) {
     return UNIT_TYPES.filter(k => byType[k]).map(k => t(`ui.rent.count_${k}`, { n: byType[k] })).join(' · ');
 }
 
-/** Today's Rent page: property wise or unit wise; tenants who moved out owing are listed once, not under a property. */
-function renderAdvanced(d, rows) {
+/** This month by property or by unit (`sw`: the View by switch); tenants who moved out owing are listed once, under More. */
+function renderAdvanced(d, rows, sw = '') {
     const ix = c.index(d);
     const lang = getLang();
-    const view = c.state.view === 'units' ? 'units' : 'properties';
-    const sw = `<div class="seg rent-viewswitch" role="group">
-        <button type="button" aria-pressed="${view === 'properties'}" data-onclick="rentals.setView('properties')">${et('ui.rent.view_properties')}</button>
-        <button type="button" aria-pressed="${view === 'units'}" data-onclick="rentals.setView('units')">${et('ui.rent.view_units')}</button>
-    </div>`;
+    const view = c.state.by === 'units' ? 'units' : 'properties';
     const body = view === 'units' ? renderUnitView(d, rows) : renderPropertyView(d, ix, rows);
     return `<h3 class="rent-month-title">${esc(monthLabel(c.state.month, lang))}</h3>
         ${sw}
@@ -176,18 +172,18 @@ function unitListHtml(d, rows) {
         ${shown.length ? `<div class="panel">${shown.map(r => unitRowHtml(r, d)).join('')}</div>` : emptyState({ icon: 'search', title: t('ui.rent.no_matching_units') })}`;
 }
 
-/** Tenants who moved out and still owe rent (not on any unit any more). */
+/** Tenants who moved out and still owe rent (not on any unit any more), folded under More. */
 function renderMovedOut(d, ix) {
     const gone = tenantRows(d, c.state.month).filter(a => a.ended);
     if (!gone.length) return '';
-    return `<h3 class="rent-month-title">${et('ui.rent.moved_out_due')}</h3><div class="panel">${gone.map(a => `<div class="row rent-entry" data-lease="${esc(a.leaseId)}">
+    return `<details class="rent-more" data-rent-moved-out><summary>${et('ui.rent.more_moved_out_due', { n: gone.length })}</summary><div class="panel">${gone.map(a => `<div class="row rent-entry" data-lease="${esc(a.leaseId)}">
         <div class="rent-entry-head"><div class="row-main"><div class="row-title">${esc(a.name || t('ui.rent.no_name'))}</div>
             <div class="row-meta">${esc(c.placeOf(ix, a.unitId, a.unitLabel))} · ${et('ui.rent.moved_out')}</div></div>
             <div class="row-trail"><div class="row-amt">${moneyHtml(a.dues.total)}</div></div></div>
         <ul class="rent-months">${a.dues.charges.map(x => monthLine(x, getLang())).join('')}</ul>
         <div class="rent-actions">
             ${c.payBtns(a.leaseId)}
-        </div></div>`).join('')}</div>`;
+        </div></div>`).join('')}</div></details>`;
 }
 
 /** Unit view filters: only the list redraws, so the search box keeps its focus. */

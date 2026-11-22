@@ -1650,7 +1650,6 @@ window.app = {
         saveUpi: () => SettingsManager.saveUpi(),
         saveCheckThresholds: () => SettingsManager.saveCheckThresholds(),
         saveRentals: () => SettingsManager.saveRentals(),
-        setRentMode: (mode) => SettingsManager.setRentMode(mode),
         openOpeningStock: () => SettingsManager.openOpeningStock(),
         setAppearance: (appearance) => SettingsManager.setAppearance(appearance),
         previewTheme: (id) => SettingsManager.previewTheme(id),

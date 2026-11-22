@@ -57,9 +57,9 @@ beforeEach(() => {
     ['properties', 'units', 'tenants', 'leases', 'openCharges', 'monthCharges', 'monthExpenses'].forEach(k => _test.state.loaded.add(k));
 });
 
-test('Rent page (Advanced): expenses and net this month in all; each property card names its expenses; the property its own', async () => {
+test('This month by property: expenses and net this month in all; each property card names its expenses; the property its own', async () => {
     _test.state.page = 'rent';
-    _test.state.mode = 'advanced';
+    _test.state.by = 'properties';
     await _test.render();
     const root = document.getElementById('rentalsBody');
     expect(cards(root)).toContain('Expenses this month ₹2,000');
@@ -70,9 +70,8 @@ test('Rent page (Advanced): expenses and net this month in all; each property ca
     expect(cards(document.getElementById('rentalsBody'))).toContain('Net this month −₹800');
 });
 
-test('Property › Expenses (Advanced): the list (no edit for a member), then Add saves a whole-rupee expense for a unit', async () => {
+test('Property › ⋯ › Expenses: the list (no edit for a member), then Add saves a whole-rupee expense for a unit', async () => {
     _test.state.page = 'properties';
-    _test.state.mode = 'advanced';
     await _test.render();
     RentalsModule.api.showProperty('P1');
     expect(document.getElementById('rentalsBody').innerHTML).toContain("data-onclick=\"rentals.expenses('P1')");

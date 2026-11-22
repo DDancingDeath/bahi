@@ -789,41 +789,51 @@ cash drawer: rent money never goes into it."*
   (repository), `rent-math-report.js` (pure maths, oracle `tests/oracle/rent-report.test.js`). The
   precached `rentals.js` only gained the buttons and the lazy calls (still under 137 KB).
 
-## 17. Simple and Advanced (UX redesign, #157, Nov 2026)
+## 17. One view (UX redesign, #157, Nov 2026; Simple / Advanced folded into one, Nov 2026)
 
-"Simple by default. Powerful when needed." One module, one store, one set of maths and actions; Simple and
-Advanced only change what is drawn. Advanced never grants a permission (role checks are unchanged).
+One module, one store, one set of maths and actions. The page first had a Simple / Advanced switch (PRs #361, #369):
+Advanced had no capability of its own, only denser views, filters and Reports over the same data, so the owner asked
+for one view ("if we can configure everything in Simple, that should suffice"). Everyone now gets the Simple layout as
+the base, with every former Advanced view folded in below; role checks are unchanged and nothing was taken away.
 
-- **Mode:** `localStorage['happa.rentMode.<uid>']` = `simple` | `advanced`, per person on the phone; everyone starts
-  in Simple (owner-adjustable default). Not in Firestore (rentals-only helpers can't read `users/{uid}/preferences`
-  or `settings/app`, and it would cost reads). `happa.rentView` (Property wise / Unit wise) stays as Advanced's
-  sub-view; choosing one of them switches to Advanced. Module API: `setMode('simple'|'advanced')`. The switch is in
-  Settings › Rentals (U-65, shown to every rentals role; `settings.setRentMode`), not on the page.
-- **This month** (the first tab, route `rent`; the label was "Rent"): Simple shows RENT-2 of RENT-1 as a bar, RENT-4,
+- **No mode:** the switch left Settings › Rentals (`settings.setRentMode` and `rent-settings.setViewMode` are gone).
+  The old keys `localStorage['happa.rentMode.<uid>']` and `happa.rentView` are ignored and removed each time Rentals
+  opens (`forgetOldMode`). Old calls land on the new equivalent: `setMode('advanced')` → View by Property,
+  `setMode('simple')` → Who owes, `setView('properties'|'units')` → that View by, `enter('advanced' | 'rent-properties'
+  | 'rent-units' | 'units')` → This month at that View by, `propertyMonth(pid)` → View by Property opened at `pid`,
+  `page('reports')` → Reports, `page('access')` → Roles & access (owner).
+- **This month** (the first tab, route `rent`; the label was "Rent"): a **View by** `.seg` (`state.by`: `owes`, the
+  default and each new visit's start | `properties` | `units`; `rentals.viewBy(by)`). Who owes shows RENT-2 of RENT-1 as a bar, RENT-4,
   **Needs attention** (REM-2 and REM-4 read back with `rentReminder` / `leaseReminder` from `utils/reminders.js`, the
   same records Today and the bell show, so the three always agree; a REM-4 item opens Change rent or the agreement),
   **To collect** (`rent-views.tenantRows`: one row per active lease plus each ended lease that still owes, late first,
   then oldest month, then most due; it replaced `accounts()`), Paid this month (folded) and the vacant units link.
   The sticky Record payment is the one filled button.
-- **Advanced** This month is the previous Rent page (`rent-advanced.js`, lazy): Property wise / Unit wise, every
-  total, filters. Tenants who moved out owing are listed once at the bottom (no longer repeated under every
-  property's detail). Owners and managers get links to Settings › Rentals and (owner) Roles & access, which
-  replaced the Access tab (`page('access')` still opens Roles & access).
+- **View by Property / Unit** is the previous Rent page (`rent-advanced.js`, lazy, loaded only when one is chosen, so
+  opening Rentals loads and reads nothing more): every total, the property cards and detail, the unit list with its
+  filters, search and due sort. Tenants who moved out owing are listed once, folded under **More: moved out, rent
+  still due (N)** (`details.rent-more`), not under every property's detail.
+- **Header ⋯** (`#rentSettingsLinks`, a `details.rent-menu`, the shared floating menu of `ui/menus.js`): Rentals
+  settings (every rentals role, as before) and Roles & access (owner only), which replaced the Access tab.
 - **Files:** `rent-pages.js` (Tenants, Properties and their forms) and `rent-advanced.js` are lazy (§4).
-- **Tenants** (PR4): a plain list (Simple) and the tenant's own screen (state `detail`, an in-page view with a
+- **Tenants** (PR4): a plain list and the tenant's own screen (state `detail`, an in-page view with a
   history entry so the phone's Back closes it): dues over all the tenant's tenancies (`rent-views.tenantDues`),
   the tenancy, and the less used actions under ⋯. Edit no longer has a Unit field: Change unit (the same
   `rent-unit.toUnit` change of unit, which confirms with the tenant, both units and the dues) and Move out ("Move
   Ram out of Flat 1A") are their own actions (owner-adjustable default). Remove names the tenant. Code:
-  `rent-tenants.js` (lazy, loaded with `rent-pages.js`).
+  `rent-tenants.js` (lazy, loaded with `rent-pages.js`). The former Advanced filters (All / Owes / Late / Not in a
+  unit) and sort (Name / Most due / Newest) are chips in a **Filter** sheet (`tenantFilters`; a pick applies at once,
+  the button counts what is on); the former row details (phones, rent, since, agreement, notes) are on the tenant's
+  screen only; moved-out tenants whose link is still on are a folded **Moved out (N)** (owner, managers, as before).
 - **Properties** (PR5): rows with units, let and owed there (`rent-pages.propertyRows`: RENT-4 over the
   `tenantRows` whose unit is in the property, so a moved-out tenant's months count where they were). The property's
   screen uses the same `detail` state as a tenant's; each screen pushes `{ rentDetail: n, rentPage, rentId }`, so
   Back from a tenant opened at a property returns to the property. Occupancy is the active lease on the unit (as
   This month); Remove stays hidden while `unit.leaseId` is set (unchanged rule). Add property is a form; size and
-  floor are under More in the unit form. Expenses and This month for the property are in Advanced (Expenses opens
-  the existing sheet, not a tab: deviation from the plan, no extra reads).
-- **Reports** (PR8): an Advanced tab (`page('reports')`, rendered in `rentals.js`, no lazy file and no reads) with
+  floor are under More in the unit form. The property's screen shows its address and kind and each unit's floor and
+  size; its ⋯ (the shared floating menu) has This month (`propertyMonth`), Expenses (every rentals role, as before;
+  the existing sheet, not a tab, no extra reads), Edit and Remove.
+- **Reports** (PR8): a tab whenever `canWrite()` (every rentals role; `page('reports')`, rendered in `rentals.js`, no lazy file and no reads) with
   the Yearly report (owner, managers), Deposits held and this month's expenses per property (`expenseTotals`, the
   loaded month), each opening the existing sheet. Deposits held moved here from Tenants and the Yearly report from
   Properties. Deviation (owner-adjustable): the tab is for every rentals role, not only owner/managers, because

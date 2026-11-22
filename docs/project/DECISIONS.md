@@ -50,6 +50,7 @@ this repo.
 | D-020 | Several owners, never none | Accepted |
 | D-021 | Offline bill numbers per device | Accepted |
 | D-022 | Oversell warns, never blocks | Accepted |
+| D-023 | Rentals: one view, no Simple / Advanced | Accepted |
 
 ---
 
@@ -187,3 +188,11 @@ this repo.
 - **Status** Accepted · **Date** 2026-11-09 (restated) · **Decider** Owner · **Related** #59, [PR #421](https://github.com/DDancingDeath/bahi/pull/421)
 - **Decision** Selling more than the stock shows warns and never blocks the bill (restated for the time
   when stock may still come from the offline cache, before the server answers).
+
+### D-023 — Rentals: one view, no Simple / Advanced
+- **Status** Accepted · **Date** 2026-11-23 · **Decider** Owner ("if we can configure everything in Simple, that should suffice") · **Related** PRs #361, #369 (the switch), [rentals-design.md §17](../rentals-design.md)
+- **Context** Advanced had no capability of its own: only denser views, filters and Reports over the same data and maths.
+- **Decision** One view for everyone: the Simple layout, with This month › View by (Who owes | Property | Unit), Tenants' Filter sheet
+  and Moved out (N), the property screen's ⋯ (This month, Expenses), Reports always a tab, Roles & access in the page ⋯ (owner).
+  The old per-phone choice is ignored and cleared; old calls open the new equivalent. No data, rules or role changes.
+- **Confirmation** `rent-views-page.test.js` (every former Advanced action reachable for the same roles; old calls), E2E tabs-smoke.

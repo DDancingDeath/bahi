@@ -331,6 +331,7 @@ www/js/rentals/rent-advanced.js: fn
 www/js/rentals/rent-advanced.js: icon
 www/js/rentals/rent-advanced.js: rowBadge(r) ← c.badge('vacant', 'ui.rent.vacant') | c.badge('paid', 'ui.rent.status_paid') | c.badge('late', 'ui.rent.status_late') | c.badge('partial', 'ui.rent.status_partial') | c.badge('due', 'ui.rent.status_due')
 www/js/rentals/rent-advanced.js: statusBadges(ch) ← c.badge('paid', 'ui.rent.status_paid') | c.badge(s.status, s.status === 'partial' ? 'ui.rent.status_partial' : 'ui.rent.s | c.badge('late', 'ui.rent.status_late')
+www/js/rentals/rent-advanced.js: sw
 www/js/rentals/rent-advanced.js: who ← c.elecTag(lease)
 www/js/rentals/rent-deposit.js: PAYMENT_MODES (markup via map(m => `<option value="${m}">${c.esc(t(`ui.rent.mode_${m}`))}</option>`))
 www/js/rentals/rent-deposit.js: action
@@ -383,21 +384,20 @@ www/js/rentals/rent-tenants.js: args
 www/js/rentals/rent-tenants.js: attrs
 www/js/rentals/rent-tenants.js: c.badge(s.status === 'partial' ? 'partial' : 'due', s.status === 'partial' ? 'ui.rent.status_partial' : 'ui.rent.status_due')
 www/js/rentals/rent-tenants.js: c.elecFieldsHtml(elecMode(lease), lease.meterNo || '')
-www/js/rentals/rent-tenants.js: c.elecTag(l) (markup via map(x => `<span class="rent-sub">${x}</span>`))
 www/js/rentals/rent-tenants.js: c.elecTag(lease)
 www/js/rentals/rent-tenants.js: c.receiptsBtn(id)
 www/js/rentals/rent-tenants.js: cls
 www/js/rentals/rent-tenants.js: field
 www/js/rentals/rent-tenants.js: field
+www/js/rentals/rent-tenants.js: field
+www/js/rentals/rent-tenants.js: field
 www/js/rentals/rent-tenants.js: fn
 www/js/rentals/rent-tenants.js: icon
 www/js/rentals/rent-tenants.js: k
-www/js/rentals/rent-tenants.js: k (markup via chip)
-www/js/rentals/rent-tenants.js: k (markup via chip)
+www/js/rentals/rent-tenants.js: list (markup via map(k => `<button type="button" class="chip" aria-pressed="${k === v[field]}" data-onclick="rentals.tenantList('${field}', '${k}')">${et(`ui.ren))
 www/js/rentals/rent-tenants.js: s.late ? ` ${c.badge('late', 'ui.rent.status_late')}` : '' ← c.badge('late', 'ui.rent.status_late')
 www/js/rentals/rent-tenants.js: statusOf(due) ← c.badge('late', 'ui.rent.status_late') | c.badge('partial', 'ui.rent.status_partial') | c.badge('due', 'ui.rent.status_due')
 www/js/rentals/rent-tenants.js: statusOf(due) ← c.badge('late', 'ui.rent.status_late') | c.badge('partial', 'ui.rent.status_partial') | c.badge('due', 'ui.rent.status_due')
-www/js/rentals/rent-tenants.js: x
 www/js/rentals/rent-unit.js: attrs
 www/js/rentals/rent-unit.js: c.tenantSectionHtml({ rent: shown.rent, meterRate: shown.meterRate, fixedTenant: tenant && { id: '', ...tenant }, ...(from ? keptTerms(from,
 www/js/rentals/rent-unit.js: id
@@ -407,17 +407,21 @@ www/js/rentals/rentals.js: TemplateLoader.loadTemplate('rentals') (sink)
 www/js/rentals/rentals.js: args
 www/js/rentals/rentals.js: args
 www/js/rentals/rentals.js: attrs
+www/js/rentals/rentals.js: by
+www/js/rentals/rentals.js: by (sink)
 www/js/rentals/rentals.js: cls
 www/js/rentals/rentals.js: field
 www/js/rentals/rentals.js: fn
 www/js/rentals/rentals.js: fn
 www/js/rentals/rentals.js: html (sink)
 www/js/rentals/rentals.js: icon
-www/js/rentals/rentals.js: lazyMods.advanced.renderAdvanced(unitCtx(), d, rows) (sink)
+www/js/rentals/rentals.js: lazyMods.advanced.renderAdvanced(unitCtx(), d, rows, by) (sink)
 www/js/rentals/rentals.js: lazyMods.pages.renderProperties(unitCtx(), d) (sink)
 www/js/rentals/rentals.js: lazyMods.pages.renderProperty(unitCtx(), d, state.detail) (sink)
 www/js/rentals/rentals.js: lazyMods.pages.renderTenant(unitCtx(), d, state.detail) (sink)
 www/js/rentals/rentals.js: lazyMods.pages.renderTenants(unitCtx(), d) (sink)
+www/js/rentals/rentals.js: v
+www/js/rentals/rentals.js: v
 www/js/services/exporter.js: printMinus(html)
 www/js/ui/app-lock.js: Object.freeze([2, 5, 10, 30]) (markup via map(m => `<option value="${m}"${(current?.minutes || 5) === m ? ' selected' : ''}>${e(t('ui.applock.minutes', { minutes: m }))}</option>`))
 www/js/ui/app-lock.js: m
