@@ -78,7 +78,9 @@ describe('#69 session totals', () => {
         CashManagementManager.updateUI();
         const text = (id) => document.getElementById(id).textContent;
         expect([text('statusOthers'), text('statusExpected'), text('statusActual'), text('statusDiff')])
-            .toEqual(['₹330', '₹2,220', '₹2,000', '−₹220.00']);
+            .toEqual(['₹330', '₹2,220', '₹2,000', '₹220.00 short']);
+        expect(document.getElementById('statusCountLine').hidden).toBe(false);
+        expect(document.getElementById('statusDiff').className).toBe('tone-neg');
     });
 });
 

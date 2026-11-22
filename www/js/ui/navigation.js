@@ -61,6 +61,8 @@ const ROUTES = Object.freeze({
     // Wholesale's old History and Outstanding tabs (F14) open History and Outstanding with the Wholesale filter.
     'wholesale-history': { tab: 'history', section: 'wholesale', needs: 'wholesale-sales', nav: 'history' },
     'wholesale-outstanding': { tab: 'due', section: 'wholesale', needs: 'wholesale-sales', nav: 'due' },
+    // Today's bills row: History on Today for this visit only
+    'history-today': { tab: 'history', section: 'today', nav: 'history' },
 
     // Settings groups (sub-pages of the Settings list; parent: Back returns there). Aadhat = internal 'shop'.
     // Old ids: settings-common (the list), settings-roles (Team), settings-aadhat and admin-configure (Aadhat).

@@ -89,10 +89,12 @@ function themePreview(th) {
     const screen = span('tcp-screen');
     const bar = span('tcp-bar');
     bar.append(span('tcp-title', t('ui.nav.billing')), span('tcp-chip', t('ui.sync.synced')));
-    const seg = span('tcp-seg');
-    const on = span('tcp-seg-on');
+    const seg = span('seg');
+    const on = span('');
+    on.setAttribute('aria-pressed', 'true');
     on.append(span('tcp-dot'), t('ui.common.purchase'));
-    const off = span('tcp-seg-off');
+    const off = span('');
+    off.setAttribute('aria-pressed', 'false');
     off.append(span('tcp-dot tcp-dot-sale'), t('ui.billing.sale'));
     seg.append(on, off);
     const card = span('tcp-card');

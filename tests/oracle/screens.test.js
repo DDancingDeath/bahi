@@ -187,6 +187,17 @@ describe('todaySummary() (utils/calc/today.js) == oracle, to the paise', () => {
 
 // ------------------------------------------------------------------ Stock
 
+/** T18 is one tap away (Purchases / Sales tiles): both sheets' markup, read by the same ids. */
+function openSplits() {
+    const spy = jest.spyOn(UIManager, 'showModalWithHtml').mockImplementation((html) => {
+        document.body.insertAdjacentHTML('beforeend', `<div data-split-sheet>${html}</div>`);
+        return Promise.resolve(true);
+    });
+    DayManager.showSplit('purchase');
+    DayManager.showSplit('sale');
+    spy.mockRestore();
+}
+
 describe('Today › By bill type (T18): paid later, write-off, voided, wholesale (today-channels.json)', () => {
     const CH = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../fixtures/calculations/today-channels.json'), 'utf8'));
     const CH_NOW = O.timeOf(CH.now);
@@ -203,7 +214,7 @@ describe('Today › By bill type (T18): paid later, write-off, voided, wholesale
         Object.values(s.channels).forEach(c => expect(O.r2(c.cash + c.online + c.paidLater + c.writtenOff + c.due)).toBe(c.total));
     });
 
-    specTest('T18')('on screen: every part, the written-off line only where there is one', () => {
+    specTest('T18')('in the Purchases / Sales sheets: every part, the written-off line only where there is one', () => {
         jest.setSystemTime(new Date(CH_NOW));
         AppState.purchaseHistory = copy(CH.purchases);
         AppState.salesHistory = copy(CH.wholesaleSales);
@@ -213,13 +224,16 @@ describe('Today › By bill type (T18): paid later, write-off, voided, wholesale
         document.body.innerHTML = fs.readFileSync(path.resolve(__dirname, '../../www/templates/day.html'), 'utf8');
         jest.spyOn(AnomaliesManager, 'renderDayReport').mockImplementation(() => {});
         DayManager.loadTodayData();
+        expect(document.getElementById('todayChannelsCard')).toBeNull();
+        openSplits();
         Object.entries(KEYS).forEach(([type, k]) => {
             const c = CH.expected[type];
             [['Total', 'total'], ['Cash', 'cash'], ['Online', 'online'], ['PaidLater', 'paidLater'], ['Due', 'due'], ['WrittenOff', 'writtenOff']]
+                .filter(([, f]) => f !== 'writtenOff' || c.writtenOff > 0)
                 .forEach(([id, f]) => expect([type, f, shown(`todayCh${k}${id}`)]).toEqual([type, f, rupee(c[f])]));
-            expect(document.getElementById(`todayCh${k}WrittenOffRow`).hidden).toBe(!(c.writtenOff > 0));
+            expect(!!document.getElementById(`todayCh${k}WrittenOff`)).toBe(c.writtenOff > 0);
         });
-        expect(document.querySelectorAll('#todayBillsList [data-today-bill]')).toHaveLength(4);
+        expect(document.getElementById('todayBillsCount').textContent).toBe("Today's bills · 4");
     });
 });
 describe("Today › By bill type (T18) and Today's bills (T19) == oracle", () => {
@@ -247,10 +261,9 @@ describe("Today › By bill type (T18) and Today's bills (T19) == oracle", () =>
             document.body.innerHTML = TEMPLATE;
             jest.spyOn(AnomaliesManager, 'renderDayReport').mockImplementation(() => {});
             CashManagementManager.todaySession = copy(FIX.session);
-            DayManager.showAllBills = true;
             DayManager.loadTodayData();
+            openSplits();
         });
-        afterEach(() => { DayManager.showAllBills = false; });
 
         specTest('T18')('T18 cards', () => {
             Object.entries(KEYS).forEach(([type, k]) => {
@@ -260,14 +273,15 @@ describe("Today › By bill type (T18) and Today's bills (T19) == oracle", () =>
             });
         });
 
-        specTest('T19')('T19 rows: every bill of today once, newest first, with its total; a row opens that bill', () => {
-            const rows = [...document.querySelectorAll('#todayBillsList [data-today-bill]')];
-            const ids = rows.map(r => /id:([^']+)'/.exec(r.getAttribute('data-onclick'))[1]);
-            expect([...ids].sort()).toEqual(want.T19.map(r => r.id).sort());
-            const byId = Object.fromEntries(want.T19.map(r => [r.id, r]));
-            const times = ids.map(id => byId[id].at);
-            expect(times).toEqual([...times].sort((a, b) => b - a));
-            rows.forEach((r, i) => expect(Number(r.querySelector('.today-bill-total').textContent.replace(/[^\d.-]/g, ''))).toBe(rupee(byId[ids[i]].total)));
+        specTest('T19')('T19 row at the bottom: every bill of today counted once, by type; it opens History on Today', () => {
+            const link = document.getElementById('todayBillsLink');
+            expect(link.hidden).toBe(false);
+            expect(document.getElementById('todayBillsCount').textContent).toBe(`Today's bills · ${want.T19.length}`);
+            const n = (type) => want.T18[type].count;
+            const meta = ['purchase', 'retail', 'wholesale'].filter(type => n(type)).map(type => `${n(type)} ${type}`).join(' · ');
+            expect(document.getElementById('todayBillsMeta').textContent).toBe(meta);
+            expect(link.querySelector('button').getAttribute('data-onclick')).toBe("nav.showTab('history-today', event)");
+            expect(link.parentElement.lastElementChild).toBe(link);
         });
     });
 });

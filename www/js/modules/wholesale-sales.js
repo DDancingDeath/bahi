@@ -1136,7 +1136,7 @@ export class WholesaleSalesManager {
         const pay = readPayment(sale);
         const payment = { online: pay.online, cash: pay.cash, due: outstandingDue(sale) };
         const payRow = (key, amount, due = false) => `
-                    <div class="row bill-view-row">
+                    <div class="row">
                         <span class="row-main">${L(key)}</span>
                         ${payAmountHtml(sale, amount, due)}
                     </div>`;
@@ -1153,7 +1153,7 @@ export class WholesaleSalesManager {
             <div class="panel bill-view-panel">
                 <h3 class="bill-view-title">${L('ui.wholesale.payment_history')}</h3>
                 ${sale.payments.map(p => `
-                    <div class="row bill-view-row">
+                    <div class="row">
                         <span class="row-main">• ${Helpers.escapeHtml(p.date)}${p.recordedBy ? ` ${L('ui.wholesale.by_name', { name: p.recordedBy })}` : ''}${p.kind === 'writeOff' ? ` — ${L('ui.wholesale.written_off', { reason: p.reason || '' })}` : ''}</span>
                         <strong class="row-amt">${moneyHtml(p.amount)}</strong>
                     </div>
@@ -1167,16 +1167,16 @@ export class WholesaleSalesManager {
             <div class="bill-view">
                 ${voidedBannerHtml(sale)}
                 <div class="panel bill-view-info">
-                    <div class="row bill-view-row">
+                    <div class="row">
                         <span class="row-main">${L('ui.history.bill_no')}</span>
                         <strong>#${Helpers.escapeHtml(billNumber)}</strong>
                     </div>
-                    <div class="row bill-view-row">
+                    <div class="row">
                         <span class="row-main">${L('ui.history.date_label')}</span>
                         <span>${Helpers.escapeHtml(sale.date)}</span>
                     </div>
                     ${sale.createdByName ? `
-                        <div class="row bill-view-row">
+                        <div class="row">
                             <span class="row-main">${L('ui.history.created_by')}</span>
                             <span>${Helpers.escapeHtml(sale.createdByName)}</span>
                         </div>
@@ -1200,7 +1200,7 @@ export class WholesaleSalesManager {
                 </table>
                 
                 <div class="panel bill-view-panel">
-                    <div class="row bill-view-row bill-view-total">
+                    <div class="row bill-view-total">
                         <span class="row-main">${L('ui.billing.sale_total')}</span>
                         <strong class="row-amt">${moneyHtml(sale.total)}</strong>
                     </div>

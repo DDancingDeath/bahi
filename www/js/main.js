@@ -1516,7 +1516,7 @@ window.app = {
     // Anomalies (#187, #40): Day report card on Today + Anomalies page (anomalies.js is imported on first use)
     anomalies: {
         ...Object.fromEntries(['init', 'openPage', 'applyFilters', 'showView', 'loadMore', 'openRef', 'correctRate', 'review',
-            'shareDayReport', 'printDayReport', 'refreshNow']
+            'shareDayReport', 'shareDayReportImage', 'refreshNow']
             .map(name => [name, (...args) => loadAnomalies().then(m => m[name](...args))])),
         // The cash-close screen's line, when the code is loaded (owner/manager phones load it after the first screen)
         cashCloseLine: () => loadedAnomalies()?.cashCloseLine()
@@ -1603,7 +1603,7 @@ window.app = {
         openBackupCheck: () => DayManager.openBackupCheck(),
         filterTransactions: () => DayManager.filterTransactions(),
         showLabourBreakdown: () => DayManager.showLabourBreakdown(),
-        toggleAllBills: () => DayManager.toggleAllBills(),
+        showSplit: (kind) => DayManager.showSplit(kind),
         returnCashBody: () => DayManager.returnCashBody(),
         reminderForm: (open) => ManualReminders.form(open),
         reminderSave: () => ManualReminders.save(),

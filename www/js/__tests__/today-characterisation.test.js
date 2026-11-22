@@ -25,7 +25,7 @@ const EXPECTED = RECORD ? {} : JSON.parse(fs.readFileSync(EXPECTED_FILE, 'utf8')
 
 const TEXT_IDS = [
     'todayTotalPurchases', 'todayPurchaseCount', 'todayTotalSales', 'todaySaleCount',
-    'todayLaborCost', 'todayLabourPaid', 'todayLabourToPay', 'todayLabourPaidDiff', 'todayLabourDiff',
+    'todayLaborCost', 'todayLabourPaid', 'todayLabourToPay', 'todayBillsCount', 'todayBillsMeta',
     'todayBusinessExpenses', 'todayBusinessExpenseCount', 'todayPersonalExpenses', 'todayPersonalExpenseCount',
     'todayCashReceived', 'todayOnlineReceived', 'todayCashPaid', 'todayOnlinePaid',
     'todayTotalIn', 'todayTotalOut', 'todayCashFlowLabel', 'todayNetCashFlow', 'todayTotalCashFlow',

@@ -5,7 +5,7 @@
   padding: 0;
 }
 
-.day-tabs {
+.day-container > .tabs {
   margin-bottom: var(--sp-4);
 }
 
@@ -55,18 +55,11 @@
 .cash-body .cash-title { margin: 0 0 var(--sp-3); padding: 0; border: 0; color: var(--ink); font-size: var(--fs-body); font-weight: var(--w-strong); }
 .cash-body .cash-status .cash-title { margin-bottom: var(--sp-1); color: var(--ink-3); font-size: var(--fs-sm); font-weight: var(--w-label); }
 
-/* Available cash (C7) as the hero, the day's figures as metrics */
-.cash-hero { padding-bottom: var(--sp-3); }
-.cash-hero-label { color: var(--ink-3); font-size: var(--fs-sm); }
-.cash-hero .hero-num { margin-top: var(--sp-1); color: var(--ink); }
-/* Each figure draws its own top and left hairline (the panel clips the outer ones), so the grid holds whichever figures show */
-.cash-metrics { overflow: hidden; }
-.panel.metrics.cash-metrics > .metric { position: relative; border: 0; }
-.cash-metrics > .metric::before {
-  content: ''; position: absolute; top: -1px; right: 0; bottom: 0; left: -1px; pointer-events: none;
-  border-top: 1px solid var(--line); border-left: 1px solid var(--line);
-}
-.cash-metrics > .metric-span { grid-column: 1 / -1; }
+/* The day's figures as .metrics (Expected cash, C7, stands out), then the count line (C8) */
+.cash-count { margin: var(--sp-2) 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+.cash-count > strong { color: var(--ink); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.cash-count > [class*="tone-"] { font-weight: var(--w-strong); }
+.cash-count[hidden] { display: none; }
 
 /* Close cash: in, out and the expected drawer (C1–C7) */
 .cash-body .cash-sub-title { margin: 0 0 var(--sp-1); color: var(--ink-3); font-size: var(--fs-sm); font-weight: var(--w-label); }
@@ -98,7 +91,7 @@
 .today-inout > span { display: inline-flex; align-items: center; gap: 6px; }
 .today-in .i { color: var(--positive); }
 .today-out .i { color: var(--ink-3); }
-.today-inout strong, .today-channel-total, .today-channel-split strong, .today-bill-total {
+.today-inout strong {
   color: var(--ink); font-family: var(--font-num); font-weight: var(--w-strong); font-variant-numeric: tabular-nums;
 }
 
@@ -120,45 +113,28 @@
 .today-reminder-days, .today-reminder-more { color: var(--ink-3); font-size: var(--fs-caption); }
 .day-report { margin-top: var(--section-gap); }
 
-/* Labour (T-LAB-*): Deducted, Paid, Pay rows; an amber line only under a row that differs; tap for each bill */
-.today-labour-open { display: block; width: 100%; padding: var(--sp-3) 0 0; border: none; border-radius: var(--r-panel); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.today-labour-open:hover { background: var(--surface-2); }
-.today-labour-open:focus-visible { outline: none; box-shadow: var(--focus); }
-.today-labour-diff { display: block; padding: 0 var(--sp-4) var(--sp-2); font-size: var(--fs-sm); }
-.today-labour-diff[hidden] { display: none; }
-.today-labour-more { display: block; padding: var(--sp-1) var(--sp-4) var(--sp-3); color: var(--accent-text); font-size: var(--fs-sm); font-weight: var(--w-label); text-align: right; }
+/* Labour (T-LAB-*), a disclosure: closed, the title and "Deducted · Est. pay" right-aligned on one line (… when it doesn't fit);
+   open, Deducted, Estimated pay, Paid and Details (each bill) */
+.today-labour .disclosure-main { flex-direction: row; align-items: baseline; gap: var(--sp-3); }
+.today-labour .disclosure-title { flex: none; }
+.today-labour .disclosure-summary { flex: 1; min-width: 0; text-align: right; }
+.today-labour-more { display: flex; width: fit-content; gap: var(--sp-1); margin: 0 var(--sp-2) var(--sp-2) auto; }
 
-/* By bill type (T18) */
-.today-channel { padding: var(--sp-3) var(--sp-4); }
-.today-channel + .today-channel { border-top: 1px var(--rule-style) var(--line); }
-.today-channel[hidden], .today-channel-split > .today-channel-writeoff[hidden] { display: none; }
-.today-channel-head { display: flex; align-items: baseline; gap: var(--sp-2); }
-.today-channel-name { color: var(--ink); font-weight: var(--w-strong); }
-.today-channel-count { color: var(--ink-3); font-size: var(--fs-sm); }
-.today-channel-total { margin-left: auto; }
-.today-channel-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1) var(--sp-5); margin-top: var(--sp-2); color: var(--ink-3); font-size: var(--fs-sm); }
-.today-channel-split > div { display: flex; justify-content: space-between; gap: var(--sp-2); }
-.today-channel-writeoff { grid-column: 1 / -1; }
+/* The hero's meter: in and out as shares of one bar (style="--w: …"), keyed by the arrows in the line above */
+.today-meter { margin-top: var(--sp-3); }
+.today-meter > span { flex-grow: var(--w); }
+.today-meter > .today-meter-in { background: var(--positive); }
+.today-meter > .today-meter-out { background: var(--ink-3); }
 
-/* Today's bills (T19): each row opens the bill; the dot is the bill's mode */
-[data-today-bill] {
-  display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--row-h); padding: 10px var(--sp-4);
-  border: none; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
-}
-[data-today-bill] + [data-today-bill] { border-top: 1px var(--rule-style) var(--line); }
-[data-today-bill]:hover { background: var(--surface-2); }
-[data-today-bill]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.today-bill-time { flex: none; min-width: 4.5em; color: var(--ink-3); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-.today-bill-main { display: flex; flex: 1; min-width: 0; flex-direction: column; }
-.today-bill-party, .today-bill-kind { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.today-bill-party { font-weight: var(--w-strong); }
-.today-bill-kind { color: var(--ink-3); font-size: var(--fs-sm); }
-.today-bill-kind::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: var(--r-round); background: var(--mode-purchase); }
-.today-bill-retail .today-bill-kind::before { background: var(--mode-sale); }
-.today-bill-wholesale .today-bill-kind::before { background: var(--mode-wholesale); }
-.today-bill-total { flex: none; }
-.today-bills-more { border-top-color: var(--line); border-radius: 0 0 var(--r-panel) var(--r-panel); }
+/* Purchases and Sales open their split by bill type (T18) */
+[data-split-tile] .metric-label > .i { margin-left: auto; color: var(--ink-3); }
+.today-split + .today-split { margin-top: var(--sp-4); }
+.today-split-head { display: flex; align-items: baseline; gap: var(--sp-2); margin-top: 0; }
+.today-split-total { margin-left: auto; color: var(--ink); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.today-split-note { margin: var(--sp-3) 0 0; }
 
+/* Today's bills (T19): one row at the very bottom, opening History on Today */
+.today-bills-link { margin-top: var(--section-gap); }
 /* Item details (T17) */
 .day-item .row-meta { white-space: normal; }
 .day-item .row-meta strong { color: var(--ink-2); font-weight: var(--w-strong); }
@@ -266,3 +242,4 @@
 .today-more[open] > summary > .i {
   transform: rotate(180deg);
 }
+

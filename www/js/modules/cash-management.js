@@ -20,7 +20,7 @@ import {
     drawerDay, expectedCash, drawerStatus, signOutSummary, countCheck, closeCheck, openingCheck,
     savedDifference, differenceBand, sessionDetail, noBillLeg, lastCountedSession
 } from '../utils/calc/cash.js';
-import { outstandingDue, formatAmount } from '../utils/money.js';
+import { outstandingDue, formatAmount, moneyText } from '../utils/money.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { entryAmount } from '../utils/calc/billing.js';
@@ -589,102 +589,69 @@ export class CashManagementManager {
     }
 
     static fillStatusCard() {
-        const statusOpeningBalance = document.getElementById('statusOpeningBalance');
-        const statusCashIn = document.getElementById('statusCashIn');
-        const statusCashOut = document.getElementById('statusCashOut');
-        const statusAvailable = document.getElementById('statusAvailable');
-        const statusCashAdded = document.getElementById('statusCashAdded');
-        const statusBuy = document.getElementById('statusBuy');
-        const statusSale = document.getElementById('statusSale');
-        const statusOthers = document.getElementById('statusOthers');
-        const statusExpected = document.getElementById('statusExpected');
-        const statusActual = document.getElementById('statusActual');
-        const statusDiff = document.getElementById('statusDiff');
-        
-        // Card containers for show/hide
-        const statusOpeningCard = document.getElementById('statusOpeningCard');
-        const statusCashInCard = document.getElementById('statusCashInCard');
-        const statusCashOutCard = document.getElementById('statusCashOutCard');
-        const statusAvailableCard = document.getElementById('statusAvailableCard');
-        const statusCashAddedCard = document.getElementById('statusCashAddedCard');
-        const statusBuyCard = document.getElementById('statusBuyCard');
-        const statusSaleCard = document.getElementById('statusSaleCard');
-        const statusOthersCard = document.getElementById('statusOthersCard');
-        const statusExpectedCard = document.getElementById('statusExpectedCard');
-        const statusActualCard = document.getElementById('statusActualCard');
-        const statusDiffCard = document.getElementById('statusDiffCard');
+        const el = (id) => document.getElementById(id);
+        const show = (ids, on) => ids.forEach(id => { const card = el(id); if (card) card.style.display = on ? 'block' : 'none'; });
+        const OPEN = ['statusCashInCard', 'statusCashOutCard', 'statusAvailableCard'];
+        const CLOSED = ['statusBuyCard', 'statusSaleCard', 'statusOthersCard', 'statusExpectedCard'];
+        const countLine = el('statusCountLine');
+        if (countLine) countLine.hidden = true;
+        show(['statusOpeningCard'], true);
 
         if (!this.todaySession) {
-            // No session - show 4 blocks with zeros
-            if (statusOpeningCard) statusOpeningCard.style.display = 'block';
-            if (statusCashInCard) statusCashInCard.style.display = 'block';
-            if (statusCashOutCard) statusCashOutCard.style.display = 'block';
-            if (statusAvailableCard) statusAvailableCard.style.display = 'block';
-            if (statusCashAddedCard) statusCashAddedCard.style.display = 'none';
-            if (statusBuyCard) statusBuyCard.style.display = 'none';
-            if (statusSaleCard) statusSaleCard.style.display = 'none';
-            if (statusOthersCard) statusOthersCard.style.display = 'none';
-            if (statusExpectedCard) statusExpectedCard.style.display = 'none';
-            if (statusActualCard) statusActualCard.style.display = 'none';
-            if (statusDiffCard) statusDiffCard.style.display = 'none';
-            
-            [statusOpeningBalance, statusCashIn, statusCashOut, statusAvailable].forEach(el => setMoney(el, 0));
+            // No session: Opening, Cash in, Cash out and Expected cash at ₹0
+            show(OPEN, true);
+            show(['statusCashAddedCard', ...CLOSED], false);
+            ['statusOpeningBalance', 'statusCashIn', 'statusCashOut', 'statusAvailable'].forEach(id => setMoney(el(id), 0));
             return;
         }
 
         const {
             opening, cashAdded, purchases, sales, others, expected,
-            cashIn, totalCashOut, availableCash, actual, diff, diffLevel
+            cashIn, totalCashOut, availableCash, actual, diff
         } = drawerStatus(this.todaySession, this.todayTransactions);
+        setMoney(el('statusOpeningBalance'), opening, { exact: true });
+        setMoney(el('statusCashAdded'), cashAdded, { exact: true });
 
         if (this.todaySession.signedOut) {
-            // Signed out - show Opening Balance + 7 other blocks
-            if (statusOpeningCard) statusOpeningCard.style.display = 'block';
-            if (statusCashInCard) statusCashInCard.style.display = 'none';
-            if (statusCashOutCard) statusCashOutCard.style.display = 'none';
-            if (statusAvailableCard) statusAvailableCard.style.display = 'none';
-            if (statusCashAddedCard) statusCashAddedCard.style.display = 'block';
-            if (statusBuyCard) statusBuyCard.style.display = 'block';
-            if (statusSaleCard) statusSaleCard.style.display = 'block';
-            if (statusOthersCard) statusOthersCard.style.display = 'block';
-            if (statusExpectedCard) statusExpectedCard.style.display = 'block';
-            if (statusActualCard) statusActualCard.style.display = 'block';
-            if (statusDiffCard) statusDiffCard.style.display = 'block';
-            
-            setMoney(statusOpeningBalance, opening, { exact: true });
-            setMoney(statusCashAdded, cashAdded, { exact: true });
-            setMoney(statusBuy, purchases, { exact: true });
-            setMoney(statusSale, sales, { exact: true });
-            setMoney(statusOthers, others, { exact: true });
-            setMoney(statusExpected, expected, { exact: true });
-            setMoney(statusActual, actual, { exact: true });
-            if (statusDiff) {
-                setMoney(statusDiff, diff, { decimals: 2 }, diff >= 0);
-                statusDiff.classList.remove('tone-pos', 'tone-warn', 'tone-neg');
-                statusDiff.classList.add(diffTone(diffLevel));
-            }
+            // Closed: the day's figures and Expected cash in the grid; the count under it
+            show(OPEN, false);
+            show(['statusCashAddedCard', ...CLOSED], true);
+            setMoney(el('statusBuy'), purchases, { exact: true });
+            setMoney(el('statusSale'), sales, { exact: true });
+            setMoney(el('statusOthers'), others, { exact: true });
+            setMoney(el('statusExpected'), expected, { exact: true });
+            this.fillCountLine(this.todaySession.counted === false ? null : actual, diff);
         } else {
-            // Ongoing session - show 4 blocks
-            if (statusOpeningCard) statusOpeningCard.style.display = 'block';
-            if (statusCashInCard) statusCashInCard.style.display = 'block';
-            if (statusCashOutCard) statusCashOutCard.style.display = 'block';
-            if (statusAvailableCard) statusAvailableCard.style.display = 'block';
-            if (statusCashAddedCard) statusCashAddedCard.style.display = cashAdded ? 'block' : 'none';
-            if (statusBuyCard) statusBuyCard.style.display = 'none';
-            if (statusSaleCard) statusSaleCard.style.display = 'none';
-            if (statusOthersCard) statusOthersCard.style.display = 'none';
-            if (statusExpectedCard) statusExpectedCard.style.display = 'none';
-            if (statusActualCard) statusActualCard.style.display = 'none';
-            if (statusDiffCard) statusDiffCard.style.display = 'none';
-            
-            setMoney(statusOpeningBalance, opening, { exact: true });
-            setMoney(statusCashAdded, cashAdded, { exact: true });
-            setMoney(statusCashIn, cashIn, { exact: true });
-            setMoney(statusCashOut, totalCashOut, { exact: true });
-            setMoney(statusAvailable, availableCash, { exact: true });
+            // Open: Opening, Cash added (when some), Cash in, Cash out, Expected cash
+            show(OPEN, true);
+            show(['statusCashAddedCard'], !!cashAdded);
+            show(CLOSED, false);
+            setMoney(el('statusCashIn'), cashIn, { exact: true });
+            setMoney(el('statusCashOut'), totalCashOut, { exact: true });
+            setMoney(el('statusAvailable'), availableCash, { exact: true });
         }
     }
 
+    /**
+     * "Counted ₹9,250 · ₹62 short" under the grid once the drawer is counted (C8: within ₹1 it matches);
+     * hidden before a count.
+     * @param {?number} counted - null when not counted
+     * @param {number} diff - counted − expected
+     */
+    static fillCountLine(counted, diff) {
+        const line = document.getElementById('statusCountLine');
+        const actual = document.getElementById('statusActual');
+        const status = document.getElementById('statusDiff');
+        if (!line || !actual || !status) return;
+        line.hidden = counted === null;
+        if (counted === null) return;
+        setMoney(actual, counted, { exact: true });
+        const abs = Math.abs(Number(diff) || 0);
+        const kind = abs < 1 ? 'matches' : diff < 0 ? 'short' : 'extra';
+        status.textContent = kind === 'matches' ? t('ui.cash.count_matches') : t(`ui.cash.count_${kind}`, { amount: moneyText(abs, { decimals: 2 }) });
+        status.classList.remove('tone-pos', 'tone-warn', 'tone-neg');
+        status.classList.add(kind === 'matches' ? 'tone-pos' : kind === 'short' ? 'tone-neg' : 'tone-warn');
+    }
     static calculateExpectedCash() {
         return expectedCash(this.todaySession, this.todayTransactions);
     }
@@ -1346,14 +1313,14 @@ export class CashManagementManager {
                     </div>
                 </div>` : ''}
                 ${session.signedOut ? `
-                <div class="panel metrics cash-metrics">
+                <div class="panel metrics">
                     ${metric('ui.cash.expenses_others')}<div class="metric-value">${fig(totalCashOut, { exact: true })}</div></div>
-                    ${metric('ui.cash.expected_balance')}<div class="metric-value">${fig(session.expectedBalance || 0, { exact: true })}</div></div>
-                    ${metric('ui.cash.actual_balance')}<div class="metric-value">${uncounted ? L('ui.cash.not_counted') : fig(session.closingBalance, { exact: true })}</div></div>
+                    ${metric('ui.cash.expected_cash')}<div class="metric-value">${fig(session.expectedBalance || 0, { exact: true })}</div></div>
+                    ${metric('ui.cash.counted')}<div class="metric-value">${uncounted ? L('ui.cash.not_counted') : fig(session.closingBalance, { exact: true })}</div></div>
                     ${metric('ui.cash.difference')}<div class="metric-value ${diffClass}">${diffText}</div></div>
                 </div>
                 ` : `
-                <div class="panel metrics cash-metrics">
+                <div class="panel metrics">
                     ${metric('ui.cash.opening_balance')}<div class="metric-value">${fig(session.openingBalance || 0, { exact: true })}</div></div>
                     ${metric('ui.cash.cash_in')}<div class="metric-value">${fig(cashIn, { exact: true })}</div></div>
                     ${metric('ui.cash.cash_out')}<div class="metric-value">${fig(totalCashOut, { exact: true })}</div></div>

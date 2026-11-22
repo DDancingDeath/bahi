@@ -9,11 +9,11 @@ import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { Helpers } from '../utils/helpers.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
-import { PrinterService } from '../services/printer.js';
+import { Exporter } from '../services/exporter.js';
 import { openExternal } from '../utils/open-external.js';
 import { whatsAppReminderUrl } from '../utils/due-reminder.js';
 import { chartScaleMax } from '../utils/chart-scale.js';
-import { t, getLang } from '../i18n/index.js';
+import { t } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { pickLang } from '../i18n/localize.js';
 import {
@@ -24,12 +24,11 @@ import {
 } from '../utils/anomalies.js';
 import { firstStockTimes } from '../utils/stock-check.js';
 import { auditScanCap } from '../utils/security-flags.js';
-import { moneyText } from '../utils/money.js';
 import { numberCheckFlags } from '../utils/number-check-flags.js';
 import { safeSetItem } from '../utils/storage-full.js';
 import { icon } from '../ui/icons.js';
 import { moneyHtml, emptyState, skeleton } from '../ui/components.js';
-import { formatDate, formatDay } from '../utils/dates.js';
+import { formatDate } from '../utils/dates.js';
 import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
@@ -58,6 +57,7 @@ const SEV_TONES = { high: 'tone-neg', medium: 'tone-warn', low: 'tone-muted' };
 const SEV_TAGS = { high: 'tag neg', medium: 'tag warn', low: 'tag' };
 /** Today's Day report card (ui/disclosure.js), closed by default. */
 const DAY_REPORT_KEY = 'day-report';
+const DAY_REPORT_ROWS = 3;
 // Chart series colours (data, not chrome): the canvas needs real colours, and the legend matches them
 const TYPE_COLORS = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#4f46e5', '#0d9488', '#9333ea', '#be123c', '#15803d', '#1d4ed8', '#a16207'];
 
@@ -453,31 +453,16 @@ export const AnomaliesManager = {
         const queue = todays.filter(isOpen);
         // Older not-reviewed records stay on the Anomalies page; only their count is shown here
         const pending = this.reportList.filter(a => a.dayKey !== today && isOpen(a)).length;
-        const allLabel = pending ? t('ui.anom.all_anomalies_pending', { n: pending }) : t('ui.anom.all_anomalies');
+        const toReview = queue.length + pending;
+        const allLabel = toReview ? t('ui.anom.all_anomalies_n', { n: toReview }) : t('ui.anom.all_anomalies');
         const s = summarizeAnomalies(todays);
-
-        const chips = SEVERITIES.map(sev => `<span class="${esc(SEV_TAGS[sev])}">${loc(SEVERITY_LABELS[sev])}: <strong>${esc(s.bySeverity[sev])}</strong></span>`).join('');
-        const types = s.byType.slice(0, 6).map(ty => `<li>${loc(ty)} — <strong>${esc(ty.count)}</strong></li>`).join('');
-        const tops = [
-            s.topItems.length ? `<div><span class="tone-muted">${esc(t('ui.anom.top_items'))}:</span> ${s.topItems.map(x => `${esc(x.name)} (${esc(x.count)})`).join(', ')}</div>` : '',
-            s.topParties.length ? `<div><span class="tone-muted">${esc(t('ui.anom.top_parties'))}:</span> ${s.topParties.map(x => `${esc(x.name)} (${esc(x.count)})`).join(', ')}</div>` : ''
-        ].join('');
-
-        const bySev = SEVERITIES.map(sev => {
-            const rows = queue.filter(a => a.severity === sev);
-            if (!rows.length) return '';
-            return `<div class="anom-queue-group"><div class="anom-queue-head ${esc(SEV_TONES[sev])}">${loc(SEVERITY_LABELS[sev])} (${esc(rows.length)})</div>
-                <div class="panel anom-list">${rows.slice(0, 8).map(a => this.rowHtml(a, { compact: true })).join('')}</div>
-                ${rows.length > 8 ? `<div class="tone-muted">${esc(t('ui.anom.more', { n: rows.length - 8 }))}</div>` : ''}</div>`;
-        }).join('');
-
         const sevTags = SEVERITIES.filter(sev => s.bySeverity[sev])
             .map(sev => `<span class="${esc(SEV_TAGS[sev])}" data-day-report-sev="${esc(sev)}">${loc(SEVERITY_LABELS[sev])} ${esc(s.bySeverity[sev])}</span>`);
         if (queue.length) sevTags.push(`<span class="tag warn" data-day-report-review>${esc(t('ui.anom.review_chip', { n: queue.length }))}</span>`);
         const health = this.healthAlerts;
         if (health.length) sevTags.push(`<span class="tag warn" data-day-report-health>${esc(t('ui.anom.health_chip', { n: health.length }))}</span>`);
-        const day = formatDay(today, { lang: getLang(), year: false });
-        const summary = sevTags.length ? `<span>${esc(day)}</span>${sevTags.join('')}` : `<span>${esc(`${day} · ${t('ui.anom.no_issues')}`)}</span>`;
+        // Today's card is always today: no date on the row (the share text keeps it)
+        const summary = sevTags.length ? sevTags.join('') : `<span>${esc(t('ui.anom.no_issues'))}</span>`;
 
         const hadFocus = document.activeElement?.id === 'dayReportToggle';
         card.style.display = 'block';
@@ -487,36 +472,25 @@ export const AnomaliesManager = {
             title: `<span class="anom-card-title">${esc(t('ui.anom.day_report'))}</span>`,
             alert: health.length ? esc(t('ui.anom.health_alert')) : '',
             summary,
+            tools: `<button type="button" class="btn btn-ghost btn-icon day-report-refresh" title="${esc(t('ui.anom.refresh'))}" aria-label="${esc(t('ui.anom.refresh'))}" data-onclick="anomalies.refreshNow()">${icon('refresh', 'i-sm')}</button>`,
+            // Compact: the header has the day and the counts; at most 3 rows to review, then one row of share and All anomalies
             body: `
             ${health.length ? `<div class="notice warn day-report-health" data-day-report-health-lines>${icon('pulse')}<span class="grow">${health.map(l => esc(l)).join('<br>')}</span>
                 <button type="button" class="btn btn-sm" data-onclick="health.openPage()">${esc(t('ui.health.open_health'))}</button></div>` : ''}
-            <div class="anom-card-sub-row">
-                <span class="tone-muted anom-card-sub">${esc(formatDate(today))} · ${esc(this.cashStatusLine())}</span>
-                <button type="button" class="btn btn-ghost btn-icon" title="${esc(t('ui.anom.refresh'))}" aria-label="${esc(t('ui.anom.refresh'))}" data-onclick="anomalies.refreshNow()">${icon('refresh')}</button>
-            </div>
-            ${s.total ? `<div class="anom-chips">${chips}</div><ul class="anom-types">${types}</ul>${tops}` : ''}
-            ${queue.length ? `<div class="anom-queue">
-                <div class="anom-queue-title">${esc(t('ui.anom.needs_review', { n: queue.length }))}</div>
-                ${bySev}
-            </div>` : `<p class="tone-muted anom-all-clear" data-day-report-clear>${esc(t(s.total ? 'ui.anom.nothing_to_review' : 'ui.anom.all_clear'))}</p>`}
-            <div class="anom-card-actions">
-                <button type="button" class="btn" data-onclick="anomalies.shareDayReport()">${icon('wa')} WhatsApp</button>
-                <button type="button" class="btn" data-onclick="anomalies.printDayReport()">${icon('printer')} ${esc(t('ui.anom.print_image'))}</button>
-                <button type="button" class="btn btn-tonal" data-onclick="anomalies.openPage()">${icon('search')} ${esc(allLabel)}</button>
+            ${queue.length ? `<div class="panel anom-list day-report-rows">${queue.slice(0, DAY_REPORT_ROWS).map(a => this.rowHtml(a, { compact: true })).join('')}</div>`
+                : `<p class="tone-muted anom-all-clear" data-day-report-clear>${esc(t(s.total ? 'ui.anom.nothing_to_review' : 'ui.anom.no_issues_today'))}</p>`}
+            <div class="day-report-foot">
+                <details class="menu day-report-share">
+                    <summary class="btn btn-ghost btn-icon" title="${esc(t('ui.anom.share'))}" aria-label="${esc(t('ui.anom.share'))}">${icon('share')}</summary>
+                    <div class="panel menu-list">
+                        <button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.shareDayReport()">${icon('wa', 'i-sm')} ${esc(t('ui.anom.share_text'))}</button>
+                        <button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.shareDayReportImage()">${icon('image', 'i-sm')} ${esc(t('ui.anom.share_image'))}</button>
+                    </div>
+                </details>
+                <button type="button" class="btn btn-ghost btn-sm day-report-all" data-onclick="anomalies.openPage()">${esc(allLabel)}${icon('chevR', 'i-sm')}</button>
             </div>`
         });
         refocusDisclosure('dayReport', hadFocus);
-    },
-
-    /** Reconciliation line for the card: today's cash close status. */
-    cashStatusLine() {
-        const s = this.lastSession;
-        if (!s) return t('ui.anom.cash_not_opened');
-        if (!s.signedOut) return t('ui.anom.cash_open');
-        if (s.counted === false) return t('ui.anom.cash_not_counted');
-        const diff = Number(s.difference) || 0;
-        if (Math.abs(diff) < 1) return t('ui.anom.cash_matches');
-        return t(diff < 0 ? 'ui.anom.cash_short' : 'ui.anom.cash_extra', { amount: moneyText(Math.abs(diff), 'exact') });
     },
 
     /** One line for the cash-close screen (owner/manager only). */
@@ -557,41 +531,49 @@ export const AnomaliesManager = {
         }
     },
 
-    /** Day report as an image (download / share sheet / print from the preview). */
-    printDayReport() {
+    /** The share text drawn black on white (the WhatsApp text as an image). */
+    dayReportCanvas() {
+        const lines = this.dayReportText().replace(/\*/g, '').split('\n');
+        const width = 576;
+        const pad = 20;
+        const lineH = 30;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.font = '20px sans-serif';
+        const wrapped = [];
+        lines.forEach(line => {
+            if (!line) { wrapped.push(''); return; }
+            let cur = '';
+            line.split(' ').forEach(word => {
+                const next = cur ? `${cur} ${word}` : word;
+                if (ctx.measureText(next).width > width - pad * 2 && cur) {
+                    wrapped.push(cur);
+                    cur = `  ${word}`;
+                } else {
+                    cur = next;
+                }
+            });
+            wrapped.push(cur);
+        });
+        canvas.width = width;
+        canvas.height = pad * 2 + wrapped.length * lineH;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#000000';
+        wrapped.forEach((line, i) => {
+            ctx.font = i === 0 ? 'bold 22px sans-serif' : '20px sans-serif';
+            ctx.fillText(line, pad, pad + (i + 1) * lineH - 8);
+        });
+        return canvas;
+    },
+
+    /** Day report as an image: the phone's share sheet, else a download (no receipt print: a day report is shared). */
+    async shareDayReportImage() {
         try {
-            const lines = this.dayReportText().replace(/\*/g, '').split('\n');
-            const width = 576;
-            const pad = 20;
-            const lineH = 30;
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.font = '20px sans-serif';
-            const wrapped = [];
-            lines.forEach(line => {
-                if (!line) { wrapped.push(''); return; }
-                let cur = '';
-                line.split(' ').forEach(word => {
-                    const next = cur ? `${cur} ${word}` : word;
-                    if (ctx.measureText(next).width > width - pad * 2 && cur) {
-                        wrapped.push(cur);
-                        cur = `  ${word}`;
-                    } else {
-                        cur = next;
-                    }
-                });
-                wrapped.push(cur);
-            });
-            canvas.width = width;
-            canvas.height = pad * 2 + wrapped.length * lineH;
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#000000';
-            wrapped.forEach((line, i) => {
-                ctx.font = i === 0 ? 'bold 22px sans-serif' : '20px sans-serif';
-                ctx.fillText(line, pad, pad + (i + 1) * lineH - 8);
-            });
-            return PrinterService.showImagePreview(canvas, `day_report_${todayKey().replace(/-/g, '')}.png`, t('ui.anom.day_report'));
+            const canvas = this.dayReportCanvas();
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (!blob) throw new Error('no image');
+            return await Exporter.saveBlob(blob, `day_report_${todayKey().replace(/-/g, '')}.png`, { title: t('ui.anom.day_report') });
         } catch (error) {
             console.error('Day report image failed:', error);
             UIManager.showToast(t('msg.anomalies.could_not_make_report_image'));
@@ -637,9 +619,9 @@ export const AnomaliesManager = {
                 </div>
                 <div class="anom-actions">
                     ${primary}
-                    ${more ? `<details class="anom-overflow">
+                    ${more ? `<details class="menu anom-overflow">
                         <summary class="btn btn-sm btn-ghost btn-icon" aria-label="${esc(t('ui.anom.more_actions'))}">${icon('dots', 'i-sm')}</summary>
-                        <div class="panel anom-overflow-menu">${more}</div>
+                        <div class="panel menu-list anom-overflow-menu">${more}</div>
                     </details>` : ''}
                 </div>
             </div>`;

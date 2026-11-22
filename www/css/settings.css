@@ -422,16 +422,8 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-size: var(--fs-caption);
 }
 
-.tcp-seg {
-  display: flex;
-  gap: var(--sp-1);
-  padding: var(--sp-1);
-  border-radius: var(--r-md);
-  background: var(--seg-track);
-}
-
-.tcp-seg-on,
-.tcp-seg-off {
+/* Purchase | Sale: the shared .seg itself (so each theme previews its own), its picks drawn small */
+.tcp .seg > span {
   display: flex;
   flex: 1;
   align-items: center;
@@ -439,17 +431,13 @@ body.no-perm-contacts [data-perm~="contacts"] {
   gap: var(--sp-1);
   padding: var(--sp-2);
   border-radius: var(--r-control);
-  color: var(--ink-2);
   font-size: var(--fs-sm);
   font-weight: var(--w-label);
 }
 
-.tcp-seg-on {
-  background: var(--seg-on);
-  color: var(--ink);
-  box-shadow: var(--e1);
+.tcp .seg > [aria-pressed="false"] {
+  color: var(--ink-2);
 }
-
 .tcp-dot {
   width: var(--sp-2);
   height: var(--sp-2);

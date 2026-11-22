@@ -153,21 +153,43 @@ a.row:active {
 .mode-dot.wholesale { background: var(--mode-wholesale); }
 
 /* ---------- Metrics, hero figure, meter ---------- */
+/* Each figure draws its own top and left hairline (the grid clips the outer ones), so the grid holds whichever
+   figures show; with an odd number the last one takes .metric-span (no empty cell) */
 .metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  overflow: hidden;
 }
 
 .metric {
+  position: relative;
   padding: var(--sp-3) var(--sp-4);
 }
 
-.metrics > .metric:nth-child(2n) {
+.metrics > .metric::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: 0;
+  bottom: 0;
+  left: -1px;
+  border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
+  pointer-events: none;
 }
 
-.metrics > .metric:nth-child(n+3) {
-  border-top: 1px solid var(--line);
+.metrics > .metric-span {
+  grid-column: 1 / -1;
+}
+
+/* The figure a grid is about (Today › Cash: Expected cash): an accent tint and a bolder figure */
+.metrics > .metric[data-emphasis] {
+  background: var(--accent-soft);
+}
+
+.metrics > .metric[data-emphasis] > .metric-value {
+  color: var(--ink);
+  font-weight: var(--w-display);
 }
 
 .metric-label {
@@ -232,6 +254,46 @@ a.row:active {
 .hero > .hero-fig {
   margin-top: var(--sp-1);
   color: var(--ink);
+}
+
+/* ⋯ menu (ui/menus.js): <details class="menu"> with a ⋯ <summary> and a .panel.menu-list that floats over what is
+   below, anchored to ⋯, so the row never moves; menus.js keeps it in the window and above the phone tab bar (data-up) */
+.menu {
+  position: relative;
+  flex: none;
+}
+
+.menu > summary {
+  list-style: none;
+}
+
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-list {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: calc(100vw - var(--sp-4));
+  padding: var(--sp-1);
+  box-shadow: var(--e2);
+  translate: var(--menu-shift, 0px) 0;
+}
+
+.menu-list[data-up] {
+  top: auto;
+  bottom: calc(100% + var(--sp-1));
+}
+
+.menu-list > .btn {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
 }
 
 /* A panel that opens something when tapped */
@@ -308,17 +370,22 @@ a.row:active {
   font-weight: var(--w-strong);
 }
 
-.disclosure-summary > span {
-  white-space: nowrap;
-}
-
+/* One line: what doesn't fit ends in "…" instead of wrapping */
 .disclosure-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-1);
+  display: block;
+  overflow: hidden;
   color: var(--ink-3);
   font-size: var(--fs-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.disclosure-summary > span + span {
+  margin-left: var(--sp-1);
+}
+
+.disclosure-summary > .tag {
+  vertical-align: middle;
 }
 
 /* Something overdue: an amber dot after the title (its words are for screen readers) */
@@ -391,6 +458,10 @@ a.row:active {
 .meter > span {
   display: block;
   height: 100%;
+}
+
+.meter[hidden] {
+  display: none;
 }
 
 /* ---------- Page header (V1): the page title on desktop; below 1024 px the app bar is the title ----------

@@ -124,9 +124,9 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   `-block` (`-danger-outline`: a risky choice that is not the main action, e.g. Discard the line, Save anyway at a rate check). One primary button per screen. Hover is a veil over the button's own colour; a busy
   save sets `aria-busy` (the `runExclusive` lock). Every button, `-sm` too, and the payment actions
   (`[data-record-payment]`, `[data-mark-cleared]`), fields, segments and tabs are at least `--tap-min` tall (48 px on phones). A chip draws 40 px with a 48 px tap area (`::after`); a switch draws 36 × 22 inside a clear 48 px border; a check box is 24 px and a `label` holding one is a 48 px row; a bill-number link (`.due-bill-link`) has an invisible 48 px tap area. No page has a button class with its own
-  look (C2): Billing and Wholesale use Save & print `-primary` (`.bill-print`, with its printer icon), Save (`.bill-save`)
-  and Share (`-icon`) the default (the bill's action row is Share, Save, Save & print: Save & print, the most used, is the row's
-  one primary and right-most, in DOM and tab order too; Share is a 48 px icon and Save and Save & print share the rest of the
+  look (C2): Billing and Wholesale use Print `-primary` (`.bill-print`, with its printer icon; it saves, then prints, so its `aria-label` / `title` are "Save and print"), Save (`.bill-save`)
+  and Share (`-icon`) the default (the bill's action row is Share, Save, Print: Print, the most used, is the row's
+  one primary and right-most, in DOM and tab order too; Share is a 48 px icon and Save and Print share the rest of the
   row in equal widths; Ctrl S / Ctrl P stay on their buttons, and Enter in a field never saves or prints; a bill with a red
   problem turns Save into "Fix 2" in the danger colour), Add to bill and
   Rest → due `-tonal`, the bill menu (⋯ `.bill-menu`, a `<details>` like `.rent-menu` whose `.panel` list floats; `ui/menus.js` closes it on a pick, a tap elsewhere, Esc or Tab out, moves through it with Up / Down and keeps it in the window, also for the Anomalies rows' ⋯; at the end of the Purchase / Retail sale
@@ -190,13 +190,14 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   border like a `.field-float` label (14 px `--fs-label`, `--ink-2`, its lower half `--panel-bg` cuts the border), so the
   title needs no row of its own; leave about `--sp-3` above. Used by Today › Labour.
 - **Panel and rows** `.panel`, `.row` (`.row-main`, `.row-title`, `.row-meta`, `.row-trail`,
-  `.row-amt`, `.lead-icon`). **Metrics** `.metrics > .metric`, `.hero-num`, `.display-num`, `.meter`.
+  `.row-amt`, `.lead-icon`). **Metrics** `.metrics > .metric` (each figure draws its own top and left hairline, so hidden figures leave no broken lines; an odd last figure takes `.metric-span`), `.hero-num`, `.display-num`, `.meter` (shares as `style="--w: …"` flex weights: Dues' age groups, Today's in / out).
+- **⋯ menu** `details.menu` > `summary.btn-icon` + `.panel.menu-list` (`ui/menus.js`): the list floats over what is below, anchored to ⋯, so the row never moves; a pick, a tap elsewhere, Esc or Tab out closes it, Up / Down move through it, and it opens upwards above the phone tab bar. Anomalies and Dues rows and Today's Day report share use it (Billing's `.bill-menu` is wired the same way).
   `.panel-tap` is a panel that opens something (hover and focus ring).
 - **Disclosure** `.disclosure` (`www/js/ui/disclosure.js`): a card closed to **one row** that opens to its full content,
   for what should be noticed but not take the screen (Today's Reminders and Day report). Draw it with
   `disclosureHtml({ key, id, title, summary, lead, alert, tools, body })` inside a `.panel`; the row is
   `<h3 class="disclosure-heading"><button class="disclosure-toggle" aria-expanded aria-controls>` (at least 44 px; Enter /
-  Space work as on any button) holding an optional `.lead-icon`, the title, a `.disclosure-summary` line (short chips: plain
+  Space work as on any button) holding an optional `.lead-icon`, the title, a `.disclosure-summary` line (one line that ends in "…" when it doesn't fit; short chips: plain
   words, or `.tag`s in a severity tone when something needs attention) and the `chevD` chevron, which turns when open.
   `alert` adds an amber `.disclosure-dot` after the title (overdue / late) with its words in `.sr-only`. Small tools go
   after the heading in `.disclosure-head` (a 44 px `-ghost -icon` button, e.g. Reminders' ＋). The body is
@@ -239,7 +240,7 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
   `--on-caution-soft`, 90+ `--negative`; dues themselves stay in ink, and ages are `.tag` (`.warn` after 30
   days, `.neg` after 90). The rule is `dueTone(days, amount)` in `utils/aging.js` (History's Due tag and Workers' dues use it too): ₹0 is never coloured, so an empty age group shows a muted dot and amount. Party rows are `.row`s in a panel with an initials avatar drawn from
   `data-initials` (CSS, so the row's text is unchanged); the bills are one `.panel.due-bills` of `.due-bill` rows with hairlines (bill no. in accent without underline, the due right-aligned, the Received / Pay label above its Cash / Online pair).
-- **Today › Cash (5.2a)**: Available cash is the hero figure, the day's other figures a `.metrics` panel (each figure draws its
+- **Today › Cash (5.2a)**: no hero: a `.metrics` panel (Opening | Cash in / Cash out | Expected cash, the last `[data-emphasis]`: accent tint and a bolder figure; a count line `.cash-count` under it once counted) (each figure draws its
   own hairlines, so the grid holds whichever ones show); Open, Record and Close are panels of `.field-float`s with ₹ as an `.adorn-pre`,
   one primary button each (Record is tonal while Close shows); the Difference figure takes a tone class. The script's markup
   (5.2b): the count check is a `.notice` with an icon per line; each history day is a `.row` with its figures in two columns and
@@ -515,4 +516,4 @@ which the base check refuses: fix the moved drift in the same PR instead.
 
 A name that is not listed fails; a listed name that is gone fails until `DS_ALLOWLIST=lower npx jest -i ds-guard` drops it. Against the PR
 base the lists may only shrink: a new name needs an entry in `"exceptions"` (`"<selector>"` or `"<family>:<root>"`: a `reason` and
-`added`, as above). NEW-07 took the duplicates from 88 back to 73 (72 before lane A added `.shell-notice`) and the dialog roots from 23 to 17 (18 with lane C's `dialog-actions-stack` and `printer-sheet-receipt`).
+`added`, as above). NEW-07 took the duplicates from 88 back to 73 (72 before lane A added `.shell-notice`) and the dialog roots from 23 to 17 (18 with lane C's `dialog-actions-stack` and `printer-sheet-receipt`). Its second half (v761) moved hero / tabs / rows onto the shared components: hero roots 18 → 16 (Today › Cash has no hero of its own, `.cash-metrics` is the shared `.metrics`), tabs 20 → 14 (Today and Anomalies tabs are plain `.tabs` placed by their page, the theme preview draws the real `.seg`, History's Table view is a plain `.btn`), rows 40 → 38 (bill details rows are `.row`s), panels 23 → 22.
