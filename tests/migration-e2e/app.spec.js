@@ -236,7 +236,7 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         await page.evaluate((k) => window.app.statements.openParty(k, 'customer'), key);
         await expect(list).toContainText('Old app balance');
         expect(amount(await list.locator('.st-balance [data-metric-export="O4"]').textContent()), 'balance = the party\'s carried dues').toBe(Math.round(total));
-        await expect(list.locator('.st-balance')).toContainText('Matches Outstanding');
+        await expect(list.locator('.st-balance')).toContainText('Matches Dues');
     });
 
     await test.step('Rates shows the items', async () => {
