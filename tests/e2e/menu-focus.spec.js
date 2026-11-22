@@ -25,7 +25,9 @@ const drawRows = (page, rows = ROWS) => page.evaluate(async (rows) => {
 }, rows);
 
 const layout = (page) => page.evaluate(() => {
-    const box = (el) => { const r = el.getBoundingClientRect(); return { top: Math.round(r.top), left: Math.round(r.left), right: Math.round(r.right), bottom: Math.round(r.bottom), height: Math.round(r.height) }; };
+    // Tops relative to the list, so a layout shift above it (the page still loading) isn't taken for a reflow
+    const listTop = document.getElementById('e2eAnomList').getBoundingClientRect().top;
+    const box = (el) => { const r = el.getBoundingClientRect(); return { top: Math.round(r.top - listTop), left: Math.round(r.left), right: Math.round(r.right), bottom: Math.round(r.bottom - listTop), height: Math.round(r.height) }; };
     const rows = [...document.querySelectorAll('#e2eAnomList .anom-row')];
     const first = rows[0];
     const menu = first.querySelector('.anom-overflow-menu');
@@ -87,6 +89,7 @@ test('Anomalies ⋯ menu floats and the row does not reflow (light, dark, Hindi)
     await showTab(page, 'anomalies');
     expect(await settle(page)).toBe(true);
     await expect(page.locator('#anomalyListView')).toBeVisible();
+    await expect(page.locator('#anomalySummary')).toContainText('·');
 
     await checkMenu(page, 'light');
     await page.evaluate(() => { document.documentElement.dataset.mode = 'dark'; });
