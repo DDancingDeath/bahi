@@ -37,7 +37,7 @@ function data() {
         { ...purchase('o1', 25, [line(500, 10)], 60), openingBalance: { amount: 900 } }
     ];
     AppState.expensesHistory = [
-        wage('e1', 25, 100, { description: 'Evening gang' }),
+        wage('e1', 25, 100, { remarks: 'Evening gang' }),
         wage('e2', 23, 30),
         { id: 'e3', date: '2026-11-25', type: 'Tea', amount: 40 },
         wage('e4', 24, 500, { voided: true }),

@@ -859,7 +859,7 @@ export const MoneyManager = {
             : `<p class="lh-note">${esc(t('ui.money.lh_no_bills'))}</p>`;
         const pays = d.labourExpenses.length
             ? `<div class="panel">${d.labourExpenses.map(x => `<div class="row"><span class="row-main"><span class="row-title">${esc(x.type || '')}</span>`
-                + (x.description || x.note ? `<span class="row-meta">${esc(x.description || x.note)}</span>` : '')
+                + (x.remarks ? `<span class="row-meta">${esc(x.remarks)}</span>` : '')
                 + `</span><span class="row-amt">${moneyHtml(Number(x.amount) || 0, TM)}</span></div>`).join('')}</div>`
             : `<p class="lh-note">${esc(t('ui.money.lh_no_payments'))}</p>`;
         const metric = (key, amount) => `<div class="metric"><span class="metric-label">${esc(t(key))}</span><span class="metric-value">${moneyHtml(amount, TM)}</span></div>`;
