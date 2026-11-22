@@ -45,7 +45,7 @@ test('the Android update check calls the GitHub releases API and offers the newe
             window.Capacitor = saved;
         }
     });
-    expect(calls).toEqual(['https://api.github.com/repos/DDancingDeath/happa/releases/latest']);
+    expect(calls).toEqual(['https://api.github.com/repos/DDancingDeath/bahi/releases/latest']);
     await expect(page.locator('#appUpdateBanner')).toContainText('99.0.0');
     expect(problems.pageErrors).toEqual([]);
     expect(problems.consoleErrors).toEqual([]);

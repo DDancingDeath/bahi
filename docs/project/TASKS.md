@@ -10,8 +10,8 @@
 
 | What | Where |
 |---|---|
-| Every bug, feature, decision, ops task | [GitHub issues](https://github.com/DDancingDeath/happa/issues) in `DDancingDeath/happa` (old repo's open issues moved here on 2026-10-30) |
-| Pick order | Pinned issue [#172 "[Plan] Roadmap: pick order (auto-updated)"](https://github.com/DDancingDeath/happa/issues/172) |
+| Every bug, feature, decision, ops task | [GitHub issues](https://github.com/DDancingDeath/bahi/issues) in `DDancingDeath/bahi` (old repo's open issues moved here on 2026-10-30) |
+| Pick order | Pinned issue [#172 "[Plan] Roadmap: pick order (auto-updated)"](https://github.com/DDancingDeath/bahi/issues/172) |
 | Order data | [tools/plan/order.json](../../tools/plan/order.json) (phases, position, `note`, `after`) |
 | Generator | [tools/plan/generate.js](../../tools/plan/generate.js), run by [plan-page.yml](../../.github/workflows/plan-page.yml) on issue changes and daily |
 
@@ -36,10 +36,10 @@ A decision made along the way goes into [DECISIONS.md](DECISIONS.md) in the same
 ## Snapshot 2026-11-21 (from `gh issue list`, may be stale)
 
 12 open issues. With a sprint milestone:
-[#101](https://github.com/DDancingDeath/happa/issues/101) (Sprint 1 - Safety),
-[#89](https://github.com/DDancingDeath/happa/issues/89) (Sprint 2 - Trust),
-[#122](https://github.com/DDancingDeath/happa/issues/122) (Sprint 3 - Speed & offline),
-[#139](https://github.com/DDancingDeath/happa/issues/139) (Sprint 4 - Features),
-[#72](https://github.com/DDancingDeath/happa/issues/72), [#126](https://github.com/DDancingDeath/happa/issues/126),
-[#131](https://github.com/DDancingDeath/happa/issues/131) (Later).
+[#101](https://github.com/DDancingDeath/bahi/issues/101) (Sprint 1 - Safety),
+[#89](https://github.com/DDancingDeath/bahi/issues/89) (Sprint 2 - Trust),
+[#122](https://github.com/DDancingDeath/bahi/issues/122) (Sprint 3 - Speed & offline),
+[#139](https://github.com/DDancingDeath/bahi/issues/139) (Sprint 4 - Features),
+[#72](https://github.com/DDancingDeath/bahi/issues/72), [#126](https://github.com/DDancingDeath/bahi/issues/126),
+[#131](https://github.com/DDancingDeath/bahi/issues/131) (Later).
 For the current order always use #172.
