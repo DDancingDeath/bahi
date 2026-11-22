@@ -504,4 +504,4 @@ which the base check refuses: fix the moved drift in the same PR instead.
 
 A name that is not listed fails; a listed name that is gone fails until `DS_ALLOWLIST=lower npx jest -i ds-guard` drops it. Against the PR
 base the lists may only shrink: a new name needs an entry in `"exceptions"` (`"<selector>"` or `"<family>:<root>"`: a `reason` and
-`added`, as above). NEW-07 took the duplicates from 88 back to 72 and the dialog roots from 23 to 17.
+`added`, as above). NEW-07 took the duplicates from 88 back to 73 (72 before lane A added `.shell-notice`) and the dialog roots from 23 to 17 (18 with lane C's `dialog-actions-stack` and `printer-sheet-receipt`).

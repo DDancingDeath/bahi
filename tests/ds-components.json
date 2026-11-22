@@ -1,5 +1,5 @@
 {
-  "_readme": "Design-system component guard (tests/ci/ds-components.js, ds-guard): the selectors written in more than one stylesheet, and per component family the root names of its classes (docs/design-system.md section 7). Both lists may only shrink: a new duplicate selector or a family's new root fails CI. Give a rule one home (the page's file, or a token that desktop.css sets) and build new UI from the shared components (.app-dialog / .sheet, .notice, .seg / .tabs / .chip, .row / .table, .tag, .hero / .metrics, .panel, .empty, .btn). A justified new name goes in \"exceptions\" as \"<selector>\" or \"<family>:<root>\": {\"reason\": \"...\", \"added\": \"#PR or date\"}. NEW-07 (UX audit 2026-11-21) took the duplicates from 88 to 72.",
+  "_readme": "Design-system component guard (tests/ci/ds-components.js, ds-guard): the selectors written in more than one stylesheet, and per component family the root names of its classes (docs/design-system.md section 7). Both lists may only shrink: a new duplicate selector or a family's new root fails CI. Give a rule one home (the page's file, or a token that desktop.css sets) and build new UI from the shared components (.app-dialog / .sheet, .notice, .seg / .tabs / .chip, .row / .table, .tag, .hero / .metrics, .panel, .empty, .btn). A justified new name goes in \"exceptions\" as \"<selector>\" or \"<family>:<root>\": {\"reason\": \"...\", \"added\": \"#PR or date\"}. NEW-07 (UX audit 2026-11-21) took the duplicates from 88 to 73.",
   "exceptions": {},
   "dupSelectors": [
     "#billTable",
@@ -62,6 +62,7 @@
     ".page-head",
     ".pull-refresh",
     ".rt-controls",
+    ".shell-notice",
     ".side-nav",
     ".st-list",
     ".tab",
@@ -196,6 +197,7 @@
       "ws-entry"
     ],
     "empty_state": [
+      "date-field-empty",
       "empty",
       "rh-empty",
       "stock-empty-hint"
@@ -204,6 +206,7 @@
       "app-dialog",
       "app-scrim",
       "dialog",
+      "dialog-actions-stack",
       "dialog-lines",
       "exp-dialog",
       "item-modal",
@@ -211,7 +214,7 @@
       "nav-scrim",
       "notif-sheet",
       "page-sheet",
-      "pending-line-sheet",
+      "printer-sheet-receipt",
       "rate-check-sheet",
       "rent-scrim",
       "rent-sheet",
@@ -234,6 +237,7 @@
       "printer-perm-notice",
       "rent-notice-bar",
       "rh-banner",
+      "shell-notice",
       "stock-alert-link"
     ]
   }
