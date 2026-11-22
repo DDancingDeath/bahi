@@ -21,7 +21,7 @@
   new entry and mark the old one `Superseded by D-NNN`; don't delete history.
 - The skill [.github/skills/decision-record](../../.github/skills/decision-record/SKILL.md) writes entries in this format.
 
-PR links point to `https://github.com/DDancingDeath/happa/pull/N`; `#N` alone is an issue or PR in
+PR links point to `https://github.com/DDancingDeath/bahi/pull/N`; `#N` alone is an issue or PR in
 this repo.
 
 ## Index
@@ -58,7 +58,7 @@ this repo.
 - **Context** Recorded in AGENTS.md as "a deliberate choice": what is in `www/` is exactly what phones run.
 - **Options** Bundler + framework (Vite/React) · vanilla ES modules with `window.app` globals.
 - **Decision** Vanilla ES modules, no bundler, no framework; files under `www/` are served as written.
-  UI handlers are delegated `data-on*` attributes since the CSP work (#89, [PR #337](https://github.com/DDancingDeath/happa/pull/337)).
+  UI handlers are delegated `data-on*` attributes since the CSP work (#89, [PR #337](https://github.com/DDancingDeath/bahi/pull/337)).
 - **Consequences** No tree-shaking: start-up weight is managed by lazy `import()` and the precache budget.
 - **Confirmation** Review rules `framework-import`, `ts-file-introduced` ([review-rules.yml](../../.github/review-rules.yml)); `inline-handlers.test.js`.
 
@@ -66,7 +66,7 @@ this repo.
 - **Status** Accepted · **Date** 2026-05-09 (recorded) · **Decider** Owner · **Related** [AGENTS.md §4](../../AGENTS.md), D-015
 - **Context** The app relies on `firebase.*` compat globals across all repositories.
 - **Decision** Keep the compat SDK. Only exception: the vendored modular `firebase/ai` for photo of
-  weights, run as a second app without Firestore ([PR #487](https://github.com/DDancingDeath/happa/pull/487)).
+  weights, run as a second app without Firestore ([PR #487](https://github.com/DDancingDeath/bahi/pull/487)).
 - **Consequences** No modular-SDK size savings; one extra code path for AI.
 - **Confirmation** `firebase-app-shadow.test.js`; architecture guard (no Firebase imports outside repositories).
 
@@ -74,12 +74,12 @@ this repo.
 - **Status** Accepted · **Date** 2026-11-08 (tag flow) · **Decider** Owner · **Related** [AGENTS.md §5 "Releasing"](../../AGENTS.md), [release-checklist.md](../release-checklist.md)
 - **Context** Users in the field run the Android build as well as the website (AGENTS.md §2).
 - **Decision** Wrap `www/` with Capacitor; a `v*` tag builds and signs `bahi.apk` and publishes a GitHub
-  Release; rc tags publish as latest; `/download` links the latest APK ([PR #384](https://github.com/DDancingDeath/happa/pull/384)).
+  Release; rc tags publish as latest; `/download` links the latest APK ([PR #384](https://github.com/DDancingDeath/bahi/pull/384)).
 - **Consequences** Updates reach phones via the in-app update card, not a store.
 - **Confirmation** `android-release.yml`; `npm run check:release`.
 
 ### D-004 — Live on `bahi-happa`, test on `bahi-happa-dev`; old projects never written
-- **Status** Accepted · **Date** 2026-11-16 · **Decider** Owner · **Related** #72, [PR #429](https://github.com/DDancingDeath/happa/pull/429), [PR #531](https://github.com/DDancingDeath/happa/pull/531), [happa-go-live.md](../happa-go-live.md)
+- **Status** Accepted · **Date** 2026-11-16 · **Decider** Owner · **Related** #72, [PR #429](https://github.com/DDancingDeath/bahi/pull/429), [PR #531](https://github.com/DDancingDeath/bahi/pull/531), [happa-go-live.md](../happa-go-live.md)
 - **Context** Production data had to move to the shop's own Google account, with a separate test project.
 - **Decision** `main` deploys prod `bahi-happa` and test `bahi-happa-dev`; PR previews use dev only. The old
   app's `aadhat-management` is archived and never deployed to; `happa-bfc07` is retired (redirects, read-only rules).
@@ -87,7 +87,7 @@ this repo.
 - **Confirmation** `scripts/happa-config.js guard` fails on anything resolving to `aadhat-management`; `npm run check:happa-config`.
 
 ### D-005 — App name Bahi, brand happa
-- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner · **Related** #375, [PR #392](https://github.com/DDancingDeath/happa/pull/392)
+- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner · **Related** #375, [PR #392](https://github.com/DDancingDeath/bahi/pull/392)
 - **Decision** App name "Bahi" (en and hi); brand always lowercase "happa"; Android package stays `com.happa` so installs update in place.
 - **Confirmation** Values come from [happa.config.json](../../happa.config.json); `npm run check:happa-config`.
 
@@ -101,49 +101,49 @@ this repo.
 - **Confirmation** `migrate-plan.test.js`, `migrate-apply.test.js`, `npm run test:migration-e2e`.
 
 ### D-007 — Rentals data and roles come from happa only
-- **Status** Accepted · **Date** 2026-11-07 · **Decider** Owner · **Related** [PR #370](https://github.com/DDancingDeath/happa/pull/370), [tools/migrate/README.md](../../tools/migrate/README.md)
+- **Status** Accepted · **Date** 2026-11-07 · **Decider** Owner · **Related** [PR #370](https://github.com/DDancingDeath/bahi/pull/370), [tools/migrate/README.md](../../tools/migrate/README.md)
 - **Context** The owner decided the Rentals data already entered in happa (`happa-bfc07`) is real and must survive go-live.
 - **Decision** Migration never writes `rent_*` or `rentRole` from the old app; `wipe` keeps Rentals data and helpers.
 - **Confirmation** `migrate-plan.test.js` / `migrate-apply.test.js` refuse `rent_*` writes.
 
 ### D-008 — Hindi weight unit stays "kg"
-- **Status** Accepted · **Date** 2026-11-01 · **Decider** Owner · **Related** [AGENTS.md §4](../../AGENTS.md), [glossary.md](../glossary.md), [PR #510](https://github.com/DDancingDeath/happa/pull/510)
+- **Status** Accepted · **Date** 2026-11-01 · **Decider** Owner · **Related** [AGENTS.md §4](../../AGENTS.md), [glossary.md](../glossary.md), [PR #510](https://github.com/DDancingDeath/bahi/pull/510)
 - **Decision** In Hindi the weight unit is always "kg" ("50 kg", "₹/kg"), never a Hindi word for kilo or quintal.
 - **Confirmation** `hindi-kg-unit.test.js`; the mixed-language guard allows `kg`.
 
 ### D-009 — Purchase party is called "Customer"
-- **Status** Accepted · **Date** 2026-11-15 (v730) · **Decider** Owner · **Related** [PR #522](https://github.com/DDancingDeath/happa/pull/522), [PR #519](https://github.com/DDancingDeath/happa/pull/519)
+- **Status** Accepted · **Date** 2026-11-15 (v730) · **Decider** Owner · **Related** [PR #522](https://github.com/DDancingDeath/bahi/pull/522), [PR #519](https://github.com/DDancingDeath/bahi/pull/519)
 - **Decision** On every Purchase screen, share and doc the party label is "Customer".
 - **Consequences** Code ids keep supplier naming; only `t()` text changed.
 
 ### D-010 — Billing: option C floating labels
-- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner · **Related** [PR #500](https://github.com/DDancingDeath/happa/pull/500), [design-system.md](../design-system.md)
+- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner · **Related** [PR #500](https://github.com/DDancingDeath/bahi/pull/500), [design-system.md](../design-system.md)
 - **Options** Three phone mock-ups (A, B, C).
-- **Decision** Option C: labels float on the field border, 14 px labels, Item wider than Rate; `.field-float` reusable (later also Wholesale, [PR #514](https://github.com/DDancingDeath/happa/pull/514)).
+- **Decision** Option C: labels float on the field border, 14 px labels, Item wider than Rate; `.field-float` reusable (later also Wholesale, [PR #514](https://github.com/DDancingDeath/bahi/pull/514)).
 - **Consequences** Later UX fixes must leave this layout alone (respected in PR #519).
 
 ### D-011 — Bottom tab says "Dues"
-- **Status** Accepted · **Date** 2026-11-15 · **Decider** UX review, shipped with owner approval (PR #519) · **Related** [PR #504](https://github.com/DDancingDeath/happa/pull/504) (U-17)
+- **Status** Accepted · **Date** 2026-11-15 · **Decider** UX review, shipped with owner approval (PR #519) · **Related** [PR #504](https://github.com/DDancingDeath/bahi/pull/504) (U-17)
 - **Context** "Outstanding" was cut to "Outstan…" on narrow phones and large text.
 - **Decision** The phone tab bar shows **Dues** (`ui.nav.outstanding_short`; Hindi बकाया unchanged); the page title stays "Outstanding".
 
 ### D-012 — Members' default permissions are narrow
-- **Status** Accepted · **Date** 2026-11-15 · **Decider** UX review, shipped with owner approval · **Related** [PR #516](https://github.com/DDancingDeath/happa/pull/516) (U-09), [role-permissions.md](../role-permissions.md)
+- **Status** Accepted · **Date** 2026-11-15 · **Decider** UX review, shipped with owner approval · **Related** [PR #516](https://github.com/DDancingDeath/bahi/pull/516) (U-09), [role-permissions.md](../role-permissions.md)
 - **Decision** For shops that never saved Roles & access, Members default to **off** for profit, stock ₹ value,
   purchase rates and past cash days; saved choices are kept. The owner can change them in Settings › Team › Roles & access.
 - **Confirmation** `role-access.test.js`; the defaults table in role-permissions.md.
 
 ### D-013 — PIN worker accounts are Member-only
-- **Status** Accepted · **Date** 2026-11-16 · **Decider** Independent review, shipped with owner approval · **Related** [PR #520](https://github.com/DDancingDeath/happa/pull/520), [PR #519](https://github.com/DDancingDeath/happa/pull/519) (U-56)
+- **Status** Accepted · **Date** 2026-11-16 · **Decider** Independent review, shipped with owner approval · **Related** [PR #520](https://github.com/DDancingDeath/bahi/pull/520), [PR #519](https://github.com/DDancingDeath/bahi/pull/519) (U-56)
 - **Decision** Such accounts can only ever be Member: the Add worker picker offers Member only and role changes refuse Manager/Owner.
 
 ### D-014 — Billing: WhatsApp and Due always visible
-- **Status** Accepted (merged 2026-11-22) · **Date** 2026-11-18 · **Decider** Owner (request) · **Related** [PR #534](https://github.com/DDancingDeath/happa/pull/534)
+- **Status** Accepted (merged 2026-11-22) · **Date** 2026-11-18 · **Decider** Owner (request) · **Related** [PR #534](https://github.com/DDancingDeath/bahi/pull/534)
 - **Context** The UX review (U-18, U-27) hid the share button on empty bills and folded the payment rows.
 - **Decision** Revert: WhatsApp share always in the footer; Cash, Online, Total paid and Due rows always shown, Wholesale included.
 
 ### D-015 — Photo of weights via Firebase AI Logic + App Check
-- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner (switch is off until the owner turns it on) · **Related** #374, [photo-weights.md](../photo-weights.md), [PR #487](https://github.com/DDancingDeath/happa/pull/487), [PR #494](https://github.com/DDancingDeath/happa/pull/494)
+- **Status** Accepted · **Date** 2026-11-15 · **Decider** Owner (switch is off until the owner turns it on) · **Related** #374, [photo-weights.md](../photo-weights.md), [PR #487](https://github.com/DDancingDeath/bahi/pull/487), [PR #494](https://github.com/DDancingDeath/bahi/pull/494)
 - **Decision** Read handwritten weight sheets with Gemini through Firebase AI Logic (no API key in the app);
   calls require App Check (reCAPTCHA Enterprise, limited-use tokens); the user reviews before lines are added.
 - **Consequences** No photo feature on a build without an App Check key.
@@ -158,22 +158,22 @@ this repo.
 - **Confirmation** Read budget in `tabs-smoke.spec.js` (`tests/e2e/read-baselines.json`); `quota-guards.test.js`; nightly bench.
 
 ### D-017 — Void, never delete; owner edits recorded too
-- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-13, OD-14) · **Related** #75, #121, [PR #380](https://github.com/DDancingDeath/happa/pull/380), [role-permissions.md](../role-permissions.md)
+- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-13, OD-14) · **Related** #75, #121, [PR #380](https://github.com/DDancingDeath/bahi/pull/380), [role-permissions.md](../role-permissions.md)
 - **Decision** Bills and expenses are voided, not deleted (only the owner deletes, and only a voided bill).
   Every money change, including the owner's, writes an edit record, a payment / write-off or a void.
 - **Confirmation** `firestore.rules` + `rules-tests/test.js`; AGENTS.md §7.
 
 ### D-018 — "Overdue" = bills more than 30 days old
-- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-08) · **Related** #92, [PR #389](https://github.com/DDancingDeath/happa/pull/389), [calculations.md](../calculations.md)
+- **Status** Accepted · **Date** 2026-11-08 · **Decider** Owner (OD-08) · **Related** #92, [PR #389](https://github.com/DDancingDeath/bahi/pull/389), [calculations.md](../calculations.md)
 - **Decision** One meaning of overdue everywhere; party lists show the total and, separately, the overdue part.
 
 ### D-019 — One stored due per bill: `payment.due`
-- **Status** Accepted · **Date** 2026-11-16 · **Decider** not recorded · **Related** #126, [PR #350](https://github.com/DDancingDeath/happa/pull/350), [PR #433](https://github.com/DDancingDeath/happa/pull/433)
+- **Status** Accepted · **Date** 2026-11-16 · **Decider** not recorded · **Related** #126, [PR #350](https://github.com/DDancingDeath/bahi/pull/350), [PR #433](https://github.com/DDancingDeath/bahi/pull/433)
 - **Decision** `payment.due` is the only stored due; legacy `dueAmount` is neither written nor read. Rules tolerate the old mirror for one release.
 - **Confirmation** Review rule `due-amount-vs-payment-due-drift`; rules tests "#126 (one release)".
 
 ### D-020 — Several owners, never none
-- **Status** Accepted · **Date** 2026-11-16 · **Decider** Owner (request) · **Related** [PR #525](https://github.com/DDancingDeath/happa/pull/525), [PR #528](https://github.com/DDancingDeath/happa/pull/528)
+- **Status** Accepted · **Date** 2026-11-16 · **Decider** Owner (request) · **Related** [PR #525](https://github.com/DDancingDeath/bahi/pull/525), [PR #528](https://github.com/DDancingDeath/bahi/pull/528)
 - **Decision** An owner can make others owner; there is always at least one owner, and the first owner is protected.
 - **Confirmation** Rules tests and the owner-roles E2E.
 
@@ -184,6 +184,6 @@ this repo.
 - **Confirmation** Review rule `bill-numbering-count-plus-one`.
 
 ### D-022 — Oversell warns, never blocks
-- **Status** Accepted · **Date** 2026-11-09 (restated) · **Decider** Owner · **Related** #59, [PR #421](https://github.com/DDancingDeath/happa/pull/421)
+- **Status** Accepted · **Date** 2026-11-09 (restated) · **Decider** Owner · **Related** #59, [PR #421](https://github.com/DDancingDeath/bahi/pull/421)
 - **Decision** Selling more than the stock shows warns and never blocks the bill (restated for the time
   when stock may still come from the offline cache, before the server answers).
