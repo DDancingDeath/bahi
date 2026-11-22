@@ -298,13 +298,19 @@
   }
 
   .tab {
-    margin: var(--desktop-header-h) 0 0 var(--desktop-nav-width);
+    margin: calc(var(--desktop-header-h) + var(--shell-notice-h, 0px)) 0 0 var(--desktop-nav-width);
     max-width: none;
     padding: var(--sp-6) var(--desktop-gutter) var(--desktop-tab-end);
     /* The page scrolls under the header; dynamic viewport height where supported (navigation.css keeps 100vh for phones). */
     min-height: 0;
-    height: calc(100vh - var(--desktop-header-h));
-    height: calc(100dvh - var(--desktop-header-h));
+    height: calc(100vh - var(--desktop-header-h) - var(--shell-notice-h, 0px));
+    height: calc(100dvh - var(--desktop-header-h) - var(--shell-notice-h, 0px));
+  }
+
+  .shell-notice {
+    top: var(--desktop-header-h);
+    left: var(--desktop-nav-width);
+    padding-inline: var(--desktop-gutter);
   }
 
   /* A page's head (<div class="page-head"><h2>Title</h2>[<div class="page-head-actions">…</div>]</div>; surfaces.css hides it
@@ -496,7 +502,7 @@
   #dayTodayContent:not([style*="none"]) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-    grid-template-rows: repeat(4, auto) 1fr;
+    grid-template-rows: repeat(3, auto) 1fr;
     grid-auto-flow: row dense;
     column-gap: var(--sp-6);
     align-items: start;
@@ -512,11 +518,10 @@
 
   /* Fixed rows: the side column starts beside the key figures, whatever above it is hidden */
   .today-summary > .updating-note { grid-row: 1; }
-  .today-summary > .tip-health { grid-row: 2; }
-  .today-summary > .hero { grid-row: 3; }
-  .today-summary > .today-main-top { grid-row: 4; }
-  .today-summary > .today-side { grid-row: 4 / span 2; }
-  .today-summary > .today-main:not(.today-main-top) { grid-row: 5; }
+  .today-summary > .hero { grid-row: 2; }
+  .today-summary > .today-main-top { grid-row: 3; }
+  .today-summary > .today-side { grid-row: 3 / span 2; }
+  .today-summary > .today-main:not(.today-main-top) { grid-row: 4; }
 
   #dayTodayContent .hero {
     margin-bottom: var(--sp-2);

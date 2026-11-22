@@ -114,7 +114,7 @@ describe('wholesale recordPayment uses the payment transaction', () => {
 
         expect(tx.update).not.toHaveBeenCalled();
         expect(FirebaseService.updateWholesaleSale).not.toHaveBeenCalled();
-        expect(document.getElementById('toast').textContent).toBe('Payment amount exceeds outstanding amount (₹10)');
+        expect(document.getElementById('toast').textContent).toBe('Payment is more than the due (₹10)');
     });
 
     test('offline: no write, tells the user', async () => {

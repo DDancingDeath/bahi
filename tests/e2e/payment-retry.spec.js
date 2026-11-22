@@ -106,7 +106,7 @@ test('D-2: two people record a payment on one bill at once: the second is told i
         await expectToast(page, /Payment of ₹200 recorded/);
 
         const toast = staff.locator('#toast');
-        await expect(toast).toHaveText(/another payment on this bill was recorded at the same moment\. Due now ₹160|exceeds outstanding amount \(₹160\)/, { timeout: 45000 });
+        await expect(toast).toHaveText(/another payment on this bill was recorded at the same moment\. Due now ₹160|is more than the due \(₹160\)/, { timeout: 45000 });
         await expect(toast).not.toHaveText(/evaluation error|L\d+:\d+|permission|Error:/i);
         const doc = await getDoc('dev_retailSales', sale._id);
         expect(doc.payments).toHaveLength(1);

@@ -75,7 +75,7 @@ While a bill is being typed:
 - **One message per problem**: a problem shows once, at its field or bill line (no toast over the
   form, no "2 problems" banner unless the problem has no field). Save then reads **Fix 2** in red and
   takes you to the first problem; it never looks disabled. Once anything is in Due, the name box
-  says "needed if anything is in Due".
+  says "needed if anything is due".
 - **Each line once**: a line's bag / packet weights are one small line under the item ("3 packets:
   52.5 · 48 · 50.5"); tap the line to change it. "Total paid / received" shows only when both Cash
   and Online have money; Retail's "Sale total" (always the same as Total receivable) is not shown.

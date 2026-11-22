@@ -1,8 +1,8 @@
 // -------------------- APP HEALTH (Test in Production, #217) --------------------
 // Owner/manager page over the tipHealth counters and tipFailures samples that
-// every device reports (tip/index.js), plus the red banner on Today when a
-// check is below its target. Reads are bounded: the page reads the last 14
-// days (≤ HEALTH_LIMIT docs) + the latest failures; the banner reads today's
+// every device reports (tip/index.js), plus the lines for Today's Day report row
+// when a check is below its target. Reads are bounded: the page reads the last 14
+// days (≤ HEALTH_LIMIT docs) + the latest failures; Today reads today's
 // docs at most every 30 minutes.
 
 import { AppState } from '../utils/state.js';
@@ -20,7 +20,6 @@ import {
 } from '../tip/health-stats.js';
 
 import { attachScrollCue } from '../ui/scroll-cue.js';
-import { icon } from '../ui/icons.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const L = (key, params) => esc(t(key, params));
@@ -110,7 +109,7 @@ function deviceCellHtml(dev, usersById) {
 export const HealthManager = {
     /** Page data: { docs, failures, at } */
     data: null,
-    /** Today banner cache: { day, docs, at } */
+    /** Today's checks cache: { day, docs, at } */
     banner: null,
 
     openPage() {
@@ -289,14 +288,13 @@ export const HealthManager = {
     },
 
     /**
-     * Today banner (owner/manager): checks below target today. Reads today's
-     * docs at most every 30 minutes; never throws.
+     * Today (owner/manager): one line per check below target today, shown in the Day report row
+     * (NEW-06). Reads today's docs at most every 30 minutes; never throws.
+     * @returns {Promise<string[]>}
      */
-    async renderTodayBanner() {
-        const el = document.getElementById('tipHealthBanner');
-        if (!el) return;
+    async todayAlerts() {
+        if (!canSee()) return [];
         try {
-            if (!canSee()) { el.hidden = true; el.style.display = 'none'; return; }
             const today = dayKeyOf(Date.now());
             if (!this.banner || this.banner.day !== today || Date.now() - this.banner.at > BANNER_TTL_MS) {
                 // Today redraws on every data change: one query at a time
@@ -307,18 +305,12 @@ export const HealthManager = {
                 }
                 await this.bannerLoading;
             }
-            const low = belowTarget(this.banner.docs, { day: today, targets: tipTargets() });
-            if (!low.length) { el.hidden = true; el.style.display = 'none'; el.innerHTML = ''; return; }
-            el.innerHTML = `${icon('alert')}<div class="grow tip-health-text">${low.map(x => esc(t('ui.health.banner_line', {
+            return belowTarget(this.banner.docs, { day: today, targets: tipTargets() }).map(x => t('ui.health.banner_line', {
                 check: testLabel(x.test), rate: x.rate, target: x.target, runs: x.runs
-            }))).join('<br>')}</div>
-                <button type="button" class="btn btn-sm" data-onclick="health.openPage()">${L('ui.health.open_health')}</button>`;
-            el.hidden = false;
-            el.style.display = '';
+            }));
         } catch (error) {
-            console.warn('App health banner not loaded:', error?.code || error);
-            el.hidden = true;
-            el.style.display = 'none';
+            console.warn('App health checks not loaded:', error?.code || error);
+            return [];
         }
     }
 };

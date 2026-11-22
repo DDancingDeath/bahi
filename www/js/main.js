@@ -72,7 +72,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261121e-wholesale-link-once';
+const BUILD_ID = '20261121f-shell-today-dues';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1512,7 +1512,7 @@ window.app = {
     },
 
     // Rate trends (#65): monthly rate history per item + seasonal estimate
-    // App health / Test in Production (#217): owner/manager page + Today banner (health.js is imported on first use)
+    // App health / Test in Production (#217): owner/manager page + the Day report's health line (health.js is imported on first use)
     health: {
         ...Object.fromEntries(['init', 'refresh', 'openPage', 'savePolicies']
             .map(name => [name, (...args) => loadHealth().then(m => m[name](...args))]))

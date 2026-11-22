@@ -329,7 +329,7 @@ describe('Statements page', () => {
         StatementsManager.open('party');
         const text = document.getElementById('statementsDoc').textContent;
         expect(text).toMatch(/to receive/);
-        expect(text).toMatch(/Matches Outstanding/);
+        expect(text).toMatch(/Matches Dues/);
     });
 
     test('WhatsApp shares a short text; CSV downloads; Print opens a printable page', async () => {

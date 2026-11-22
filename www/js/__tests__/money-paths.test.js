@@ -644,7 +644,7 @@ describe('recording a due payment (Outstanding)', () => {
         setVal('payment_r1', 496);
         await OutstandingManager.recordPayment('r1', 'retail');
         expect(fake.stats.writes).toBe(0);
-        expect(toast).toHaveBeenCalledWith('Payment amount exceeds outstanding amount');
+        expect(toast).toHaveBeenCalledWith('Payment is more than the due');
     });
 
     test('two phones paying the same bill: the second payment builds on the first', async () => {
@@ -658,7 +658,7 @@ describe('recording a due payment (Outstanding)', () => {
 
         setVal('payment_r1', 200);
         await OutstandingManager.recordPayment('r1', 'retail');
-        expect(toast).toHaveBeenCalledWith('Payment amount exceeds outstanding amount (₹95)');
+        expect(toast).toHaveBeenCalledWith('Payment is more than the due (₹95)');
         expect(fake.raw('retailSales').get('r1').payment.due).toBe(95);
 
         setVal('payment_r1', 95);
