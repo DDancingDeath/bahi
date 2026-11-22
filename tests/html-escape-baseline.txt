@@ -408,6 +408,7 @@ www/js/rentals/rentals.js: args
 www/js/rentals/rentals.js: args
 www/js/rentals/rentals.js: attrs
 www/js/rentals/rentals.js: by
+www/js/rentals/rentals.js: by (sink)
 www/js/rentals/rentals.js: cls
 www/js/rentals/rentals.js: field
 www/js/rentals/rentals.js: fn
