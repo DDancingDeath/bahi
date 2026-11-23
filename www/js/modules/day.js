@@ -366,8 +366,8 @@ export const DayManager = {
     /**
      * Reminders (#86): REM-5 manual reminders (owner/manager add them, anyone marks done),
      * REM-1 who to collect from / pay (parties with OVERDUE bills: their whole dues
-     * and the overdue part, Outstanding's chase-first order) and REM-2 rent still due as Rentals last
-     * showed it this month on this phone. Nothing is read from the server.
+     * and the overdue part, Outstanding's      chase-first order).
+          * Rentals' rent and agreement reminders stay on the Rentals home. Nothing is read from the server.
      */
     renderReminders(now = new Date()) {
         const host = document.getElementById('todayReminders');

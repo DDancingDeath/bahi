@@ -90,7 +90,7 @@ describe('order and groups (phone)', () => {
     test('Dues today open: collected, paid off, new to collect, new to pay, then Open dues', () => {
         DayManager.loadTodayData();
         const rows = [...document.querySelectorAll('#todayDuesBody .row')].map(r => r.textContent.replace(/\s+/g, ' ').trim());
-        expect(rows).toEqual(['Collected today₹0', 'Paid off today₹0', 'New to collect₹100', 'New to pay₹0']);
+        expect(rows).toEqual(['Collected₹0', 'Paid off₹0', 'New to collect₹100', 'New to pay₹0']);
         expect(document.querySelector('#todayDuesBody .today-links .btn').dataset.onclick).toBe("nav.showTab('due', event)");
         // Labour: History › (Money › Labour) for those who may open it, then Details ›
         expect([...document.querySelectorAll('#todayLabourBody .today-links .btn')].map(b => b.dataset.onclick)).toEqual(["nav.showTab('money-labour')", 'day.showLabourBreakdown()']);
