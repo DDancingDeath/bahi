@@ -118,6 +118,10 @@ test.describe('Today layout', () => {
         expect(sideKids).toEqual(['todayDrawer', 'today-group today-attention', 'today-group', 'todayCashOnline']);
         const tiles = await page.evaluate(() => [...document.querySelectorAll('#dayTodayContent .today-metrics > .metric')].map(m => Math.round(m.getBoundingClientRect().top)));
         expect(new Set(tiles).size).toBe(1);
+        // At 1280 (the narrowest two-column width) each tile's label and count keep one line
+        await page.setViewportSize({ width: 1280, height: 900 });
+        const labelHeights = await page.evaluate(() => [...document.querySelectorAll('#dayTodayContent .today-metrics .metric-label')].map(l => Math.round(l.getBoundingClientRect().height)));
+        expect(Math.max(...labelHeights)).toBeLessThan(30);
         await expect(page.locator('#todayLabourCard.panel-float .panel-legend')).toHaveText('Labour');
         await expect(page.locator('#todayDuesCard.panel-float .panel-legend')).toHaveText('Dues today');
         await expect(page.locator('#todayCashOnlineCard .row')).toHaveCount(4);
