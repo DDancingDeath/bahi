@@ -9917,6 +9917,23 @@ body.no-perm-contacts [data-perm~="contacts"] {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  /* A tile is about 140 px wide at 1280: the label and its count stay on one line (a long label is cut with …) */
+  .today-main-top > .metrics > .metric {
+    padding-right: var(--sp-2);
+    padding-left: var(--sp-3);
+  }
+
+  .today-main-top > .metrics .metric-label {
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .today-main-top > .metrics .metric-label > span:not(.mode-dot, .metric-count) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .today-side > .today-cashline {
     margin: 0;
   }
