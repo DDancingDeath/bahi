@@ -282,7 +282,7 @@
   }
 
   .today-main-top > .metrics .metric-label {
-    gap: 4px;
+    gap: var(--sp-1);
     white-space: nowrap;
   }
 
