@@ -29,7 +29,8 @@ import { safeSetItem } from '../utils/storage-full.js';
 import { icon } from '../ui/icons.js';
 import { moneyHtml, emptyState, skeleton } from '../ui/components.js';
 import { formatDate } from '../utils/dates.js';
-import { disclosureHtml, refocusDisclosure } from '../ui/disclosure.js';
+import { disclosureHtml, refocusDisclosure, setDisclosureOpen } from '../ui/disclosure.js';
+import { closedCount } from '../utils/calc/cash.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const jsAttr = (v) => Helpers.escapeJsAttr(String(v ?? ''));
@@ -57,6 +58,8 @@ const SEV_TONES = { high: 'tone-neg', medium: 'tone-warn', low: 'tone-muted' };
 const SEV_TAGS = { high: 'tag neg', medium: 'tag warn', low: 'tag' };
 /** Today's Day report card (ui/disclosure.js), closed by default. */
 const DAY_REPORT_KEY = 'day-report';
+/** The Day report opens by itself once a day (then the remembered choice wins): `happa.autoopen.day-report.<day>`. */
+const DAY_REPORT_AUTOOPEN = 'happa.autoopen.day-report.';
 const DAY_REPORT_ROWS = 3;
 // Chart series colours (data, not chrome): the canvas needs real colours, and the legend matches them
 const TYPE_COLORS = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#4f46e5', '#0d9488', '#9333ea', '#be123c', '#15803d', '#1d4ed8', '#a16207'];
@@ -463,34 +466,49 @@ export const AnomaliesManager = {
         if (health.length) sevTags.push(`<span class="tag warn" data-day-report-health>${esc(t('ui.anom.health_chip', { n: health.length }))}</span>`);
         // Today's card is always today: no date on the row (the share text keeps it)
         const summary = sevTags.length ? sevTags.join('') : `<span>${esc(t('ui.anom.no_issues'))}</span>`;
+        const count = closedCount(this.lastSession);
+        const cashOff = !!count && count.kind !== 'match';
+        // Opens by itself once that day on a High anomaly, an app health alert or a short / extra count; the row's choice wins after
+        if (s.bySeverity.high || health.length || cashOff) this.autoOpenDayReport(today);
 
         const hadFocus = document.activeElement?.id === 'dayReportToggle';
         card.style.display = 'block';
         card.innerHTML = disclosureHtml({
-            key: DAY_REPORT_KEY, id: 'dayReport',
-            lead: `<span class="lead-icon${s.bySeverity.high ? ' neg' : ''}">${icon('flag')}</span>`,
+            key: DAY_REPORT_KEY, id: 'dayReport', line: true,
             title: `<span class="anom-card-title">${esc(t('ui.anom.day_report'))}</span>`,
-            alert: health.length ? esc(t('ui.anom.health_alert')) : '',
+            alert: health.length || queue.length || s.bySeverity.high ? esc(t(health.length ? 'ui.anom.health_alert' : 'ui.anom.review_alert')) : '',
             summary,
-            tools: `<button type="button" class="btn btn-ghost btn-icon day-report-refresh" title="${esc(t('ui.anom.refresh'))}" aria-label="${esc(t('ui.anom.refresh'))}" data-onclick="anomalies.refreshNow()">${icon('refresh', 'i-sm')}</button>`,
-            // Compact: the header has the day and the counts; at most 3 rows to review, then one row of share and All anomalies
+            // One share icon on the row, usable while it is closed (WhatsApp text or image); pull-to-refresh rescans
+            tools: `<details class="menu day-report-share">
+                    <summary class="btn btn-ghost btn-icon" title="${esc(t('ui.anom.share'))}" aria-label="${esc(t('ui.anom.share'))}">${icon('share')}</summary>
+                    <div class="panel menu-list">
+                        <button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.shareDayReport()">${icon('wa', 'i-sm')} ${esc(t('ui.anom.share_text'))}</button>
+                        <button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.shareDayReportImage()">${icon('image', 'i-sm')} ${esc(t('ui.anom.share_image'))}</button>
+                    </div>
+                </details>`,
+            // Compact: at most 3 rows to review, then All anomalies
             body: `
             ${health.length ? `<div class="notice warn day-report-health" data-day-report-health-lines>${icon('pulse')}<span class="grow">${health.map(l => esc(l)).join('<br>')}</span>
                 <button type="button" class="btn btn-sm" data-onclick="health.openPage()">${esc(t('ui.health.open_health'))}</button></div>` : ''}
             ${queue.length ? `<div class="panel anom-list day-report-rows">${queue.slice(0, DAY_REPORT_ROWS).map(a => this.rowHtml(a, { compact: true })).join('')}</div>`
                 : `<p class="tone-muted anom-all-clear" data-day-report-clear>${esc(t(s.total ? 'ui.anom.nothing_to_review' : 'ui.anom.no_issues_today'))}</p>`}
             <div class="day-report-foot">
-                <details class="menu day-report-share">
-                    <summary class="btn btn-ghost btn-icon" title="${esc(t('ui.anom.share'))}" aria-label="${esc(t('ui.anom.share'))}">${icon('share')}</summary>
-                    <div class="panel menu-list">
-                        <button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.shareDayReport()">${icon('wa', 'i-sm')} ${esc(t('ui.anom.share_text'))}</button>
-                        <button type="button" class="btn btn-sm btn-ghost" data-onclick="anomalies.shareDayReportImage()">${icon('image', 'i-sm')} ${esc(t('ui.anom.share_image'))}</button>
-                    </div>
-                </details>
                 <button type="button" class="btn btn-ghost btn-sm day-report-all" data-onclick="anomalies.openPage()">${esc(allLabel)}${icon('chevR', 'i-sm')}</button>
             </div>`
         });
         refocusDisclosure('dayReport', hadFocus);
+    },
+
+    /**
+     * Opens the Day report once on `day` (kept per phone); after that the row's remembered choice wins.
+     * @param {string} day YYYY-MM-DD
+     */
+    autoOpenDayReport(day) {
+        let done = false;
+        try { done = localStorage.getItem(DAY_REPORT_AUTOOPEN + day) === '1'; } catch (_) { done = true; }
+        if (done) return;
+        safeSetItem(DAY_REPORT_AUTOOPEN + day, '1');
+        setDisclosureOpen(DAY_REPORT_KEY, true);
     },
 
     /** One line for the cash-close screen (owner/manager only). */

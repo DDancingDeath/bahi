@@ -183,23 +183,27 @@ describe('Day report card', () => {
         expect(card.textContent).not.toContain('pending');
     });
 
-    test('closed by default: one row with the counts in their colours (no date: it is today); the report is in the closed body', async () => {
+    const autoOpened = () => localStorage.setItem(`happa.autoopen.day-report.${AnomaliesManager.reportKeys().today}`, '1');
+
+    test('closed by default: one line with the counts in their colours (no date: it is today), the share icon on the line', async () => {
+        autoOpened();
         AnomaliesManager.renderDayReport({ sales: 400, saleCount: 1 }, null);
         await AnomaliesManager.refreshing;
         const toggle = document.getElementById('dayReportToggle');
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
         expect(document.getElementById('dayReportBody').hidden).toBe(true);
+        expect(document.querySelector('#dayReportCard > .disclosure').classList.contains('disclosure-line')).toBe(true);
         expect(toggle.querySelector('[data-day-report-sev="high"]').className).toBe('tag neg');
         expect(toggle.querySelector('[data-day-report-review]').className).toBe('tag warn');
         expect(toggle.querySelector('.disclosure-summary').textContent).toBe('High 1Review 1');
-        expect(toggle.querySelector('.lead-icon').classList.contains('neg')).toBe(true);
+        expect(toggle.querySelector('[data-disclosure-alert]')).not.toBeNull();
+        expect(toggle.querySelector('.lead-icon')).toBeNull();
         const body = document.getElementById('dayReportBody');
-        // Refresh is a small icon in the card's head, not in the report
-        expect(document.querySelector('#dayReportCard .disclosure-head > [data-onclick="anomalies.refreshNow()"]').classList.contains('btn-icon')).toBe(true);
-        expect(body.querySelector('[data-onclick="anomalies.refreshNow()"]')).toBeNull();
-        // One share icon (the shared ⋯ menu): WhatsApp text or an image; no print; then All anomalies on the same row
+        // No refresh icon (pull-to-refresh / the desktop header rescan); one share icon on the line, usable while closed
+        expect(document.querySelector('#dayReportCard [data-onclick="anomalies.refreshNow()"]')).toBeNull();
         const foot = body.querySelector('.day-report-foot');
-        const share = foot.querySelector('details.menu.day-report-share');
+        const share = document.querySelector('#dayReportCard .disclosure-head > details.menu.day-report-share');
+        expect(body.querySelector('.day-report-share')).toBeNull();
         expect(share.querySelector('summary').classList.contains('btn-icon')).toBe(true);
         expect(share.querySelector('summary').getAttribute('aria-label')).toBe('Share the day report');
         expect([...share.querySelectorAll('.menu-list > .btn')].map(b => [b.textContent.trim(), b.getAttribute('data-onclick')])).toEqual([
@@ -231,7 +235,30 @@ describe('Day report card', () => {
         expect(card.querySelector('[data-onclick="anomalies.openPage()"]')).not.toBeNull();
     });
 
+    test('opens by itself once that day on a High anomaly, then the row\'s choice wins', async () => {
+        AnomaliesManager.renderDayReport({ sales: 400, saleCount: 1 }, null);
+        await AnomaliesManager.refreshing;
+        expect(document.getElementById('dayReportToggle').getAttribute('aria-expanded')).toBe('true');
+        expect(localStorage.getItem(`happa.autoopen.day-report.${AnomaliesManager.reportKeys().today}`)).toBe('1');
+        localStorage.setItem('happa.open.day-report', '0');
+        AnomaliesManager.drawDayReport();
+        expect(document.getElementById('dayReportToggle').getAttribute('aria-expanded')).toBe('false');
+    });
+
+    test('opens by itself on a short or extra count of a closed drawer, not on a match or an open one', async () => {
+        AppState.retailSalesHistory = [];
+        AnomaliesManager.renderDayReport({}, { id: 's1', signedOut: false });
+        await AnomaliesManager.refreshing;
+        AnomaliesManager.lastSession = { id: 's1', signedOut: true, difference: 0.5 };
+        AnomaliesManager.drawDayReport();
+        expect(document.getElementById('dayReportToggle').getAttribute('aria-expanded')).toBe('false');
+        AnomaliesManager.lastSession = { id: 's1', signedOut: true, difference: -62 };
+        AnomaliesManager.drawDayReport();
+        expect(document.getElementById('dayReportToggle').getAttribute('aria-expanded')).toBe('true');
+    });
+
     test('app health below target: an amber dot and a count on the closed row, the lines and Open app health inside (NEW-06)', async () => {
+        autoOpened();
         AppState.retailSalesHistory = [];
         AnomaliesManager.renderDayReport({}, null);
         await AnomaliesManager.refreshing;

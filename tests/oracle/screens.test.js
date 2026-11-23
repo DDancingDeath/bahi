@@ -233,7 +233,7 @@ describe('Today › By bill type (T18): paid later, write-off, voided, wholesale
                 .forEach(([id, f]) => expect([type, f, shown(`todayCh${k}${id}`)]).toEqual([type, f, rupee(c[f])]));
             expect(!!document.getElementById(`todayCh${k}WrittenOff`)).toBe(c.writtenOff > 0);
         });
-        expect(document.getElementById('todayBillsCount').textContent).toBe("Today's bills · 4");
+        expect(document.getElementById('todayBillsCount').textContent).toBe('4');
     });
 });
 describe("Today › By bill type (T18) and Today's bills (T19) == oracle", () => {
@@ -275,12 +275,10 @@ describe("Today › By bill type (T18) and Today's bills (T19) == oracle", () =>
 
         specTest('T19')('T19 row at the bottom: every bill of today counted once, by type; it opens History on Today', () => {
             const link = document.getElementById('todayBillsLink');
-            expect(link.hidden).toBe(false);
-            expect(document.getElementById('todayBillsCount').textContent).toBe(`Today's bills · ${want.T19.length}`);
-            const n = (type) => want.T18[type].count;
-            const meta = ['purchase', 'retail', 'wholesale'].filter(type => n(type)).map(type => `${n(type)} ${type}`).join(' · ');
-            expect(document.getElementById('todayBillsMeta').textContent).toBe(meta);
-            expect(link.querySelector('button').getAttribute('data-onclick')).toBe("nav.showTab('history-today', event)");
+            expect(document.getElementById('todayDetails').hidden).toBe(false);
+            expect(document.getElementById('todayBillsCount').textContent).toBe(String(want.T19.length));
+            expect(want.T19.length).toBe(['purchase', 'retail', 'wholesale'].reduce((n, type) => n + want.T18[type].count, 0));
+            expect(link.getAttribute('data-onclick')).toBe("nav.showTab('history-today', event)");
             expect(link.parentElement.lastElementChild).toBe(link);
         });
     });

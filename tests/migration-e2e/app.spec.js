@@ -200,8 +200,10 @@ test('migrated owner: original password, carried dues, periods, rates, seasons, 
         await showTab(page, 'day');
         await page.evaluate(() => window.app.day.showSubTab('today'));
         const today = page.locator('#dayTodayContent');
-        await expect(today).toContainText('No sales today');
-        await expect(today).toContainText('No purchases today');
+        // No bills today: the tiles read 0 and the Details group (items, today's bills) is not drawn
+        await expect(page.locator('#todaySaleCount')).toHaveText('0');
+        await expect(page.locator('#todayPurchaseCount')).toHaveText('0');
+        await expect(page.locator('#todayDetails')).toBeHidden();
         const text = await today.innerText();
         expected.dues.bills.filter(b => b.billNumber).forEach(b => expect(text, 'no carried bill on Today').not.toContain(b.billNumber));
         expect(text).not.toContain('Old app');

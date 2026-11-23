@@ -79,7 +79,7 @@ describe('live case (fake values): ₹2,50,000 opening due today + ₹10 sale pa
         DayManager.loadTodayData();
         expect(text('todayDueToReceive')).toBe('₹6');
         expect(text('todayTotalSales')).toBe('₹10');
-        expect(text('todaySaleCount')).toBe('1 bill');
+        expect(text('todaySaleCount')).toBe('1');
         expect(text('todayCashReceived')).toBe('₹4');
         expect(text('todayTransactionsList')).not.toContain('Test Party A');
         for (let i = 0; i < 10; i++) await Promise.resolve();

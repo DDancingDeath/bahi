@@ -4,7 +4,7 @@
  * tests/oracle/rent-report.test.js).
  */
 import { agreementError, noticeBy, leaseReminders, reportMonths, LEASE_ENDING_AHEAD } from '../rentals/rent-math-report.js';
-import { saveLeaseReminders, leaseReminder, LEASE_REMINDER_LIMIT } from '../utils/reminders.js';
+import { saveLeaseReminders, leaseReminder, rentBellItems, LEASE_REMINDER_LIMIT } from '../utils/reminders.js';
 import { DayManager } from '../modules/day.js';
 import { AppState } from '../utils/state.js';
 
@@ -55,17 +55,16 @@ describe('REM-4: lease reminders', () => {
         expect(leaseReminder(s, 'u1', '2026-12')).toBeNull();
     });
 
-    test('Today lists them for rentals roles, names escaped', () => {
+    test('Aadhat\'s Today does not list them: they are on the Rentals home (rent-views-page) and in the bell', () => {
         const now = new Date();
         const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         Object.assign(AppState, { currentUser: { uid: 'u1' }, userRole: 'owner', retailSalesHistory: [], purchaseHistory: [], salesHistory: [] });
         saveLeaseReminders(localStorage, { uid: 'u1', month, items: [{ kind: 'ending', place: '<b>G1</b>', tenant: 'Ram', end: month, left: 0 }, { kind: 'increase', place: 'G2', pct: 5, newRent: 10500 }] });
         document.body.innerHTML = '<div id="todayReminders"></div>';
         DayManager.renderReminders(now);
-        const block = document.querySelector('[data-reminder="leases"]');
-        expect(block).not.toBeNull();
-        expect(block.innerHTML).toContain('&lt;b&gt;G1&lt;/b&gt;');
-        expect(block.textContent).toContain('10,500');
+        expect(document.querySelector('[data-reminder="leases"]')).toBeNull();
+        expect(document.getElementById('todayReminders').textContent).not.toMatch(/Agreements|G1|10,500/);
+        expect(rentBellItems(localStorage, 'u1', month).items.map(x => x.key)).toEqual(expect.arrayContaining([expect.stringMatching(/lease|ending|increase/)]));
     });
 });
 

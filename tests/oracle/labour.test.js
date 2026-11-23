@@ -69,8 +69,8 @@ describe('Today Labour card == oracle', () => {
         expect(amount('todayLabourToPay')).toBe(Math.round(want.T_LAB_2_toPay));
         expect(breakdown().textContent).toContain(`(${want.T_LAB_2_kg} kg ÷ 35 kg = ${want.T_LAB_2_packages} packages × ₹6)`);
     });
-    test('T-LAB-3 difference (worked out, not shown on Today since v761)', () => {
-        expect(Math.round(DayManager.lastLabour.gap.amount)).toBe(Math.round(want.T_LAB_3_difference));
+    test('T-LAB-3 difference: Today shows no line for it (owner, Today layout); it is Estimated pay − Deducted on the card', () => {
+        expect(amount('todayLabourToPay') - amount('todayLaborCost')).toBe(Math.round(want.T_LAB_3_difference));
         expect(document.getElementById('todayLabourDiff')).toBeNull();
     });
 });

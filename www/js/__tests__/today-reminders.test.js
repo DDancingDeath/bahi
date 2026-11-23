@@ -385,14 +385,6 @@ describe('Today › Reminders closed to one line (ui/disclosure.js)', () => {
 });
 
 describe('Today page order', () => {
-    test('the day\'s key figures come before Reminders and the Day report, which come before the rest', () => {
-        const fs = jest.requireActual('fs');
-        const path = jest.requireActual('path');
-        document.body.innerHTML = fs.readFileSync(path.resolve(__dirname, '../../templates/day.html'), 'utf8');
-        const all = [...document.querySelectorAll('#dayTodayContent .hero, #dayTodayContent .today-metrics, #todayReminders, #dayReportCard, #todayLabourCard')].map(e => e.id || e.className);
-        expect(all).toEqual(['hero', 'panel metrics today-metrics', 'todayReminders', 'dayReportCard', 'todayLabourCard']);
-    });
-
     test('nothing sits between the hero and the key figures: app health is in the Day report row (NEW-06)', () => {
         const fs = jest.requireActual('fs');
         const path = jest.requireActual('path');
@@ -402,34 +394,4 @@ describe('Today page order', () => {
         expect(document.querySelector('#tipHealthBanner, .tip-health, #dayTodayContent .notice.neg')).toBeNull();
     });
 
-    test('at ≥ 1280 px Labour and Payment breakdown move to the right column and come back narrower (NEW-17)', () => {
-        const fs = jest.requireActual('fs');
-        const path = jest.requireActual('path');
-        document.body.innerHTML = fs.readFileSync(path.resolve(__dirname, '../../templates/day.html'), 'utf8');
-        const listeners = [];
-        const mql = { matches: false, addEventListener: (_, fn) => listeners.push(fn) };
-        const saved = window.matchMedia;
-        window.matchMedia = jest.fn(() => mql);
-        DayManager.wideToday = null;
-        try {
-            const order = () => [...document.querySelectorAll('#todayReminders, #dayReportCard, #todayLabourBlock, #todayPayBlock, #todayMore > h3')]
-                .map(e => e.id || e.textContent);
-            DayManager.watchWideToday();
-            expect(window.matchMedia).toHaveBeenCalledWith('(min-width: 1280px)');
-            const phone = order();
-            expect(document.getElementById('todayLabourBlock').parentElement.id).toBe('todayMore');
-            mql.matches = true;
-            listeners.forEach(fn => fn());
-            const side = document.querySelector('.today-side');
-            expect([...side.children].map(e => e.id)).toEqual(['todayReminders', 'dayReportCard', 'todayLabourBlock', 'todayPayBlock']);
-            expect(document.getElementById('todayLabourCard')).not.toBeNull();
-            mql.matches = false;
-            listeners.forEach(fn => fn());
-            expect(order()).toEqual(phone);
-            expect(document.querySelector('#todayMore > summary').nextElementSibling.id).toBe('todayLabourBlock');
-        } finally {
-            window.matchMedia = saved;
-            DayManager.wideToday = null;
-        }
-    });
 });

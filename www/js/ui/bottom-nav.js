@@ -7,6 +7,7 @@
 
 import { safeSetItem } from '../utils/storage-full.js';
 import { t, LANG_CHANGE_EVENT } from '../i18n/index.js';
+import { formatDate } from '../utils/dates.js';
 
 /** The bar's pages, left to right (tab element ids); "More" opens the side menu. */
 export const BAR_TABS = Object.freeze(['billing', 'day', 'history', 'due']);
@@ -111,6 +112,15 @@ export const BottomNav = {
         this.titleTab = tabId;
         const el = document.getElementById('appBarTitle');
         if (el) el.textContent = t(pageTitleKey(tabId));
+        // Today: the date beside the title, and on a desktop a refresh button (no pull gesture there)
+        const today = tabId === 'day';
+        const date = document.getElementById('appBarDate');
+        if (date) {
+            date.hidden = !today;
+            date.textContent = today ? formatDate(new Date(), 'weekday') : '';
+        }
+        const refresh = document.getElementById('appBarRefresh');
+        if (refresh) refresh.hidden = !today;
     },
 
     /** Pull-to-refresh: the page's own data reload (no filter or form reset). */

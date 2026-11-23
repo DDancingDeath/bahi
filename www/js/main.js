@@ -74,7 +74,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261123j-labour-polish';
+const BUILD_ID = '20261123k-today-layout';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -689,7 +689,7 @@ async function initializeUserData() {
             // Pull-to-refresh reloads data only: filters, the bill being entered and forms stay as they are
             // (older on-demand bills keep History's own Refresh button: re-reading them costs reads)
             refreshers: {
-                day: () => (DayManager.currentSubTab === 'cash' ? CashManagementManager.init() : DayManager.init()),
+                day: () => (DayManager.currentSubTab === 'cash' ? CashManagementManager.init() : DayManager.refresh()),
                 history: () => HistoryManager.refreshHistory(),
                 due: () => {
                     OutstandingManager.renderDue();
@@ -1126,7 +1126,8 @@ window.app = {
 
     // Phone bottom bar (#142): Settings › swipe between pages
     bottomNav: {
-        setSwipe: (on) => BottomNav.setSwipe(on)
+        setSwipe: (on) => BottomNav.setSwipe(on),
+        refresh: (tab) => BottomNav.refreshPage(tab)
     },
 
     // Voice billing (#81): Settings switch (off by default) and the Billing mic buttons
@@ -1604,6 +1605,8 @@ window.app = {
         filterTransactions: () => DayManager.filterTransactions(),
         showLabourBreakdown: () => DayManager.showLabourBreakdown(),
         showSplit: (kind) => DayManager.showSplit(kind),
+        showInOut: () => DayManager.showInOut(),
+        refresh: () => DayManager.refresh(),
         returnCashBody: () => DayManager.returnCashBody(),
         reminderForm: (open) => ManualReminders.form(open),
         reminderSave: () => ManualReminders.save(),

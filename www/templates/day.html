@@ -8,145 +8,77 @@
             <button type="button" id="dayTabCash" role="tab" aria-selected="false" aria-controls="dayCashContent" data-onclick="day.showSubTab('cash')" data-i18n="ui.today.cash_management">Cash</button>
         </div>
 
-        <!-- Today's Summary Sub-Tab: hero, the key figures, then what needs attention (closed cards), then the rest of the day's figures -->
+        <!-- Today's Summary: money now (hero, drawer, tiles), Needs attention, Settle today, Details; at ≥ 1280 px a left and a right column -->
         <div id="dayTodayContent" class="day-content today-summary" role="tabpanel" aria-labelledby="dayTabToday">
 
             <!-- Figures from the phone's cache until the server answers (#59) -->
             <p class="updating-note" data-i18n="ui.sync.figures_updating">Updating… these figures may change when the latest entries arrive.</p>
 
-            <!-- Net cash (T12) with the day's in (T10) and out (T11) -->
+            <!-- Net cash (T12) with the day's in (T10) and out (T11); in / out open the cash and online split (T6–T9) -->
             <section class="hero" aria-labelledby="todayCashFlowLabel">
                 <h2 class="hero-cap" id="todayCashFlowLabel"><span data-i18n="ui.today.net_none">No money in or out yet today</span></h2>
                 <button type="button" class="btn btn-primary btn-sm today-new-bill" id="todayNewBill" data-onclick="nav.showTab('billing', event)"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span data-i18n="ui.today.new_bill">New bill</span></button>
                 <div class="hero-num" id="todayNetCashFlow">₹0</div>
                 <div class="today-inout">
-                    <span class="today-in"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrIn"/></svg><span data-i18n="ui.today.total_in">Total in</span> <strong id="todayTotalIn">₹0</strong></span>
-                    <span class="today-out"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrOut"/></svg><span data-i18n="ui.today.total_out">Total out</span> <strong id="todayTotalOut">₹0</strong></span>
+                    <button type="button" class="today-in" data-onclick="day.showInOut()"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrIn"/></svg><span data-i18n="ui.today.total_in">Total in</span> <strong id="todayTotalIn">₹0</strong><svg class="i i-sm today-chev" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
+                    <button type="button" class="today-out" data-onclick="day.showInOut()"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrOut"/></svg><span data-i18n="ui.today.total_out">Total out</span> <strong id="todayTotalOut">₹0</strong><svg class="i i-sm today-chev" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></button>
                 </div>
                 <!-- In and out as shares of one bar (DIRECTION hero: in/out line, stacked meter); the line above is its legend -->
                 <div class="meter today-meter" id="todayMeter" aria-hidden="true" hidden></div>
             </section>
 
-            <!-- The day's key figures first; on a desktop they keep the left column -->
             <div class="today-main today-main-top">
-            <!-- Bills saved today but no cash session (#141) -->
-            <div id="todayCashPrompt" class="notice warn today-cash-prompt" role="status" hidden>
-                <svg class="i" aria-hidden="true" focusable="false"><use href="#i-banknote"/></svg>
-                <span class="grow" data-i18n="ui.today.no_session">Today has bills but the cash drawer isn't open.</span>
-                <button type="button" class="btn btn-sm today-cash-prompt-btn" data-onclick="day.showSubTab('cash')" data-i18n="ui.today.open_cash">Open cash</button>
-            </div>
+            <!-- Cash in drawer (C7, C8): one row from the day's session already loaded; at ≥ 1280 px it heads the right column -->
+            <div class="panel today-cashline" id="todayDrawer" hidden></div>
 
-            <!-- Purchases (T1), sales (T2), business (T4) and personal (T5) expenses -->
-            <h3 class="section-title" data-i18n="ui.today.transactions">Transactions</h3>
+            <!-- Purchases (T1), sales (T2), business (T4) and personal (T5) expenses, the count on the label line -->
             <div class="panel metrics today-metrics">
                 <div class="metric panel-tap" role="button" tabindex="0" data-split-tile="purchase" data-onclick="day.showSplit('purchase')">
-                    <div class="metric-label"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchases">Purchases</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
+                    <div class="metric-label"><span class="mode-dot" aria-hidden="true"></span><span data-i18n="ui.common.purchases">Purchases</span><span class="metric-count" id="todayPurchaseCount">0</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
                     <div class="metric-value" id="todayTotalPurchases">₹0</div>
-                    <div class="metric-sub" id="todayPurchaseCount"><span data-i18n="ui.day.0_bills">0 bills</span></div>
                 </div>
                 <div class="metric panel-tap" role="button" tabindex="0" data-split-tile="sale" data-onclick="day.showSplit('sale')">
-                    <div class="metric-label"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.common.sales">Sales</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
+                    <div class="metric-label"><span class="mode-dot sale" aria-hidden="true"></span><span data-i18n="ui.common.sales">Sales</span><span class="metric-count" id="todaySaleCount">0</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
                     <div class="metric-value" id="todayTotalSales">₹0</div>
-                    <div class="metric-sub" id="todaySaleCount"><span data-i18n="ui.day.0_bills">0 bills</span></div>
                 </div>
-                <div class="metric">
-                    <div class="metric-label" data-i18n="ui.today.business_exp">Business exp.</div>
+                <div class="metric panel-tap" role="button" tabindex="0" data-onclick="nav.showTab('expenses', event)">
+                    <div class="metric-label"><span data-i18n="ui.today.business_exp">Business exp.</span><span class="metric-count" id="todayBusinessExpenseCount">0</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
                     <div class="metric-value" id="todayBusinessExpenses">₹0</div>
-                    <div class="metric-sub" id="todayBusinessExpenseCount"><span data-i18n="ui.day.0_entries">0 entries</span></div>
                 </div>
-                <div class="metric" data-perm="personalExpenses">
-                    <div class="metric-label" data-i18n="ui.today.personal_exp">Personal exp.</div>
+                <div class="metric panel-tap" role="button" tabindex="0" data-perm="personalExpenses" data-onclick="nav.showTab('expenses', event)">
+                    <div class="metric-label"><span data-i18n="ui.today.personal_exp">Personal exp.</span><span class="metric-count" id="todayPersonalExpenseCount">0</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg></div>
                     <div class="metric-value" id="todayPersonalExpenses">₹0</div>
-                    <div class="metric-sub" id="todayPersonalExpenseCount"><span data-i18n="ui.day.0_entries">0 entries</span></div>
                 </div>
             </div>
             </div>
 
-            <!-- Needs attention, after the key figures (a right-hand column on a desktop). Both cards start closed (ui/disclosure.js) -->
+            <!-- Right column on a desktop: Needs attention, Settle today, Cash and online -->
             <div class="today-side">
-            <!-- Reminders (#86): udhaar to collect / pay and rent due, from data already on the phone -->
-            <div id="todayReminders" class="today-reminders" hidden></div>
+            <!-- Needs attention: the Day report (#187, #40, anomalies.js) and Reminders (#86), one line each, closed by default -->
+            <section class="today-group today-attention" aria-labelledby="todayAttentionTitle">
+                <h3 class="section-title" id="todayAttentionTitle" data-i18n="ui.today.group_attention">Needs attention</h3>
+                <div class="panel today-stack">
+                    <div id="dayReportCard" class="day-report" style="display: none;"></div>
+                    <div id="todayReminders" class="today-reminders" hidden></div>
+                </div>
+            </section>
 
-            <!-- Day report / review queue (#187, #40): owner/manager only, filled by anomalies.js -->
-            <div id="dayReportCard" class="panel day-report" style="display: none;"></div>
+            <!-- Settle today: Labour (T-LAB-1, T-LAB-2, T-LAB-4) and Dues today (T13–T16); one line each on a phone, open panels on a desktop -->
+            <section class="today-group" aria-labelledby="todaySettleTitle">
+                <h3 class="section-title" id="todaySettleTitle" data-i18n="ui.today.group_settle">Settle today</h3>
+                <div id="todaySettle"></div>
+            </section>
+
+            <!-- Cash and online in (T6, T7) and out (T8, T9): a panel on a desktop; on a phone the in / out sheet -->
+            <div id="todayCashOnline" class="today-cashonline"></div>
             </div>
 
+            <!-- Details: Items (T17) and Today's bills (T19) -->
             <div class="today-main">
-            <details class="today-more" id="todayMore">
-                <summary class="section-title today-more-title"><span data-i18n="ui.today.day_details">Day details</span><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevD"/></svg></summary>
-                <!-- Labour and Payment breakdown: at ≥ 1280 px day.js moves these two blocks to the right column (NEW-17) -->
-                <!-- LABOUR: Deducted from customers (T-LAB-1), Estimated pay (T-LAB-2) and Paid from the labour expenses (T-LAB-4), just the three figures; tap for the bill-wise breakdown -->
-                <div class="today-detail-block" id="todayLabourBlock">
-                <!-- Closed: "Labour   Deducted ₹N · Est. pay ₹N" on one line; open: Deducted, Estimated pay, Paid (day.js renderLabour) -->
-                <div class="panel today-labour" id="todayLabourCard"></div>
-                </div>
-
-                <!-- Cash and online in (T6, T7) and out (T8, T9) -->
-                <div class="today-detail-block" id="todayPayBlock">
-                <h3 class="section-title" data-i18n="ui.today.payment_breakdown">Payment breakdown</h3>
-                <div class="panel metrics">
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.today.cash_out">Cash out</div>
-                        <div class="metric-value" id="todayCashPaid">₹0</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.today.cash_in">Cash in</div>
-                        <div class="metric-value" id="todayCashReceived">₹0</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.today.online_out">Online out</div>
-                        <div class="metric-value" id="todayOnlinePaid">₹0</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.today.online_in">Online in</div>
-                        <div class="metric-value" id="todayOnlineReceived">₹0</div>
-                    </div>
-                </div>
-                </div>
-
-                <!-- Dues settled (T13, T14) and new today (T15, T16) -->
-                <h3 class="section-title" data-i18n="ui.today.due_summary">Due summary</h3>
-                <div class="panel metrics">
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.common.due_received">Due received</div>
-                        <div class="metric-value" id="todayDueReceived">₹0</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.common.due_paid">Due paid</div>
-                        <div class="metric-value" id="todayDuePaid">₹0</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.today.due_receive">New udhaar today</div>
-                        <div class="metric-value" id="todayDueToReceive">₹0</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label" data-i18n="ui.today.due_pay">New to pay today</div>
-                        <div class="metric-value" id="todayDueToPay">₹0</div>
-                    </div>
-                </div>
-
-                <!-- ITEM DETAILS (T17) -->
-                <h3 class="section-title" data-i18n="ui.today.purchase_details">Purchase details</h3>
-                <div class="panel">
-                    <div id="todayPurchaseItems" class="items-grid">
-                        <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.today.no_purchases_today">No purchases today</b></div>
-                    </div>
-                </div>
-
-                <h3 class="section-title" data-i18n="ui.today.sale_details">Sale details</h3>
-                <div class="panel">
-                    <div id="todaySaleItems" class="items-grid">
-                        <div class="empty"><span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span><b data-i18n="ui.today.no_sales_today">No sales today</b></div>
-                    </div>
-                </div>
-            </details>
-
-            <!-- Today's bills (T19): one row at the very bottom; History lists them (History › Today) -->
-            <div class="panel today-bills-link" id="todayBillsLink" hidden><button type="button" class="row" data-onclick="nav.showTab('history-today', event)">
-                <span class="lead-icon"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg></span>
-                <span class="row-main"><span class="row-title" id="todayBillsCount"></span><span class="row-meta" id="todayBillsMeta"></span></span>
-                <svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-chevR"/></svg>
-            </button></div>
+            <section class="today-group today-details" id="todayDetails" aria-labelledby="todayDetailsTitle" hidden>
+                <h3 class="section-title" id="todayDetailsTitle" data-i18n="ui.today.group_details">Details</h3>
+                <div id="todayDetailsBody"></div>
+            </section>
             </div>
 
         </div>

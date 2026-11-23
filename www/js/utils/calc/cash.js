@@ -272,6 +272,21 @@ export function countCheck(counted, expected, thresholds) {
 }
 
 /**
+ * C8 of a closed day as Today's drawer row shows it: the saved difference, as countCheck words it.
+ * @param {?Rec} session
+ * @returns {?{amount: number, kind: 'match'|'extra'|'short'}} null while the day is open
+ */
+export function closedCount(session) {
+    if (!session?.signedOut) return null;
+    const diff = Number(session.difference) || 0;
+    /** @type {'match'|'extra'|'short'} */
+    let kind = 'short';
+    if (Math.abs(diff) < MATCH_WITHIN) kind = 'match';
+    else if (diff > 0) kind = 'extra';
+    return { amount: Math.abs(diff), kind };
+}
+
+/**
  * Closing the day with a count: the saved difference (C8, paise), whether to
  * ask first (more than ₹1 off) and the Q19 issues to flag on the session.
  * @param {number} counted

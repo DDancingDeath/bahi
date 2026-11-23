@@ -26,7 +26,7 @@ export const TODAY_SPEC = Object.freeze({
     net: 'T12', netOutflow: 'T12', netAmount: 'T12', isOutflow: 'T12',
     dueReceived: 'T13', duePaid: 'T14',
     dueToReceive: 'T15', dueToPay: 'T16',
-    purchaseItems: 'T17', saleItems: 'T17',
+    purchaseItems: 'T17', saleItems: 'T17', retailItems: 'T17', wholesaleItems: 'T17',
     channels: 'T18',
     dayBills: 'T19'
 });
@@ -42,18 +42,21 @@ const expenseAmount = (/** @type {Expense} */ e) => Number(e.amount) || 0;
 const sumOf = (list, valueOf) => list.reduce((sum, x) => sum + valueOf(x), 0);
 
 /**
- * T17 item cards: the day's lines grouped by item name, highest value first.
+ * T17 item rows: the day's lines grouped by item name, highest value first; `bills` is how many bills have the item.
  * @param {Bill[]} bills
- * @returns {Array<{name: string, count: number, quantity: number, totalValue: number, avgRate: ?number}>}
+ * @returns {Array<{name: string, count: number, bills: number, quantity: number, totalValue: number, avgRate: ?number}>}
  */
 export function itemRows(bills) {
-    /** @type {Object<string, {name: string, count: number, quantity: number, totalValue: number}>} */
+    /** @type {Object<string, {name: string, count: number, bills: number, quantity: number, totalValue: number}>} */
     const byName = {};
     bills.forEach(bill => {
+        /** @type {Set<string>} */
+        const seen = new Set();
         (bill.items || []).forEach((/** @type {Rec} */ item) => {
             const name = item.item || item.name || 'Unknown';
-            if (!byName[name]) byName[name] = { name, count: 0, quantity: 0, totalValue: 0 };
+            if (!byName[name]) byName[name] = { name, count: 0, bills: 0, quantity: 0, totalValue: 0 };
             byName[name].count += 1;
+            if (!seen.has(name)) { seen.add(name); byName[name].bills += 1; }
             byName[name].quantity += parseFloat(item.qty || item.quantity || 0);
             byName[name].totalValue += parseFloat(item.total || item.amount || 0);
         });
@@ -189,6 +192,8 @@ export function todaySummary({ bills = {}, expenses = [], personalDay = null, se
         dueToReceive, dueToPay,
         purchaseItems: itemRows(purchaseBills),
         saleItems: itemRows(saleBills),
+        retailItems: itemRows(retailBills),
+        wholesaleItems: itemRows(wholesaleBills),
         channels: { retail: channelSplit(retailBills), wholesale: channelSplit(wholesaleBills), purchase: channelSplit(purchaseBills) },
         dayBills: dayBillRows({ purchase: purchaseBills, wholesale: wholesaleBills, retail: retailBills })
     };

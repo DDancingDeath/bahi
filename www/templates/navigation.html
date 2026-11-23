@@ -62,7 +62,10 @@
     <header class="app-bar" id="appBar">
         <button type="button" class="hamburger app-bar-action" data-onclick="nav.toggleMenu()" aria-controls="sideNav" aria-expanded="false" aria-label="Menu" data-i18n-aria-label="ui.nav.menu"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
         <h1 class="app-bar-title" id="appBarTitle" tabindex="-1"></h1>
+        <span class="app-bar-date" id="appBarDate" hidden></span>
         <div class="sync-pill" id="syncStatus" role="status" aria-live="polite" hidden data-onclick="sync.openSheet()" data-onenter="sync.openSheet()"></div>
+        <!-- Today on a desktop (no pull gesture there): reload the day's figures and rescan the Day report -->
+        <button type="button" class="app-bar-refresh app-bar-action" id="appBarRefresh" hidden data-onclick="bottomNav.refresh('day')" aria-label="Refresh" data-i18n-aria-label="ui.anom.refresh" title="Refresh" data-i18n-title="ui.anom.refresh"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg></button>
         <!-- Bluetooth printer on Billing / Wholesale, Android app only (ui/printer-shortcut.js) -->
         <button type="button" class="printer-shortcut app-bar-action" id="printerShortcut" hidden data-state="none" data-onclick="printerSheet.open()" aria-describedby="printerShortcutState" aria-label="Printer (Bluetooth)" data-i18n-aria-label="ui.printer.shortcut" title="Printer (Bluetooth)" data-i18n-title="ui.printer.shortcut">
             <svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>
