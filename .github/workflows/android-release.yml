@@ -303,7 +303,7 @@ jobs:
               echo "::error::GOOGLE_SERVICES_JSON is for project '$got' but the APK's web config is '$want'. Set the secret to $want's Android app config."
               exit 1
             fi
-            echo "google-services.json ($got) added: crash reports can be switched on in the app; Google sign-in can start."
+            echo "google-services.json ($got) added: crash reports are on; Google sign-in can start."
           else
             echo "No GOOGLE_SERVICES_JSON secret: the APK has no crash reporting and no Google sign-in."
           fi

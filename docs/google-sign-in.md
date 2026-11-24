@@ -163,7 +163,7 @@ new projects. Nothing here goes in the repo except the last step.
    Settings → Secrets and variables → Actions → New repository secret → Name `GOOGLE_SERVICES_JSON` →
    the file's whole text → Add secret. The release workflow already writes it to
    `android/app/google-services.json` before the build (the same file switches on the Crashlytics build
-   path, docs/error-reporting.md; crash reports still stay off until a user switches them on). The
+   path, docs/error-reporting.md; crash reports are always on). The
    secret holds the **live** project's file (`bahi-happa`), the one the released APK signs in against;
    `bahi-happa-dev`'s file is only for local test builds.
 6. **Google consent screen** (only for a project made from scratch): Google Cloud console → the same

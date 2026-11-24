@@ -9,7 +9,7 @@ here is free on the Spark plan.
 |---|---|---|---|
 | Error telemetry | Uncaught errors and unhandled promise rejections (the `error` / `unhandledrejection` listeners in `main.js`) plus explicit `logError` / `logWarning` calls, grouped by fingerprint. Errors only written with `console.error` (most `catch` blocks) are **not** sent. Firestore quota errors are not sent (they would only fail again) | Diagnostics (owner), collection `telemetry` (create-only, owner read, field sizes capped by the rules) | `www/js/services/telemetry.js`, `firebase/repos/telemetry.js` |
 | Test in Production (TIP) | Bill save, payment, cash close and app start: failures, slow runs, runs with errors (`errors_seen`), and runs left open when the app was killed or crashed (`abandoned`). Watchdog (#83): `MainThread` fails `frozen` when a 1-second timer runs 5 s or more late while the app is on screen (a frozen screen). The timer runs only while the page is on screen; each 5 minutes on screen is one run, a shorter stretch counts once it lasted a minute, sleep is not judged, and it keeps at most 2 failure samples a day (`maxSamplesPerDay`) so the other tests keep theirs; a change still waiting to sync online after 5 minutes is `Sync` › `not_flushed` (#161). No reads | App health page; a daily job opens, updates and closes `tip-auto` GitHub issues (counts, reason codes and a few small samples: rounded bill totals, line counts, flags; no names) | `www/js/tip/`, `tools/tip/autobugs.js`, `.github/workflows/tip-autobugs.yml` |
-| Crash reports (Android app only, **off unless the user switches it on**) | Native crashes of the APK (a Java exception in a plugin, the app killed by an uncaught error): Firebase Crashlytics through the `@capacitor-firebase/crashlytics` plugin | Firebase console › Crashlytics (owner's Google account); the owner's test: Diagnostics › Status (below) | `www/js/services/crash-reports.js`, Settings › Help & about › Crash reports, `android/app/src/main/AndroidManifest.xml` (`firebase_crashlytics_collection_enabled` false) |
+| Crash reports (Android app only, **always on**, owner decision 24 Nov 2026) | Native crashes of the APK (a Java exception in a plugin, the app killed by an uncaught error): Firebase Crashlytics through the `@capacitor-firebase/crashlytics` plugin | Firebase console › Crashlytics (owner's Google account); the owner's test: Diagnostics › Status (below) | `www/js/services/crash-reports.js`, `android/app/src/main/AndroidManifest.xml` (`firebase_crashlytics_collection_enabled` true) |
 | Startup and read meter | Startup step timings, document reads per session, quota-exhausted errors (one banner per session) | Diagnostics → "Startup timings", "Data reads this session" | `utils/startup-timings.js`, `firebase/firestore-meter.js`, `utils/quota-guard.js` |
 
 The Android APK is the same web app inside a Capacitor WebView, so all of the
@@ -18,8 +18,7 @@ one on the website.
 
 ## What is not covered
 
-- **Native crashes on phones that did not switch crash reports on** (and every
-  native crash while the APK has no Firebase config, see "Crash reports: set-up").
+- **Native crashes while the APK has no Firebase config** (see "Crash reports: set-up").
   The WebView renderer dying or the phone killing the app for memory is not a
   crash Crashlytics sees either. TIP still notices the effect: a bill save, payment, cash close or app start that was
   running when the app died is counted as `abandoned` the next time the app
@@ -33,21 +32,22 @@ one on the website.
 
 | Option | Cost | Why not now |
 |---|---|---|
-| Firebase Crashlytics (APK) | Free on Spark (and Blaze) | **Chosen, opt-in** (below). The app sets no user id; the only keys and logs are the printer's (step, Bluetooth name, Android version, permission states, docs/printing.md), but a native exception's message is sent as written and can hold text the code was handling, so the consent text says so; the #116 scrubbing covers only the web error telemetry |
+| Firebase Crashlytics (APK) | Free on Spark (and Blaze) | **Chosen, always on** (below). The user id is the Firebase uid; the only keys and logs are the printer's (step, Bluetooth name, Android version, permission states, docs/printing.md); a native exception's message is sent as written and can hold text the code was handling; the #116 scrubbing covers only the web error telemetry |
 | Sentry free tier (web + APK) | Free up to a monthly event limit | A third party outside Firebase; needs a new CSP origin and the #116 scrubbing first; the limit can run out silently |
 | Sending error text to GitHub issues | Free | The repo is public and the errors can hold names, amounts and URLs. TIP issues carry only counts, reason codes and small sanitized samples, on purpose |
 
-**Decision:** keep the existing telemetry plus TIP for the web code (also inside the APK), and add Crashlytics for native crashes of the APK, off by default (#122). A cheap improvement for later: also send the `console.error` calls of `catch` blocks (`TelemetryService.init()` exists but is not called; the `main.js` listeners would then need removing so errors aren't counted twice). Revisit Crashlytics if
+**Decision:** keep the existing telemetry plus TIP for the web code (also inside the APK), and add Crashlytics for native crashes of the APK (#122; opt-in at first, always on since 24 Nov 2026 because a printer crash on 24 Nov reached nobody: no phone had switched it on). A cheap improvement for later: also send the `console.error` calls of `catch` blocks (`TelemetryService.init()` exists but is not called; the `main.js` listeners would then need removing so errors aren't counted twice). Revisit Crashlytics if
 `abandoned` TIP runs appear that have no matching error in Diagnostics.
 
 ## Crash reports: privacy, size, set-up
 
-**What is sent, and only after the user switches it on.** Settings › Help & about › Crash reports
-(shown only in the Android app) is off on every phone until its user turns it on;
-the APK's manifest keeps Crashlytics collection off (`firebase_crashlytics_collection_enabled`
-false) and Firebase Sessions off for good (`firebase_sessions_enabled` false: no event on each
-app open), and the app turns collection on at run time only for that phone. Then a crash (or
-the app not responding) sends one report, and about once a day Crashlytics checks its settings
+**What is sent (always on).** There is no switch: the owner decided on 24 Nov 2026 that crash reports
+are always on, in both projects' APKs (`bahi-happa`, `bahi-happa-dev`). The manifest turns Crashlytics
+collection on from the first start (`firebase_crashlytics_collection_enabled` true), start-up calls
+`setEnabled(true)` again (so an old opt-out kept by an earlier version is ignored; the old
+`aadhat.crashReports` value is deleted) and sets the user id to the signed-in person's Firebase uid.
+Firebase Sessions stays off (`firebase_sessions_enabled` false: no event on each app open). A crash
+(or the app not responding) sends one report, and about once a day Crashlytics checks its settings
 with Google, sending the installation id, phone model, Android and app version (no report). A report holds:
 
 - the stack trace and the **exception message** (as the code that threw wrote it: a plugin's
@@ -57,28 +57,25 @@ with Google, sending the installation id, phone model, Android and app version (
 - the time and a Firebase installation id (a random number per install, not the phone's IMEI
   or Android id).
 
-The app never calls `setUserId`, `setCustomKey` or `log`, so it adds no user, shop, customer,
-bill or amount; only an exception message could carry such text.
-Reports that Crashlytics kept on the phone while the switch was off are deleted
-(`deleteUnsentReports`) after each sign-in and when the switch is turned on,
-so nothing from before the consent is sent. Switching it off stops new collection and deletes
-reports not yet handed over for upload; a report already queued for upload (for example while
-the phone was offline) may still be sent.
+- the Firebase uid of the signed-in person (a random id, not a name, email or phone number);
+- for printer problems only: custom keys and log lines `printer_*` (step, the printer's Bluetooth name,
+  Android version, Nearby devices permission states, number of paired printers; docs/printing.md).
 
-**DPDP Act 2023.** The installation id and the phone details can be personal data
-of the person using the phone, so the switch is the consent: off by default,
-explained in the app's language next to the switch (who gets what, for how long),
-and can be withdrawn at any time on the same screen. Google processes the
-reports for the shop (Firebase data processing terms) and keeps them 90 days;
-the owner can delete them in the Firebase console. Nothing else from the app
-goes to Crashlytics: the web error telemetry above stays in the shop's own
-Firestore.
+**No personal data in keys or logs:** never phone numbers, MAC addresses, customer names, bills or
+amounts. Only an exception message written by a plugin could carry such text.
+
+**DPDP Act 2023.** The installation id, the uid and the phone details can be personal data of the
+person using the phone. Crash reports are collected for the shop's own purpose (keeping its app
+working: the legitimate use of a device the shop provides or approves for its staff); docs/security.md
+lists them. Google processes the reports for the shop (Firebase data processing terms) and keeps them
+90 days; the owner can delete them in the Firebase console. Nothing else from the app goes to
+Crashlytics: the web error telemetry above stays in the shop's own Firestore.
 
 **Android permission.** Firebase's transport libraries (pulled in by the plugin) add
 `android.permission.ACCESS_NETWORK_STATE` to the merged manifest, so they send only when online.
 It is a *normal* permission: granted at install, no prompt, and it reads only whether there is
 a connection. No other permission is added. The plugin is in every APK, so every build has it,
-with or without the Firebase config and whatever the switch says (checked on CI: the
+with or without the Firebase config (checked on CI: the
 *Crashlytics build (dummy config)* job lists the APK's permissions).
 
 **APK size.** The plugin brings the Firebase Crashlytics Android SDK
@@ -90,7 +87,7 @@ touches the Android build). Release builds are not minified (`minifyEnabled fals
 grow about as much; turning on R8 would win most of it back.
 
 **Set-up (owner, once).** Until this is done the APK builds and runs as before
-and the switch says "Not set up in this version of the app yet":
+and Diagnostics says crash reports are not set up:
 1. Firebase console › project `bahi-happa` (the APK's project from rc14; `happa-bfc07` before) › Project settings › Add app ›
    Android, package name `com.happa` (no SHA-1 needed for Crashlytics; Google sign-in needs the
    release key's SHA-1 and SHA-256: [google-sign-in.md](google-sign-in.md), which uses the same file and secret).
@@ -101,7 +98,7 @@ and the switch says "Not set up in this version of the app yet":
 4. Build the next APK (tag, `android-release.yml`): with the secret present the
    workflow writes the file before the build and `android/app/build.gradle`
    applies the Google services and Crashlytics Gradle plugins.
-5. On a test phone: Settings › Help & about › Crash reports on, then send a test crash (below). Crashlytics
+5. On a test phone: send a test error or crash (below). Crashlytics
    shows the app once a crash has been sent (it sends on the next app start after a crash).
 
 The APK moved to `bahi-happa` with **v1.0.0-rc14** (15 Nov 2026): the release workflow builds it for
@@ -110,8 +107,7 @@ The APK moved to `bahi-happa` with **v1.0.0-rc14** (15 Nov 2026): the release wo
 SHA-256, and its `google-services.json` is the `GOOGLE_SERVICES_JSON` secret (set 15 Nov 2026; the
 build refuses a file for another project). So steps 1, 2 and 4 are done for `bahi-happa`, and reports
 from rc14 on are in **bahi-happa**'s console, not `happa-bfc07`'s. Still to do by the owner: step 3
-(enable Crashlytics in bahi-happa's console) and step 5. Crash collection stays off on every phone until
-its user switches it on. (The earlier target `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026;
+(enable Crashlytics in bahi-happa's console) and step 5. (The earlier target `happa-bahi` / `happa-bahi-dev` was retired on 15 Nov 2026;
 it never had crash data.)
 
 ## Check that reports arrive (owner)
@@ -121,21 +117,20 @@ only; members can't open Diagnostics) and works on the website and in the Androi
 
 | Button | What it does | Where to look |
 |---|---|---|
-| **Send a test error** | Records one error (type `manual`, message "Test error sent by the owner from Diagnostics", fingerprint `test-error`) through the normal error telemetry (it is not counted as an app error in Status or by Test in Production), and sends it at once instead of after the 5-second wait (or an earlier failure's pause). The screen says which: sent; no answer within 8 seconds (offline: it waits on the phone and is sent when online); or refused (for example by the rules or the daily quota), so error reports from this phone are not arriving. In the Android app with crash reports on, it also records a **non-fatal** Crashlytics report (the app keeps running) | Diagnostics › Errors (filter *Manual*); repeats are grouped as one entry. Crashlytics: Firebase console › Crashlytics › *Non-fatals*, after the app is opened again |
-| **Send a test crash (closes the app)** | Android app only, and only while crash reports are on: after a confirm, the plugin's `crash()` closes the app with "Test crash sent by the owner from Diagnostics" | Open the app again (the report is sent then); Firebase console › Crashlytics › *Crashes* within a few minutes |
+| **Send a test error** | Records one error (type `manual`, message "Test error sent by the owner from Diagnostics", fingerprint `test-error`) through the normal error telemetry (it is not counted as an app error in Status or by Test in Production), and sends it at once instead of after the 5-second wait (or an earlier failure's pause). The screen says which: sent; no answer within 8 seconds (offline: it waits on the phone and is sent when online); or refused (for example by the rules or the daily quota), so error reports from this phone are not arriving. In the Android app (where Crashlytics is set up) it also records a **non-fatal** Crashlytics report (the app keeps running) | Diagnostics › Errors (filter *Manual*); repeats are grouped as one entry. Crashlytics: Firebase console › Crashlytics › *Non-fatals*, after the app is opened again |
+| **Send a test crash (closes the app)** | Android app only, where Crashlytics is set up: after a confirm, the plugin's `crash()` closes the app with "Test crash sent by the owner from Diagnostics" | Open the app again (the report is sent then); Firebase console › Crashlytics › *Crashes* within a few minutes |
 
 Below the buttons the card says what the phone can reach: on the website, crash reports exist only in
 the Android app; in an APK built without `google-services.json`, "Crash reports are not set up in this
 version of the app" (no test crash is offered: the plugin's `crash()` would close the app even without
-Firebase, with no report); with the switch off, where to switch it on. Hide the test entries afterwards
+Firebase, with no report). Hide the test entries afterwards
 in Diagnostics › Errors.
 
 Steps for the owner after the cutover (and after any change to the Crashlytics set-up):
-1. Install the new APK; Settings › Help & about › Crash reports on (the switch is per phone).
+1. Install the new APK and sign in.
 2. Diagnostics › Status › **Send a test error**; then **Send a test crash** and confirm.
 3. Open the app again, wait a few minutes, and check Firebase console › project **bahi-happa** ›
    Crashlytics: the app `com.happa` shows one crash and one non-fatal, both starting with "Test".
-4. Turn crash reports off again on that phone if it should not send them.
 
 ## When something breaks in the field
 

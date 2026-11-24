@@ -65,7 +65,6 @@ test('Android app without the Firebase config: "not set up", no test crash, and 
             }
         };
         window.__crashCalls = calls;
-        localStorage.setItem('aadhat.crashReports', '1');
         const { CrashReports } = await import('/js/services/crash-reports.js');
         return CrashReports.apply();
     });

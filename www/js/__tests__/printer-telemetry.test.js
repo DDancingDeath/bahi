@@ -1,6 +1,6 @@
 /**
- * @fileoverview Printer context in reports: Crashlytics keys, logs and non-fatal reports only
- * while crash reports are on; an app that closed during a printer call is reported on the next start.
+ * @fileoverview Printer context in reports: Crashlytics keys, logs and non-fatal reports where
+ * Crashlytics is set up; an app that closed during a printer call is reported on the next start.
  */
 import { PrinterTelemetry, PRINTER_STEP_KEY } from '../services/printer-telemetry.js';
 import { CrashReports } from '../services/crash-reports.js';
@@ -14,8 +14,7 @@ const plugin = () => ({
 
 function crashReports(on, p) {
     window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: (n) => n === 'FirebaseCrashlytics', Plugins: { FirebaseCrashlytics: p } };
-    CrashReports.state = 'on';
-    localStorage.setItem('aadhat.crashReports', on ? '1' : '0');
+    CrashReports.state = on ? 'on' : 'not-set-up';
 }
 
 beforeEach(() => {
@@ -27,7 +26,7 @@ afterEach(() => {
     jest.restoreAllMocks();
 });
 
-test('crash reports on: printer keys, a log line and a non-fatal report with the step, never the MAC', async () => {
+test('Crashlytics set up: printer keys, a log line and a non-fatal report with the step, never the MAC', async () => {
     const p = plugin();
     crashReports(true, p);
     await PrinterTelemetry.around('connect', { name: 'MPT-II' }, () => Promise.resolve());
@@ -45,7 +44,7 @@ test('crash reports on: printer keys, a log line and a non-fatal report with the
     expect(JSON.stringify(p.setCustomKey.mock.calls)).not.toMatch(/[0-9A-F]{2}:[0-9A-F]{2}:/);
 });
 
-test('crash reports off: nothing goes to Crashlytics', async () => {
+test('APK without the Firebase config: nothing goes to Crashlytics', async () => {
     const p = plugin();
     crashReports(false, p);
     await PrinterTelemetry.around('connect', { name: 'MPT-II' }, () => Promise.resolve());

@@ -330,7 +330,6 @@ const DiagnosticsManager = {
         const note = {
             web: 'ui.diag.test_crash_web',
             'not-set-up': 'ui.diag.test_crash_not_set_up',
-            off: 'ui.diag.test_crash_off',
             on: 'ui.diag.test_crash_on'
         }[reach];
         const crashBtn = reach === 'on'
@@ -372,7 +371,7 @@ const DiagnosticsManager = {
         return lines;
     },
 
-    /** Closes the app on purpose, after a confirm; only while crash reports are on. */
+    /** Closes the app on purpose, after a confirm; only where Crashlytics is set up. */
     async sendTestCrash() {
         if (!isOwner()) return false;
         if (CrashReports.testReach() !== 'on') {
