@@ -248,6 +248,7 @@ export default {
     'msg.common.contact_picker_denied': "संपर्कों की अनुमति बंद है। संपर्क चुनने के लिए फ़ोन की सेटिंग › ऐप › यह ऐप › अनुमतियाँ › संपर्क में अनुमति दें। या नाम टाइप करें।",
     'msg.common.contact_picker_failed': "संपर्क नहीं खुल पाए। फिर से कोशिश करें या नाम टाइप करें।",
     'msg.common.could_not_open_whatsapp': "व्हाट्सऐप नहीं खुला",
+    'msg.share.image_failed_text': "बिल की फ़ोटो नहीं भेजी जा सकी, इसलिए बिल टेक्स्ट में भेजा।",
     'msg.common.could_not_open_link': "लिंक नहीं खुला: इस फ़ोन का कोई ऐप इसे नहीं खोलता",
     'msg.common.could_not_open_upi': "कोई यूपीआई ऐप नहीं खुला। क्या इस फ़ोन में यूपीआई से भुगतान वाला ऐप है?",
     'msg.common.delete_user': "दुकान से हटाएँ",

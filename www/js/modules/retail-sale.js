@@ -29,10 +29,10 @@ import { icon } from '../ui/icons.js';
 import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
+import { shareBill } from '../services/bill-image-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, resetBillDate } from '../ui/bill-date-input.js';
-import { openExternal } from '../utils/open-external.js';
 
 /** Name to show for a catalogue item or bill line in the chosen item-name language. */
 const lineLabel = (line) => lineItemIdentity(line && 'itemId' in line ? line : { itemId: line?.id, name: line?.name }, AppState.items, AppState.settings.showHindi).label;
@@ -794,22 +794,27 @@ const RetailSaleManager = {
     // -------------------- SHARING & PRINTING --------------------
 
     /**
-     * Share sale via WhatsApp
-     * @async
+     * WhatsApp: the draft sale's receipt picture (the printed layout, marked DRAFT), or its text when `asText`.
+     * @param {boolean} [asText]
      */
-    async shareSaleWhatsApp() {
+    async shareSaleWhatsApp(asText = false) {
         if (saleItems.length === 0) {
             UIManager.showToast(t('msg.retail.no_items_in_sale'));
             return;
         }
         
         const salesTotal = computeRetailTotals(saleItems).screenTotal;
+        const customer = document.getElementById('saleCustomerName')?.value;
         const message = buildDraftShareText({
-            kind: 'retail', customer: document.getElementById('saleCustomerName')?.value, items: saleItems, total: salesTotal
+            kind: 'retail', customer, items: saleItems, total: salesTotal
         });
-        
-        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        openExternal(url);
+        const draft = {
+            type: 'retail', isPurchase: false, isDraft: true, customerName: String(customer || '').trim(), items: saleItems,
+            total: salesTotal, payment: this.readPaymentSplit(),
+            comments: document.getElementById('saleComments')?.value || '', printComments: !!document.getElementById('salePrintComments')?.checked,
+            date: new Date().toISOString()
+        };
+        return shareBill(draft, { type: 'retail', text: message, asText });
     },
 
     /**

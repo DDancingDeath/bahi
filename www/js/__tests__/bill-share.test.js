@@ -87,9 +87,9 @@ describe('buildBillShareText', () => {
     test('bilingual, bill date, COPY mark, no internal figures', () => {
         const text = buildBillShareText(WHOLESALE, 'wholesale');
         expect(text).toContain('*Wholesale bill* (COPY)');
-        expect(text).toContain('Date: 15/09/2025 06:05 pm');
+        expect(text).toContain('Date: 15 Sep 2025, 6:05 pm');
         expect(text).toContain('Customer: Shyam Traders');
-        expect(text).toContain('  ₹40.00 × 100kg = ₹4,000');
+        expect(text).toContain('  ₹40.00 × 100 kg = ₹4,000');
         expect(text).toContain('*Total: ₹4,000*');
         expect(text).toContain('Received: ₹1,500');
         expect(text).toContain('Due: ₹2,500');
@@ -106,9 +106,9 @@ describe('buildBillShareText', () => {
         expect(buildDraftShareText({ kind: 'retail', customer: 'Gita', items: [], total: 0 })).toContain('Customer: Gita');
         // F54: the draft's date is the app's one date format, not the device's "21/11/2026"
         expect(buildDraftShareText({ kind: 'retail', customer: 'Gita', date: new Date(2026, 10, 21, 17, 52), items: [], total: 0 }))
-            .toContain('Date: 21 Nov 2026\n');
+            .toContain('Date: 21 Nov 2026, 5:52 pm\n');
         expect(text).toContain('*Purchase bill*');
-        expect(text).toContain('Date: 03/10/2026 02:45 pm');
+        expect(text).toContain('Date: 3 Oct 2026, 2:45 pm');
         expect(text).toContain('Labour: ₹12');
         expect(text).toContain('*Payable: ₹988*');
         expect(text).toContain('Paid: ₹500');
@@ -137,9 +137,9 @@ describe('History detail actions', () => {
         expect(WHOLESALE.isCopy).toBeUndefined();
     });
 
-    test('Share opens WhatsApp with the bill text', () => {
+    test('Share as text (held) opens WhatsApp with the bill text', async () => {
         const open = jest.spyOn(window, 'open').mockReturnValue({});
-        HistoryManager.shareBill();
+        await HistoryManager.shareBill(true);
         const url = open.mock.calls[0][0];
         expect(url.startsWith('https://wa.me/?text=')).toBe(true);
         expect(decodeURIComponent(url.split('text=')[1])).toBe(buildBillShareText(WHOLESALE, 'wholesale'));

@@ -76,7 +76,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261124e-notify-tests';
+const BUILD_ID = '20261124f-whatsapp-bill-image';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1299,8 +1299,8 @@ window.app = {
         pickSaleContact: () => BillingManager.pickSaleContact(),
         
         // WhatsApp share
-        shareWhatsApp: () => BillingManager.shareWhatsApp(),
-        shareSaleWhatsApp: () => BillingManager.shareSaleWhatsApp(),
+        shareWhatsApp: (asText) => BillingManager.shareWhatsApp(asText),
+        shareSaleWhatsApp: (asText) => BillingManager.shareSaleWhatsApp(asText),
         
         // Sale methods
         printSale: () => BillingManager.printSale(),
@@ -1341,7 +1341,7 @@ window.app = {
         updatePaymentTotal: () => PurchaseManager.updatePaymentTotal(),
         fillPayableAmount: (type) => PurchaseManager.fillPayableAmount(type),
         saveBillToHistory: () => PurchaseManager.saveBillToHistory(),
-        shareWhatsApp: () => PurchaseManager.shareWhatsApp(),
+        shareWhatsApp: (asText) => PurchaseManager.shareWhatsApp(asText),
         getBillItems: () => PurchaseManager.getBillItems(),
         getWeights: () => PurchaseManager.getWeights(),
         clearBill: () => PurchaseManager.clearBill()
@@ -1362,7 +1362,7 @@ window.app = {
         updateSalePaymentTotal: () => RetailSaleManager.updateSalePaymentTotal(),
         fillReceivableAmount: (type) => RetailSaleManager.fillReceivableAmount(type),
         completeSale: () => RetailSaleManager.completeSale(),
-        shareSaleWhatsApp: () => RetailSaleManager.shareSaleWhatsApp(),
+        shareSaleWhatsApp: (asText) => RetailSaleManager.shareSaleWhatsApp(asText),
         printSale: () => RetailSaleManager.printSale(),
         pickSaleContact: () => RetailSaleManager.pickSaleContact(),
         getSaleItems: () => RetailSaleManager.getSaleItems(),
@@ -1410,7 +1410,7 @@ window.app = {
         editWholesaleItem: (index) => withWholesale(m => m.editWholesaleItem(index)),
         completeSale: () => withWholesale(m => m.completeSale()),
         printWholesaleSale: () => withWholesale(m => m.printWholesaleSale()),
-        shareViaWhatsApp: () => withWholesale(m => m.shareViaWhatsApp()),
+        shareViaWhatsApp: (asText) => withWholesale(m => m.shareViaWhatsApp(asText)),
         renderHistory: () => withWholesale(m => m.renderSalesHistory()),
         completeAllDue: (name) => withWholesale(m => m.completeAllDue(name)),
         reprintSale: (index) => withWholesale(m => m.reprintSale(index)),
@@ -1452,7 +1452,7 @@ window.app = {
         reprintBill: () => HistoryManager.reprintBill(),
         retryPrint: () => HistoryManager.retryPrint(),
         markPrintedByHand: () => HistoryManager.markPrintedByHand(),
-        shareBill: () => HistoryManager.shareBill(),
+        shareBill: (asText) => HistoryManager.shareBill(asText),
         copyTraceId: () => HistoryManager.copyTraceId(),
         // The bill details modal's Edit: the bill it is showing
         editCurrentBill: () => window.app.history.editBillDetails(window.currentBillIndex),

@@ -8,10 +8,10 @@
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { PrinterService } from '../services/printer.js';
 import { buildBillShareText, buildReprintPayload } from '../utils/bill-share.js';
+import { shareBill } from '../services/bill-image-share.js';
+import { onHold } from './actions.js';
 import { billTotal, formatRupees, outstandingDue } from '../utils/money.js';
 import { printStatusOf } from '../utils/print-status.js';
-import { whatsAppShareUrl } from '../utils/release-info.js';
-import { openExternal } from '../utils/open-external.js';
 import { t } from '../i18n/index.js';
 import { icon } from './icons.js';
 
@@ -78,7 +78,7 @@ export function renderLastSaved(kind) {
     box.replaceChildren(
         open,
         iconButton('btn-tonal', t('ui.common.print'), icon('printer'), () => printLastSaved(kind)),
-        iconButton('btn-tonal', t('ui.last_saved.whatsapp'), icon('wa'), () => shareLastSaved(kind)),
+        holdForText(iconButton('btn-tonal', t('ui.last_saved.whatsapp'), icon('wa'), () => shareLastSaved(kind)), kind),
         iconButton('btn-ghost last-saved-close', t('ui.last_saved.hide'), icon('x', 'i-sm'), () => hideLastSaved(kind))
     );
 }
@@ -113,9 +113,17 @@ export async function printLastSaved(kind) {
     }
 }
 
-/** WhatsApp from the strip: the saved bill's text (not a draft). */
-export function shareLastSaved(kind) {
+/** Press and hold the strip's WhatsApp: the text instead of the picture. */
+function holdForText(button, kind) {
+    onHold(button, () => shareLastSaved(kind, true));
+    return button;
+}
+
+/** WhatsApp from the strip: the saved bill's receipt picture (no COPY mark), or its text when `asText`. */
+export function shareLastSaved(kind, asText = false) {
     const bill = last[kind];
-    if (!bill) return;
-    openExternal(whatsAppShareUrl(buildBillShareText(bill, kind, { copy: false })));
+    if (!bill) return undefined;
+    return shareBill({ ...buildReprintPayload(bill, kind), isCopy: false }, {
+        type: kind, text: buildBillShareText(bill, kind, { copy: false }), asText
+    });
 }

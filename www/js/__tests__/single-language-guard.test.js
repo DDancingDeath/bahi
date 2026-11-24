@@ -439,7 +439,7 @@ describe('Hindi mode: no English UI words', () => {
             buildDraftShareText({ kind: 'wholesale', customer: 'Suresh', note: 'Mahua', items, total: 400, expenses: 20, profit: 50 })
         ].join('\n');
         expect(englishWords(text)).toEqual([]);
-        ['खरीद बिल', 'ग्राहक', 'रेट', 'कुल', 'खर्च', 'मुनाफ़ा'].forEach(s => expect(text).toContain(s));
+        ['खरीद बिल', 'ग्राहक', 'तारीख', 'कुल', 'खर्च', 'मुनाफ़ा'].forEach(s => expect(text).toContain(s));
     });
 
     test('Outstanding list, bill checks and notifications', () => {

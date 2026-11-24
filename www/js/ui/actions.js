@@ -221,10 +221,68 @@ function reportHandlerError(e) {
     else setTimeout(() => { throw e; });
 }
 
+/** How long a press must last to count as a hold (`data-onhold`, onHold). */
+export const HOLD_MS = 550;
+
+/**
+ * Press and hold (or right-click) on `el` runs `fn`, and the click that ends the hold does nothing.
+ * @param {Document|Element} target where the listeners go
+ * @param {(event: Event) => ?Element} find the element held for an event, or null
+ * @param {(el: Element, event: Event) => void} fn
+ */
+function listenHold(target, find, fn) {
+    const win = /** @type {any} */ (target).defaultView || target.ownerDocument?.defaultView || window;
+    let timer = 0;
+    /** @type {?Element} */
+    let fired = null;
+    const cancel = () => { win.clearTimeout(timer); timer = 0; };
+    const run = (el, event) => { cancel(); fired = el; fn(el, event); };
+    target.addEventListener('pointerdown', (event) => {
+        if (/** @type {PointerEvent} */ (event).button > 0) return;
+        fired = null;
+        cancel();
+        const el = find(event);
+        if (el) timer = win.setTimeout(() => run(el, event), HOLD_MS);
+    });
+    ['pointerup', 'pointercancel', 'scroll'].forEach((type) => target.addEventListener(type, cancel, true));
+    target.addEventListener('contextmenu', (event) => {
+        const el = find(event);
+        if (!el) return;
+        event.preventDefault();
+        if (fired !== el) run(el, event);
+    });
+    target.addEventListener('click', (event) => {
+        if (!fired || !find(event)) return;
+        fired = null;
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+}
+
+/**
+ * Press and hold (or right-click) on a button runs `fn` instead of its click (e.g. WhatsApp → share as text).
+ * @param {Element} el
+ * @param {(event: Event) => void} fn
+ */
+export function onHold(el, fn) {
+    listenHold(el, () => el, (_el, event) => fn(event));
+}
+
 /** Attaches the document listeners once. */
 export function installActions(doc = document) {
     if (doc.__aadhatActions) return;
     doc.__aadhatActions = true;
+    // data-onhold: press and hold (or right-click) runs it, and the click that ends the hold does nothing
+    listenHold(doc, (event) => {
+        const t = event.target instanceof Element ? event.target : /** @type {any} */ (event.target)?.parentElement;
+        return t?.closest?.('[data-onhold]') || null;
+    }, (el, event) => {
+        try {
+            runAction(el, el.getAttribute('data-onhold') || '', event);
+        } catch (e) {
+            reportHandlerError(e);
+        }
+    });
     // A non-native control with role="button" and a data-onclick also answers Enter and Space,
     // as a button does (keyboard users; was an inline onkeydown on each).
     doc.addEventListener('keydown', (event) => {

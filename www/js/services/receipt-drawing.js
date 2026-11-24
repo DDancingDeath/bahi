@@ -207,6 +207,9 @@ class ReceiptDrawing {
         if (billData.isCopy) {
             y = utils.drawCenter(copyMark(this._lang), y, config.fonts.header, true);
         }
+        if (billData.isDraft) {
+            y = utils.drawCenter(this._t('ui.bill.draft_mark'), y, config.fonts.header, true);
+        }
         
         // Bill number on left, the bill's own date/time on right (same line)
         const dateTime = receiptDateTime(billData);
@@ -418,12 +421,14 @@ class ReceiptDrawing {
     }
 
     /**
-     * The receipt as shown in the preview / saved as an image (58 mm layout).
+     * The receipt as shown in the preview / saved or shared as an image (58 mm layout): the same
+     * drawing as the printed slip, `dots` wide (the WhatsApp picture is drawn at 2×).
      * @param {Object} billData
      * @param {Object} [receipt] footer, qr, lang, logo (#107)
+     * @param {number} [dots=384]
      */
-    async generateBillCanvas(billData, receipt) {
-        const { canvas, height } = this._renderBillCanvas(billData, LAYOUT_DOTS, receipt);
+    async generateBillCanvas(billData, receipt, dots = LAYOUT_DOTS) {
+        const { canvas, height } = this._renderBillCanvas(billData, dots, receipt);
         
         // Crop to the used height (needed for the on-screen preview / PNG)
         const finalCanvas = document.createElement('canvas');

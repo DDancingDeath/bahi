@@ -7,7 +7,6 @@ import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
 import { computeShortfallsFrom, approxStockNote, stockWarnOnlyNote } from '../utils/stock-check.js';
-import { openExternal } from '../utils/open-external.js';
 import { awaitingServer } from '../utils/data-freshness.js';
 import { normalizeThresholds, stockCreditFor } from '../utils/bill-checks.js';
 import { showAmount } from '../ui/number-input.js';
@@ -33,6 +32,7 @@ import { getLang, t, tn } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
+import { shareBill } from '../services/bill-image-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, prepareBillDate, resetBillDate } from '../ui/bill-date-input.js';
@@ -914,7 +914,11 @@ export class WholesaleSalesManager {
         });
     }
 
-    static shareViaWhatsApp() {
+    /**
+     * WhatsApp: the draft sale's receipt picture (the printed layout, marked DRAFT), or its text when `asText`.
+     * @param {boolean} [asText]
+     */
+    static shareViaWhatsApp(asText = false) {
         if (wholesaleSaleItems.length === 0) {
             UIManager.showToast(t('msg.wholesale.no_items_share'));
             return;
@@ -929,9 +933,12 @@ export class WholesaleSalesManager {
         const message = buildDraftShareText({
             kind: 'wholesale', customer: customerName, note: comments, items: wholesaleSaleItems, total, expenses, profit
         });
-        
-        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        openExternal(url);
+        const draft = {
+            type: 'wholesale', isPurchase: false, isDraft: true, customerName, items: wholesaleSaleItems,
+            total, saleTotal: total, grandTotal: total, amountPayable: total, payment: this.readPaymentSplit(),
+            date: new Date().toISOString()
+        };
+        return shareBill(draft, { type: 'wholesale', text: message, asText });
     }
 
     static updateWholesaleCustomerOptions(newCustomer) {

@@ -221,7 +221,7 @@
                 <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barPayable">0</span></strong>
                 <span class="bill-backdated" data-backdated-for="billDate" role="status" hidden></span>
             </div>
-            <button type="button" data-onclick="billing.shareWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+            <button type="button" data-onclick="billing.shareWhatsApp()" data-onhold="billing.shareWhatsApp(true)" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                 <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
                 <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
             </button>
@@ -401,7 +401,7 @@
                 <strong class="bill-bar-money money"><span class="cur">₹</span><span id="barReceivable">0</span></strong>
                 <span class="bill-backdated" data-backdated-for="saleDate" role="status" hidden></span>
             </div>
-            <button type="button" data-onclick="billing.shareSaleWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+            <button type="button" data-onclick="billing.shareSaleWhatsApp()" data-onhold="billing.shareSaleWhatsApp(true)" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                 <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
                 <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
             </button>
