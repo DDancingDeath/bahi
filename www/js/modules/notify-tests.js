@@ -192,6 +192,15 @@ export const NotifyTests = {
         const old = $('notifTestBtnRow');
         if (old) old.hidden = show;
         if (!show) return;
+        if (!panel.dataset.bound) {
+            panel.dataset.bound = '1';
+            panel.addEventListener('toggle', () => { if (panel.open) this.opened(); });
+        }
+        if (panel.open) this.opened();
+    },
+
+    /** The team and the status are read only once the panel is opened (Settings itself reads nothing). */
+    opened() {
         this.fillPicker().catch(e => console.warn('Test picker failed:', e?.message || e));
         this.renderStatus().catch(e => console.warn('Notification status failed:', e?.message || e));
     },

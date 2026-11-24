@@ -505,8 +505,8 @@
             </div>
             <p class="setting-description" id="notifPlatformNote"></p>
             </div>
-            <div id="notifTestPanel" class="notif-tests" hidden>
-                <h4 class="set-subtitle" data-i18n="ui.notify.tests_title">Test notifications</h4>
+            <details id="notifTestPanel" class="notif-tests" hidden>
+                <summary class="set-subtitle" data-i18n="ui.notify.tests_title">Test notifications</summary>
                 <p class="setting-description" data-i18n="ui.notify.tests_hint">Try each kind and see whether it arrives. At most 5 tests a minute.</p>
                 <div class="notif-test" data-notify-test="now">
                     <button class="btn btn-tonal" type="button" data-onclick="notifications.runTest('now')" data-i18n="ui.notify.test_now">This phone, now</button>
@@ -537,7 +537,7 @@
                 <div class="set-actions">
                     <button class="btn btn-ghost btn-sm" type="button" data-onclick="notifications.refreshTestStatus()" data-i18n="ui.notify.status_check">Check again</button>
                 </div>
-            </div>
+            </details>
         </div>
     </section>
 </div>

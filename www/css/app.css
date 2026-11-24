@@ -9677,6 +9677,14 @@ body.no-perm-contacts [data-perm~="contacts"] {
 }
 
 /* Settings › Notifications › Test notifications */
+.notif-tests {
+  margin-top: var(--sp-3);
+}
+
+.notif-tests > summary {
+  cursor: pointer;
+}
+
 .notif-test {
   display: grid;
   gap: var(--sp-1);

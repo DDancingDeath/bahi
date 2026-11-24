@@ -74,9 +74,15 @@ describe('test panel (modules/notify-tests.js)', () => {
 
     test('owners and managers see the panel instead of the single test button; others do not', async () => {
         NotifyTests.render();
-        expect(document.getElementById('notifTestPanel').hidden).toBe(false);
+        const box = document.getElementById('notifTestPanel');
+        expect(box.hidden).toBe(false);
         expect(document.getElementById('notifTestBtnRow').hidden).toBe(true);
-        await NotifyTests.fillPicker();
+        expect(FirebaseService.loadPeople).not.toHaveBeenCalled();
+        expect(PushNotify.status).not.toHaveBeenCalled();
+        box.open = true;
+        box.dispatchEvent(new Event('toggle'));
+        await new Promise(r => setTimeout(r, 0));
+        expect(PushNotify.status).toHaveBeenCalled();
         expect([...document.getElementById('notifTestTo').options].map(o => o.textContent))
             .toEqual([t('ui.notify.test_everyone'), 'Asha', 'Om']);
         AppState.userRole = 'staff';
