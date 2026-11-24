@@ -525,7 +525,7 @@ service cloud.firestore {
                              'rateType', 'rateTypeLabel', 'oldRate', 'newRate', 'newRole',
                              'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])))
         && d.get('changedByUserId', null) == request.auth.uid
-        && d.get('userId', null) is string && d.userId.size() > 0 && d.userId != request.auth.uid
+        && d.get('userId', null) is string && d.userId.size() > 0 && (d.userId != request.auth.uid || d.type == 'test')
         && d.get('eventKey', null) is string && docId == d.eventKey + '_' + d.userId
         && d.get('read', null) == false
         && d.get('timestamp', null) == request.time
@@ -540,6 +540,7 @@ service cloud.firestore {
               && !d.keys().hasAny(['action', 'fields'])
             : d.get('type', null) == 'role_change' ? roleNoteOk(u, d)
             : d.type in ['cash_open', 'cash_close'] ? cashNoteOk(u, d)
+            : d.type == 'test' ? testNoteOk(u, d)
             : d.get('type', null) == 'item_edit'
               && d.get('action', null) in ['added', 'updated']
               && d.get('fields', []) is list
@@ -559,6 +560,12 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/$(u)/$(d.userId)).data.get('role', '') in ['owner', 'manager']
         && d.keys().hasOnly(['type', 'date', 'amount', 'difference', 'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])
         && d.date is string && d.amount is number && d.get('difference', 0) is number;
+    }
+
+    function testNoteOk(u, d) {
+      let p = get(/databases/$(database)/documents/$(u)/$(d.userId)).data;
+      return d.keys().hasOnly(['type', 'changedBy', 'changedByUserId', 'userId', 'eventKey', 'read', 'timestamp'])
+        && p.get('role', '') in ['owner', 'manager', 'staff'] && !(p.get('status', '') in ['pending', 'rejected']);
     }
 
     function notificationReadOnly() {

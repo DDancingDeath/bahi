@@ -239,6 +239,18 @@ describe('Firestore paths (fake Firestore)', () => {
         expect([...fake.raw('notifications').values()].map(d => d.userId)).toEqual(['owner1']);
     });
 
+    test('a test notification goes to each person listed, the sender too, with only the test fields', async () => {
+        const r = await FirebaseService.sendTestNotification(['owner1', 'u3', 'u3']);
+        expect(r.count).toBe(2);
+        expect(r.eventId).toMatch(/^test-/);
+        const docs = [...fake.raw('notifications').entries()];
+        expect(docs.map(([id]) => id).sort()).toEqual([`${r.eventId}_owner1`, `${r.eventId}_u3`]);
+        const { timestamp, ...rest } = docs.find(([id]) => id.endsWith('_owner1'))[1];
+        expect(rest).toEqual({ type: 'test', changedBy: 'Owner', changedByUserId: 'owner1', userId: 'owner1', eventKey: r.eventId, read: false });
+        expect(timestamp).toBeDefined();
+        expect(describeNotification(rest)).toMatchObject({ en: 'Test notification: it reached this phone.', who: 'Owner', target: null });
+    });
+
     test('rate changes go to everyone but the actor; wholesale only to owners/managers; one batch per event', async () => {
         await FirebaseService.notifyRateChanges({ id: 'g', name: 'Gehu' }, [
             { rateType: 'sale', oldRate: 40, newRate: 45 },

@@ -20,7 +20,8 @@ below, adds bell updates pushed to a closed app, also free):
 | Udhaar summary (owner, managers) at the summary time | ✔ (amounts as of the last time the app was open) | ✔ | ✔ | only while open |
 | Rent due on each rent due day (Rentals roles) | ✔ (needs the Rent page opened this month on this phone, like the rent reminder at the top of the Rent page; rent is not on Aadhat's Today) | ✔ | ✔ | only while open |
 | Backup check (owner) 30 days after the last check on this phone | ✔ | ✔ | ✔ | only while open |
-| Send test notification | one now + one 10 s later (close the app or lock the phone to try it) | ✔ | ✔ | one now |
+| Send test notification (Members) | one now + one 10 s later (close the app or lock the phone to try it) | ✔ | ✔ | one now |
+| Test notifications panel (owner, managers): see [How to test](#how-to-test) | push test ✔ (~30 s) | ✔ | ✔ | ✔ (push test needs a VAPID key) |
 
 Tapping a notification opens the app on the bell (bell updates; Today › Cash for a single cash opened / closed), Today's Reminders (To do),
 Outstanding (Udhaar), Rentals › Rent, or Admin › Data (backup check). In the browser the service
@@ -28,7 +29,8 @@ worker focuses the open tab and tells it where to go, or opens `/?notify=<page>`
 
 **Never for your own changes:** a bell notification document is never written for the person who made
 the change (`planNotificationDocs` leaves the actor out), so their other phones get nothing either; the
-app also drops any arrival marked with their own uid. Notification text is what the bell already shows;
+app also drops any arrival marked with their own uid. The one exception is a `test` from the test panel
+to the sender's own phones. Notification text is what the bell already shows;
 amounts appear only in the Udhaar summary (owner, managers) and Rent due (Rentals roles).
 
 ## Settings › Help & about › Notifications (every platform)
@@ -109,6 +111,7 @@ text/rules in `js/utils/notification-format.js`, writes in
 | `item_edit` (`action: added/updated`) | item added, or its name / Hindi name / contact changed | owners (except the person who changed it) | live |
 | `cash_open` (`date`, `amount` = opening) | the day's cash is opened (Today › Cash; not when a phone joins an already open day) | owners and managers (except the person who opened it); any member may send it (rules: `cashNoteOk`) | live |
 | `cash_close` (`date`, `amount` = counted, `difference`) | the day's cash is closed with a count; short / extra shown when not zero. Auto-closed past days don't notify | owners and managers (except the person who closed it) | live |
+| `test` (only `changedBy`) | Settings › Notifications › Test notifications (owner, managers): the push test or "Other phones" | the chosen team members, or the sender (push test); rules: `testNoteOk`. Needs only the master switch, no per-kind switch | live |
 | `edit` (`documentType`) | a bill / sale / payment was edited | owners | text supported; no sender wired yet |
 | `review_flag` | an open review-queue flag | owners/managers | planned |
 | `stale_outbox` | writes not synced for a long time on a device | that user + owners | planned |
@@ -131,22 +134,26 @@ Bahi tab open. Still ₹0: no card, no Cloud Functions (they need the Blaze plan
   `script.external_request`) reads Firestore over REST and sends with **FCM HTTP v1**. Requests made
   this way are authorised by IAM (the project Owner), not by `firestore.rules`. Each request names
   its project with `X-Goog-User-Project`, so one script serves both projects.
-  - **Web app** `doPost({eventId, project})`: the phone that wrote an event's notification docs posts
+  - **Web app** `doPost({eventId, project, delay?})`: the phone that wrote an event's notification docs posts
     its event id right after the write (`firebase/push-trigger.js`, `no-cors`, fire and forget: the
     action never waits; no URL configured = nothing). Only `bahi-happa` and `bahi-happa-dev` are
     accepted. It reads that event's docs (`eventKey ==`), sends, marks each doc `pushed: true`, so a
     repeated call, or anyone posting a made-up id, sends nothing new; the same event id is ignored for
-    10 minutes and at most 60 calls a minute are served.
+    10 minutes and at most 60 calls a minute are served. It answers `{ok, docs, targets, sent, stale,
+    failed, limited}` (`targets`: devices it sent to, `sent`: accepted by FCM). `delay` (seconds, at most
+    60, at most 10 such calls a minute) makes it wait first: the closed-app test. `test` docs: at most 5
+    test events a minute per sender (CacheService); over that they are marked pushed unsent (`limited`).
   - **Time trigger** `sweep()` every 5 minutes: per project the docs written since the last sweep
     (cursor in Script Properties, 2 minutes overlap, at most 2 days back) that are not `pushed`, i.e.
-    from a phone that was offline or closed before it could call. Usually one empty query (1 read) per
+    from a phone that was offline or closed before it could call. A `test` doc younger than 90 s is left
+    to its (possibly delayed) call and the cursor stays before it. Usually one empty query (1 read) per
     project per run; about 290 runs a day, a second or two each, far inside the 90 minutes a day of
     trigger time.
   - **Who gets what:** the doc's `userId` (the writer is never a recipient). For each of that person's
     devices (`users/{uid}/devices`): only with Phone notifications on and that kind's own switch under
     "Updates from others" not off (`kinds`, a copy of `happa.notify`; `rate_change` → `rate`, `item_edit` → `item`,
     `role_change` → `role` (always on), `cash_open` → `cashOpen`, `cash_close` → `cashClose`; any
-    other type always goes). Several new ones for a phone go as one ("Bahi: 3 new").
+    other type always goes; `test` needs only Phone notifications on). Several new ones for a phone go as one ("Bahi: 3 new").
   - **Text:** the bell's own words in the phone's language (`push-sender/Core.js` `describe`, checked
     against `describeNotification` by `tests/push-sender/core.test.js`), then "— who".
   - **Stale tokens:** FCM 404 / `UNREGISTERED` / `SENDER_ID_MISMATCH` / an invalid token → the device doc
@@ -209,3 +216,27 @@ register only with an APK built after it was set (rc18 has the plugin but an emp
 If a call says "API has not been used in project …": in the script's Project settings › Google Cloud
 project, switch it to the project number of `bahi-happa` (that also needs the OAuth consent screen
 there, "In production").
+
+## How to test
+
+Settings › Help & about › Notifications › **Test notifications** (owner and managers; Members keep the
+single "Send test notification"). Each button shows its result under it; at most 5 tests a minute per
+person (this phone, and the push sender counts too).
+
+| Button | What it does | When it should come |
+|---|---|---|
+| **This phone, now** | a local notification (the plugin / service worker) | at once |
+| **This phone, in 15 s** | a local one scheduled with Android's alarm service (browser: a timer). Press Home after tapping | 15 s, app in the background |
+| **This phone by push, in about 30 s** | writes a `test` doc for yourself and asks the sender with `delay: 30`; then swipe the app away. A real FCM push to every phone of yours with Phone notifications on. Not shown as a toast on the phone that sent it | ~30 s; if the call is lost, the 5-minute sweep (≤ 5 min) |
+| **Other phones** (a person or "Everyone on the team", you left out) | a `test` doc in each person's bell: a toast if their app is open, the app's own notification in the background, a push when closed. The line shows phones targeted and accepted (FCM 200) | at once |
+
+**Status of this phone:** push registered (the device doc, with when it was last written; one read, at
+most once a minute or with "Check again"), the Phone notifications switch, the permission, the last push
+the app saw (on screen or tapped; in the browser also the service worker's), and on Android the battery
+hint (Apps › Bahi › Battery › Unrestricted). A test push that arrives with the app on screen shows a
+toast ("Test push arrived while the app was open"), since Android shows nothing then.
+
+What a failure means: "not registered for push" = no device doc (switch Phone notifications off and on,
+or the APK is older than rc19); "0 phones targeted" = the person's phones have no device doc or Phone
+notifications off; targeted but not accepted = FCM refused (a stale token is deleted, see the sender's
+log); accepted but nothing on the phone = the phone (battery saving, the app's notification settings).

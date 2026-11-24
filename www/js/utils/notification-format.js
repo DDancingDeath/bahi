@@ -15,6 +15,8 @@ import { formatRate, formatRupees } from './money.js';
  * keys (true / false, unset = on). Stable names: stage-2 push reads them too.
  */
 export const UPDATE_KINDS = Object.freeze(['rate', 'item', 'cashOpen', 'cashClose', 'role']);
+/** The notification type of a test from Settings › Notifications: no switch of its own, may go to its sender. */
+export const TEST_TYPE = 'test';
 /** Kinds that cannot be switched off (a role change is about the person's own access). */
 export const ALWAYS_ON_KINDS = Object.freeze(['role']);
 /** @type {Readonly<Object<string, string>>} notification `type` → update kind */
@@ -243,6 +245,10 @@ export function describeNotification(n = {}) {
         };
     }
 
+    if (type === TEST_TYPE) {
+        return { icon: '🔔', en: 'Test notification: it reached this phone.', hi: 'जाँच की सूचना: इस फ़ोन तक पहुँच गई।', who, target: null };
+    }
+
     if (type === 'edit') {
         const label = DOC_LABELS[n.documentType] || { en: 'Record', hi: 'रिकॉर्ड' };
         const ref = clean(n.billNumber) || clean(n.newData?.billNumber) || clean(n.oldData?.billNumber);
@@ -406,6 +412,23 @@ export function notificationDocId(eventId, userId) {
 export function planNotificationDocs(eventId, recipientIds, actorId, data) {
     const ids = [...new Set((recipientIds || []).filter(id => id && id !== actorId))];
     return ids.map(userId => ({ id: notificationDocId(eventId, userId), data: { ...data, userId, eventKey: eventId } }));
+}
+
+/**
+ * Test notification docs (Settings › Notifications › Test): unlike planNotificationDocs the sender
+ * may be a recipient (the push test to their own phones).
+ * @param {string} eventId
+ * @param {?Array<string>|undefined} recipientIds
+ * @param {{uid: string, name: string}} actor
+ * @param {Rec} [stamps] - `read`, `timestamp`
+ * @returns {Array<{id: string, data: Rec}>}
+ */
+export function testNotificationDocs(eventId, recipientIds, actor, stamps = {}) {
+    const ids = [...new Set((recipientIds || []).filter(Boolean))];
+    return ids.map(userId => ({
+        id: notificationDocId(eventId, userId),
+        data: { type: TEST_TYPE, changedBy: actor.name || '', changedByUserId: actor.uid, userId, eventKey: eventId, ...stamps }
+    }));
 }
 
 /** Random-enough event id for a user action. */

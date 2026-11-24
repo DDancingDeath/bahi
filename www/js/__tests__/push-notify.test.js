@@ -5,8 +5,8 @@
 import { webcrypto } from 'crypto';
 import { TextEncoder as NodeTextEncoder } from 'util';
 import { pushDeviceId, pushDeviceDoc, pushDeviceSig, pushDeviceStale, PUSH_REFRESH_MS, PUSH_DEVICE_KEY } from '../utils/push-device.js';
-import { triggerPush } from '../firebase/push-trigger.js';
-import { savePushDevice, deletePushDevice } from '../firebase/repos/push-devices.js';
+import { triggerPush, requestPush } from '../firebase/push-trigger.js';
+import { savePushDevice, deletePushDevice, readPushDeviceDoc } from '../firebase/repos/push-devices.js';
 import { PushNotify } from '../modules/push-notify.js';
 import { PhoneNotify } from '../modules/phone-notify.js';
 import { UIManager } from '../ui/ui-manager.js';
@@ -17,7 +17,8 @@ import { notifyPrefs } from '../utils/phone-reminders.js';
 
 jest.mock('../firebase/repos/push-devices.js', () => ({
     savePushDevice: jest.fn(async () => {}),
-    deletePushDevice: jest.fn(async () => {})
+    deletePushDevice: jest.fn(async () => {}),
+    readPushDeviceDoc: jest.fn(async () => ({ updatedAt: 1 }))
 }));
 jest.mock('../config/app-identity.js', () => ({
     APP_IDENTITY: { appName: 'Bahi', projectId: 'bahi-happa', push: { url: 'https://script.google.com/macros/s/abc/exec', vapidKey: '' } }
@@ -73,6 +74,31 @@ describe('call to the sender (firebase/push-trigger.js)', () => {
         window.COLLECTION_PREFIX = 'dev_';
         expect(triggerPush('e1', { fetchFn })).toBe(false);
         expect(fetchFn).not.toHaveBeenCalled();
+    });
+});
+
+describe('test call that waits for the answer (requestPush)', () => {
+    afterEach(() => { delete window.COLLECTION_PREFIX; });
+
+    test('posts the delay, a readable request, and returns the answer', async () => {
+        const fetchFn = jest.fn(async () => ({ json: async () => ({ ok: true, docs: 1, targets: 2, sent: 2 }) }));
+        expect(await requestPush('test-1', { delay: 30, fetchFn })).toEqual({ ok: true, docs: 1, targets: 2, sent: 2 });
+        const [, init] = fetchFn.mock.calls[0];
+        expect(init.mode).toBeUndefined();
+        expect(JSON.parse(init.body)).toEqual({ eventId: 'test-1', project: 'bahi-happa', delay: 30 });
+        await requestPush('test-2', { fetchFn });
+        expect(JSON.parse(fetchFn.mock.calls[1][1].body)).toEqual({ eventId: 'test-2', project: 'bahi-happa' });
+    });
+
+    test('no sender, test data or an unreadable answer: null', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        expect(await requestPush('e1', { fetchFn: jest.fn(async () => { throw new TypeError('cors'); }) })).toBeNull();
+        expect(await requestPush('e1', { fetchFn: jest.fn(), identity: { push: { url: '' } } })).toBeNull();
+        window.COLLECTION_PREFIX = 'dev_';
+        const fetchFn = jest.fn();
+        expect(await requestPush('e1', { fetchFn })).toBeNull();
+        expect(fetchFn).not.toHaveBeenCalled();
+        jest.restoreAllMocks();
     });
 });
 
@@ -172,5 +198,33 @@ describe('Android app (@capacitor-firebase/messaging, mocked)', () => {
         expect(PhoneNotify.bell([{ type: 'rate_change', itemName: 'Wheat' }], 'u1')).toBe(false);
         expect(ln.schedule).not.toHaveBeenCalled();
         PhoneNotify.stop();
+    });
+
+    test('a push on screen or tapped is remembered; a test one on screen says so', async () => {
+        const { listeners } = messagingPlugin();
+        PushNotify.init(() => {});
+        const onTest = jest.fn();
+        PushNotify.onTest = onTest;
+        expect(await PushNotify.lastPushAt()).toBe(0);
+        listeners.notificationReceived({ notification: { data: { route: 'bell' } } });
+        expect(onTest).not.toHaveBeenCalled();
+        listeners.notificationReceived({ notification: { data: { route: 'bell', test: '1' } } });
+        expect(onTest).toHaveBeenCalledTimes(1);
+        expect(await PushNotify.lastPushAt()).toBeGreaterThan(Date.now() - 5000);
+        PushNotify.onTest = null;
+    });
+
+    test('status: registered and present, missing on the server, or not registered', async () => {
+        messagingPlugin();
+        expect(await PushNotify.status('u1')).toEqual({ kind: 'android', savedAt: 0, present: false });
+        await PushNotify.sync('u1', prefs(), 'en');
+        const st = await PushNotify.status('u1');
+        expect(st).toMatchObject({ kind: 'android', present: true });
+        expect(st.savedAt).toBeGreaterThan(0);
+        readPushDeviceDoc.mockResolvedValueOnce(null);
+        expect((await PushNotify.status('u1')).present).toBe(false);
+        readPushDeviceDoc.mockRejectedValueOnce(new Error('offline'));
+        expect((await PushNotify.status('u1')).present).toBeNull();
+        expect((await PushNotify.status('u2')).savedAt).toBe(0);
     });
 });

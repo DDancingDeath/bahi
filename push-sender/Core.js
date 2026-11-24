@@ -16,6 +16,9 @@ var PushCore = (function () {
     var ICON = 'ic_stat_bahi';
     var COLOR = '#89B284';
     var TAG = 'happa-bell';
+    var TEST = 'test';
+    /** A test doc this young waits for its own (possibly delayed) web app call instead of the sweep. */
+    var TEST_HOLD_MS = 90 * 1000;
 
     /** The person's switch for each notification type (`happa.notify`, notification-format.js TYPE_KINDS); others always go. */
     var KIND_OF_TYPE = {
@@ -161,6 +164,9 @@ var PushCore = (function () {
                 who: ''
             };
         }
+        if (type === TEST) {
+            return { en: 'Test notification: it reached this phone.', hi: 'जाँच की सूचना: इस फ़ोन तक पहुँच गई।', who: who };
+        }
         if (type === 'edit') {
             var doc = DOC_TEXT[DOC_LABELS[n.documentType]] || { en: 'Record', hi: 'रिकॉर्ड' };
             var ref = clean(n.billNumber) || clean(n.newData && n.newData.billNumber) || clean(n.oldData && n.oldData.billNumber);
@@ -184,9 +190,10 @@ var PushCore = (function () {
 
     function kindOf(type) { return KIND_OF_TYPE[type] || 'bell'; }
 
-    /** A device doc wants this type: phone notifications on, bell updates on, its own switch not off. */
+    /** A device doc wants this type: phone notifications on, bell updates on, its own switch not off (a test needs only the first). */
     function wants(device, type) {
         if (!device || device.on !== true || typeof device.token !== 'string' || !device.token) return false;
+        if (type === TEST) return true;
         var kinds = device.kinds && typeof device.kinds === 'object' ? device.kinds : {};
         if (kinds.bell === false) return false;
         var k = kindOf(type);
@@ -210,12 +217,15 @@ var PushCore = (function () {
     }
 
     /** FCM v1 message. Android: shown by the system on the "Bahi" channel, app closed or not. Web: data only; the service worker shows it. */
-    function buildMessage(device, title, body) {
+    function buildMessage(device, title, body, test) {
+        var data = test ? { route: 'bell', test: '1' } : { route: 'bell' };
         if (device.platform === 'web') {
+            var web = { route: 'bell', title: title, body: body, tag: TAG };
+            if (test) web.test = '1';
             return {
                 message: {
                     token: device.token,
-                    data: { route: 'bell', title: title, body: body, tag: TAG },
+                    data: web,
                     webpush: { headers: { Urgency: 'high', TTL: '86400' } }
                 }
             };
@@ -224,7 +234,7 @@ var PushCore = (function () {
             message: {
                 token: device.token,
                 notification: { title: title, body: body },
-                data: { route: 'bell' },
+                data: data,
                 android: {
                     priority: 'HIGH',
                     ttl: '86400s',
@@ -257,7 +267,7 @@ var PushCore = (function () {
                 out.push({
                     uid: uid,
                     device: dev,
-                    body: buildMessage({ token: data.token, platform: data.platform }, title, pushText(mine[0].data, lang)),
+                    body: buildMessage({ token: data.token, platform: data.platform }, title, pushText(mine[0].data, lang), mine[0].data.type === TEST),
                     docNames: mine.map(function (d) { return d.name; })
                 });
             });
@@ -353,22 +363,44 @@ var PushCore = (function () {
     }
 
     /**
+     * Test docs whose sender is over the test limit (`io.allowTest(uid, eventKey)`, counted once per event).
+     * @returns {Object<string, boolean>} doc name → true
+     */
+    function limitedTests(io, docs) {
+        var out = {};
+        var asked = {};
+        if (!io.allowTest) return out;
+        docs.forEach(function (d) {
+            if (d.data.type !== TEST) return;
+            var key = String(d.data.changedByUserId || '') + ' ' + String(d.data.eventKey || '');
+            if (!(key in asked)) asked[key] = io.allowTest(String(d.data.changedByUserId || ''), String(d.data.eventKey || '')) !== false;
+            if (!asked[key]) out[d.name] = true;
+        });
+        return out;
+    }
+
+    /**
      * Sends the pending docs to their recipients' devices, deletes stale tokens and marks the docs
      * `pushed: true`, so a second call or the sweep never sends them again.
-     * @returns {{docs: number, sent: number, stale: number, failed: number}}
+     * @returns {{docs: number, targets: number, sent: number, stale: number, failed: number, limited: number}}
      */
     function pushDocs(io, project, docs) {
         var todo = pending(docs);
-        var stats = { docs: todo.length, sent: 0, stale: 0, failed: 0 };
+        var stats = { docs: todo.length, targets: 0, sent: 0, stale: 0, failed: 0, limited: 0 };
         if (!todo.length) return stats;
+        var limited = limitedTests(io, todo);
+        var sendable = todo.filter(function (d) { return !limited[d.name]; });
+        stats.limited = todo.length - sendable.length;
         var devices = {};
-        todo.forEach(function (d) {
+        sendable.forEach(function (d) {
             var uid = d.data.userId;
             if (devices[uid]) return;
             try { devices[uid] = listDevices(io, project, uid); } catch (e) { devices[uid] = []; stats.failed++; }
         });
         var url = FCM + '/projects/' + project + '/messages:send';
-        planSends(todo, devices, project).forEach(function (s) {
+        var sends = planSends(sendable, devices, project);
+        stats.targets = sends.length;
+        sends.forEach(function (s) {
             var r = req(io, project, 'post', url, s.body);
             var result = sendResult(r.status, r.text);
             if (result === 'retry') {
@@ -393,18 +425,31 @@ var PushCore = (function () {
     function handleEvent(io, project, eventId) {
         if (!isProject(project) || !isEventId(eventId)) return { ok: false, error: 'bad request' };
         var stats = pushDocs(io, project, runQuery(io, project, eventQuery(eventId)));
-        return { ok: true, docs: stats.docs, sent: stats.sent, stale: stats.stale, failed: stats.failed };
+        return {
+            ok: true, docs: stats.docs, targets: stats.targets, sent: stats.sent, stale: stats.stale,
+            failed: stats.failed, limited: stats.limited
+        };
     }
 
-    /** The time trigger: docs written after `sinceIso` (offline writers, missed calls). */
-    function sweep(io, project, sinceIso) {
+    /**
+     * The time trigger: docs written after `sinceIso` (offline writers, missed calls). With `nowMs`, test
+     * docs younger than TEST_HOLD_MS are left to their web app call and the cursor stays before them.
+     */
+    function sweep(io, project, sinceIso, nowMs) {
         if (!isProject(project)) return { ok: false, newest: null, docs: 0, sent: 0, stale: 0, failed: 0 };
         var docs = runQuery(io, project, sinceQuery(sinceIso));
         var newest = null;
-        docs.forEach(function (d) {
+        var held = null;
+        docs = docs.filter(function (d) {
             var t = d.data.timestamp;
+            if (nowMs && d.data.type === TEST && nowMs - Date.parse(t || '') < TEST_HOLD_MS) {
+                if (!held || Date.parse(t) < Date.parse(held)) held = t;
+                return false;
+            }
             if (t && (!newest || Date.parse(t) > Date.parse(newest))) newest = t;
+            return true;
         });
+        if (held && (!newest || Date.parse(held) < Date.parse(newest))) newest = held;
         var stats = pushDocs(io, project, docs);
         return { ok: true, newest: newest, docs: stats.docs, sent: stats.sent, stale: stats.stale, failed: stats.failed };
     }
@@ -419,6 +464,7 @@ var PushCore = (function () {
     return {
         PROJECTS: PROJECTS,
         KIND_OF_TYPE: KIND_OF_TYPE,
+        TEST_HOLD_MS: TEST_HOLD_MS,
         isProject: isProject,
         isEventId: isEventId,
         appName: appName,

@@ -262,6 +262,42 @@ describe('Android app (@capacitor/local-notifications, mocked)', () => {
         expect(PhoneNotify.wants({ type: 'role_change', newRole: 'manager' })).toBe(true);
     });
 
+    test('test notifications: no switch of their own, may come from this person, never on the phone that sent a push test to itself', async () => {
+        const { ln, listeners } = nativePlugin();
+        await PhoneNotify.start('u1');
+        listeners['app:appStateChange']({ isActive: false });
+        PhoneNotify.setUpdate('rate', false);
+        const n = { id: 'test-1_u1', type: 'test', changedBy: 'Me', changedByUserId: 'u1', byUid: 'u1', eventKey: 'test-1' };
+        expect(PhoneNotify.wants(n)).toBe(true);
+        expect(PhoneNotify.bell([n], 'u1')).toBe(true);
+        await Promise.resolve();
+        expect(ln.schedule.mock.calls.at(-1)[0].notifications[0].body).toBe('Test notification: it reached this phone. — Me');
+        PhoneNotify.quiet.add('test-1');
+        expect(PhoneNotify.wants(n)).toBe(false);
+        expect(PhoneNotify.bell([n], 'u1')).toBe(false);
+        PhoneNotify.quiet.clear();
+        PhoneNotify.save({ on: false });
+        expect(PhoneNotify.bell([n], 'u1')).toBe(false);
+    });
+
+    test('background test: only the scheduled one, 15 s later; the failure is returned without a toast', async () => {
+        const { ln } = nativePlugin();
+        await PhoneNotify.start('u1');
+        const before = Date.now();
+        expect(await PhoneNotify.sendTest({ now: false, laterMs: 15000, toast: false })).toBe(true);
+        expect(ln.schedule).toHaveBeenCalledTimes(1);
+        const later = ln.schedule.mock.calls[0][0].notifications[0];
+        expect(later.id).toBe(NOTIFY_IDS.testLater);
+        expect(later.body).toMatch(/15 seconds later/);
+        expect(later.schedule.at.getTime() - before).toBeGreaterThanOrEqual(15000);
+        expect(UIManager.showToast).not.toHaveBeenCalled();
+        ln.checkPermissions.mockResolvedValue({ display: 'denied' });
+        ln.requestPermissions.mockResolvedValue({ display: 'denied' });
+        PhoneNotify.permission = 'denied';
+        expect(await PhoneNotify.sendTest({ laterMs: 0, toast: false })).toBe('denied');
+        expect(UIManager.showToast).not.toHaveBeenCalled();
+    });
+
     test('cash opened / closed: a status-bar notification that opens Today › Cash; its own switch', async () => {
         const { ln, listeners } = nativePlugin();
         await PhoneNotify.start('u1');

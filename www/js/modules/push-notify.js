@@ -8,13 +8,16 @@
 
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { safeSetItem } from '../utils/storage-full.js';
-import { savePushDevice, deletePushDevice } from '../firebase/repos/push-devices.js';
+import { savePushDevice, deletePushDevice, readPushDeviceDoc } from '../firebase/repos/push-devices.js';
 import { getWebPushToken, deleteWebPushToken } from '../firebase/web-push.js';
 import {
     PUSH_DEVICE_KEY, pushDeviceId, pushDeviceDoc, pushDeviceSig, pushDeviceStale, readPushDevice
 } from '../utils/push-device.js';
 
 const FORGET_WAIT_MS = 3000;
+/** When this phone last saw a push (on screen, tapped, or the browser's service worker). */
+export const LAST_PUSH_KEY = 'happa.lastPush';
+export const LAST_PUSH_URL = '/__happa-last-push';
 
 const capacitor = () => (typeof window !== 'undefined' ? window.Capacitor : null);
 const isNative = () => !!capacitor()?.isNativePlatform?.();
@@ -45,7 +48,11 @@ export const PushNotify = {
         const native = this.plugin();
         if (!native || !this.kind()) return;
         try {
-            native.addListener('notificationActionPerformed', (ev) => route(ev?.notification?.data?.route || 'bell'));
+            native.addListener('notificationReceived', (ev) => this.received(ev?.notification?.data));
+            native.addListener('notificationActionPerformed', (ev) => {
+                this.received(null);
+                route(ev?.notification?.data?.route || 'bell');
+            });
             native.addListener('tokenReceived', (ev) => {
                 if (ev?.token && ev.token !== this.token) {
                     this.token = ev.token;
@@ -55,6 +62,42 @@ export const PushNotify = {
         } catch (e) {
             console.warn('Push listeners failed:', e?.message || e);
         }
+    },
+
+    /**
+     * A push reached the app (Android on screen or tapped; the browser's service worker message).
+     * @param {?Rec} data - the message's data (`test: '1'` for a test)
+     */
+    received(data) {
+        safeSetItem(LAST_PUSH_KEY, String(Date.now()));
+        if (data && String(data.test) === '1' && typeof this.onTest === 'function') this.onTest();
+    },
+
+    /** @returns {Promise<number>} ms of the last push seen on this phone, 0 when none */
+    async lastPushAt() {
+        let at = Number(store()?.getItem(LAST_PUSH_KEY)) || 0;
+        try {
+            const hit = typeof caches !== 'undefined' ? await caches.match(LAST_PUSH_URL) : null;
+            if (hit) at = Math.max(at, Number(await hit.text()) || 0);
+        } catch (_) { /* no cache here */ }
+        return at;
+    },
+
+    /**
+     * This phone's registration for the test panel: push possible here, the last device doc write, and
+     * whether the doc is still there (one read; `present` is null when it couldn't be read).
+     * @param {string} uid
+     * @returns {Promise<{kind: ?string, savedAt: number, present: ?boolean}>}
+     */
+    async status(uid) {
+        const kind = this.kind();
+        const saved = readPushDevice(store());
+        const mine = saved && saved.uid === uid ? saved : null;
+        let present = mine ? null : false;
+        if (mine && kind) {
+            try { present = !!(await readPushDeviceDoc(uid, mine.id)); } catch (_) { present = null; }
+        }
+        return { kind, savedAt: mine ? Number(mine.at) || 0 : 0, present: kind ? present : false };
     },
 
     /** This phone's FCM token (null when it can't have one). */

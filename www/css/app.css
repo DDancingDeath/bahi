@@ -9676,6 +9676,26 @@ body.no-perm-contacts [data-perm~="contacts"] {
   cursor: pointer;
 }
 
+/* Settings › Notifications › Test notifications */
+.notif-test {
+  display: grid;
+  gap: var(--sp-1);
+  justify-items: start;
+  margin-top: var(--sp-3);
+}
+
+.notif-test .field {
+  width: 100%;
+}
+
+.notif-test-result:empty {
+  display: none;
+}
+
+.notif-test-result[data-state="error"] {
+  color: var(--negative);
+}
+
 /* ---- css/day.css ---- */
 /* ==================== DAY PAGE STYLES ==================== */
 
