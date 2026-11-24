@@ -24,6 +24,7 @@ import { on, REFRESH, READS_ALERT } from './utils/events.js';
 import { backgroundReadsAllowed, getQuotaStatus } from './firebase/firestore-meter.js';
 import { ItemsManager } from './modules/items.js';
 import { PrinterService, printerManager, loadReceiptDrawing } from './services/printer.js';
+import { PrinterTelemetry } from './services/printer-telemetry.js';
 import { BillingManager, PurchaseManager, RetailSaleManager } from './modules/billing.js';
 import { HistoryManager } from './modules/history.js';
 import { OutstandingManager } from './modules/outstanding.js';
@@ -74,7 +75,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261124a-push-enable';
+const BUILD_ID = '20261124b-printer-crash';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -756,6 +757,7 @@ async function initializeUserData() {
         // Update printer status
         PrinterService.updateStatus();
         PrinterService.bluetoothPermission().catch(e => console.warn('Bluetooth permission check failed:', e));
+        PrinterTelemetry.reportUnfinished();
         installStickyFocus();
         
         // Clean up old audit logs (runs silently for owners)

@@ -8,8 +8,17 @@ no printer fonts or code pages, so Hindi prints the same as English.
 
 The APK talks to the printer through **`cordova-plugin-bluetooth-serial`** (Bluetooth
 Classic, SPP/RFCOMM), wrapped by `cordovaTransport()` in `www/js/services/printer-link.js`.
-`cordova-plugin-android-permissions` asks for `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`
-(Android 12+) and location. Capacitor runs Cordova plugins as they are.
+`cordova-plugin-android-permissions` asks for Nearby devices on Android 12+: `BLUETOOTH_CONNECT`
+and `BLUETOOTH_SCAN` (one dialog; SCAN is `neverForLocation`, so no location prompt). Both are
+needed before any connect: the plugin's connect thread calls `cancelDiscovery()`, which throws
+without SCAN and closes the app. `PrinterLink.canConnect` refuses the link until both are granted.
+Capacitor runs Cordova plugins as they are.
+
+Reports: `services/printer-telemetry.js` adds the step (scan, connect, print), the printer's
+Bluetooth name, Android version and both permission states to Crashlytics (custom keys, logs, a
+non-fatal report on each caught failure) while crash reports are on. A connect is marked on the
+phone while it runs; if the app closes during it, the next start sends "App closed during printer
+connect" to the `telemetry` collection (Diagnostics), crash reports on or off. No MAC address.
 
 The website has no Bluetooth path (no Web Bluetooth / Web Serial transport): Settings says
 "Printing works in the Android app", and Billing's printer button is not shown.

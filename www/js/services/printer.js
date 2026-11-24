@@ -7,6 +7,7 @@ import { getAndroidMajorVersion, Helpers } from '../utils/helpers.js';
 import { t, loadAllCatalogues } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { PrinterLink } from './printer-link.js';
+import { PrinterTelemetry } from './printer-telemetry.js';
 import { track } from './usage.js';
 import { tip } from '../tip/index.js';
 import { printProps } from '../tip/scenarios/print.js';
@@ -36,7 +37,52 @@ let previewSeq = 0;
 /** A bill whose print failed can be tried again from its preview, this many tries in all (#77, Q16). */
 export const BILL_PRINT_TRIES = 3;
 const CONNECT_PERMISSION = 'android.permission.BLUETOOTH_CONNECT';
+const SCAN_PERMISSION = 'android.permission.BLUETOOTH_SCAN';
 const PERMISSION_CHECK_MS = 3000;
+
+/**
+ * Android 12+ "Nearby devices": CONNECT to list and link, and SCAN too, because the Bluetooth
+ * plugin's connect thread calls cancelDiscovery(), which without SCAN throws and closes the app.
+ * One system dialog covers both; SCAN is declared neverForLocation, so no location prompt.
+ */
+const nearbyPermissions = (perms) => ({
+    connect: perms.BLUETOOTH_CONNECT || CONNECT_PERMISSION,
+    scan: perms.BLUETOOTH_SCAN || SCAN_PERMISSION
+});
+
+/** @returns {Promise<'granted'|'denied'|'unknown'>} */
+function checkOnePermission(perms, name) {
+    return new Promise((resolve) => {
+        try {
+            perms.checkPermission(name, (st) => resolve(st?.hasPermission ? 'granted' : 'denied'), () => resolve('unknown'));
+        } catch {
+            resolve('unknown');
+        }
+    });
+}
+
+/** @returns {Promise<boolean>} granted */
+function askOnePermission(perms, name) {
+    return new Promise((resolve) => {
+        try {
+            perms.requestPermission(name, (r) => resolve(!!r?.hasPermission), () => resolve(false));
+        } catch {
+            resolve(false);
+        }
+    });
+}
+
+/** Checks each Nearby devices permission and asks for the missing ones. @returns {Promise<boolean>} */
+async function askNearbyPermissions(perms) {
+    const states = {};
+    for (const [key, name] of Object.entries(nearbyPermissions(perms))) {
+        const granted = (await checkOnePermission(perms, name)) === 'granted' || (await askOnePermission(perms, name));
+        states[key] = granted ? 'granted' : 'denied';
+        if (!granted) break;
+    }
+    PrinterTelemetry.note(states);
+    return Object.values(states).every(s => s === 'granted') && Object.keys(states).length === 2;
+}
 
 /** settings/app.receipt as last read (undefined = not looked at yet: the offline copy is read on first use). */
 let sharedReceipt;
@@ -160,6 +206,7 @@ class BluetoothPrinterManager {
             return await this.link.send(bytes, job.target, job);
         } catch (error) {
             console.error(`[${label}] Print ${error?.outcome || 'failed'}:`, error);
+            PrinterTelemetry.error('print', error);
             throw error;
         }
     }
@@ -175,26 +222,20 @@ class BluetoothPrinterManager {
             throw new Error(errorMsg);
         }
         
-        // Listing paired printers needs only Nearby devices (BLUETOOTH_CONNECT) on Android 12+, and nothing
-        // before that: no location prompt (the scan permission is declared neverForLocation).
+        // Android 12+: Nearby devices (CONNECT and SCAN, one dialog); nothing before that.
         const permissions = window.cordova?.plugins?.permissions;
         if (permissions && getAndroidMajorVersion() >= 12) {
-            const name = permissions.BLUETOOTH_CONNECT || CONNECT_PERMISSION;
-            const granted = await new Promise((resolve) => {
-                const ask = () => permissions.requestPermission(name, (r) => resolve(!!r?.hasPermission), () => resolve(false));
-                try {
-                    permissions.checkPermission(name, (st) => (st?.hasPermission ? resolve(true) : ask()), ask);
-                } catch {
-                    resolve(false);
-                }
-            });
-            if (!granted) throw Object.assign(new Error('Bluetooth permission denied'), { kind: 'permission' });
+            if (!(await askNearbyPermissions(permissions))) {
+                throw Object.assign(new Error('Bluetooth permission denied'), { kind: 'permission' });
+            }
         }
 
         await this.link.enableBluetooth();
         UIManager.showLoading();
         try {
+            PrinterTelemetry.step('scan');
             const devices = await this.link.list();
+            PrinterTelemetry.note({ paired: (devices || []).length });
             return devices || [];
         } catch (error) {
             console.error('[SCAN] Error:', error);
@@ -263,6 +304,7 @@ const PrinterService = {
             return devices;
         } catch (error) {
             console.error('Printer scan error:', error);
+            PrinterTelemetry.error('scan', error);
             if (error?.kind === 'permission') {
                 if (this._permissions()) this.setPermissionState('denied');
                 await this.offerAppSettings();
@@ -280,11 +322,16 @@ const PrinterService = {
         this.connecting = true;
         this.updateStatus();
         try {
+            if (await this.bluetoothPermission() === 'denied' && !(await this.requestBluetoothPermission())) {
+                throw Object.assign(new Error('Bluetooth permission needed'), { kind: 'permission' });
+            }
             await this.manager.connect(deviceId, deviceName);
+            PrinterTelemetry.step('connected', { name: deviceName });
             localStorage.removeItem(STOPPED_KEY);
             return true;
         } catch (error) {
             console.error('Printer connect error:', error);
+            PrinterTelemetry.error('connect', error);
             UIManager.showToast(t('msg.printer.failed_connect', { message: this.errorText(error) }));
             throw error;
         } finally {
@@ -536,8 +583,8 @@ const PrinterService = {
     },
 
     /**
-     * Does Android let the app use the printer link (BLUETOOTH_CONNECT, Android 12+)? Never asks
-     * the user; shows or hides the "Bluetooth permission needed" banner (#77).
+     * Does Android let the app use the printer link (Nearby devices: CONNECT and SCAN, Android 12+)?
+     * Never asks the user; shows or hides the "Bluetooth permission needed" banner (#77).
      * @returns {Promise<'granted'|'denied'|'unknown'>} 'unknown' on the web, older Android or no plugin
      */
     async bluetoothPermission() {
@@ -546,35 +593,24 @@ const PrinterService = {
             if (this.permissionState !== 'unknown') this.setPermissionState('unknown');
             return 'unknown';
         }
-        const name = perms.BLUETOOTH_CONNECT || CONNECT_PERMISSION;
+        const names = nearbyPermissions(perms);
         let timer;
-        const state = await Promise.race([
-            new Promise((resolve) => {
-                try {
-                    perms.checkPermission(name, (st) => resolve(st?.hasPermission ? 'granted' : 'denied'), () => resolve('unknown'));
-                } catch {
-                    resolve('unknown');
-                }
-            }),
-            new Promise((resolve) => { timer = setTimeout(() => resolve('unknown'), PERMISSION_CHECK_MS); })
+        const states = await Promise.race([
+            Promise.all([checkOnePermission(perms, names.connect), checkOnePermission(perms, names.scan)]),
+            new Promise((resolve) => { timer = setTimeout(() => resolve(['unknown', 'unknown']), PERMISSION_CHECK_MS); })
         ]);
         clearTimeout(timer);
+        PrinterTelemetry.note({ connect: states[0], scan: states[1] });
+        const state = states.includes('denied') ? 'denied' : states.every(s => s === 'granted') ? 'granted' : 'unknown';
         this.setPermissionState(state);
         return state;
     },
 
-    /** Asks Android for the permission (system dialog). @returns {Promise<boolean>} granted */
+    /** Asks Android for the permissions (one system dialog). @returns {Promise<boolean>} granted */
     async requestBluetoothPermission() {
         const perms = this._permissions();
         if (!perms || typeof perms.requestPermission !== 'function') return false;
-        const name = perms.BLUETOOTH_CONNECT || CONNECT_PERMISSION;
-        const granted = await new Promise((resolve) => {
-            try {
-                perms.requestPermission(name, (r) => resolve(!!r?.hasPermission), () => resolve(false));
-            } catch {
-                resolve(false);
-            }
-        });
+        const granted = await askNearbyPermissions(perms);
         this.setPermissionState(granted ? 'granted' : 'denied');
         if (!granted) await this.offerAppSettings();
         return granted;
@@ -1140,6 +1176,8 @@ const PrinterService = {
 
 PrinterService.manager.link.onChange = () => PrinterService.updateStatus();
 PrinterService.manager.link.stopped = localStorage.getItem(STOPPED_KEY) === '1';
+PrinterService.manager.link.canConnect = async () => (await PrinterService.bluetoothPermission()) !== 'denied';
+PrinterService.manager.link.around = (step, run, info) => PrinterTelemetry.around(step, info, run);
 
 const printerManager = PrinterService.manager;
 
