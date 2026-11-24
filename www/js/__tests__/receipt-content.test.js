@@ -5,7 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { PrinterService, loadReceiptDrawing } from '../services/printer.js';
-import { weightGrid } from '../services/receipt-drawing.js';
+import { weightGrid } from '../utils/weight-grid.js';
 import { SettingsManager } from '../modules/settings.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { createFakeFirestore } from './__mocks__/fake-firestore.js';

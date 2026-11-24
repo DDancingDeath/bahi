@@ -17,6 +17,7 @@ import { PAPER_DOTS } from '../utils/printer-settings.js';
 import { encodeQr } from '../utils/qr-code.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { canvasToEscPos } from './printer.js';
+import { weightGrid } from '../utils/weight-grid.js';
 
 /** Receipts are laid out for 58 mm paper; wider paper scales them up. */
 const LAYOUT_DOTS = PAPER_DOTS[58];
@@ -24,26 +25,6 @@ const LAYOUT_DOTS = PAPER_DOTS[58];
 const SLIP_ROWS = 2600;
 /** Browsers refuse canvases taller than this. */
 const MAX_CANVAS_ROWS = 32767;
-
-/** Breathing room between two weight columns on the slip (layout dots). */
-const WEIGHT_GAP = 12;
-
-/**
- * The slip's weights list: each at one decimal (formatWeight), right-aligned in equal columns as wide as "999.9"
- * (or the widest weight), as many per line as fit `width`.
- * @param {Array<*>} weights
- * @param {(s: string) => number} measure text width in dots
- * @param {number} width room in dots
- * @returns {{cell: number, perLine: number, rows: string[][], right: (i: number) => number}} right(i): column i's right edge
- */
-export function weightGrid(weights, measure, width) {
-    const texts = (weights || []).map(w => formatWeight(w));
-    const cell = Math.ceil(Math.max(measure('999.9'), ...texts.map(measure)));
-    const perLine = Math.max(1, Math.floor((width + WEIGHT_GAP) / (cell + WEIGHT_GAP)));
-    const rows = [];
-    for (let i = 0; i < texts.length; i += perLine) rows.push(texts.slice(i, i + perLine));
-    return { cell, perLine, rows, right: (i) => (i + 1) * cell + i * WEIGHT_GAP };
-}
 
 /** Logo bits (packMonochromeRaster layout, base64) as a black-on-white canvas. */
 function logoCanvas(logo) {

@@ -155,6 +155,7 @@ const STATIC_ASSETS = [
     '/js/ui/icons.js',
     '/js/ui/disclosure.js',
     '/js/ui/info-tip.js',
+    '/js/utils/weight-grid.js',
     '/js/ui/components.js',
     '/js/ui/themes.js',
     '/js/ui/ui-manager.js',

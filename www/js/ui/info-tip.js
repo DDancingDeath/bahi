@@ -10,7 +10,7 @@ import { icon } from './icons.js';
 import { t } from '../i18n/index.js';
 import { Helpers } from '../utils/helpers.js';
 
-const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
+const esc = (/** @type {*} */ s) => Helpers.escapeHtml(String(s ?? ''));
 
 /**
  * @param {string} text plain text (escaped here); empty gives ''
