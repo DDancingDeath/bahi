@@ -180,6 +180,12 @@ Bahi tab open. Still ₹0: no card, no Cloud Functions (they need the Blaze plan
 Until steps 1–2 are done nothing changes for anyone: no URL, no registration, the old local bell
 notification as before.
 
+**Status (24 Nov 2026):** done. The sender is the standalone script "Bahi push sender" under
+aadhat2025 (script id `1SWkDVGNSnay9Hn8C3QhlSadTGuXoFLl4Ng7nUVZN4rOebBl7NWK_1I43`, pushed with clasp),
+web app deployment `AKfycbyFJF7n7nCqhA7r4tGMoWpNDlavuHzWf55ye8qmBP7rtu7QOz7R-bmo4le0vMl_Dfs-rw`
+(version 1), which is the `pushUrl`. The URL is bundled into the APK at build time, so Android phones
+register only with an APK built after it was set (rc18 has the plugin but an empty URL).
+
 1. **Apps Script** (signed in to Chrome as **aadhat2025@gmail.com**, the Owner of both projects):
    1. Turn on <https://script.google.com/home/usersettings> › Google Apps Script API.
    2. New project "Bahi push". Project settings › tick "Show appsscript.json". Paste
