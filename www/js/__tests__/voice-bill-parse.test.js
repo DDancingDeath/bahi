@@ -54,6 +54,15 @@ describe('lines', () => {
         const b = parse('rate 26');
         expect([b.lines, b.rate]).toEqual([[], 26]);
     });
+
+    test('"25 के जी" (kg spelt out by the Hindi recogniser) is a weight; "30 के" is still a rate', () => {
+        for (const said of ['25 के जी', '25 के.जी.', 'गेहूं 25 के जी']) {
+            const b = parse(said);
+            expect([said, b.lines.map(l => [l.weight, l.rate]), b.rate]).toEqual([said, [[25, null]], null]);
+        }
+        expect(lines(parse('गेहूं 10 के जी 30 के'))).toEqual([[0, 10, 30]]);
+        expect(parse('25 के जीरा').lines.map(l => l.weight)).not.toEqual([25]);
+    });
 });
 
 describe('payment', () => {
