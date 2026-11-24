@@ -13,6 +13,21 @@
 
 /** Printable dots per line at 203 dpi. */
 export const PAPER_DOTS = Object.freeze({ 58: 384, 80: 576 });
+
+/** The WhatsApp bill picture: the 58 mm layout drawn at 2× (768 px), with a white margin. */
+export const SHARE_SCALE = 2;
+export const SHARE_DOTS = PAPER_DOTS[58] * SHARE_SCALE;
+export const SHARE_MARGIN = 16 * SHARE_SCALE;
+
+/**
+ * Size of the share picture around a drawn slip.
+ * @param {number} width
+ * @param {number} height
+ * @returns {{width: number, height: number}}
+ */
+export function sharePictureSize(width, height) {
+    return { width: width + SHARE_MARGIN * 2, height: height + SHARE_MARGIN * 2 };
+}
 export const PAPER_WIDTHS = Object.freeze([58, 80]);
 export const MAX_SAVED_PRINTERS = 5;
 

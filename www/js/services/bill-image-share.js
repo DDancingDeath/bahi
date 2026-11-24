@@ -11,16 +11,12 @@ import { PrinterService, loadReceiptDrawing } from './printer.js';
 import { track } from './usage.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { t } from '../i18n/index.js';
-import { PAPER_DOTS } from '../utils/printer-settings.js';
+import { SHARE_DOTS, SHARE_MARGIN, sharePictureSize } from '../utils/printer-settings.js';
 import { shellMethod } from '../utils/native-shell.js';
 import { openExternal } from '../utils/open-external.js';
 import { whatsAppReminderUrl } from '../utils/due-reminder.js';
 import { billPhone, buildBillShareCaption, reprintType } from '../utils/bill-share.js';
 
-/** The picture is the 58 mm layout drawn at 2× (768 px wide), plus a white margin. */
-export const SHARE_SCALE = 2;
-export const SHARE_DOTS = PAPER_DOTS[58] * SHARE_SCALE;
-const MARGIN = 16 * SHARE_SCALE;
 const CACHE_DIR = 'bill-share';
 
 const isNative = (win) => !!win.Capacitor?.isNativePlatform?.();
@@ -35,12 +31,13 @@ export async function renderBillImage(billData) {
     await loadReceiptDrawing();
     const slip = await PrinterService.manager.generateBillCanvas(billData, PrinterService.receiptOptions(), SHARE_DOTS);
     const canvas = document.createElement('canvas');
-    canvas.width = slip.width + MARGIN * 2;
-    canvas.height = slip.height + MARGIN * 2;
+    const size = sharePictureSize(slip.width, slip.height);
+    canvas.width = size.width;
+    canvas.height = size.height;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(slip, MARGIN, MARGIN);
+    ctx.drawImage(slip, SHARE_MARGIN, SHARE_MARGIN);
     return canvas;
 }
 

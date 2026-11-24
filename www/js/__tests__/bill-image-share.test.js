@@ -6,7 +6,8 @@
 jest.mock('../services/usage.js', () => ({ track: jest.fn() }));
 
 import { PrinterService, loadReceiptDrawing } from '../services/printer.js';
-import { renderBillImage, shareBill, shareBillImage, SHARE_DOTS } from '../services/bill-image-share.js';
+import { renderBillImage, shareBill, shareBillImage } from '../services/bill-image-share.js';
+import { SHARE_DOTS } from '../utils/printer-settings.js';
 import { billPhone, buildBillShareCaption, buildBillShareText, buildDraftShareText, buildReprintPayload } from '../utils/bill-share.js';
 import { installActions } from '../ui/actions.js';
 import { UIManager } from '../ui/ui-manager.js';
