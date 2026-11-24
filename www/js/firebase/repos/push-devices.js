@@ -20,6 +20,19 @@ export function savePushDevice(uid, id, doc) {
 }
 
 /**
+ * Whether the device doc is there (the test panel's status; one read).
+ * @param {string} uid
+ * @param {string} id
+ * @returns {Promise<?{updatedAt: ?number}>} null when missing
+ */
+export async function readPushDeviceDoc(uid, id) {
+    const snap = await deviceRef(uid, id).get();
+    if (!snap.exists) return null;
+    const at = snap.data()?.updatedAt;
+    return { updatedAt: at?.toMillis ? at.toMillis() : null };
+}
+
+/**
  * @param {string} uid
  * @param {string} id
  * @returns {Promise<void>}

@@ -30,3 +30,26 @@ export function triggerPush(eventId, { fetchFn = globalThis.fetch, identity = AP
     }
     return true;
 }
+
+/**
+ * The same call, waiting for the sender's answer (the test panel): `{ok, docs, targets, sent, ...}`, or
+ * null when there is no sender or the answer can't be read. `delay`: seconds the sender waits first (≤ 60).
+ * @param {string} eventId
+ * @param {{delay?: number, fetchFn?: typeof fetch, identity?: Rec}} [opts]
+ * @returns {Promise<?Rec>}
+ */
+export async function requestPush(eventId, { delay = 0, fetchFn = globalThis.fetch, identity = APP_IDENTITY } = {}) {
+    const url = identity?.push?.url;
+    if (!url || !eventId || typeof fetchFn !== 'function' || col('notifications') !== 'notifications') return null;
+    try {
+        const res = await fetchFn(url, {
+            method: 'POST',
+            body: JSON.stringify({ eventId, project: identity.projectId, ...(delay ? { delay } : {}) })
+        });
+        const out = await res.json();
+        return out && typeof out === 'object' ? out : null;
+    } catch (e) {
+        console.warn('Push test call failed:', e?.message || e);
+        return null;
+    }
+}

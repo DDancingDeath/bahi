@@ -30,6 +30,7 @@ describe('push text matches the bell', () => {
         { type: 'cash_close', amount: 12500.5, difference: -40.5, changedBy: 'Ram' },
         { type: 'cash_close', amount: 900, difference: 12, changedBy: '' },
         { type: 'cash_close', amount: 900, difference: 0, changedBy: 'Sita' },
+        { type: 'test', changedBy: 'Ram' },
         { type: 'stale_outbox', message: 'Writes not sent', messageHi: 'नहीं भेजा', byName: 'Ram' },
         { type: 'mystery' }
     ];
@@ -151,7 +152,7 @@ describe('handleEvent with an injected fetch', () => {
             ['post', /:commit$/, () => ({ status: 200, text: {} })]
         ]);
         const r = PushCore.handleEvent(io, P, 'e1');
-        expect(r).toEqual({ ok: true, docs: 1, sent: 1, stale: 1, failed: 0 });
+        expect(r).toEqual({ ok: true, docs: 1, targets: 2, sent: 1, stale: 1, failed: 0, limited: 0 });
         expect(io.calls.every(c => c.headers.Authorization === 'Bearer TOKEN' && c.headers['X-Goog-User-Project'] === P)).toBe(true);
         expect(JSON.parse(io.calls[0].payload).structuredQuery.where.fieldFilter.value).toEqual({ stringValue: 'e1' });
         expect(io.calls.find(c => c.method === 'delete').url).toBe(`https://firestore.googleapis.com/v1/${ROOT}/users/u1/devices/old`);
@@ -167,7 +168,7 @@ describe('handleEvent with an injected fetch', () => {
         const io = fakeIo([
             ['post', /:runQuery$/, () => ({ status: 200, text: [{ document: restDoc('notifications/e1_u1', { ...rate, pushed: true }) }] })]
         ]);
-        expect(PushCore.handleEvent(io, P, 'e1')).toEqual({ ok: true, docs: 0, sent: 0, stale: 0, failed: 0 });
+        expect(PushCore.handleEvent(io, P, 'e1')).toEqual({ ok: true, docs: 0, targets: 0, sent: 0, stale: 0, failed: 0, limited: 0 });
         expect(io.calls).toHaveLength(1);
     });
 
@@ -193,5 +194,57 @@ describe('handleEvent with an injected fetch', () => {
         const r = PushCore.sweep(io, P, '2026-11-23T04:00:00Z');
         expect(r).toMatchObject({ ok: true, newest: '2026-11-23T05:00:00.123Z', docs: 1, sent: 1 });
         expect(sends).toBe(2);
+    });
+});
+
+describe('test notifications (Settings › Notifications › Test)', () => {
+    const test1 = { type: 'test', userId: 'u1', changedBy: 'Ram', changedByUserId: 'u9', eventKey: 'test-1', timestamp: '2026-11-24T10:00:00Z' };
+    const dev = (kinds = {}) => device('u1', 'h1', { token: 'A', platform: 'android', on: true, lang: 'en', kinds });
+
+    test('only the master switch counts; the message says it is a test', () => {
+        expect(PushCore.wants({ on: true, token: 't', kinds: { bell: false, rate: false } }, 'test')).toBe(true);
+        expect(PushCore.wants({ on: false, token: 't', kinds: {} }, 'test')).toBe(false);
+        const [s] = PushCore.planSends([notif('test-1_u1', test1)], { u1: [dev({ bell: false })] }, P);
+        expect(s.body.message.notification.body).toBe('Test notification: it reached this phone. — Ram');
+        expect(s.body.message.data).toEqual({ route: 'bell', test: '1' });
+        const [w] = PushCore.planSends([notif('test-1_u1', test1)], { u1: [device('u1', 'w', { token: 'W', platform: 'web', on: true, kinds: {} })] }, P);
+        expect(w.body.message.data.test).toBe('1');
+    });
+
+    test('a sender over the limit: counted once per event, nothing sent, docs marked pushed', () => {
+        const asked = [];
+        const sends = [];
+        const io = {
+            token: () => 'T',
+            allowTest: (uid, ev) => { asked.push([uid, ev]); return false; },
+            fetch: (r) => {
+                if (/messages:send$/.test(r.url)) sends.push(r);
+                if (/:runQuery$/.test(r.url)) {
+                    return { status: 200, text: JSON.stringify([
+                        { document: restDoc('notifications/test-1_u1', test1) },
+                        { document: restDoc('notifications/test-1_u2', { ...test1, userId: 'u2' }) }
+                    ]) };
+                }
+                return { status: 200, text: '{}' };
+            }
+        };
+        expect(PushCore.handleEvent(io, P, 'test-1')).toMatchObject({ ok: true, docs: 2, targets: 0, sent: 0, limited: 2 });
+        expect(asked).toEqual([['u9', 'test-1']]);
+        expect(sends).toHaveLength(0);
+    });
+
+    test('the sweep leaves a young test doc to its delayed call and keeps the cursor before it', () => {
+        const now = Date.parse('2026-11-24T10:00:30Z');
+        const io = {
+            token: () => 'T',
+            fetch: (r) => (/:runQuery$/.test(r.url)
+                ? { status: 200, text: JSON.stringify([
+                    { document: restDoc('notifications/test-1_u1', test1) },
+                    { document: restDoc('notifications/r_u1', { ...rate, timestamp: '2026-11-24T10:00:20Z', pushed: true }) }
+                ]) }
+                : { status: 200, text: '{}' })
+        };
+        expect(PushCore.sweep(io, P, '2026-11-24T09:00:00Z', now)).toMatchObject({ newest: '2026-11-24T10:00:00Z', docs: 0 });
+        expect(PushCore.sweep(io, P, '2026-11-24T09:00:00Z', now + PushCore.TEST_HOLD_MS)).toMatchObject({ newest: '2026-11-24T10:00:20Z', docs: 1 });
     });
 });

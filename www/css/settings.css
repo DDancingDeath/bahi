@@ -739,3 +739,31 @@ body.no-perm-contacts [data-perm~="contacts"] {
   font-weight: var(--w-strong);
   cursor: pointer;
 }
+
+/* Settings › Notifications › Test notifications */
+.notif-tests {
+  margin-top: var(--sp-3);
+}
+
+.notif-tests > summary {
+  cursor: pointer;
+}
+
+.notif-test {
+  display: grid;
+  gap: var(--sp-1);
+  justify-items: start;
+  margin-top: var(--sp-3);
+}
+
+.notif-test .field {
+  width: 100%;
+}
+
+.notif-test-result:empty {
+  display: none;
+}
+
+.notif-test-result[data-state="error"] {
+  color: var(--negative);
+}

@@ -13,7 +13,7 @@ import { t, getLang } from '../i18n/index.js';
 import { pickLang } from '../i18n/localize.js';
 import { APP_IDENTITY } from '../config/app-identity.js';
 import { on, REFRESH, REMINDERS_CHANGED, TODOS_CHANGED } from '../utils/events.js';
-import { describeNotification, wantsUpdate, UPDATE_KINDS, ALWAYS_ON_KINDS } from '../utils/notification-format.js';
+import { describeNotification, wantsUpdate, UPDATE_KINDS, ALWAYS_ON_KINDS, TEST_TYPE } from '../utils/notification-format.js';
 import { rentReminder } from '../utils/reminders.js';
 import { drillReminder } from '../utils/backup-verify.js';
 import { billsForKind } from '../utils/party-due.js';
@@ -52,6 +52,10 @@ export const PhoneNotify = {
     ready: false,
     chain: Promise.resolve(),
     pendingRoute: null,
+    /** Event keys of push tests this phone sent to its own person: no toast or local notification here. */
+    quiet: new Set(),
+    /** Called after the card is filled (the test panel). */
+    afterRender: null,
 
     /** The native plugin, or null (the browser, or an app built without it). */
     plugin() {
@@ -95,6 +99,7 @@ export const PhoneNotify = {
 
     /** Whether bell item `n` should toast, badge and phone-notify (its kind's switch on this phone). */
     wants(n) {
+        if (n?.type === TEST_TYPE) return !this.quiet.has(n.eventKey);
         return wantsUpdate(n, this.stored());
     },
 
@@ -148,6 +153,7 @@ export const PhoneNotify = {
         this.bound = true;
         PushNotify.init((r) => this.route(r));
         PushNotify.onToken = () => this.syncPush();
+        PushNotify.onTest = () => UIManager.showToast(t('msg.notify.test_push_open'), 6000);
         const native = this.plugin();
         if (native) {
             try {
@@ -176,6 +182,7 @@ export const PhoneNotify = {
         if (!isNative() && navigator.serviceWorker?.addEventListener) {
             navigator.serviceWorker.addEventListener('message', (ev) => {
                 if (ev.data?.type === 'HAPPA_NOTIFICATION') this.route(ev.data.route);
+                else if (ev.data?.type === 'HAPPA_PUSH') PushNotify.received(ev.data);
             });
         }
         try {
@@ -363,7 +370,7 @@ export const PhoneNotify = {
     bell(fresh, uid) {
         if (!uid || uid !== this.uid || !this.prefs().on || this.foreground()) return false;
         if (isNative() && PushNotify.handlesBell(uid)) return false;
-        const list = (fresh || []).filter(n => n && n.byUid !== uid && n.createdBy !== uid && this.wants(n));
+        const list = (fresh || []).filter(n => n && (n.type === TEST_TYPE || (n.byUid !== uid && n.createdBy !== uid)) && this.wants(n));
         if (!list.length) return false;
         const d = describeNotification(list[0]);
         const name = APP_IDENTITY.appName || 'Bahi';
@@ -442,30 +449,39 @@ export const PhoneNotify = {
         this.reschedule();
     },
 
-    /** One now and, in the Android app, one 10 s later (close the app or lock the phone to try it). */
-    async sendTest() {
-        if (!this.platform()) {
-            UIManager.showToast(t('msg.notify.unsupported'));
-            return false;
-        }
+    /**
+     * One now and, in the Android app, one 10 s later (close the app or lock the phone to try it).
+     * The test panel: `{now: false, laterMs}` for the background test only, `toast: false` (it shows a result line).
+     * @returns {Promise<boolean|string>} true, or (with `toast: false`) the failure: 'unsupported' | 'denied' | 'failed'
+     */
+    async sendTest({ now = true, laterMs = TEST_LATER_MS, toast = true } = {}) {
+        const fail = (reason, msg, ms) => {
+            if (toast) UIManager.showToast(t(msg), ms);
+            return toast ? false : reason;
+        };
+        if (!this.platform()) return fail('unsupported', 'msg.notify.unsupported');
         if (this.permission !== 'granted') await this.askNotifyPermission();
         if (this.permission !== 'granted') {
-            UIManager.showToast(t('msg.notify.denied'), 6000);
             this.renderSettings();
-            return false;
+            return fail('denied', 'msg.notify.denied', 6000);
         }
         const name = APP_IDENTITY.appName || 'Bahi';
+        const laterBody = t(now ? 'ui.notify.test_later_body' : 'ui.notify.test_bg_body');
         try {
-            await this.show({ id: NOTIFY_IDS.testNow, title: name, body: t('ui.notify.test_body'), route: 'test', tag: 'happa-test' });
-            if (this.plugin()) {
-                await this.show({ id: NOTIFY_IDS.testLater, title: name, body: t('ui.notify.test_later_body'), route: 'test', channel: CHANNEL_REMINDERS, at: inMs(TEST_LATER_MS) });
+            if (now) await this.show({ id: NOTIFY_IDS.testNow, title: name, body: t('ui.notify.test_body'), route: 'test', tag: 'happa-test' });
+            if (laterMs && this.plugin()) {
+                await this.show({ id: NOTIFY_IDS.testLater, title: name, body: laterBody, route: 'test', channel: CHANNEL_REMINDERS, at: inMs(laterMs) });
+            } else if (laterMs && !now) {
+                setTimeout(() => {
+                    this.show({ id: NOTIFY_IDS.testLater, title: name, body: laterBody, route: 'test', tag: 'happa-test-later' })
+                        .catch(e => console.warn('Test notification failed:', e?.message || e));
+                }, laterMs);
             }
         } catch (e) {
             console.warn('Test notification failed:', e?.message || e);
-            UIManager.showToast(t('msg.notify.test_failed'));
-            return false;
+            return fail('failed', 'msg.notify.test_failed');
         }
-        UIManager.showToast(t(this.plugin() ? 'msg.notify.test_sent_app' : 'msg.notify.test_sent_web'), 6000);
+        if (toast) UIManager.showToast(t(this.plugin() ? 'msg.notify.test_sent_app' : 'msg.notify.test_sent_web'), 6000);
         this.renderSettings();
         return true;
     },
@@ -484,7 +500,10 @@ export const PhoneNotify = {
             const box = row?.querySelector('input');
             if (box) box.checked = !!u.updates[k];
         });
-        if (!kind) return;
+        if (!kind) {
+            this.afterRender?.();
+            return;
+        }
         await this.readNotifyPermission();
         const p = this.prefs();
         const master = document.getElementById('settingPhoneNotifications');
@@ -517,5 +536,6 @@ export const PhoneNotify = {
                 ? t(push ? 'ui.notify.note_app_push' : 'ui.notify.note_app')
                 : t(push ? 'ui.notify.note_web_push' : 'ui.notify.note_web');
         }
+        this.afterRender?.();
     }
 };

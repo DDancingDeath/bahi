@@ -1,14 +1,31 @@
 /**
  * Bahi push sender, the Apps Script part (docs/notifications.md, "Stage 2"). Runs as the account that
  * owns the Firebase projects: its OAuth token reads Firestore over REST and sends through FCM v1.
- * Web app: doPost({eventId, project}) from the phone that wrote the notifications. Trigger: sweep()
- * every 5 minutes for docs no call reported (offline writers).
+ * Web app: doPost({eventId, project, delay?}) from the phone that wrote the notifications (`delay`:
+ * seconds to wait first, at most 60, for the closed-app test). Trigger: sweep() every 5 minutes for docs
+ * no call reported (offline writers).
  */
 
 var SWEEP_OVERLAP_MS = 2 * 60 * 1000;
 var SWEEP_MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000;
 var EVENT_SEEN_S = 600;
 var CALLS_PER_MINUTE = 60;
+var MAX_DELAY_S = 60;
+var DELAYED_PER_MINUTE = 10;
+var TESTS_PER_MINUTE = 5;
+
+/** At most TESTS_PER_MINUTE test events a minute per sender; one event counts once (call and sweep). */
+function allowTest_(uid, eventKey) {
+    var cache = CacheService.getScriptCache();
+    var seen = cache.get('tev:' + eventKey);
+    if (seen) return seen === '1';
+    var key = 'tests:' + uid + ':' + Math.floor(Date.now() / 60000);
+    var n = Number(cache.get(key) || 0) + 1;
+    cache.put(key, String(n), 120);
+    var ok = n <= TESTS_PER_MINUTE;
+    cache.put('tev:' + eventKey, ok ? '1' : '0', EVENT_SEEN_S);
+    return ok;
+}
 
 function pushIo_() {
     return {
@@ -24,6 +41,7 @@ function pushIo_() {
             return { status: res.getResponseCode(), text: res.getContentText() };
         },
         sleep: function (ms) { Utilities.sleep(ms); },
+        allowTest: allowTest_,
         log: function (msg) { console.warn(msg); }
     };
 }
@@ -47,6 +65,14 @@ function doPost(e) {
     var calls = Number(cache.get(minute) || 0) + 1;
     cache.put(minute, String(calls), 120);
     if (calls > CALLS_PER_MINUTE) return json_({ ok: false, error: 'busy' });
+    var delay = Math.max(0, Math.min(MAX_DELAY_S, Math.floor(Number(body.delay) || 0)));
+    if (delay) {
+        var slow = 'delayed:' + Math.floor(Date.now() / 60000);
+        var n = Number(cache.get(slow) || 0) + 1;
+        cache.put(slow, String(n), 120);
+        if (n > DELAYED_PER_MINUTE) return json_({ ok: false, error: 'busy' });
+        Utilities.sleep(delay * 1000);
+    }
 
     var lock = LockService.getScriptLock();
     if (!lock.tryLock(20000)) return json_({ ok: false, error: 'busy' });
@@ -74,7 +100,7 @@ function sweep() {
             var cursorKey = 'cursor:' + project;
             var since = PushCore.sweepFrom(props.getProperty(cursorKey), Date.now(), SWEEP_OVERLAP_MS, SWEEP_MAX_AGE_MS);
             try {
-                var r = PushCore.sweep(pushIo_(), project, since);
+                var r = PushCore.sweep(pushIo_(), project, since, Date.now());
                 if (r.newest) props.setProperty(cursorKey, r.newest);
                 if (r.docs) console.log('sweep ' + project + ': ' + JSON.stringify(r));
             } catch (err) {

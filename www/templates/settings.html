@@ -500,11 +500,44 @@
                 </div>
                 <p class="setting-description" data-i18n="ui.notify.summary_time_hint">Udhaar summary, rent due and backup check come at this time.</p>
             </div>
-            <div class="set-actions">
+            <div class="set-actions" id="notifTestBtnRow">
                 <button class="btn" type="button" data-onclick="notifications.test()" data-i18n="ui.notify.test">Send test notification</button>
             </div>
             <p class="setting-description" id="notifPlatformNote"></p>
             </div>
+            <details id="notifTestPanel" class="notif-tests" hidden>
+                <summary class="set-subtitle" data-i18n="ui.notify.tests_title">Test notifications</summary>
+                <p class="setting-description" data-i18n="ui.notify.tests_hint">Try each kind and see whether it arrives. At most 5 tests a minute.</p>
+                <div class="notif-test" data-notify-test="now">
+                    <button class="btn btn-tonal" type="button" data-onclick="notifications.runTest('now')" data-i18n="ui.notify.test_now">This phone, now</button>
+                    <p class="setting-description" data-i18n="ui.notify.test_now_hint">A notification on this phone at once.</p>
+                    <p class="setting-description notif-test-result" role="status" data-notify-result="now"></p>
+                </div>
+                <div class="notif-test" data-notify-test="later">
+                    <button class="btn btn-tonal" type="button" data-onclick="notifications.runTest('later')" data-i18n="ui.notify.test_later">This phone, in 15 s</button>
+                    <p class="setting-description" data-i18n="ui.notify.test_later_hint">Background test: press Home now. It should come in 15 seconds.</p>
+                    <p class="setting-description notif-test-result" role="status" data-notify-result="later"></p>
+                </div>
+                <div class="notif-test" data-notify-test="push">
+                    <button class="btn btn-tonal" type="button" data-onclick="notifications.runTest('push')" data-i18n="ui.notify.test_push">This phone by push, in about 30 s</button>
+                    <p class="setting-description" data-i18n="ui.notify.test_push_hint">Closed-app test: then swipe the app away. A real push arrives in about 30 seconds (at most 5 minutes).</p>
+                    <p class="setting-description notif-test-result" role="status" data-notify-result="push"></p>
+                </div>
+                <div class="notif-test" data-notify-test="others">
+                    <div class="field">
+                        <label for="notifTestTo" data-i18n="ui.notify.test_to">Send to</label>
+                        <select class="input" id="notifTestTo"></select>
+                    </div>
+                    <button class="btn btn-tonal" type="button" id="notifTestOthersBtn" data-onclick="notifications.runTest('others')" data-i18n="ui.notify.test_others">Send to other phones</button>
+                    <p class="setting-description" data-i18n="ui.notify.test_others_hint">A test in their bell: a pop-up if their app is open, a phone notification if it is in the background or closed.</p>
+                    <p class="setting-description notif-test-result" role="status" data-notify-result="others"></p>
+                </div>
+                <h4 class="set-subtitle" data-i18n="ui.notify.status_title">This phone</h4>
+                <div id="notifTestStatus"></div>
+                <div class="set-actions">
+                    <button class="btn btn-ghost btn-sm" type="button" data-onclick="notifications.refreshTestStatus()" data-i18n="ui.notify.status_check">Check again</button>
+                </div>
+            </details>
         </div>
     </section>
 </div>

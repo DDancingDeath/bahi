@@ -8,7 +8,7 @@
 
 import { AppState } from '../../utils/state.js';
 import { getDb, col } from '../db.js';
-import { planNotificationDocs, newEventId, cashEventId } from '../../utils/notification-format.js';
+import { planNotificationDocs, newEventId, cashEventId, testNotificationDocs } from '../../utils/notification-format.js';
 import { getUsersForNotifications } from './user-profiles.js';
 import { triggerPush } from '../push-trigger.js';
 
@@ -153,6 +153,21 @@ export const notificationMethods = {
         } catch (error) {
             console.error('Error notifying cash change:', error);
         }
+    },
+
+    /**
+     * A test notification (Settings › Notifications › Test) to each recipient, the sender included when
+     * listed. The caller asks the push sender itself (requestPush), so it can wait for the answer.
+     * @param {string[]} recipientIds
+     * @returns {Promise<{eventId: string, count: number}>}
+     */
+    async sendTestNotification(recipientIds) {
+        const eventId = newEventId('test');
+        const docs = testNotificationDocs(eventId, recipientIds, {
+            uid: AppState.currentUser?.uid || '', name: AppState.userName || ''
+        }, { read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        if (docs.length) await writeNotificationDocs(docs);
+        return { eventId, count: docs.length };
     },
 
     /**

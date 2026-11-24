@@ -3642,6 +3642,29 @@ function defineSuite(prefix) {
         await assertFails(sendAs('pending1', cashNote('pending1', 'owner2')));
     });
 
+    t('notifications: owner and manager send test notifications to team members and themselves only', async () => {
+        const testNote = (actor, recipient, extra = {}) => ({
+            type: 'test', changedBy: 'Boss', changedByUserId: actor,
+            read: false, timestamp: serverTimestamp(), userId: recipient, eventKey: `test-${actor}`, ...extra });
+        for (const actor of ['legacyOwner', 'manager1']) {
+            await assertSucceeds(sendAs(actor, testNote(actor, actor)));
+            await assertSucceeds(sendAs(actor, testNote(actor, 'staff1')));
+            await assertSucceeds(sendAs(actor, testNote(actor, 'legacyStaff')));
+            // not to people outside the team, nor with other fields or a forged sender
+            for (const to of ['pending1', 'rejected1', 'nobody-here']) await assertFails(sendAs(actor, testNote(actor, to)));
+            await assertFails(sendAs(actor, testNote(actor, 'staff1', { eventKey: `m-${actor}`, message: 'Pay 9999' })));
+            await assertFails(sendAs(actor, testNote(actor, 'staff1', { eventKey: `p-${actor}`, pushed: true })));
+            await assertFails(sendAs(actor, testNote('owner2', 'staff1', { eventKey: `f-${actor}` })));
+            await assertFails(sendAs(actor, testNote(actor, 'staff1', { eventKey: `r-${actor}`, read: true })));
+            // the own-recipient exception is for tests only
+            await assertFails(sendAs(actor, rateNote(actor, actor, { eventKey: `self-${actor}` })));
+        }
+        for (const uid of ['staff1', 'legacyStaff', 'pending1']) {
+            await assertFails(sendAs(uid, testNote(uid, uid)));
+            await assertFails(sendAs(uid, testNote(uid, 'manager1')));
+        }
+    });
+
     t('notifications: a sender cannot forge the actor, type, fields or read state', async () => {
         for (const actor of ['manager1', 'legacyOwner']) {
             // "changed by" someone else

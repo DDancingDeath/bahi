@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v776';
+const CACHE_NAME = 'happa-v777';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -86,6 +86,7 @@ const STATIC_ASSETS = [
     '/js/modules/items.js',
     '/js/modules/miscellaneous.js',
     '/js/modules/notifications.js',
+    '/js/modules/notify-tests.js',
     '/js/modules/phone-notify.js',
     '/js/modules/push-notify.js',
     '/js/modules/outstanding.js',
@@ -226,6 +227,7 @@ const STATIC_ASSETS = [
     '/js/utils/number-checks.js',
     '/js/utils/number-check-flags.js',
     '/js/utils/notification-format.js',
+    '/js/utils/notify-test.js',
     '/js/utils/phone-reminders.js',
     '/js/utils/push-device.js',
     '/js/utils/record-permissions.js',
@@ -408,7 +410,11 @@ self.addEventListener('push', (event) => {
     try { payload = event.data ? event.data.json() : {}; } catch (_) { payload = {}; }
     const d = (payload && payload.data) || payload || {};
     if (!d.title) return;
-    event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const seen = caches.open(CACHE_NAME)
+        .then((c) => c.put('/__happa-last-push', new Response(String(Date.now()))))
+        .catch(() => undefined);
+    event.waitUntil(Promise.all([seen, self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        list.forEach((c) => c.postMessage({ type: 'HAPPA_PUSH', test: String(d.test || '') }));
         if (list.some((c) => c.visibilityState === 'visible')) return undefined;
         return self.registration.showNotification(String(d.title), {
             body: String(d.body || ''),
@@ -417,7 +423,7 @@ self.addEventListener('push', (event) => {
             badge: '/icons/favicon-32.png',
             data: { route: String(d.route || 'bell') }
         });
-    }));
+    })]));
 });
 
 /**
