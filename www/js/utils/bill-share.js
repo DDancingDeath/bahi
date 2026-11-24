@@ -9,7 +9,8 @@
 import { billLabour, billLineTotal, billTotal, outstandingDue, readPayment, readLineItem, formatKg, formatRupees } from './money.js';
 import { billDateOf } from './history-filters.js';
 import { getLang, t } from '../i18n/index.js';
-import { formatDay } from './dates.js';
+import { formatDay, formatTimeOfDay } from './dates.js';
+import { normalizePhone } from './due-reminder.js';
 
 /**
  * "COPY" mark on a reprinted slip / shared text, in the app language (or `lang`).
@@ -116,6 +117,53 @@ const TITLES = {
 const partyLabel = (/** @type {string} */ kind) => t(kind === 'purchase' ? 'ui.bill.supplier' : 'ui.bill.customer');
 
 /**
+ * Date and time on shared text in the app's date style: "25 Nov 2026, 12:14 am".
+ * @param {*} date
+ * @returns {string}
+ */
+export function shareDateTime(date) {
+    const lang = getLang();
+    const day = formatDay(date, { lang });
+    return day ? `${day}, ${formatTimeOfDay(date, { lang })}` : '';
+}
+
+/** One bill line on shared text: "  ₹55.00 × 20 kg = ₹1,100" (rate with paise, whole-rupee amount, MONEY-TEXT). */
+const shareLine = (/** @type {{rate: number, qty: number, total: number}} */ item) =>
+    `  ${formatRupees(item.rate, 'ratePaise')} × ${formatKg(item.qty)} kg = ${formatRupees(item.total)}`;
+
+/**
+ * The party's WhatsApp number (country code + number) from the bill: a stored phone, else the
+ * number in a picked contact's "Name - Number" (or a name that is only a number); '' when none.
+ * @param {Rec} bill
+ * @returns {string}
+ */
+export function billPhone(bill) {
+    const stored = normalizePhone(bill?.customerPhone || bill?.phone || bill?.mobile || '');
+    if (stored) return stored;
+    const name = String(bill?.customerName || '').trim();
+    const m = /(?:^|\s-\s*)(\+?[\d\s-]{10,})$/.exec(name);
+    return m ? normalizePhone(m[1]) : '';
+}
+
+/**
+ * Short caption sent with the bill picture, in the app language: title (COPY / DRAFT mark),
+ * bill number, total and the due when there is one.
+ * @param {Rec} bill a print payload (buildReprintPayload, or a draft with `isDraft`)
+ * @param {string} [type]
+ * @returns {string}
+ */
+export function buildBillShareCaption(bill, type) {
+    const kind = reprintType(bill, type);
+    const mark = bill?.isDraft ? ` (${t('ui.bill.draft_mark')})` : bill?.isCopy ? ` (${copyMark()})` : '';
+    const lines = [`*${t(TITLES[kind])}*${mark}`];
+    if (bill?.billNumber) lines.push(`${t('ui.bill.bill_no')}: #${bill.billNumber}`);
+    lines.push(`${t('ui.bill.total')}: ${formatRupees(billTotal(bill))}`);
+    const due = outstandingDue(bill);
+    if (due > 0) lines.push(`${t('ui.bill.due')}: ${formatRupees(due)}`);
+    return lines.join('\n');
+}
+
+/**
  * WhatsApp text for a saved bill, in the app language, dated with the bill's own date.
  * Internal figures (expenses, profit, who created it) are never included.
  * @param {Rec} bill
@@ -129,13 +177,13 @@ export function buildBillShareText(bill, type, { copy = true } = {}) {
     const date = billDateOf(bill);
     const lines = [`*${t(TITLES[kind])}*${copy ? ` (${copyMark()})` : ''}`, ''];
     if (p.billNumber) lines.push(`${t('ui.bill.bill_no')}: #${p.billNumber}`);
-    if (date) lines.push(`${t('ui.bill.date')}: ${formatReceiptDateTime(date)}`);
+    if (date) lines.push(`${t('ui.bill.date')}: ${shareDateTime(date)}`);
     if (p.customerName) lines.push(`${partyLabel(kind)}: ${p.customerName}`);
     if (p.printComments && String(p.comments || '').trim()) lines.push(`${t('ui.bill.note')}: ${String(p.comments).trim()}`);
     lines.push('', `*${t('ui.bill.items')}:*`);
     p.items.forEach((/** @type {{name: string, rate: number, qty: number, total: number}} */ item) => {
         lines.push(item.name);
-        lines.push(`  ${formatRupees(item.rate, 'ratePaise')} × ${formatKg(item.qty)}kg = ${formatRupees(item.total)}`);
+        lines.push(shareLine(item));
     });
     lines.push('');
 
@@ -176,12 +224,12 @@ export function buildDraftShareText({ kind, customer, date = new Date(), note, i
     // Not saved yet: says so, so nobody takes it for a recorded bill (S-10)
     const lines = [`*${t(TITLES[kind] || TITLES.retail)}* (${t('ui.bill.draft_mark')})`, ''];
     lines.push(`${partyLabel(kind)}: ${customer || partyLabel(kind)}`);
-    lines.push(`${t('ui.bill.date')}: ${formatDay(date, { lang: getLang() })}`);
+    lines.push(`${t('ui.bill.date')}: ${shareDateTime(date)}`);
     if (note) lines.push(`${t('ui.bill.note')}: ${note}`);
     lines.push('', `*${t('ui.bill.items')}:*`);
     items.forEach(item => {
         lines.push(item.name);
-        lines.push(`  ${t('ui.bill.rate')}: ${formatRupees(item.rate, 'ratePaise')} × ${formatKg(item.qty)}kg = ${formatRupees(item.total, { exact: true })}`);
+        lines.push(shareLine(item));
     });
     lines.push('', `*${t('ui.bill.total')}: ${formatRupees(total)}*`);
     if (kind === 'purchase' && labour > 0) {

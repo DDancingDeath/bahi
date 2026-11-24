@@ -30,13 +30,11 @@ import { accessFor, canDeleteBillWith, canOpenPage, canVoidBillWith, historyCuto
 import { askReason, billNoteHtml, editsRowHtml, payAmountHtml, renderEditsList, setBillActions, setBillDetailsTitle, voidedBannerHtml } from '../ui/bill-status.js';
 import { voidBlocker } from '../utils/bill-edits.js';
 import { buildReprintPayload, buildBillShareText } from '../utils/bill-share.js';
+import { shareBill } from '../services/bill-image-share.js';
 import { billTimes, refusedForClock } from '../utils/clock-skew.js';
 import { todayLocalISO } from '../utils/dates.js';
 import { paymentBreakdown, paidSoFar } from '../utils/due-payments.js';
-import { whatsAppShareUrl } from '../utils/release-info.js';
-import { openExternal } from '../utils/open-external.js';
 import { billTraceId } from '../utils/status-report.js';
-import { track } from '../services/usage.js';
 import { t, tn, loadAllCatalogues } from '../i18n/index.js';
 import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
@@ -1177,15 +1175,16 @@ export class HistoryManager {
         UIManager.showToast(t('msg.print_status.marked'));
     }
 
-    /** Share the open bill on WhatsApp (bill date, COPY mark, bilingual). */
-    static shareBill() {
+    /** Share the open bill on WhatsApp: its receipt picture (bill date, COPY mark), or the text when `asText`. */
+    static shareBill(asText = false) {
         const current = this.currentBill();
         if (!current) {
             UIManager.showToast(t('msg.common.bill_not_found'));
-            return;
+            return undefined;
         }
-        track('share.whatsapp');
-        openExternal(whatsAppShareUrl(buildBillShareText(current.bill, current.type)));
+        return shareBill(buildReprintPayload(current.bill, current.type), {
+            type: current.type, text: buildBillShareText(current.bill, current.type), asText
+        });
     }
 
     static toggleView() {

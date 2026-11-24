@@ -175,7 +175,7 @@
                     <strong class="bill-bar-money money"><span class="cur">₹</span><span id="wholesaleBarTotal">0</span></strong>
                 <span class="bill-backdated" data-backdated-for="wholesaleDate" role="status" hidden></span>
                 </div>
-                <button type="button" data-onclick="wholesaleSales.shareViaWhatsApp()" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
+                <button type="button" data-onclick="wholesaleSales.shareViaWhatsApp()" data-onhold="wholesaleSales.shareViaWhatsApp(true)" class="btn btn-icon bill-share" title="Share draft (not saved)" data-i18n-title="ui.billing.share_draft">
                     <svg class="i i-fill" aria-hidden="true" focusable="false"><use href="#i-wa"/></svg>
                     <span class="sr-only" data-i18n="ui.billing.share_draft">Share draft (not saved)</span>
                 </button>

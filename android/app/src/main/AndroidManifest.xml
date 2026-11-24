@@ -78,6 +78,9 @@
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
+        <!-- WhatsApp share of a bill picture (AppShell.shareToWhatsApp): is WhatsApp / WhatsApp Business installed? -->
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
     </queries>
 
     <!-- Contact button on Billing (#495): asked at runtime only on the first tap. The

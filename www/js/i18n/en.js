@@ -248,6 +248,7 @@ export default {
     'msg.common.contact_picker_denied': "Contacts permission is off. To pick a contact, allow it in the phone's Settings › Apps › this app › Permissions › Contacts. Or type the name.",
     'msg.common.contact_picker_failed': "Couldn't open your contacts. Try again, or type the name.",
     'msg.common.could_not_open_whatsapp': "Could not open WhatsApp",
+    'msg.share.image_failed_text': "The bill picture could not be shared, so the bill went as text.",
     'msg.common.delete_user': "Remove from shop",
     'msg.common.could_not_open_link': "Could not open the link: no app on this phone opens it",
     'msg.common.could_not_open_upi': "No UPI app opened. Is a UPI payment app installed on this phone?",

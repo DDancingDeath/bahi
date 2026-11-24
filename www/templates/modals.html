@@ -31,7 +31,7 @@
             </div>
             <div class="dialog-actions bill-details-footer">
                 <button type="button" class="btn btn-tonal" id="billReprintBtn" data-onclick="history.reprintBill()" title="Print a copy with the bill's date" data-i18n="ui.modals.reprint" data-i18n-title="ui.modals.print_copy_with_bill">Reprint</button>
-                <button type="button" class="btn btn-tonal" id="billShareBtn" data-onclick="history.shareBill()" title="Share on WhatsApp" data-i18n="ui.modals.share" data-i18n-title="ui.modals.share_on_whatsapp">Share</button>
+                <button type="button" class="btn btn-tonal" id="billShareBtn" data-onclick="history.shareBill()" data-onhold="history.shareBill(true)" title="Share on WhatsApp" data-i18n="ui.modals.share" data-i18n-title="ui.modals.share_on_whatsapp">Share</button>
                 <button type="button" class="btn btn-primary" id="billEditBtn" data-onclick="history.editCurrentBill()" data-i18n="ui.modals.edit">Edit</button>
                 <button type="button" class="btn btn-danger-outline" id="billVoidBtn" data-onclick="history.confirmVoidBill()" data-i18n="ui.void.button">Void</button>
                 <button type="button" class="btn btn-danger-outline" id="billDeleteBtn" hidden data-onclick="history.confirmDeleteBill()" data-i18n="ui.void.delete_permanently">Delete permanently</button>

@@ -57,8 +57,10 @@ While a bill is being typed:
   per-quintal rate — usually ₹24/kg" and offers **Use ₹24/kg** (at Add to bill it puts the rate in
   the box; on a bill line it changes that line). The bill's rate column says "Rate ₹/kg".
 - **Share draft (not saved)**: the WhatsApp icon is always in the bottom row (with no lines yet it
-  says "No items in bill"); it sends the bill on the form without saving it, and the message itself
-  says "DRAFT, not saved". Save first to record it. Both say "Customer".
+  says "No items in bill"); it sends the bill on the form without saving it, as its receipt picture
+  (the printed layout) marked "DRAFT, not saved", to the customer's WhatsApp chat when the name
+  holds a number. Press and hold it to send the text instead. Save first to record it. Both say
+  "Customer". See [printing.md](../printing.md) › WhatsApp.
 - **Print** (the filled, right-most button, with the printer icon: it saves the bill, then prints it; its name for screen readers and its tooltip say "Save and print"; the most used; **Save** beside it is outlined, both the same
   width; the desktop shortcuts stay on their buttons; the Enter key never saves or prints: in the Weight box it adds the weight, elsewhere
   the phone keyboard's key goes to the next box) saves the bill, then prints it. In the Android app with no printer to print on,
@@ -89,7 +91,7 @@ While a bill is being typed:
   a line to change it, Notes behind **Add note** and the day behind **Change date**; Expenses and the
   profit are folded under **Expenses and profit**; the recent bills show only when there are some.
 - **Share draft (not saved)**: sends the bill on the form to WhatsApp without
-  saving it; the message itself says "DRAFT, not saved". Save first to record it.
+  saving it, as its receipt picture marked "DRAFT, not saved" (hold for text). Save first to record it.
 - **Print** saves the bill, then prints it. With no printer connected the
   receipt is only shown as a picture, and the message says "Not printed".
 - **Printer button** (top bar, next to the bell; Billing and Wholesale, Android app only): a dot shows the

@@ -29,10 +29,10 @@ import { icon } from '../ui/icons.js';
 import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
+import { shareBill } from '../services/bill-image-share.js';
 import { lineItemIdentity, isArchivedItem } from '../utils/item-catalog.js';
 import { billTimeFor, validateBillDay } from '../utils/bill-date.js';
 import { allowBackdatedCash, billDateWho, lockBillDate, pickedBillDay, resetBillDate } from '../ui/bill-date-input.js';
-import { openExternal } from '../utils/open-external.js';
 
 /** Name to show for a catalogue item or bill line in the chosen item-name language. */
 const lineLabel = (line) => lineItemIdentity(line && 'itemId' in line ? line : { itemId: line?.id, name: line?.name }, AppState.items, AppState.settings.showHindi).label;
@@ -933,23 +933,30 @@ const PurchaseManager = {
     // -------------------- SHARING --------------------
 
     /**
-     * Share bill via WhatsApp
-     * @async
+     * WhatsApp: the draft's receipt picture (the printed layout, marked DRAFT), or its text when `asText`.
+     * @param {boolean} [asText]
      */
-    async shareWhatsApp() {
+    async shareWhatsApp(asText = false) {
         if (billItems.length === 0) {
             UIManager.showToast(t('msg.common.no_items_in_bill'));
             return;
         }
         
         const total = draftLineSum(billItems);
-        const { laborCharges } = this.computeTotals();
+        const totals = this.computeTotals();
+        const customer = Helpers.getInputText('customerName');
         const message = buildDraftShareText({
-            kind: 'purchase', customer: Helpers.getInputText('customerName'), items: billItems, total, labour: laborCharges
+            kind: 'purchase', customer, items: billItems, total, labour: totals.laborCharges
         });
-        
-        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        openExternal(url);
+        const working = document.getElementById('laborCalculation')?.dataset.working || null;
+        const draft = {
+            type: 'purchase', isPurchase: true, isDraft: true, customerName: customer, items: billItems,
+            billTotal: totals.billTotal, laborCharges: totals.laborCharges, laborCalc: working,
+            grandTotal: totals.grandTotal, amountPayable: totals.grandTotal, payment: this.readPaymentSplit(),
+            comments: Helpers.getInputText('billComments'), printComments: !!document.getElementById('billPrintComments')?.checked,
+            date: new Date().toISOString()
+        };
+        return shareBill(draft, { type: 'purchase', text: message, asText });
     },
 
     // -------------------- STATE ACCESS --------------------
