@@ -33,7 +33,7 @@ one on the website.
 
 | Option | Cost | Why not now |
 |---|---|---|
-| Firebase Crashlytics (APK) | Free on Spark (and Blaze) | **Chosen, opt-in** (below). The app sets no user id, keys or logs, but a native exception's message is sent as written and can hold text the code was handling, so the consent text says so; the #116 scrubbing covers only the web error telemetry |
+| Firebase Crashlytics (APK) | Free on Spark (and Blaze) | **Chosen, opt-in** (below). The app sets no user id; the only keys and logs are the printer's (step, Bluetooth name, Android version, permission states, docs/printing.md), but a native exception's message is sent as written and can hold text the code was handling, so the consent text says so; the #116 scrubbing covers only the web error telemetry |
 | Sentry free tier (web + APK) | Free up to a monthly event limit | A third party outside Firebase; needs a new CSP origin and the #116 scrubbing first; the limit can run out silently |
 | Sending error text to GitHub issues | Free | The repo is public and the errors can hold names, amounts and URLs. TIP issues carry only counts, reason codes and small sanitized samples, on purpose |
 

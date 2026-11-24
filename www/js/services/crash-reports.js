@@ -1,7 +1,7 @@
 /**
  * @fileoverview Crash reports for the Android app (#122): Firebase Crashlytics through the
  * @capacitor-firebase/crashlytics plugin. Off unless the user switches it on (kept per phone);
- * the APK's manifest keeps collection off until then. The app sets no user id, keys or logs;
+ * the APK's manifest keeps collection off until then. The app sets no user id; the only keys and logs are the printer's (services/printer-telemetry.js);
  * a report holds the crash and its message, the phone model, Android and app version, device
  * state and an install id. Crashes from before the switch was on are deleted, never sent.
  * docs/error-reporting.md.

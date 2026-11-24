@@ -95,6 +95,8 @@ export class PrinterLink {
         this.lastDevice = null;
         this.status = { checkedAt: null, lastError: null, lastJob: null, bluetoothOff: false };
         this.onChange = null;
+        this.canConnect = null;
+        this.around = null;
         this.stopped = false;
         this._queue = Promise.resolve();
     }
@@ -148,13 +150,21 @@ export class PrinterLink {
         return true;
     }
 
+    /**
+     * canConnect(): false when Android would refuse the link (the plugin's connect thread then
+     * closes the whole app instead of failing). around(step, run, info): wraps the native call.
+     */
     async connect(deviceId, deviceName = null, timeoutMs = this.timeouts.connectMs) {
         try {
-            await withTimeout(
+            if (this.canConnect && !(await this.canConnect())) {
+                throw new PrinterLinkError('permission', 'Bluetooth permission needed');
+            }
+            const run = () => withTimeout(
                 this.transport.connect(deviceId, (error) => this._dropped(deviceId, error)),
                 timeoutMs,
                 'timeout_connect'
             );
+            await (this.around ? this.around('connect', run, { name: deviceName }) : run());
         } catch (e) {
             const error = e instanceof PrinterLinkError ? e
                 : new PrinterLinkError(isPermissionError(e) ? 'permission' : 'connect', asError(e, 'Connection failed').message);
@@ -225,6 +235,7 @@ export class PrinterLink {
                 if ((await this.check()) || (await this.connect(deviceId, deviceName))) return tries + 1;
             } catch (error) {
                 lastError = error;
+                if (error?.kind === 'permission') break;
             }
         }
         throw lastError || new PrinterLinkError('connect', 'Connection failed');

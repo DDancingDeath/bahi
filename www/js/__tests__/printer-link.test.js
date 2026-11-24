@@ -205,6 +205,21 @@ describe('PrinterLink', () => {
         await link.connectNow('AA:BB');
         await expect(link.send(BYTES)).resolves.toMatchObject({ outcome: 'printed' });
     });
+
+    test('canConnect false: the plugin is not asked to connect (its thread would close the app), no retries', async () => {
+        const { link, transport, sleeps } = makeLink();
+        const around = jest.fn((step, run) => run());
+        link.around = around;
+        link.canConnect = () => Promise.resolve(false);
+        await expect(link.connectNow('AA:BB')).rejects.toMatchObject({ kind: 'permission' });
+        expect(transport.calls.connect).toBe(0);
+        expect(sleeps).toEqual([]);
+
+        link.canConnect = () => Promise.resolve(true);
+        await link.connectNow('AA:BB', 'MPT-II');
+        expect(transport.calls.connect).toBe(1);
+        expect(around).toHaveBeenCalledWith('connect', expect.any(Function), { name: 'MPT-II' });
+    });
 });
 
 describe('PrinterService with the fake transport', () => {
@@ -445,6 +460,27 @@ describe('PrinterService with the fake transport', () => {
             expect(asked).toBe(1);
             expect(transport.written).toEqual([BYTES]);
             expect(banner()).toBeNull();
+        });
+
+        test('only CONNECT granted (Android 12+): Connect asks for SCAN before linking, never links without it', async () => {
+            const perms = window.cordova.plugins.permissions;
+            const have = new Set(['android.permission.BLUETOOTH_CONNECT']);
+            const requested = [];
+            let allow = false;
+            perms.BLUETOOTH_SCAN = 'android.permission.BLUETOOTH_SCAN';
+            perms.checkPermission = (name, ok) => ok({ hasPermission: have.has(name) });
+            perms.requestPermission = (name, ok) => { requested.push(name); if (allow) have.add(name); ok({ hasPermission: allow }); };
+
+            expect(await PrinterService.bluetoothPermission()).toBe('denied');
+            await expect(PrinterService.connect('AA:BB', 'Shop printer')).rejects.toMatchObject({ kind: 'permission' });
+            expect(transport.calls.connect).toBe(0);
+            expect(await PrinterService.printBill(bill)).toBe(true);
+            expect(transport.calls.connect).toBe(0);
+
+            allow = true;
+            await PrinterService.connect('AA:BB', 'Shop printer');
+            expect(requested).toEqual(['android.permission.BLUETOOTH_SCAN', 'android.permission.BLUETOOTH_SCAN']);
+            expect(transport.calls.connect).toBe(1);
         });
 
         test('Android 11: a link error mentioning permission does not leave "permission needed" behind', async () => {

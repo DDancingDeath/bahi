@@ -289,18 +289,19 @@ describe('Nearby devices permission (Android 12+)', () => {
         plugins: {
             permissions: {
                 BLUETOOTH_CONNECT: 'android.permission.BLUETOOTH_CONNECT',
+                BLUETOOTH_SCAN: 'android.permission.BLUETOOTH_SCAN',
                 checkPermission: jest.fn((name, ok) => ok({ hasPermission: false })),
                 requestPermission: jest.fn((name, ok) => { asked.push(name); ok({ hasPermission: granted }); })
             }
         }
     });
 
-    test('Scan asks only for Nearby devices, never for location', async () => {
+    test('Scan asks only for Nearby devices (connect and scan), never for location', async () => {
         mockPlugin();
         const asked = [];
         window.cordova = permissions(true, asked);
         await PrinterService.scanDevices();
-        expect(asked).toEqual(['android.permission.BLUETOOTH_CONNECT']);
+        expect(asked).toEqual(['android.permission.BLUETOOTH_CONNECT', 'android.permission.BLUETOOTH_SCAN']);
         expect(window.bluetoothSerial.list).toHaveBeenCalledTimes(1);
     });
 
