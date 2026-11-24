@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v775';
+const CACHE_NAME = 'happa-v776';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -358,7 +358,9 @@ const LAZY_ASSETS = [
     '/css/recurring-bills.css',
     '/js/modules/photo-weights.js',
     '/js/utils/photo-weights.js',
-    '/js/firebase/photo-weights-ai.js'
+    '/js/firebase/photo-weights-ai.js',
+    '/js/ui/printer-test.js',
+    '/js/utils/escpos-image.js'
 ];
 
 /**

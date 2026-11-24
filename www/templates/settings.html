@@ -141,6 +141,17 @@
                         Disconnect printer
                     </button>
                 </div>
+
+                <div class="set-printer-test" id="printerTestSection">
+                    <h4 class="set-subtitle" data-i18n="ui.printer_test.title">Check the printer</h4>
+                    <p class="setting-description" data-i18n="ui.printer_test.hint">Print a test page or a photo to see that the printer works, before printing bills.</p>
+                    <ul class="printer-check" id="printerCheckList" aria-live="polite"></ul>
+                    <div class="set-actions">
+                        <button type="button" class="btn btn-tonal" id="printerCheckBtn" data-onclick="printerTest.check()"><span data-i18n="ui.printer_test.check">Check connection</span></button>
+                        <button type="button" class="btn" id="printerTestPageBtn" data-onclick="printerTest.page()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg><span data-i18n="ui.printer_test.page">Print a test page</span></button>
+                        <button type="button" class="btn" id="printerTestPhotoBtn" data-onclick="printerTest.photo()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-camera"/></svg><span data-i18n="ui.printer_test.photo">Print a photo</span></button>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -58,6 +58,7 @@
     {"metric":"colour","file":"www/js/modules/rate-trends.js","count":10,"list":"canvas","reason":"rate, volume and year-overlay chart lines drawn on canvas (grid and axis text read the --line / --ink-2 / --ink-3 tokens)"},
     {"metric":"colour","file":"www/js/services/exporter.js","count":5,"list":"standalone","reason":"text, border and header colours of the exported HTML file, which has no app.css"},
     {"metric":"colour","file":"www/js/ui/period-compare.js","count":2,"list":"print","reason":"summaryCanvas: the 58 mm (384 dot) slip for the thermal printer is black on white"},
+    {"metric":"colour","file":"www/js/ui/printer-test.js","count":3,"list":"print","reason":"the printer test page and photo canvases sent to the thermal printer are black on white","added":"2026-11-24"},
     {"metric":"type","file":"www/css/finance.css","count":1,"list":"off-scale","reason":".fin-value at 26 px: between --fs-display (28) and --fs-title (20)"},
     {"metric":"type","file":"www/css/history.css","count":1,"list":"off-scale","reason":"0.85em for the locked-action suffix, relative to its button text; no --fs-* token is relative"},
     {"metric":"type","file":"www/css/totals.css","count":1,"list":"off-scale","reason":".grand-total strong at 22 px: no --fs-* step for figures at 22 px (--fs-appbar is the app bar title)"},

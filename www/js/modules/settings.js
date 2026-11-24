@@ -1196,7 +1196,15 @@ export class SettingsManager {
 
     static updatePrinterStatus() {
         this.renderSavedPrinters();
-        return PrinterService.refreshStatus();
+        return PrinterService.refreshStatus().then(() => this.refreshPrinterCheck());
+    }
+
+    /** "Check the printer": the check list from what the status just learned (no extra Bluetooth calls). */
+    static refreshPrinterCheck() {
+        if (!document.getElementById('printerCheckList')) return undefined;
+        return import('../ui/printer-test.js')
+            .then(m => m.PrinterTest.check({ ask: false }))
+            .catch(e => console.warn('Printer check:', e?.message || e));
     }
 
     static async testPrint() {

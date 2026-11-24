@@ -33,6 +33,36 @@ Wholesale, only where `PrinterService.isAvailable()` (the plugin is there). Its 
 sheet; closing (✕, scrim, Esc, Back, or leaving the page) moves it back. One copy of the
 panel, the same handlers, and the bill on the form is never touched.
 
+### Check the printer (test page and photo)
+
+In the printer panel (Settings › Printing & receipts, and so also in Billing's printer sheet),
+`www/js/ui/printer-test.js`, imported on first use (service worker `LAZY_ASSETS`):
+
+- **Connection check** (a list, refreshed with the printer status and after each test; **Check
+  connection** asks again): printer chosen (name, paper width), Bluetooth on/off, Nearby devices
+  (`BLUETOOTH_CONNECT` + `BLUETOOTH_SCAN`; "not needed" below Android 12), connected now, and the
+  last print's time and result (this phone, `localStorage.printerLastTest`, or a newer print this session).
+- **Print a test page**: one line in the printer's own font (`Printer font: OK …`, ASCII only),
+  then a picture: shop name, date and time, app version and build, printer and paper width, a line
+  of English and one of Hindi, a 1 mm ruler numbered every 10 mm, a QR code, "Test OK". Printer
+  fonts have no Devanagari, so Hindi only prints in image mode (as every bill does); the font line
+  shows whether text mode works at all.
+- **Print a photo**: Take photo / Choose photo in the app (file inputs, as photo of weights; no
+  camera plugin). The preview is what prints: fitted to the paper width (384 dots for 58 mm, 576
+  for 80 mm; the printer's width, changeable here), at most 1,200 dots tall (a taller photo is made
+  smaller), dithered to black and white (Atkinson, or Floyd–Steinberg) with brightness and contrast.
+  **Print** shows a progress line and **Stop printing**.
+
+Bytes (`www/js/utils/escpos-image.js`, pure, `__tests__/escpos-image.test.js`): `ESC @ ESC a 1`,
+then `GS v 0` bands of whole rows of at most 1 KB each, then `ESC d 3 GS V A 3`. `PrinterLink.sendChunks`
+writes the chunks one at a time with 60 ms between them (cheap printers have small buffers), as one
+job in the print queue; Stop between chunks sends only `ESC d 3` (feed), so the printer is never left
+inside an image. Each chunk is its own `Uint8Array`: the plugin's `write` sends `data.buffer`, so a
+view into a bigger buffer would send all of it. Every failure (no printer, permission, Bluetooth off,
+connect, write, unreadable photo) shows a message and sends a Crashlytics non-fatal through
+`PrinterTelemetry.error(step)` with the `printer_*` keys (`test_page`, `test_photo`, `test_page_draw`,
+`test_photo_pick`, `test_photo_load`, `test_photo_render`, `test_check`).
+
 The two Capacitor printer plugins (`@capacitor-community/bluetooth-le`,
 `capacitor-thermal-printer`) and the `escpos-buffer` package were never used by the app
 and were removed (#135). `android/app/capacitor.build.gradle` and

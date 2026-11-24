@@ -87,6 +87,40 @@ describe('PrinterLink', () => {
         expect(transport.calls.write).toBe(2);
     });
 
+    test('printer test: chunks go one by one with a pause between, progress after each', async () => {
+        const { link, transport, sleeps } = makeLink();
+        const chunks = [new Uint8Array([1]), new Uint8Array([2, 2]), new Uint8Array([3])];
+        const progress = [];
+        await expect(link.sendChunks(chunks, { deviceId: 'AA:BB' }, { delayMs: 60, onProgress: (s, n) => progress.push(`${s}/${n}`) }))
+            .resolves.toMatchObject({ outcome: 'printed' });
+        expect(transport.written).toEqual(chunks);
+        expect(sleeps).toEqual([60, 60]);
+        expect(progress).toEqual(['1/3', '2/3', '3/3']);
+    });
+
+    test('printer test: Cancel stops between chunks and feeds the paper; before the first chunk nothing is sent', async () => {
+        const { link, transport } = makeLink();
+        const tail = new Uint8Array([0x1B, 0x64, 0x03]);
+        const chunks = [new Uint8Array([1]), new Uint8Array([2]), new Uint8Array([3])];
+        let stop = false;
+        const res = await link.sendChunks(chunks, { deviceId: 'AA:BB' }, { cancelled: () => stop, cancelTail: tail, onProgress: (s) => { if (s === 1) stop = true; } });
+        expect(res).toEqual({ outcome: 'cancelled', sent: 1 });
+        expect(transport.written).toEqual([chunks[0], tail]);
+        expect(link.status.lastJob).toEqual({ outcome: 'cancelled', at: 1000 });
+
+        transport.written = [];
+        await expect(link.sendChunks(chunks, { deviceId: 'AA:BB' }, { cancelled: () => true, cancelTail: tail })).resolves.toEqual({ outcome: 'cancelled', sent: 0 });
+        expect(transport.written).toEqual([]);
+    });
+
+    test('printer test: a chunk that fails part way is "may have printed"', async () => {
+        const { link, transport } = makeLink();
+        transport.writePlan = ['ok', 'fail'];
+        await expect(link.sendChunks([new Uint8Array([1]), new Uint8Array([2]), new Uint8Array([3])], { deviceId: 'AA:BB' }))
+            .rejects.toMatchObject({ outcome: 'uncertain' });
+        expect(transport.calls.write).toBe(2);
+    });
+
     test('a bill makes one quick connect when the link is down, with no retries', async () => {
         const { link, transport, sleeps } = makeLink();
         transport.connectPlan = ['hang', 'hang'];
