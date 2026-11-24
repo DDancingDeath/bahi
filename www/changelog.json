@@ -2,10 +2,12 @@
   "releases": [
     {
       "version": "1.0.0",
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "androidVersionCode": 1,
       "notes": {
         "en": [
+          "Settings › Bluetooth printer: check the connection, print a test page or a photo.",
+          "Settings › Notifications (owners and managers): test notifications on this phone (now, in 15 s, by push with the app closed) and on other phones, with this phone's status.",
           "Printer: no more closing when connecting on Android 12+.",
           "Crash reports are always on in the app, so problems are reported without a setting.",
           "Money › Labour: each day's labour deducted, estimated pay and paid, with the balance on top; tap a day to see its bills. Today's Labour card has a History link.",
@@ -21,6 +23,8 @@
           "Many smaller fixes across the app."
         ],
         "hi": [
+          "सेटिंग › ब्लूटूथ प्रिंटर: जुड़ाव जाँचें, जाँच का पेज या फ़ोटो छापें।",
+          "सेटिंग › सूचनाएँ (मालिक और मैनेजर): इस फ़ोन पर (अभी, 15 सेकंड में, ऐप बंद होने पर पुश से) और दूसरे फ़ोन पर सूचनाओं की जाँच, साथ में इस फ़ोन की स्थिति।",
           "प्रिंटर: Android 12+ पर प्रिंटर जोड़ते समय ऐप अब बंद नहीं होता।",
           "ऐप में क्रैश रिपोर्ट अब हमेशा चालू हैं, इसलिए गड़बड़ी बिना किसी सेटिंग के बताई जाती है।",
           "हिसाब › मज़दूरी: हर दिन की काटी गई मज़दूरी, अनुमानित मज़दूरी और दी गई मज़दूरी, ऊपर बाकी के साथ; किसी दिन को दबाकर उसके बिल देखें। आज के मज़दूरी कार्ड में इतिहास का लिंक है।",
