@@ -220,7 +220,9 @@ there, "In production").
 ## How to test
 
 Settings › Help & about › Notifications › **Test notifications** (owner and managers; Members keep the
-single "Send test notification"). Each button shows its result under it; at most 5 tests a minute per
+single "Send test notification"). The panel is closed at first: opening it reads the team for the picker
+(owner: the profiles; managers: the team directory) and this phone's device doc, so Settings itself
+reads nothing more. Each button shows its result under it; at most 5 tests a minute per
 person (this phone, and the push sender counts too).
 
 | Button | What it does | When it should come |
