@@ -56,6 +56,7 @@
     {"metric":"colour","file":"www/js/main.js","count":4,"list":"standalone","reason":"DevTools console %c colours for the build stamp and the stock / item debug groups"},
     {"metric":"colour","file":"www/js/modules/anomalies.js","count":18,"list":"canvas","reason":"the anomaly chart's 16 type colours (data, not chrome), plus the printable day-report image's white background and black text"},
     {"metric":"colour","file":"www/js/modules/rate-trends.js","count":10,"list":"canvas","reason":"rate, volume and year-overlay chart lines drawn on canvas (grid and axis text read the --line / --ink-2 / --ink-3 tokens)"},
+    {"metric":"colour","file":"www/js/services/bill-image-share.js","count":1,"list":"print","reason":"the WhatsApp bill picture is the printed receipt on white paper (margin around the slip)","added":"2026-11-25"},
     {"metric":"colour","file":"www/js/services/exporter.js","count":5,"list":"standalone","reason":"text, border and header colours of the exported HTML file, which has no app.css"},
     {"metric":"colour","file":"www/js/ui/period-compare.js","count":2,"list":"print","reason":"summaryCanvas: the 58 mm (384 dot) slip for the thermal printer is black on white"},
     {"metric":"colour","file":"www/js/ui/printer-test.js","count":3,"list":"print","reason":"the printer test page and photo canvases sent to the thermal printer are black on white","added":"2026-11-24"},
