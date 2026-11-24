@@ -573,6 +573,8 @@ const PrinterService = {
 
     /** Last answer about the Bluetooth permission: 'granted' | 'denied' | 'unknown'. */
     permissionState: 'unknown',
+    /** CONNECT and SCAN each, from the last check (null on the web, older Android or no plugin). */
+    permissionDetail: null,
     permissionBannerClosed: false,
 
     /** The Android permissions plugin, when the app runs on Android 12+ (else null). */
@@ -590,6 +592,7 @@ const PrinterService = {
     async bluetoothPermission() {
         const perms = this._permissions();
         if (!perms) {
+            this.permissionDetail = null;
             if (this.permissionState !== 'unknown') this.setPermissionState('unknown');
             return 'unknown';
         }
@@ -601,6 +604,7 @@ const PrinterService = {
         ]);
         clearTimeout(timer);
         PrinterTelemetry.note({ connect: states[0], scan: states[1] });
+        this.permissionDetail = { connect: states[0], scan: states[1] };
         const state = states.includes('denied') ? 'denied' : states.every(s => s === 'granted') ? 'granted' : 'unknown';
         this.setPermissionState(state);
         return state;

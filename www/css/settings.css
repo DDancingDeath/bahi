@@ -153,6 +153,43 @@
   width: auto;
 }
 
+/* Check the printer (ui/printer-test.js): the check list and the photo sheet */
+.set-printer-test {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.printer-check {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+
+.printer-check:empty {
+  display: none;
+}
+
+.printer-photo-preview {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 60vh;
+  margin-inline: auto;
+  border: 1px var(--rule-style) var(--line);
+  image-rendering: pixelated;
+}
+
+.printer-photo-range {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
 /* Billing's app-bar printer button (ui/printer-shortcut.js): the dot is the printer's state */
 .app-bar .printer-shortcut[hidden] {
   display: none;

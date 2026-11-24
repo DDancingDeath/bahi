@@ -264,7 +264,20 @@ export class PrinterLink {
      * @throws {PrinterLinkError} outcome 'failed' or 'uncertain'
      */
     send(bytes, target = {}, options = {}) {
-        return this._enqueue(() => this._job(bytes, target, options));
+        return this._enqueue(() => this._job([bytes], target, options));
+    }
+
+    /**
+     * Like send, for the printer test: the chunks are written one by one with a pause after
+     * each (a cheap printer's buffer is small). cancelled() is asked before each chunk; once
+     * true, `cancelTail` (if any) is written and the job ends 'cancelled'.
+     * @param {Uint8Array[]} chunks
+     * @param {{deviceId?: string, deviceName?: string}} [target]
+     * @param {{mode?: 'quick'|'full', delayMs?: number, onProgress?: (sent: number, total: number) => void,
+     *   cancelled?: () => boolean, cancelTail?: Uint8Array}} [options]
+     */
+    sendChunks(chunks, target = {}, options = {}) {
+        return this._enqueue(() => this._job(chunks, target, options));
     }
 
     _finish(outcome, error = null) {
@@ -275,7 +288,7 @@ export class PrinterLink {
         return error;
     }
 
-    async _job(bytes, target, { mode = 'quick', confirmReprint, onUncertain, onPrinted } = {}) {
+    async _job(chunks, target, { mode = 'quick', confirmReprint, onUncertain, onPrinted, delayMs = 0, onProgress, cancelled, cancelTail } = {}) {
         if (confirmReprint && !(await confirmReprint())) return { outcome: 'cancelled' };
         if (!this.transport.available()) {
             throw this._finish('failed', new PrinterLinkError('unavailable', 'Bluetooth Serial plugin not available'));
@@ -296,8 +309,21 @@ export class PrinterLink {
             throw this._finish('failed', error);
         }
 
+        let sent = 0;
         try {
-            await withTimeout(this.transport.write(bytes), this.writeTimeoutMs(bytes.length), 'timeout_write');
+            for (const chunk of chunks) {
+                if (cancelled?.()) break;
+                if (sent > 0 && delayMs > 0) await this.sleep(delayMs);
+                if (cancelled?.()) break;
+                await withTimeout(this.transport.write(chunk), this.writeTimeoutMs(chunk.length), 'timeout_write');
+                sent++;
+                if (onProgress) onProgress(sent, chunks.length);
+            }
+            if (sent < chunks.length) {
+                if (sent > 0 && cancelTail) await withTimeout(this.transport.write(cancelTail), this.writeTimeoutMs(cancelTail.length), 'timeout_write');
+                this._finish('cancelled');
+                return { outcome: 'cancelled', sent };
+            }
         } catch (e) {
             const kind = e instanceof PrinterLinkError ? e.kind : 'write';
             if (kind === 'timeout_write') this._reset();

@@ -75,7 +75,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261124c-crash-always-on';
+const BUILD_ID = '20261124d-printer-test';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -187,6 +187,11 @@ const loadExpenses = onDemand(() => import('./modules/miscellaneous.js').then(m 
 const withStock = (fn) => (stock ? fn(stock) : loadStock().then(fn));
 const withWholesale = (fn) => (wholesale ? fn(wholesale) : loadWholesale().then(fn));
 const withExpenses = (fn) => (expenses ? fn(expenses) : loadExpenses().then(fn));
+const withPrinterTest = (fn) => import('./ui/printer-test.js').then(fn).catch((e) => {
+    console.error('Printer test:', e);
+    UIManager.showToast(t('msg.printer_test.failed', { message: t('msg.printer_test.unknown') }), 'error');
+    return false;
+});
 const PAGE_CODE = { stock: loadStock, 'wholesale-sales': loadWholesale, expenses: loadExpenses };
 TemplateLoader.pageCode = (tab) => PAGE_CODE[tab]?.();
 const ownerRefreshes = new Map();
@@ -1166,6 +1171,12 @@ window.app = {
         open: () => PrinterShortcut.open(),
         close: () => PrinterShortcut.close(),
         receiptOptions: () => PrinterShortcut.receiptOptions()
+    },
+    // Settings › Printing › Check the printer (also in the printer sheet): imported on first use
+    printerTest: {
+        check: () => withPrinterTest(m => m.PrinterTest.check()),
+        page: () => withPrinterTest(m => m.PrinterTest.page()),
+        photo: () => withPrinterTest(m => m.PrinterTest.photo())
     },
 
     // Notifications inbox (#12)

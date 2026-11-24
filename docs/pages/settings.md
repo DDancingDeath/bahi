@@ -16,7 +16,8 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   **Reset to default** goes back to Modern Minimal and System. Printed bills look the same in every theme. Also item names
   in Hindi and, on phones, swiping between pages.
 - **Settings › Printing & receipts** (everyone): Bluetooth printer (switch on, status, show the bill before printing,
-  saved and found printers, Scan, Test print, Disconnect) and **Printed bill**: the bottom line, the bill's QR code,
+  saved and found printers, Scan, Test print, Disconnect, and **Check the printer**: the connection check, Print a test
+  page, Print a photo; [printing.md](../printing.md)) and **Printed bill**: the bottom line, the bill's QR code,
   the bill language, print darkness and logo are the same on every phone; the owner, or a manager allowed in Roles &
   access, changes them (others see them). The printer and paper width stay on each phone. A saved printer that is
   in use but not connected (after the app restarts) has **Connect**. The same Bluetooth printer controls open from
