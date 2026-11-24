@@ -274,6 +274,7 @@ label {
 /* A dense grid of equal cells that each fit "999.9" and the ×: 4 a row on a 360 px phone, 5 at 412 px */
 .weights-compact-list {
   display: grid;
+  font-size: var(--fs-body);
   grid-template-columns: repeat(auto-fill, minmax(calc(4.4ch + var(--sp-1) + var(--sp-5)), 1fr));
   gap: var(--sp-1);
 }

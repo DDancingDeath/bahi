@@ -1087,7 +1087,7 @@ export class SettingsManager {
                 <div class="set-device-tools">
                     <select class="input saved-printer-width" aria-label="${Helpers.escapeHtml(t('ui.settings.paper_width'))}">${widths}</select>
                     ${inUse && connected ? '' : `<button type="button" class="btn btn-sm btn-tonal saved-printer-use">${Helpers.escapeHtml(t(inUse ? 'ui.settings.connect' : 'ui.settings.use_printer'))}</button>`}
-                    <button type="button" class="btn btn-sm btn-ghost saved-printer-forget">${Helpers.escapeHtml(t('ui.settings.forget_printer'))}</button>
+                    <button type="button" class="btn btn-ghost btn-icon saved-printer-forget" aria-label="${Helpers.escapeHtml(t('ui.settings.forget_printer'))}" title="${Helpers.escapeHtml(t('ui.settings.forget_printer'))}">${icon('trash', 'i-sm')}</button>
                 </div>`;
             row.querySelector('.saved-printer-width').addEventListener('change', (e) => this.setPaperWidth(p.deviceId, Number(e.target.value)));
             row.querySelector('.saved-printer-use')?.addEventListener('click', () => this.connectToPrinter(p.deviceId, p.deviceName));

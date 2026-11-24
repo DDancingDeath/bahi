@@ -222,8 +222,14 @@
   gap: var(--sp-2);
 }
 
+.saved-printer > .set-device-tools {
+  flex-wrap: nowrap;
+}
+
 .set-device-tools > .input {
+  flex: 0 1 auto;
   width: auto;
+  min-width: 0;
 }
 
 .set-device-tools > .btn {
