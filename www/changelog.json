@@ -2,13 +2,14 @@
   "releases": [
     {
       "version": "1.0.0",
-      "date": "2026-11-23",
+      "date": "2026-11-24",
       "androidVersionCode": 1,
       "notes": {
         "en": [
           "Money › Labour: each day's labour deducted, estimated pay and paid, with the balance on top; tap a day to see its bills. Today's Labour card has a History link.",
           "Notifications: owners and managers are told when cash is opened or closed for the day, and Settings › Notifications has a switch for each kind of update.",
-          "The app can now get notifications while it is closed (switched on once the shop's sender is set up).",
+          "Notifications now reach the phone even when the app is closed (turn on Phone notifications in Settings › Notifications).",
+          "Today is grouped: the money figures first, then Needs attention, Settle today and Details, with Today's bills as the last row.",
           "Billing: one mic beside Customer speaks the whole bill; Print is the main button (it saves, then prints); WhatsApp and Due are always shown; Labour is a simpler card.",
           "Today is shorter: figures first, an in / out bar, Labour as one line (Deducted · Est. pay), a short Day report with one share button, and Today's bills as one row that opens History. Tap Purchases or Sales to see how they were paid.",
           "Today › Cash: Expected cash in the grid; once counted, one line says how it compares.",
@@ -20,7 +21,8 @@
         "hi": [
           "हिसाब › मज़दूरी: हर दिन की काटी गई मज़दूरी, अनुमानित मज़दूरी और दी गई मज़दूरी, ऊपर बाकी के साथ; किसी दिन को दबाकर उसके बिल देखें। आज के मज़दूरी कार्ड में इतिहास का लिंक है।",
           "सूचनाएँ: दिन का नकद खुलने या बंद होने पर मालिक और मैनेजर को सूचना मिलती है, और सेटिंग › सूचनाएँ में हर तरह की सूचना का अलग बटन है।",
-          "अब ऐप बंद होने पर भी सूचनाएँ आ सकती हैं (दुकान का भेजने वाला सेट होने के बाद चालू होगा)।",
+          "अब ऐप बंद होने पर भी सूचनाएँ फ़ोन पर आती हैं (सेटिंग › सूचनाएँ में फ़ोन पर सूचनाएं चालू करें)।",
+          "आज पेज अब समूहों में है: पहले पैसे के आँकड़े, फिर ध्यान दें, आज का हिसाब और विवरण, और आज के बिल सबसे नीचे।",
           "बिलिंग: ग्राहक के पास एक माइक से पूरा बिल बोलें; प्रिंट मुख्य बटन है (पहले सेव, फिर प्रिंट); WhatsApp और बकाया हमेशा दिखते हैं; मज़दूरी का कार्ड आसान हुआ।",
           "आज पेज छोटा हुआ: पहले आँकड़े, आया / गया की पट्टी, मज़दूरी एक लाइन में (काटी गई · अनुमानित मज़दूरी), छोटी आज की रिपोर्ट एक भेजें बटन के साथ, और आज के बिल एक लाइन जो इतिहास खोलती है। खरीद या बिक्री दबाकर देखें कि भुगतान कैसे हुआ।",
           "आज › नकद: अनुमानित नकद जाल में; गिनने के बाद एक लाइन बताती है कि मेल खाया या नहीं।",
