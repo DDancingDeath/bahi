@@ -14,7 +14,7 @@ export const APP_IDENTITY = Object.freeze({
         "android": false
     },
     "push": {
-        "url": "",
+        "url": "https://script.google.com/macros/s/AKfycbyFJF7n7nCqhA7r4tGMoWpNDlavuHzWf55ye8qmBP7rtu7QOz7R-bmo4le0vMl_Dfs-rw/exec",
         "vapidKey": ""
     }
 });
