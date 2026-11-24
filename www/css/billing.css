@@ -271,18 +271,20 @@ label {
   display: none;
 }
 
+/* A dense grid of equal cells that each fit "999.9" and the ×: 4 a row on a 360 px phone, 5 at 412 px */
 .weights-compact-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+  display: grid;
+  font-size: var(--fs-body);
+  grid-template-columns: repeat(auto-fill, minmax(calc(4.4ch + var(--sp-1) + var(--sp-5)), 1fr));
+  gap: var(--sp-1);
 }
 
-/* Weight chips (redesign 3.1a): the weights typed for the line, × takes one off */
+/* Weight chips (redesign 3.1a): the weights typed for the line (one decimal, right-aligned), × takes one off */
 .weight-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  min-height: 36px;
-  padding-left: var(--sp-3);
+  height: 30px;
+  padding-left: var(--sp-1);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   color: var(--ink);
@@ -290,7 +292,16 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
+.weight-chip > span {
+  flex: 1;
+  text-align: right;
+}
+
 .weight-chip > .btn-icon {
+  width: var(--sp-5);
+  min-height: 0;
+  height: 100%;
+  border: 0;
   color: var(--ink-3);
 }
 
@@ -1127,3 +1138,4 @@ label {
 .party-needed-note::before {
   content: "· " / "";
 }
+

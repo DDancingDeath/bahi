@@ -2,7 +2,7 @@
  * @fileoverview Tests for money helpers / payment schema normalisation
  */
 import { round2, sumMoney, readPayment, billTotal, billLineTotal, outstandingDue, legacyDue, paymentSplitMessage, dueNeedsName, isOpeningBalance, openingAmount, openingOldTotals, wholesaleOutstanding } from '../utils/money.js';
-import { perUnitRate, normalizePackageKg, normalizeLabourSettings, toMoney, readLineItem, formatAmount, formatRupees, formatRate, formatKg } from '../utils/money.js';
+import { perUnitRate, normalizePackageKg, normalizeLabourSettings, toMoney, readLineItem, formatAmount, formatRupees, formatRate, formatKg, formatWeight } from '../utils/money.js';
 
 describe('round2', () => {
     test('rounds half-paise correctly', () => {
@@ -236,5 +236,15 @@ describe('small money helpers the mutation run found untested (#160)', () => {
         expect(formatKg(-0.0001)).toBe('0');
         expect(formatKg(125000.5)).toBe('1,25,000.5');
         expect(formatKg(undefined)).toBe('0');
+    });
+
+    test('formatWeight (WEIGHT-TEXT): one decimal always, so listed weights line up; finer weights keep their decimals', () => {
+        expect([45, 23.5, 23, 25.5, 26, 27].map(formatWeight)).toEqual(['45.0', '23.5', '23.0', '25.5', '26.0', '27.0']);
+        expect(formatWeight(999.9)).toBe('999.9');
+        expect(formatWeight(1250)).toBe('1,250.0');
+        expect(formatWeight(23.25)).toBe('23.25');
+        expect(formatWeight(0)).toBe('0.0');
+        expect(formatWeight(-0.0001)).toBe('0.0');
+        expect(formatWeight('x')).toBe('0.0');
     });
 });

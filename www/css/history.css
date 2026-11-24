@@ -83,9 +83,10 @@
   color: var(--positive);
 }
 
+/* Weights in equal right-aligned columns (one decimal each), so they line up like the printed slip */
 .bill-view-weights {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6ch, 1fr));
   column-gap: var(--sp-3);
   color: var(--ink-2);
   font-size: var(--fs-sm);
@@ -94,6 +95,7 @@
 /* A weight never breaks inside the number (F49) */
 .bill-view-w {
   white-space: nowrap;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -892,4 +894,4 @@
 .bill-view-more > summary {
   color: var(--ink-2);
   cursor: pointer;
-}
+}

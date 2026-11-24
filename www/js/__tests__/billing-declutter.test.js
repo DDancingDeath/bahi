@@ -439,14 +439,16 @@ describe('7. lighter, safer bill form (U-05, U-06, U-18)', () => {
         expect(PurchaseManager.getWeights()).toEqual([40, 50]);
     });
 
-    test('the Last saved strip is one compact row: bill number and "Saved · total · due · party" open the bill; Print, WhatsApp, × (U-05, N-08)', () => {
+    test('the Last saved strip is one line: bill number and "total · due" open the bill; Print, WhatsApp, × (U-05, N-08)', () => {
         showLastSaved('purchase', { id: 'p1', billNumber: 'P20261115-003', customerName: 'Ramesh', grandTotal: 16191, payment: { cash: 3000, online: 0, due: 13191 } });
         const strip = $('purchaseLastSaved');
         expect(strip.hidden).toBe(false);
         expect(strip.querySelector('.last-saved-head').textContent).toBe('#P20261115-003');
-        expect(strip.querySelector('.last-saved-facts').textContent).toBe('Saved · ₹16,191 · Due ₹13,191 · Ramesh');
+        expect(strip.querySelector('.last-saved-facts').textContent).toBe('₹16,191 · Due ₹13,191');
         expect(strip.querySelector('.last-saved-open').textContent).toContain('Open bill #P20261115-003');
         expect([...strip.querySelectorAll(':scope > .btn-icon')].map(b => b.getAttribute('aria-label'))).toEqual(['Print', 'WhatsApp', 'Hide']);
+        showLastSaved('purchase', { id: 'p2', billNumber: 'P20261115-004', grandTotal: 250, payment: { cash: 250, online: 0, due: 0 } });
+        expect(strip.querySelector('.last-saved-facts').textContent).toBe('₹250 · Paid');
         strip.querySelector('.last-saved-close').click();
         expect(strip.hidden).toBe(true);
     });

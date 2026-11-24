@@ -29,6 +29,7 @@ import { safeSetItem } from '../utils/storage-full.js';
 import { track, trackVoiceMiss } from '../services/usage.js';
 import { on, BILL_CLEARED } from '../utils/events.js';
 import { VoiceMic } from '../ui/voice-mic.js';
+import { infoTipHtml } from '../ui/info-tip.js';
 import { BillingManager, PurchaseManager, RetailSaleManager, syncBillNotes } from './billing.js';
 
 const FIELDS = {
@@ -1166,11 +1167,16 @@ export const VoiceBilling = {
         UIManager.showToast(message, ms);
     },
 
-    /** The transcript strip under the mic (aria-live): what was heard and what came of it. */
+    /** The transcript strip under the mic (aria-live): only what was heard; what came of it is behind the ⓘ. */
     setStrip(f, heard, status) {
         const el = byId(f.transcript);
         if (!el) return;
-        el.textContent = [heard ? t('ui.voice.transcript', { heard }) : '', status || ''].filter(Boolean).join(' ');
+        if (!heard) {
+            el.textContent = status || '';
+            return;
+        }
+        const more = [t('ui.voice.transcript', { heard }), status || ''].filter(Boolean).join(' ');
+        el.innerHTML = `<span class="voice-heard-text">${esc(heard)}</span><span class="sr-only">${esc(status || '')}</span>${infoTipHtml(more)}`;
     },
 
     /** The Undo button shows while this form has a voice change to undo. */

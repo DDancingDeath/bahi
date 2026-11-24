@@ -218,6 +218,11 @@ and page layout uses page-scoped classes (`.bill-form-field`, `.pay-line`, …).
       <div class="disclosure-body" id="dayReportBody" hidden>…</div>
   </div></div>
   ```
+- **Info tip** `details.menu.info-tip` (`www/js/ui/info-tip.js`, `infoTipHtml(text)` / `infoTipEl(text)`): the one way to put an
+  explanation behind a tap. A 32 px ghost ⓘ (`i-info`, `aria-label` "More info") after a short line opens a small floating
+  `.panel.menu-list.info-pop` (the ⋯ menu's float, so `ui/menus.js` closes it on a tap elsewhere, Esc or Tab out). Used by the
+  rate warning ("⚠️ ₹25 · usual ₹55" ⓘ the full sentence), the Billing labour rule, the voice strip (only what was heard, ⓘ what was
+  filled and the next step). A whole block of details (the printer status) is a closed **Disclosure** instead.
 - **About help** `details.page-help` (`surfaces.css`): a `-ghost -sm` button-summary ("About this page", or "About" in a Settings
   card) over the longer text, so the screen keeps a one- or two-line hint and the rest is one tap away (Recurring bills,
   Workers, Settings › Billing tools, Roles & access). A `summary.btn` never draws the disclosure marker (`forms.css`).
@@ -425,6 +430,8 @@ counts toward the 1.5 KB. A look that tokens can't express needs a new token in 
 | Use sprite icons (§4) | Use emoji in navigation, titles or buttons |
 | Put desktop-only rules in `desktop.css` | Put `@media (min-width: 1024px)` rules in page CSS |
 | Move things with `transform` and `opacity` only (colour and shadow transitions on hover are fine); respect reduced motion | Use `backdrop-filter` on phone layouts |
+| Keep a screen to one short line per thing: numbers and colours carry the meaning; put help, rules and the long sentence behind an ⓘ (info tip) or a closed disclosure | Add a second line of explanation under a control, or repeat a figure that is already on the row |
+| List weights with `formatWeight()` (one decimal, "45.0") in equal right-aligned tabular cells | Mix "45" and "23.5" in one list, or let chips size to their text |
 | Leave print and receipts alone | Let a theme colour reach `@media print`, `printer.js`, `receipt-drawing.js` or `rent-receipt.css` |
 
 ## 7. Guards

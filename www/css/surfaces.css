@@ -298,6 +298,37 @@ a.row:active {
   text-align: left;
 }
 
+/* Info tip (ui/info-tip.js): a small ⓘ after a short line; the explanation floats in a .menu-list (one way to put help
+   behind a tap, everywhere) */
+.info-tip {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.info-tip > .btn-icon {
+  width: var(--sp-8);
+  min-height: var(--sp-8);
+  border: 0;
+  color: var(--ink-3);
+}
+
+.info-tip[open] > .btn-icon {
+  color: var(--accent);
+}
+
+.info-pop {
+  width: max-content;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - var(--sp-4)));
+  padding: var(--sp-3);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-regular);
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+}
+
 /* A panel that opens something when tapped */
 .panel-tap {
   cursor: pointer;

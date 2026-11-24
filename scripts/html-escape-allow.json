@@ -18,6 +18,8 @@
     "formatRupees": "a number formatted as rupees",
     "moneyText": "utils/money.js: formatRupees text of a number, or —",
     "formatKg": "a number formatted as kg",
+    "formatWeight": "utils/money.js: a number formatted as a listed weight (digits, comma, point)",
+    "infoTipHtml": "ui/info-tip.js: constant details/summary markup with the sprite icon; its text and label HTML-escaped",
     "formatRate": "a number formatted as a rate",
     "fmt": "number formatter",
     "money": "number formatter",

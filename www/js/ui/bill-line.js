@@ -5,7 +5,7 @@
  */
 
 import { Helpers } from '../utils/helpers.js';
-import { formatKg } from '../utils/money.js';
+import { formatWeight } from '../utils/money.js';
 import { tn } from '../i18n/index.js';
 
 /**
@@ -17,6 +17,6 @@ export function lineNameHtml(label, weights) {
     const list = Array.isArray(weights) && weights.length >= 2 ? weights : null;
     const name = `<span class="bill-line-name">${Helpers.escapeHtml(label)}</span>`;
     if (!list) return name;
-    const text = tn('ui.billing.line_packets', list.length, { list: list.map(w => formatKg(w)).join(' · ') });
+    const text = tn('ui.billing.line_packets', list.length, { list: list.map(w => formatWeight(w)).join(' · ') });
     return `${name}<span class="bill-line-weights">${Helpers.escapeHtml(text)}</span>`;
 }

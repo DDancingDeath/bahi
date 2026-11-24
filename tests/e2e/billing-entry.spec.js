@@ -85,3 +85,39 @@ for (const width of [390, 360]) {
         });
     }
 }
+
+for (const [width, perRow] of [[360, 4], [412, 5]]) {
+    test(`weight chips: one decimal, a dense grid of equal cells, ${perRow} a row at ${width} px`, async ({ page, problems }, testInfo) => {
+        test.skip(testInfo.project.name !== 'phone', 'phone layout');
+        await page.setViewportSize({ width, height: 800 });
+        await login(page, 'owner');
+        await showTab(page, 'billing');
+        expect(await settle(page)).toBe(true);
+        await page.click('#purchaseModeBtn');
+        await page.fill('#billRate', '25');
+        for (const w of ['45', '23.5', '23', '25.5', '26', '27']) {
+            await page.fill('#newWeight', w);
+            await page.click('#purchaseSection [data-add-weight]');
+        }
+        const chips = page.locator('#weightsDisplay .weight-chip');
+        await expect(chips).toHaveCount(6);
+        await expect(page.locator('#weightsDisplay .weight-chip > span')).toHaveText(['45.0', '23.5', '23.0', '25.5', '26.0', '27.0']);
+        await expect(page.locator('#totalWeights')).toHaveText('170.0');
+        const got = await page.evaluate(() => [...document.querySelectorAll('#weightsDisplay .weight-chip')].map((c) => {
+            const r = c.getBoundingClientRect();
+            const n = c.querySelector('span').getBoundingClientRect();
+            return { top: Math.round(r.top), left: r.left, width: r.width, height: r.height, numRight: n.right, align: getComputedStyle(c.querySelector('span')).textAlign, font: parseFloat(getComputedStyle(c).fontSize), body: parseFloat(getComputedStyle(document.body).fontSize) };
+        }));
+        const where = JSON.stringify(got);
+        expect(got.filter(c => c.top === got[0].top), where).toHaveLength(Math.min(perRow, 6));
+        for (const c of got) {
+            expect(Math.abs(c.width - got[0].width), where).toBeLessThanOrEqual(1);
+            expect(c.height, where).toBeLessThanOrEqual(32);
+            expect(c.align, where).toBe('right');
+            expect(c.font, where).toBeGreaterThanOrEqual(15);
+        }
+        expect(Math.abs(got[perRow].left - got[0].left), `second row starts under the first (${where})`).toBeLessThanOrEqual(1);
+        await testInfo.attach(`weight-chips-${width}`, { body: await page.locator('#weightsDisplay').screenshot(), contentType: 'image/png' });
+        expect(problems.pageErrors).toEqual([]);
+    });
+}

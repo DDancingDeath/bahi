@@ -36,13 +36,12 @@
 
         <!-- PURCHASE SECTION -->
         <div id="purchaseSection" style="display: block;">
-        <div id="purchaseLastSaved" class="panel last-saved" role="status" hidden></div>
         <div class="bill-main">
         <div class="bill-head">
             <div class="field-float bill-customer">
                 <label for="customerName"><span data-i18n="ui.billing.supplier_label">Customer</span><span class="party-needed-note" data-i18n="ui.billing.needed_for_due">needed if anything is in Due</span></label>
                 <div class="bill-party">
-                    <input type="text" class="input" id="customerName" enterkeyhint="next" autocomplete="off" autocapitalize="words" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
+                    <input type="text" class="input" id="customerName" enterkeyhint="next" autocomplete="off" autocapitalize="words" placeholder="Name" data-i18n-placeholder="ui.billing.name_placeholder"/>
                     <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
                 </div>
                 <datalist id="customerOptions"></datalist>
@@ -50,7 +49,7 @@
             <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicPurchase" hidden data-voice-hold="purchase" data-onclick="voice.start('purchase')" title="Speak the bill" aria-label="Speak the bill" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
         </div>
         <div class="voice-strip" hidden>
-            <p class="voice-transcript" id="voiceTranscriptPurchase" role="status" aria-live="polite"></p>
+            <div class="voice-transcript" id="voiceTranscriptPurchase" role="status" aria-live="polite"></div>
             <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoPurchase" hidden data-onclick="voice.undo('purchase')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
         </div>
 
@@ -232,18 +231,19 @@
             </button>
         </div>
         </div>
+        <!-- Last saved bill (U-05): at the end, above the action bar (reprint / re-share is not a regular step) -->
+        <div id="purchaseLastSaved" class="panel last-saved" role="status" hidden></div>
         </div>
         <!-- END PURCHASE SECTION -->
 
         <!-- SALE SECTION -->
         <div id="saleSection" class="bill-sale" style="display: none;">
-        <div id="saleLastSaved" class="panel last-saved" role="status" hidden></div>
         <div class="bill-main">
         <div class="bill-head">
             <div class="field-float bill-customer">
                 <label for="saleCustomerName"><span data-i18n="ui.billing.customer_label">Customer</span><span class="party-needed-note" data-i18n="ui.billing.needed_for_due">needed if anything is in Due</span></label>
                 <div class="bill-party">
-                    <input type="text" class="input" id="saleCustomerName" enterkeyhint="next" autocomplete="off" autocapitalize="words" placeholder="Name (needed if anything is Due)" data-i18n-placeholder="ui.billing.name_needed_for_due"/>
+                    <input type="text" class="input" id="saleCustomerName" enterkeyhint="next" autocomplete="off" autocapitalize="words" placeholder="Name" data-i18n-placeholder="ui.billing.name_placeholder"/>
                     <button type="button" class="btn btn-ghost btn-icon" data-perm="contacts" data-onclick="billing.pickSaleContact()" title="Pick contact" aria-label="Pick contact" data-i18n-title="ui.common.pick_contact" data-i18n-aria-label="ui.common.pick_contact"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-contact"/></svg></button>
                 </div>
                 <datalist id="saleCustomerOptions"></datalist>
@@ -251,7 +251,7 @@
             <button type="button" class="btn btn-tonal btn-icon bill-entry-tool" data-voice-mic id="voiceMicSale" hidden data-voice-hold="sale" data-onclick="voice.start('sale')" title="Speak the bill" aria-label="Speak the bill" data-i18n-title="ui.voice.mic_title" data-i18n-aria-label="ui.voice.mic"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
         </div>
         <div class="voice-strip" hidden>
-            <p class="voice-transcript" id="voiceTranscriptSale" role="status" aria-live="polite"></p>
+            <div class="voice-transcript" id="voiceTranscriptSale" role="status" aria-live="polite"></div>
             <button type="button" class="btn btn-tonal btn-sm" id="voiceUndoSale" hidden data-onclick="voice.undo('sale')" data-i18n="ui.voice.undo" data-i18n-title="ui.voice.undo_title" title="Remove what the last voice line added or filled">Undo voice</button>
         </div>
 
@@ -412,7 +412,10 @@
             </button>
         </div>
         </div>
+        <!-- Last saved bill (U-05): at the end, above the action bar (reprint / re-share is not a regular step) -->
+        <div id="saleLastSaved" class="panel last-saved" role="status" hidden></div>
         </div>
         <!-- END SALE SECTION -->
 
     </div>
+

@@ -11,7 +11,7 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { PrinterService } from '../services/printer.js';
 import { AuditService } from '../services/audit.js';
 import { Helpers } from '../utils/helpers.js';
-import { KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
+import { KEPT_SERVER_PAYMENT_KEY, paymentSplitMessage, formatRate, formatRupees, formatKg, formatWeight, formatAmount } from '../utils/money.js';
 import {
     bagChecks, buildPaymentSplit, computeLine, computeRetailTotals, editSplitFor, paidOnScreen, paymentSplit, pendingLine, prefillPayment, restInDue,
     shownAmount, sumWeights, validatePaymentSplit, weightsForEdit, withLineRate
@@ -134,15 +134,15 @@ const RetailSaleManager = {
         
         const total = sumWeights(saleWeights);
         
-        if (totalWeightsSpan) totalWeightsSpan.textContent = formatKg(total);
+        if (totalWeightsSpan) totalWeightsSpan.textContent = formatWeight(total);
         if (totalPacketsSpan) totalPacketsSpan.textContent = saleWeights.length;
         
         container.innerHTML = `
             <div class="weights-compact-list">
                 ${saleWeights.map((w, i) => `
                     <div class="weight-chip">
-                        <span>${formatKg(w)}</span>
-                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="retailSale.removeSaleWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatKg(w) }))}">${icon('x', 'i-sm')}</button>
+                        <span>${formatWeight(w)}</span>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="retailSale.removeSaleWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatWeight(w) }))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>

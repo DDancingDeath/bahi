@@ -170,8 +170,8 @@ All on the phone: no new service, permission or Firestore read.
   missing its weight or rate becomes tickable once both are typed. OK uses the
   corrected values (still through the form's own checks).
 - **Transcript.** Under 🎤 a line (`role="status"`, `aria-live="polite"`) shows
-  "Listening…", then what was heard and what came of it (check it, cancelled, filled,
-  lines added, not understood, undone). It stays until the next listen; it is shown
+  "Listening…", then only what was heard ("25 kg") with an ⓘ; the ⓘ (and screen readers) give what came of it
+  (check it, cancelled, filled, lines added, not understood, undone) and the next step. It stays until the next listen; it is shown
   only while voice billing is on and is never stored.
 - **Undo.** Each voice change on a form (lines added, the customer, item, rate and
   weight boxes) is kept on that form, the last 10 (`utils/voice-undo.js`).

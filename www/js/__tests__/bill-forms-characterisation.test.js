@@ -139,7 +139,7 @@ describe('purchase form', () => {
         setVal('newWeight', 20.3);
         await PurchaseManager.addWeight();
         expect([text('totalWeights'), text('totalPackets')]).toEqual(['60.3', '2']);
-        expect([...document.querySelectorAll('#weightsDisplay .weight-chip span')].map(s => s.textContent)).toEqual(['40', '20.3']);
+        expect([...document.querySelectorAll('#weightsDisplay .weight-chip span')].map(s => s.textContent)).toEqual(['40.0', '20.3']);
         await PurchaseManager.addToBill();
         setVal('billItem', 1);
         setVal('billRate', 33.5);
@@ -154,11 +154,11 @@ describe('purchase form', () => {
             { itemId: 'item-wheat', name: 'Wheat', rate: 33.5, qty: 12.4, total: 415, weights: [12.4] }
         ]);
         expect(rows('#billTable')).toEqual([
-            ['Rice2 packets: 40 · 20.3', '₹25.50', '60.3 kg', '₹1,538'],
+            ['Rice2 packets: 40.0 · 20.3', '₹25.50', '60.3 kg', '₹1,538'],
             ['Wheat', '₹33.50', '12.4 kg', '₹415']
         ]);
         expect($('weightBreakdownSection').textContent.trim()).toBe('');
-        expect(document.querySelector('#billTable .bill-line-weights').textContent).toBe('2 packets: 40 · 20.3');
+        expect(document.querySelector('#billTable .bill-line-weights').textContent).toBe('2 packets: 40.0 · 20.3');
         expect([text('totalWeights'), text('totalPackets')]).toEqual(['0', '0']);
         expect(text('billTotal')).toBe('1,953');
         expect(text('totalPacketsInBill')).toBe('3');

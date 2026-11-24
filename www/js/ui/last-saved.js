@@ -40,8 +40,8 @@ function iconButton(cls, label, iconHtml, onClick) {
 }
 
 /**
- * Draws the strip of one form ('' when nothing was saved there yet). One compact row (N-08): the bill
- * number and "Saved · ₹total · Paid in full · party" open the bill; Print, WhatsApp and × beside them.
+ * Draws the strip of one form ('' when nothing was saved there yet). One line (N-08): the bill number and
+ * "₹total · Paid" (or "Due ₹…") open the bill; Print, WhatsApp and × beside them.
  * @param {'purchase'|'retail'|'wholesale'} kind
  */
 export function renderLastSaved(kind) {
@@ -66,10 +66,9 @@ export function renderLastSaved(kind) {
     const facts = document.createElement('span');
     facts.className = 'last-saved-facts';
     facts.textContent = [
-        t(onPhone ? 'ui.last_saved.status_on_phone' : 'ui.last_saved.status_saved'),
+        onPhone ? t('ui.last_saved.status_on_phone') : '',
         formatRupees(billTotal(bill)),
-        due > 0 ? t('ui.last_saved.due', { amount: formatRupees(due) }) : t('ui.last_saved.paid'),
-        bill.customerName || ''
+        due > 0 ? t('ui.last_saved.due', { amount: formatRupees(due) }) : t('ui.last_saved.paid_short')
     ].filter(Boolean).join(' · ');
     const hint = document.createElement('span');
     hint.className = 'sr-only';

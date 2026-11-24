@@ -772,13 +772,13 @@
   accent-color: var(--accent-text);
 }
 
-/* "Last saved" strip above the form after a save (U-05), one compact row (N-08): bill no. and
-   "Saved · ₹total · Paid · party" (tap opens the bill), then Print, WhatsApp, × */
+/* "Last saved" strip at the end of the form after a save (U-05), one line (N-08): bill no. and "₹total · Paid"
+   (tap opens the bill), then Print, WhatsApp, × */
 .last-saved {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
+  margin-top: var(--sp-3);
   padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-2);
   border-left: 3px solid var(--positive);
 }
@@ -794,8 +794,8 @@
 .last-saved-open {
   display: flex;
   flex: 1 1 auto;
-  flex-direction: column;
-  justify-content: center;
+  align-items: baseline;
+  gap: var(--sp-2);
   min-width: 0;
   min-height: var(--tap-min);
   padding: 0 var(--sp-1);
@@ -822,7 +822,7 @@
 }
 
 .last-saved-head {
-  display: block;
+  flex: none;
   color: var(--positive);
   font-size: var(--fs-sm);
   font-weight: var(--w-strong);
@@ -834,15 +834,15 @@
 }
 
 .last-saved-facts {
-  display: -webkit-box;
+  flex: 0 1 auto;
+  min-width: 0;
   color: var(--ink-2);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
-  line-height: 1.3;
-  white-space: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+}
+
+.last-saved > .last-saved-close {
+  width: var(--sp-8);
 }
 
 .last-saved > .btn-icon {

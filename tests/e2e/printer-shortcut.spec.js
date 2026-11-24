@@ -69,6 +69,24 @@ for (const width of [390, 360]) {
         const sheet = page.locator('#printerSheet');
         await expect(sheet).toHaveClass(/active/);
         await expect(page.locator('#printerSheetBody #printerPanel')).toBeVisible();
+        // Status on one row (dot, "Not connected · name", Connect); a saved printer's name on one line, its controls in one row
+        const layout = await page.evaluate(() => {
+            const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height, mid: r.top + r.height / 2 }; };
+            const q = (s) => document.querySelector(`#printerSheetBody ${s}`);
+            return {
+                head: box(q('.printer-status-head')), headText: q('.printer-status-head').textContent, connect: box(q('.printer-status-connect')),
+                name: box(q('.saved-printer .row-title')), lineHeight: parseFloat(getComputedStyle(q('.saved-printer .row-title')).lineHeight) || 24,
+                tools: [...document.querySelectorAll('#printerSheetBody .saved-printer .set-device-tools > *')].map(box)
+            };
+        });
+        const at = JSON.stringify(layout);
+        expect(layout.headText, at).toMatch(/^Not connected · /);
+        expect(Math.abs(layout.head.mid - layout.connect.mid), at).toBeLessThanOrEqual(4);
+        expect(layout.name.height, at).toBeLessThanOrEqual(layout.lineHeight + 1);
+        for (const t of layout.tools) {
+            expect(Math.abs(t.top - layout.tools[0].top), at).toBeLessThanOrEqual(1);
+            expect(Math.abs(t.height - layout.tools[0].height), at).toBeLessThanOrEqual(1);
+        }
         const connect = page.locator('#printerSheetBody .saved-printer-use');
         await expect(connect).toHaveText('Connect');
         await connect.click();

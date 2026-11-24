@@ -5,6 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { PrinterService, loadReceiptDrawing } from '../services/printer.js';
+import { weightGrid } from '../utils/weight-grid.js';
 import { SettingsManager } from '../modules/settings.js';
 import { FirebaseService } from '../firebase/firestore-service.js';
 import { createFakeFirestore } from './__mocks__/fake-firestore.js';
@@ -129,6 +130,33 @@ describe('receipt options (pure)', () => {
 
 describe('the printed bill', () => {
     const render = (receipt) => PrinterService.manager._renderBillCanvas(bill, 384, receipt);
+
+    describe('the weights list at the top (one decimal, right-aligned columns)', () => {
+        const weights = [45, 23.5, 23, 25.5, 26, 27, 30.25, 9];
+        const bagBill = { ...bill, items: [{ itemId: 'i1', name: 'Rice', qty: 209.25, rate: 20, total: 4185, weights }] };
+        const listed = () => placed.filter(([s]) => /^\d[\d,]*\.\d+$/.test(s)).slice(0, weights.length);
+
+        test('weightGrid: equal cells as wide as "999.9", as many as fit the line', () => {
+            const g = weightGrid(weights, (s) => s.length * 9, 380);
+            expect(g.cell).toBe(45);
+            expect(g.perLine).toBe(6);
+            expect(g.rows).toEqual([['45.0', '23.5', '23.0', '25.5', '26.0', '27.0'], ['30.25', '9.0']]);
+            expect([g.right(0), g.right(1), g.right(5)]).toEqual([45, 102, 330]);
+            expect(weightGrid([1, 2], (s) => s.length * 9, 30).perLine).toBe(1);
+        });
+
+        test.each([[58, 384], [80, 576]])('%i mm: each weight right-aligned on its column, the rows on one grid', (mm, dots) => {
+            PrinterService.manager._renderBillCanvas(bagBill, dots, {});
+            const got = listed();
+            expect(got.map(([s]) => s)).toEqual(['45.0', '23.5', '23.0', '25.5', '26.0', '27.0', '30.25', '9.0']);
+            const right = (i) => 2 + (i + 1) * 45 + i * 12;
+            expect(got.slice(0, 6).map(([, x]) => x)).toEqual([0, 1, 2, 3, 4, 5].map(right));
+            expect(got.slice(6).map(([, x]) => x)).toEqual([right(0), right(1)]);
+            expect(new Set(got.slice(0, 6).map(([, , y]) => y)).size).toBe(1);
+            expect(got[6][2]).toBe(got[0][2] + 16 + 6);
+            expect(drawn).toContain('Rice (8 packets, 209.25 kg)');
+        });
+    });
 
     test('footer line and QR print below the totals; off by default', () => {
         const plain = render({});

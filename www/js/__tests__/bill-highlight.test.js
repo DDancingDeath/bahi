@@ -109,6 +109,17 @@ describe('live marks', () => {
         expect($('saveBtn').hasAttribute('aria-disabled')).toBe(false);
     });
 
+    test('a rate far from usual shows one short line ("₹10 · usual ₹40"); the sentence is behind the ⓘ', () => {
+        $('rate').value = '10';
+        BillChecksUI.run('test');
+        const msg = $('rate').closest('.bill-form-field').nextElementSibling;
+        expect(msg.querySelector(':scope > span').textContent).toBe('⚠️ ₹10 · usual ₹40');
+        const more = msg.querySelector('details.info-tip');
+        expect(more.open).toBe(false);
+        expect(more.querySelector('summary').getAttribute('aria-label')).toBe('More info');
+        expect(more.querySelector('.info-pop').textContent).toBe('Rice: ₹10/kg is less than 1/2 of the usual ₹40/kg');
+    });
+
     test('a line warning marks its row amber with a reason row; only warnings → amber card, Save enabled', () => {
         state.items[0] = { itemId: 'rice', name: 'Rice', rate: 90, qty: 10, total: 900 };
         renderRows();
@@ -117,7 +128,8 @@ describe('live marks', () => {
         const rows = document.querySelectorAll('#testTable tbody tr');
         expect(rows[0].classList.contains('bill-check-warn')).toBe(true);
         expect(rows[1].className).toBe('bill-check-line');
-        expect(rows[1].textContent).toContain('⚠️ Rice: ₹90/kg is 2.3× the usual ₹40/kg');
+        expect(rows[1].textContent).toContain('⚠️ ₹90 · usual ₹40');
+        expect(rows[1].querySelector('.info-pop').textContent).toBe('Rice: ₹90/kg is 2.3× the usual ₹40/kg');
         expect($('testSection').classList.contains('bill-checks-warn')).toBe(true);
         expect($('saveBtn').hasAttribute('aria-disabled')).toBe(false);
     });
