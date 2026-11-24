@@ -1,10 +1,10 @@
 /**
  * @fileoverview Printer context for error and crash reports: the step (scan, connect, print),
  * the printer's Bluetooth name, Android's major version and the Nearby devices permissions go to
- * Crashlytics (custom keys, logs, non-fatal reports) when the user has switched crash reports on.
+ * Crashlytics (custom keys, logs, non-fatal reports) (always on in the Android app).
  * A native call that may close the app is marked on the phone; if the app starts again with the
  * mark still there, the next start sends one warning to the `telemetry` collection, so an app that
- * closed while connecting is reported even with crash reports off. No MAC address, no shop data.
+ * closed while connecting is also in Diagnostics › Errors. No MAC address, no shop data.
  * @module services/printer-telemetry
  */
 

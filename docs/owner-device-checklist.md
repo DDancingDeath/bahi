@@ -75,9 +75,9 @@ desktop app shell is needed (#144).
 
 Only after the cut-over to **bahi-happa**, once the `GOOGLE_SERVICES_JSON` secret holds that project's
 `google-services.json` and an APK has been built with it ([error-reporting.md](error-reporting.md) ›
-"Set-up"). Until then the switch says crash reports are not set up.
+"Set-up"). Crash reports are always on (no switch); until then Diagnostics says they are not set up.
 
-1. **Settings › Help & about › Crash reports**: switch on.
+1. Sign in.
 2. **Settings › Diagnostics › Status › Test error reports › Send a test crash (closes the app)**,
    confirm. The app closes.
 3. Open the app again (the report is sent then).

@@ -24,6 +24,7 @@ Every site sends these on every path (the first `"source": "**"` entry):
 - The tenant link page also sends `Permissions-Policy` with every feature off,
   microphone and camera included (its entries come after `**`, so they win there).
 - **Privacy (photo of weights, #374):** the photo is made smaller on the phone (at most 1600 px, JPEG) and sent only to Firebase AI Logic (Gemini) to be read; it is never stored in Firestore, Storage or on the phone and is dropped when the check sheet closes. On the free Spark plan Google may use what is sent to improve its products (owner accepted, 15 Nov 2026: the sheets carry only weights); the Settings hint asks to photograph only the weights.
+- **Privacy (crash reports, #122):** in the Android app Firebase Crashlytics is always on, with no switch (owner decision, 24 Nov 2026; both `bahi-happa` and `bahi-happa-dev`). A report holds the crash, its message, the phone model, Android and app version, device state, an installation id and the signed-in Firebase uid; printer problems add `printer_*` keys and logs (step, printer Bluetooth name, Android version, permission states). Never phone numbers, MAC addresses, customer names, bills or amounts in keys or logs. Google keeps reports 90 days. Details: [error-reporting.md](error-reporting.md).
 - **Privacy (voice billing):** voice audio goes to the phone's speech service
   (Google on most phones; Chrome's on the web), which turns it into text. The app keeps
   no audio and no text. The spoken readback uses only an on-device voice (`localService`),

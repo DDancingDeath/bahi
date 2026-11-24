@@ -75,7 +75,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261124b-printer-crash';
+const BUILD_ID = '20261124c-crash-always-on';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -289,7 +289,6 @@ const PAGE_ADDED = {
         PrinterService.updateStatus();
         VoiceMic.apply();
         PhotoWeights.apply();
-        CrashReports.render();
         const swipe = document.getElementById('settingSwipeTabs');
         if (swipe) swipe.checked = !!BottomNav.swipeOn;
     }
@@ -664,7 +663,7 @@ async function initializeUserData() {
         BillingManager.init();
         VoiceMic.apply();
         PhotoWeights.apply();
-        CrashReports.apply().catch(e => console.warn('Crash reports:', e));
+        CrashReports.apply({ uid: AppState.currentUser?.uid }).catch(e => console.warn('Crash reports:', e));
         
         // Show app content
         const appContent = document.getElementById('appContent');

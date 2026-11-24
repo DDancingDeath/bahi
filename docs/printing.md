@@ -16,9 +16,9 @@ Capacitor runs Cordova plugins as they are.
 
 Reports: `services/printer-telemetry.js` adds the step (scan, connect, print), the printer's
 Bluetooth name, Android version and both permission states to Crashlytics (custom keys, logs, a
-non-fatal report on each caught failure) while crash reports are on. A connect is marked on the
+non-fatal report on each caught failure; crash reports are always on in the APK). A connect is marked on the
 phone while it runs; if the app closes during it, the next start sends "App closed during printer
-connect" to the `telemetry` collection (Diagnostics), crash reports on or off. No MAC address.
+connect" to the `telemetry` collection (Diagnostics) too. No MAC address.
 
 The website has no Bluetooth path (no Web Bluetooth / Web Serial transport): Settings says
 "Printing works in the Android app", and Billing's printer button is not shown.

@@ -112,7 +112,7 @@ describe('Settings page sections (jsdom)', () => {
         expect(['voiceBillingCard', 'settingVoiceBeep', 'photoWeightsCard'].map(inGroup)).toEqual(['billing', 'billing', 'billing']);
         expect(['businessDetailsCard', 'upiCard', 'labourSettingsCard', 'billChecksCard', 'billNumbersCard', 'openingStockCard'].map(inGroup)).toEqual(Array(6).fill('shop'));
         expect(['roleAccessGrid', 'rolePeopleList'].map(inGroup)).toEqual(['team', 'team']);
-        expect(['installAppCard', 'appVersionText', 'usageCard', 'notifSettingsCard', 'crashReportsCard'].map(inGroup)).toEqual(Array(5).fill('help'));
+        expect(['installAppCard', 'appVersionText', 'usageCard', 'notifSettingsCard'].map(inGroup)).toEqual(Array(4).fill('help'));
         expect(inGroup('settingsRentalsBody')).toBe('rentals');
     });
 

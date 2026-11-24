@@ -214,7 +214,6 @@ describe('Diagnostics › Status: test error reports (#122)', () => {
         const p = plugin();
         native(p);
         CrashReports.state = 'not-set-up';
-        localStorage.setItem('aadhat.crashReports', '1');
         jest.spyOn(TelemetryService, 'sendTestError').mockResolvedValue('sent');
         await DiagnosticsManager.showTab('status');
         expect(card().dataset.crashReach).toBe('not-set-up');
@@ -226,11 +225,10 @@ describe('Diagnostics › Status: test error reports (#122)', () => {
         expect(p.crash).not.toHaveBeenCalled();
     });
 
-    test('APK with crash reports on: a non-fatal test, and the test crash only after the confirm', async () => {
+    test('APK (crash reports always on): a non-fatal test, and the test crash only after the confirm', async () => {
         const p = plugin();
         native(p);
         CrashReports.state = 'on';
-        localStorage.setItem('aadhat.crashReports', '1');
         jest.spyOn(TelemetryService, 'sendTestError').mockResolvedValue('sent');
         await DiagnosticsManager.showTab('status');
         expect(card().querySelector('[data-errtest="crash"]').textContent).toMatch(/test crash \(closes the app\)/);

@@ -44,9 +44,8 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   Udhaar summary (owner, managers), Rent due (Rentals) and Backup check (owner) one by one, the daily summary time
   (9:30 am) and **Send test notification**. The phone asks to allow notifications only when you switch them on or send a
   test; if it was refused, the card says where to allow them in the phone's settings. In the Android app reminders come at
-  their time even with the app closed; in the browser only while the app is open. docs/notifications.md); in the Android app, **Crash reports** (off
-  unless this phone's user turns it on: crashes and freezes then go to the shop's Firebase with the
-  phone's details; the app adds no names or amounts, but an error message can hold text; docs/error-reporting.md says exactly what is sent).
+  their time even with the app closed; in the browser only while the app is open. docs/notifications.md). Crash reports have no switch: in the Android app they are always on
+  (owner decision, 24 Nov 2026; docs/error-reporting.md says exactly what is sent).
 - **Admin › Users**: counts, a link to Settings › Team (where approving, roles, password resets and
   **Remove from shop** now are; Restore brings a removed person back as a pending registration) and Activity by person.
 - **Admin › Data › Bill dues: stored in one place** (owner): **Check bills** reads every bill once
@@ -61,7 +60,7 @@ Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [settin
   **Errors**: Export report (the errors with names, numbers and secrets removed, plus this
   phone's status) to send to whoever fixes the app. Both are written in the audit log.
 - **Diagnostics › Status › Test error reports** (owner only): **Send a test error** records a test error
-  through the app's error reports; it shows under Diagnostics › Errors. In the Android app with crash reports
-  switched on it also goes to Crashlytics (an error that did not close the app), and **Send a test crash**
-  closes the app on purpose after a confirm. With crash reports off, or not set up in that version of the app,
+  through the app's error reports; it shows under Diagnostics › Errors. In the Android app it also goes to
+  Crashlytics (an error that did not close the app), and **Send a test crash**
+  closes the app on purpose after a confirm. With crash reports not set up in that version of the app,
   it says so and offers no test crash (docs/error-reporting.md, "Check that reports arrive").
