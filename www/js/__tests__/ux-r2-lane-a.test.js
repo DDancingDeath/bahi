@@ -35,7 +35,7 @@ describe('NEW-09 and NEW-18: copy', () => {
     });
 
     test('sentence case, an ellipsis character and no colon before an action', () => {
-        expect(en['ui.billing.name_needed_for_due']).toBe('Name (needed if anything is due)');
+        expect(en['ui.billing.name_placeholder']).toBe('Name');
         expect(en['ui.money.checks_warn']).not.toMatch(/:/);
         expect(hi['ui.money.checks_warn']).not.toMatch(/:/);
         for (const cat of [en, hi]) expect(Object.entries(cat).filter(([, v]) => v.includes('...'))).toEqual([]);

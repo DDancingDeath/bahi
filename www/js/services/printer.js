@@ -3,6 +3,7 @@
 import { AppState } from '../utils/state.js';
 import { UIManager, buildSheet, openSheet, closeSheet } from '../ui/ui-manager.js';
 import { icon } from '../ui/icons.js';
+import { disclosureHtml } from '../ui/disclosure.js';
 import { getAndroidMajorVersion, Helpers } from '../utils/helpers.js';
 import { t, loadAllCatalogues } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
@@ -96,6 +97,10 @@ const sharedReceiptNow = () => {
     }
     return sharedReceipt;
 };
+
+/** The status details' last print and Nearby devices rows. */
+const JOB_KEYS = { printed: 'ui.settings.printer_job_printed', cancelled: 'ui.settings.printer_job_cancelled', failed: 'ui.settings.printer_job_failed' };
+const PERMISSION_KEYS = { granted: 'ui.settings.printer_perm_granted', denied: 'ui.settings.printer_perm_denied' };
 
 const clockTime = (ms) => {
     const d = new Date(ms);
@@ -716,38 +721,11 @@ const PrinterService = {
         const available = this.isAvailable();
         const connected = this.isConnected();
         const name = this.manager.printerName || saved.deviceName || '';
-        const { checkedAt, lastError, lastJob, bluetoothOff } = this.manager.link.status;
-        const btOff = available && !connected && bluetoothOff;
-
+        const btOff = available && !connected && !!this.manager.link.status.bluetoothOff;
         const noPermission = available && this.permissionState === 'denied';
-        let text;
-        let tone = 'tone-muted';
-        if (!available) {
-            text = t('ui.settings.printer_android_only');
-        } else if (noPermission) {
-            text = t('ui.settings.printer_permission_needed');
-            tone = 'tone-warn';
-        } else if (btOff) {
-            text = t('ui.settings.printer_bluetooth_off');
-        } else if (connected) {
-            text = checkedAt
-                ? t('ui.settings.printer_connected_checked', { deviceName: name, time: clockTime(checkedAt) })
-                : t('ui.settings.printer_connected_to', { deviceName: name });
-            tone = 'tone-pos';
-        } else if (saved.deviceId && name) {
-            text = t('ui.settings.printer_saved_not_connected', { deviceName: name });
-        } else {
-            text = t('ui.settings.printer_not_connected');
-        }
-        let detail = '';
-        if (available && lastJob?.outcome === 'uncertain') {
-            detail = t('ui.settings.printer_last_may_have_printed', { time: clockTime(lastJob.at) });
-        } else if (available && lastError) {
-            detail = t('ui.settings.printer_last_error', { message: this.errorText(lastError), time: clockTime(lastError.at) });
-        }
+
         if (statusText) {
-            statusText.innerHTML = `<span class="${tone}">${connected ? '●' : '○'} ${Helpers.escapeHtml(text)}</span>`
-                + (detail ? `<br><small class="printer-status-detail">${Helpers.escapeHtml(detail)}</small>` : '');
+            statusText.innerHTML = this.statusHtml({ saved, available, connected, name, btOff, noPermission });
             statusText.dataset.state = !available ? 'unavailable' : noPermission ? 'permission' : btOff ? 'bluetooth_off' : connected ? 'connected' : 'disconnected';
         }
         const show = (el, on) => { if (el) { el.hidden = !on; el.style.display = on ? '' : 'none'; } };
@@ -755,6 +733,65 @@ const PrinterService = {
         show(testPrintBtn, available && !btOff && (connected || saved.deviceId));
         show(scanBtn, available);
         emit(PRINTER_CHANGED);
+    },
+
+    /**
+     * The status as one line (a dot, the state and the printer, Connect) over a closed disclosure with the
+     * details: printer, last check, last problem, last print, paper width, Nearby devices permission.
+     */
+    statusHtml({ saved, available, connected, name, btOff, noPermission }) {
+        const esc = (s) => Helpers.escapeHtml(String(s ?? ''));
+        const { checkedAt, lastError, lastJob } = this.manager.link.status;
+        const uncertain = available && lastJob?.outcome === 'uncertain';
+        let head;
+        let long = '';
+        let tone = 'idle';
+        if (!available) head = t('ui.settings.printer_android_only');
+        else if (noPermission) {
+            head = t('ui.settings.printer_permission_short');
+            long = t('ui.settings.printer_permission_needed');
+            tone = 'warn';
+        } else if (btOff) {
+            head = t('ui.settings.printer_bluetooth_off_short');
+            long = t('ui.settings.printer_bluetooth_off');
+            tone = 'warn';
+        } else if (this.connecting) {
+            head = t('ui.printer.state_connecting');
+            tone = 'warn';
+        } else if (connected) {
+            head = name ? `${t('ui.printer.state_connected')} · ${name}` : t('ui.printer.state_connected');
+            tone = 'pos';
+        } else {
+            head = saved.deviceId && name ? `${t('ui.printer.state_not_connected')} · ${name}` : t('ui.printer.state_not_connected');
+        }
+
+        let summary = '';
+        if (uncertain) summary = t('ui.settings.printer_short_may_have_printed', { time: clockTime(lastJob.at) });
+        else if (available && lastError && !connected) {
+            summary = t(lastError.kind === 'dropped' ? 'ui.settings.printer_short_lost' : 'ui.settings.printer_short_problem', { time: clockTime(lastError.at) });
+        }
+
+        const rows = [];
+        const row = (key, value) => { if (value) rows.push(`<div class="set-kv"><span>${esc(t(key))}</span><span>${esc(value)}</span></div>`); };
+        if (long) rows.push(`<p class="printer-status-detail">${esc(long)}</p>`);
+        if (available) {
+            row('ui.settings.printer_detail_printer', name);
+            if (connected && checkedAt) row('ui.settings.printer_detail_checked', clockTime(checkedAt));
+            if (lastError) row('ui.settings.printer_detail_problem', `${clockTime(lastError.at)} · ${this.errorText(lastError)}`);
+            if (uncertain) row('ui.settings.printer_detail_last_print', t('ui.settings.printer_last_may_have_printed', { time: clockTime(lastJob.at) }));
+            else if (lastJob?.outcome && JOB_KEYS[lastJob.outcome]) row('ui.settings.printer_detail_last_print', t(JOB_KEYS[lastJob.outcome], { time: clockTime(lastJob.at) }));
+            const width = currentPrinter(saved)?.widthMm;
+            if (width) row('ui.settings.paper_width', t('ui.settings.paper_mm', { mm: width }));
+            if (PERMISSION_KEYS[this.permissionState]) row('ui.settings.printer_detail_permission', t(PERMISSION_KEYS[this.permissionState]));
+        }
+        const canConnect = available && !connected && !this.connecting && !btOff && !!saved.deviceId;
+        const tools = canConnect
+            ? `<button type="button" class="btn btn-sm btn-tonal printer-status-connect" data-onclick="settings.connectSavedPrinter()">${esc(t('ui.settings.connect'))}</button>`
+            : '';
+        const title = `<span class="printer-status-dot" data-tone="${tone}" aria-hidden="true"></span><span class="printer-status-head">${esc(head)}</span>`;
+        const body = rows.length ? `<div class="printer-status-details">${rows.join('')}</div>` : '';
+        if (!body) return `<div class="printer-status-line">${title}${tools}</div>`;
+        return disclosureHtml({ key: 'printer-status', id: 'printerStatus', title, summary: summary ? esc(summary) : '', tools, body });
     },
 
     /** Renders the status now, then again once the plugin has checked Bluetooth and the link. */
@@ -1187,3 +1224,4 @@ const printerManager = PrinterService.manager;
 
 // Export PrinterService and manager
 export { PrinterService, BluetoothPrinterManager, printerManager };
+

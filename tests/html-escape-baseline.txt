@@ -428,6 +428,7 @@ www/js/rentals/rentals.js: lazyMods.pages.renderTenants(unitCtx(), d) (sink)
 www/js/rentals/rentals.js: v
 www/js/rentals/rentals.js: v
 www/js/services/exporter.js: printMinus(html)
+www/js/services/printer.js: disclosureHtml({ key: 'printer-status', id: 'printerStatus', title, summary: summary ? esc(summary) : '', tools, body }) (sink)
 www/js/ui/app-lock.js: Object.freeze([2, 5, 10, 30]) (markup via map(m => `<option value="${m}"${(current?.minutes || 5) === m ? ' selected' : ''}>${e(t('ui.applock.minutes', { minutes: m }))}</option>`))
 www/js/ui/app-lock.js: m
 www/js/ui/bill-highlight.js: ICON.block ← ICON = { block: '⛔', warn: '⚠️' }

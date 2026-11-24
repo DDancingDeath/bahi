@@ -2643,6 +2643,37 @@ a.row:active {
   text-align: left;
 }
 
+/* Info tip (ui/info-tip.js): a small ⓘ after a short line; the explanation floats in a .menu-list (one way to put help
+   behind a tap, everywhere) */
+.info-tip {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.info-tip > .btn-icon {
+  width: var(--sp-8);
+  min-height: var(--sp-8);
+  border: 0;
+  color: var(--ink-3);
+}
+
+.info-tip[open] > .btn-icon {
+  color: var(--accent);
+}
+
+.info-pop {
+  width: max-content;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - var(--sp-4)));
+  padding: var(--sp-3);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-regular);
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+}
+
 /* A panel that opens something when tapped */
 .panel-tap {
   cursor: pointer;
@@ -4767,18 +4798,19 @@ label {
   display: none;
 }
 
+/* A dense grid of equal cells that each fit "999.9" and the ×: 4 a row on a 360 px phone, 5 at 412 px */
 .weights-compact-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(4.4ch + var(--sp-1) + var(--sp-5)), 1fr));
+  gap: var(--sp-1);
 }
 
-/* Weight chips (redesign 3.1a): the weights typed for the line, × takes one off */
+/* Weight chips (redesign 3.1a): the weights typed for the line (one decimal, right-aligned), × takes one off */
 .weight-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  min-height: 36px;
-  padding-left: var(--sp-3);
+  height: 30px;
+  padding-left: var(--sp-1);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   color: var(--ink);
@@ -4786,7 +4818,16 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
+.weight-chip > span {
+  flex: 1;
+  text-align: right;
+}
+
 .weight-chip > .btn-icon {
+  width: var(--sp-5);
+  min-height: 0;
+  height: 100%;
+  border: 0;
   color: var(--ink-3);
 }
 
@@ -5688,11 +5729,22 @@ label {
 }
 
 .voice-transcript {
+  display: flex;
   flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 0;
   margin: 0;
   color: var(--ink-2);
   font-size: var(--fs-sm);
   overflow-wrap: anywhere;
+}
+
+.voice-heard-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .voice-transcript:empty {
@@ -6741,13 +6793,13 @@ select.voice-unclear {
   accent-color: var(--accent-text);
 }
 
-/* "Last saved" strip above the form after a save (U-05), one compact row (N-08): bill no. and
-   "Saved · ₹total · Paid · party" (tap opens the bill), then Print, WhatsApp, × */
+/* "Last saved" strip at the end of the form after a save (U-05), one line (N-08): bill no. and "₹total · Paid"
+   (tap opens the bill), then Print, WhatsApp, × */
 .last-saved {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
+  margin-top: var(--sp-3);
   padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-2);
   border-left: 3px solid var(--positive);
 }
@@ -6763,8 +6815,8 @@ select.voice-unclear {
 .last-saved-open {
   display: flex;
   flex: 1 1 auto;
-  flex-direction: column;
-  justify-content: center;
+  align-items: baseline;
+  gap: var(--sp-2);
   min-width: 0;
   min-height: var(--tap-min);
   padding: 0 var(--sp-1);
@@ -6791,7 +6843,7 @@ select.voice-unclear {
 }
 
 .last-saved-head {
-  display: block;
+  flex: none;
   color: var(--positive);
   font-size: var(--fs-sm);
   font-weight: var(--w-strong);
@@ -6803,15 +6855,15 @@ select.voice-unclear {
 }
 
 .last-saved-facts {
-  display: -webkit-box;
+  flex: 0 1 auto;
+  min-width: 0;
   color: var(--ink-2);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
-  line-height: 1.3;
-  white-space: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+}
+
+.last-saved > .last-saved-close {
+  width: var(--sp-8);
 }
 
 .last-saved > .btn-icon {
@@ -7086,9 +7138,10 @@ tr.bill-check-line .bill-check-msg {
   color: var(--positive);
 }
 
+/* Weights in equal right-aligned columns (one decimal each), so they line up like the printed slip */
 .bill-view-weights {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6ch, 1fr));
   column-gap: var(--sp-3);
   color: var(--ink-2);
   font-size: var(--fs-sm);
@@ -7097,6 +7150,7 @@ tr.bill-check-line .bill-check-msg {
 /* A weight never breaks inside the number (F49) */
 .bill-view-w {
   white-space: nowrap;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -9052,12 +9106,64 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 }
 
 .set-printer-status {
-  padding: var(--sp-3);
-  border-radius: var(--r-control);
-  background: var(--surface-2);
+  overflow: visible;
+}
+
+/* The status line: a dot (the colour is the state), "Not connected · <printer>", Connect; details behind the chevron */
+.printer-status-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-4);
+}
+
+.set-printer-status .disclosure-head {
+  padding-right: var(--sp-2);
+}
+
+.set-printer-status .disclosure-toggle {
+  gap: var(--sp-2);
+  padding-inline: var(--sp-3) var(--sp-1);
+}
+
+.set-printer-status .disclosure-title {
+  display: flex;
+  min-width: 0;
+}
+
+.printer-status-head {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.printer-status-dot {
+  flex: none;
+  width: var(--sp-2);
+  height: var(--sp-2);
+  border-radius: var(--r-full);
+  background: var(--ink-3);
+}
+
+.printer-status-dot[data-tone="pos"] {
+  background: var(--positive);
+}
+
+.printer-status-dot[data-tone="warn"] {
+  background: var(--warning-dot);
+}
+
+.printer-status-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
 }
 
 .printer-status-detail {
+  margin: 0;
   color: var(--ink-3);
   font-size: var(--fs-caption);
 }
@@ -9071,11 +9177,32 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
   flex-wrap: wrap;
 }
 
+/* A saved printer: the name (cut with "…") and "in use" on one line, then paper width, Connect and Remove in one
+   row of equal-height controls */
+.row.saved-printer {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: var(--sp-2);
+}
+
 .saved-printer .row-main {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
+}
+
+.saved-printer .row-title {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.saved-printer-in-use {
+  flex: none;
+  white-space: nowrap;
 }
 
 .set-device-tools {
@@ -9087,6 +9214,10 @@ body:has(.tab.sale-theme.active) .dialog-actions > .btn-primary {
 
 .set-device-tools > .input {
   width: auto;
+}
+
+.set-device-tools > .btn {
+  flex: none;
 }
 
 /* Check the printer (ui/printer-test.js): the check list and the photo sheet */

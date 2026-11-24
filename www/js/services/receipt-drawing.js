@@ -9,7 +9,7 @@
 import { AppState } from '../utils/state.js';
 import { DEFAULT_SETTINGS } from '../utils/constants.js';
 import { billQrText, copyMark, receiptDateTime, receiptPayable } from '../utils/bill-share.js';
-import { billLabour, billLineTotal, outstandingDue, readPayment, formatKg, formatRupees } from '../utils/money.js';
+import { billLabour, billLineTotal, outstandingDue, readPayment, formatKg, formatWeight, formatRupees } from '../utils/money.js';
 import { labourWorkingParts } from '../utils/calc/billing.js';
 import { parseAnyBillDate } from '../utils/dates.js';
 import { getLang, t, tn } from '../i18n/index.js';
@@ -24,6 +24,26 @@ const LAYOUT_DOTS = PAPER_DOTS[58];
 const SLIP_ROWS = 2600;
 /** Browsers refuse canvases taller than this. */
 const MAX_CANVAS_ROWS = 32767;
+
+/** Breathing room between two weight columns on the slip (layout dots). */
+const WEIGHT_GAP = 12;
+
+/**
+ * The slip's weights list: each at one decimal (formatWeight), right-aligned in equal columns as wide as "999.9"
+ * (or the widest weight), as many per line as fit `width`.
+ * @param {Array<*>} weights
+ * @param {(s: string) => number} measure text width in dots
+ * @param {number} width room in dots
+ * @returns {{cell: number, perLine: number, rows: string[][], right: (i: number) => number}} right(i): column i's right edge
+ */
+export function weightGrid(weights, measure, width) {
+    const texts = (weights || []).map(w => formatWeight(w));
+    const cell = Math.ceil(Math.max(measure('999.9'), ...texts.map(measure)));
+    const perLine = Math.max(1, Math.floor((width + WEIGHT_GAP) / (cell + WEIGHT_GAP)));
+    const rows = [];
+    for (let i = 0; i < texts.length; i += perLine) rows.push(texts.slice(i, i + perLine));
+    return { cell, perLine, rows, right: (i) => (i + 1) * cell + i * WEIGHT_GAP };
+}
 
 /** Logo bits (packMonochromeRaster layout, base64) as a black-on-white canvas. */
 function logoCanvas(logo) {
@@ -92,28 +112,18 @@ class ReceiptDrawing {
                 const itemObj = AppState.items.find(i => i.id === item.itemId || i.name === item.name);
                 const displayName = this._itemName(itemObj, item);
                 
-                y = utils.drawLeft(`${displayName} (${this._tn('ui.print.packets_kg', item.weights.length, { kg: formatKg(item.qty) })})`, y, { size: 18, weight: 'bold' });
-                
-                const weightsText = item.weights.map(w => formatKg(w)).join('  ');
-                const maxWidth = 380;
-                ctx.font = '17px Arial';
-                const words = weightsText.split(' ');
-                let line = '';
-                
-                for (let i = 0; i < words.length; i++) {
-                    const testLine = line + (line ? ' ' : '') + words[i];
-                    const metrics = ctx.measureText(testLine);
-                    
-                    if (metrics.width > maxWidth && line) {
-                        y = utils.drawLeft(line, y, { size: 16, weight: 'normal' });
-                        line = words[i];
-                    } else {
-                        line = testLine;
-                    }
-                }
-                if (line) {
-                    y = utils.drawLeft(line, y, { size: 16, weight: 'normal' });
-                }
+                y = utils.drawLeft(`${displayName} (${this._tn('ui.print.packets_kg', item.weights.length, { kg: formatWeight(item.qty) })})`, y, { size: 18, weight: 'bold' });
+
+                const font = { size: 16, weight: 'normal' };
+                ctx.font = `${font.weight} ${font.size}px Arial`;
+                const grid = weightGrid(item.weights, (s) => ctx.measureText(s).width, LAYOUT_DOTS - 4);
+                ctx.fillStyle = '#000000';
+                ctx.textAlign = 'right';
+                grid.rows.forEach((row) => {
+                    row.forEach((text, i) => ctx.fillText(text, 2 + grid.right(i), y));
+                    y += font.size + 6;
+                });
+                ctx.textAlign = 'left';
                 y += 10;
             }
         });

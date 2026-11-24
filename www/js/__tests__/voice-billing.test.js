@@ -402,20 +402,42 @@ describe('spoken readback (#81 A1)', () => {
 
 describe('tier B (#131): transcript, undo, correct a line, beep, missed phrases', () => {
     const billLines = () => PurchaseManager.getBillItems().map(({ name, qty, rate }) => [name, qty, rate]);
-    const strip = () => document.getElementById('voiceTranscriptPurchase').textContent;
+    const stripEl = () => document.getElementById('voiceTranscriptPurchase');
+    // Only what was heard shows; what came of it is behind the ⓘ (the info tip)
+    const strip = () => {
+        const heard = stripEl().querySelector('.voice-heard-text');
+        return heard ? `${heard.textContent} | ${stripEl().querySelector('.info-pop').textContent}` : stripEl().textContent;
+    };
     const undoBtn = () => document.getElementById('voiceUndoPurchase');
     const val = (id) => document.getElementById(id).value;
 
     test('what was heard and what came of it stay under the mic', async () => {
         window.webkitSpeechRecognition = fakeWebSpeech(['wheat 10 kg 24 aur rice 5 kg 30']);
-        dialog(true, () => { expect(strip()).toBe('Heard: “wheat 10 kg 24 aur rice 5 kg 30”. Check it and tap Fill bill.'); });
+        dialog(true, () => { expect(strip()).toBe('wheat 10 kg 24 aur rice 5 kg 30 | Heard: “wheat 10 kg 24 aur rice 5 kg 30”. Check it and tap Fill bill.'); });
         await VoiceBilling.listenOnce('purchase', 'web');
-        expect(strip()).toBe('Heard: “wheat 10 kg 24 aur rice 5 kg 30”. Lines added to the bill: 2. Check them, then save.');
+        expect(strip()).toBe('wheat 10 kg 24 aur rice 5 kg 30 | Heard: “wheat 10 kg 24 aur rice 5 kg 30”. Lines added to the bill: 2. Check them, then save.');
+        expect(stripEl().querySelector('.info-tip').open).toBe(false);
 
         window.webkitSpeechRecognition = fakeWebSpeech(['wheat 1 kg 2']);
         dialog(false);
         await VoiceBilling.listenOnce('purchase', 'web');
-        expect(strip()).toBe('Heard: “wheat 1 kg 2”. Cancelled; nothing changed.');
+        expect(strip()).toBe('wheat 1 kg 2 | Heard: “wheat 1 kg 2”. Cancelled; nothing changed.');
+    });
+
+    test('a number with a unit goes to Weight, only ₹ / rupees / rate / bhav go to Rate (English and Hindi)', async () => {
+        const cases = [
+            ['25 kg', '', '25'], ['25 किलो', '', '25'], ['पच्चीस किलो', '', '25'], ['25 kilo', '', '25'],
+            ['rate 25', '25', ''], ['25 rupees', '25', ''], ['भाव 25', '25', ''], ['₹25', '25', '']
+        ];
+        for (const [said, rate, weight] of cases) {
+            document.getElementById('billRate').value = '';
+            document.getElementById('newWeight').value = '';
+            window.webkitSpeechRecognition = fakeWebSpeech([said]);
+            dialog(true);
+            await VoiceBilling.listenOnce('purchase', 'web');
+            expect([said, val('billRate'), val('newWeight')]).toEqual([said, rate, weight]);
+        }
+        expect(stripEl().querySelector('.voice-heard-text').textContent).toBe('₹25');
     });
 
     test('Undo removes the lines voice added and puts the customer back; then nothing is left', async () => {
@@ -451,7 +473,7 @@ describe('tier B (#131): transcript, undo, correct a line, beep, missed phrases'
         await expect(VoiceBilling.listenOnce('purchase', 'web')).resolves.toBe(false);
         expect(modal).not.toHaveBeenCalled();
         expect([val('billItem'), val('billRate'), val('newWeight')]).toEqual(['0', '', '12']);
-        expect(strip()).toMatch(/^Heard: “undo”\. Undone where nothing changed since/);
+        expect(strip()).toMatch(/^undo \| Heard: “undo”\. Undone where nothing changed since/);
     });
 
     test('a line can be corrected in the dialog: a missing rate filled makes it addable', async () => {

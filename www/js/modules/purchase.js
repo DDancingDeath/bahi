@@ -11,7 +11,7 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { AuditService } from '../services/audit.js';
 import { PrinterService } from '../services/printer.js';
 import { Helpers } from '../utils/helpers.js';
-import { KEPT_SERVER_PAYMENT_KEY, normalizeLabourSettings, paymentSplitMessage, formatRate, formatRupees, formatKg, formatAmount } from '../utils/money.js';
+import { KEPT_SERVER_PAYMENT_KEY, normalizeLabourSettings, paymentSplitMessage, formatRate, formatRupees, formatKg, formatWeight, formatAmount } from '../utils/money.js';
 import {
     autoLabour, bagChecks, buildPaymentSplit, withLineRate, computeLine, computePurchaseTotals, draftLineSum, editSplitFor, paidOnScreen, payableOnScreen,
     paymentSplit, pendingLine, prefillPayment, restInDue, shownAmount, sumWeights, validatePaymentSplit
@@ -26,6 +26,7 @@ import { checkBagWeight, checkLineRate, confirmLineBags, keptBagChecks } from '.
 import { t, tn } from '../i18n/index.js';
 import { friendlyError } from '../utils/friendly-error.js';
 import { icon } from '../ui/icons.js';
+import { infoTipHtml } from '../ui/info-tip.js';
 import { emit, BILL_CLEARED } from '../utils/events.js';
 import { saveFailedText, SAVED_ON_PHONE_KEY, SAVE_UNCONFIRMED_KEY } from '../utils/storage-full.js';
 import { buildDraftShareText } from '../utils/bill-share.js';
@@ -136,15 +137,15 @@ const PurchaseManager = {
         
         const total = sumWeights(weights);
         
-        if (totalWeightsSpan) totalWeightsSpan.textContent = formatKg(total);
+        if (totalWeightsSpan) totalWeightsSpan.textContent = formatWeight(total);
         if (totalPacketsSpan) totalPacketsSpan.textContent = weights.length;
         
         container.innerHTML = `
             <div class="weights-compact-list">
                 ${weights.map((w, i) => `
                     <div class="weight-chip">
-                        <span>${formatKg(w)}</span>
-                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatKg(w) }))}">${icon('x', 'i-sm')}</button>
+                        <span>${formatWeight(w)}</span>
+                        <button type="button" class="btn btn-ghost btn-icon" data-onclick="purchase.removeWeight(${i})" aria-label="${Helpers.escapeHtml(t('ui.billing.remove_weight', { weight: formatWeight(w) }))}">${icon('x', 'i-sm')}</button>
                     </div>
                 `).join('')}
             </div>
@@ -478,7 +479,8 @@ const PurchaseManager = {
                     ? tn('ui.billing.labour_short', heavyPacketsCount, { rate: formatRupees(suggested.rate, 'rate'), amount })
                     : t('ui.billing.labour_changed', { amount: formatRupees(laborCharges || 0) });
                 const working = document.getElementById('laborWorking');
-                if (working) working.textContent = tn('ui.billing.labour_working', heavyPacketsCount, { kg: formatKg(heavyWeightThreshold), rate: formatRupees(suggested.rate, 'rate'), amount });
+                // The rule is behind the ⓘ: the line above already shows bags × rate = amount
+                if (working) working.innerHTML = infoTipHtml(tn('ui.billing.labour_working', heavyPacketsCount, { kg: formatKg(heavyWeightThreshold), rate: formatRupees(suggested.rate, 'rate'), amount }));
             }
         } else {
             if (laborChargesInput) {

@@ -114,8 +114,8 @@
             <p class="setting-description" data-i18n="ui.settings.use_bluetooth_thermal_printer">Use Bluetooth thermal printer for bill printing</p>
 
             <div id="bluetoothPrinterSection" class="set-printer" hidden>
-                <div id="printerStatus" class="set-kv set-printer-status">
-                    <span data-i18n="ui.settings.status">Status</span> <span id="printerStatusText"><span data-i18n="ui.settings.printer_not_connected">Not connected</span></span>
+                <div id="printerStatus" class="panel set-printer-status">
+                    <div id="printerStatusText"><div class="printer-status-line"><span class="printer-status-dot" data-tone="idle" aria-hidden="true"></span><span class="printer-status-head" data-i18n="ui.settings.printer_not_connected">Not connected</span></div></div>
                 </div>
 
                 <label class="set-toggle">
@@ -541,3 +541,4 @@
         </div>
     </section>
 </div>
+

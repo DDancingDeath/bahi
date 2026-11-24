@@ -116,12 +116,64 @@
 }
 
 .set-printer-status {
-  padding: var(--sp-3);
-  border-radius: var(--r-control);
-  background: var(--surface-2);
+  overflow: visible;
+}
+
+/* The status line: a dot (the colour is the state), "Not connected · <printer>", Connect; details behind the chevron */
+.printer-status-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-4);
+}
+
+.set-printer-status .disclosure-head {
+  padding-right: var(--sp-2);
+}
+
+.set-printer-status .disclosure-toggle {
+  gap: var(--sp-2);
+  padding-inline: var(--sp-3) var(--sp-1);
+}
+
+.set-printer-status .disclosure-title {
+  display: flex;
+  min-width: 0;
+}
+
+.printer-status-head {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.printer-status-dot {
+  flex: none;
+  width: var(--sp-2);
+  height: var(--sp-2);
+  border-radius: var(--r-full);
+  background: var(--ink-3);
+}
+
+.printer-status-dot[data-tone="pos"] {
+  background: var(--positive);
+}
+
+.printer-status-dot[data-tone="warn"] {
+  background: var(--warning-dot);
+}
+
+.printer-status-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
 }
 
 .printer-status-detail {
+  margin: 0;
   color: var(--ink-3);
   font-size: var(--fs-caption);
 }
@@ -135,11 +187,32 @@
   flex-wrap: wrap;
 }
 
+/* A saved printer: the name (cut with "…") and "in use" on one line, then paper width, Connect and Remove in one
+   row of equal-height controls */
+.row.saved-printer {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: var(--sp-2);
+}
+
 .saved-printer .row-main {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
+}
+
+.saved-printer .row-title {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.saved-printer-in-use {
+  flex: none;
+  white-space: nowrap;
 }
 
 .set-device-tools {
@@ -151,6 +224,10 @@
 
 .set-device-tools > .input {
   width: auto;
+}
+
+.set-device-tools > .btn {
+  flex: none;
 }
 
 /* Check the printer (ui/printer-test.js): the check list and the photo sheet */

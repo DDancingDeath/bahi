@@ -123,7 +123,9 @@ test('tier B: correct a line, the transcript, undo by keyboard and by voice, Eng
     await say(page, 'wheat 50 kg 22 rupees, mustard 30 kg');
     await page.click('#voiceMicPurchase');
     await expect(dialog).toBeVisible();
-    await expect(strip).toHaveText('Heard: “wheat 50 kg 22 rupees, mustard 30 kg”. Check it and tap Fill bill.');
+    // Only what was heard shows under the mic; what came of it is behind the ⓘ
+    await expect(strip.locator('.voice-heard-text')).toHaveText('wheat 50 kg 22 rupees, mustard 30 kg');
+    await expect(strip.locator('.info-pop')).toHaveText('Heard: “wheat 50 kg 22 rupees, mustard 30 kg”. Check it and tap Fill bill.');
     await expect(dialog.locator('[data-voice-line="1"]')).toBeDisabled();
     await dialog.locator('[data-voice-edit-btn="1"]').click();
     await expect(dialog.locator('[data-voice-edit-btn="1"]')).toHaveAttribute('aria-expanded', 'true');
@@ -132,7 +134,12 @@ test('tier B: correct a line, the transcript, undo by keyboard and by voice, Eng
     await page.click('#modalConfirm');
     await expectToast(page, /Lines added to the bill: 2\./);
     await expect(bill).toContainText('Mustard');
-    await expect(strip).toContainText('Lines added to the bill: 2.');
+    await expect(strip.locator('.info-pop')).toBeHidden();
+    await strip.locator('.info-tip-btn').click();
+    await expect(strip.locator('.info-pop')).toBeVisible();
+    await expect(strip.locator('.info-pop')).toContainText('Lines added to the bill: 2.');
+    await page.keyboard.press('Escape');
+    await expect(strip.locator('.info-pop')).toBeHidden();
 
     // Undo voice from the keyboard takes both lines off
     const undo = page.locator('#voiceUndoPurchase');
@@ -158,7 +165,8 @@ test('tier B: correct a line, the transcript, undo by keyboard and by voice, Eng
     await say(page, 'वापस');
     await page.click('#voiceMicSale');
     await expect(page.locator('#saleWeight')).toHaveValue('');
-    await expect(saleStrip).toHaveText('सुना: “वापस”। आवाज़ से किया पिछला बदलाव वापस लिया।');
+    await expect(saleStrip.locator('.voice-heard-text')).toHaveText('वापस');
+    await expect(saleStrip.locator('.info-pop')).toHaveText('सुना: “वापस”। आवाज़ से किया पिछला बदलाव वापस लिया।');
     await expect(page.locator('#voiceUndoSale')).toBeHidden();
 
     expect(problems.pageErrors).toEqual([]);

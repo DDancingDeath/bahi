@@ -39,7 +39,7 @@ import { t, tn, loadAllCatalogues } from '../i18n/index.js';
 import { moneyHtml, moneyInText, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { lineItemIdentity } from '../utils/item-catalog.js';
-import { billLabour, billLineTotal, billTotal, hasBillAmount, isActiveBill, isOpeningRecord, readPayment, UNKNOWN_AMOUNT, formatRupees, formatAmount, formatKg, toMoney } from '../utils/money.js';
+import { billLabour, billLineTotal, billTotal, hasBillAmount, isActiveBill, isOpeningRecord, readPayment, UNKNOWN_AMOUNT, formatRupees, formatAmount, formatKg, formatWeight, toMoney } from '../utils/money.js';
 
 const L = (key, params) => Helpers.escapeHtml(t(key, params));
 /** A bill line's item name in the language item names are shown in (F58). */
@@ -549,11 +549,11 @@ export class HistoryManager {
         bill.items.forEach(item => {
             // Only show weight breakdown if there are 2 or more packets
             if (item.weights && item.weights.length >= 2) {
-                const weightsDisplay = item.weights.map(w => `<span class="bill-view-w">${Helpers.escapeHtml(formatKg(w))}</span>`).join(' ');
+                const weightsDisplay = item.weights.map(w => `<span class="bill-view-w">${Helpers.escapeHtml(formatWeight(w))}</span>`).join(' ');
                 weightBreakdownHTML += `
                     <div class="row bill-view-weight">
                         <div class="row-main">
-                            <div class="row-title">${Helpers.escapeHtml(lineName(item))} (${Helpers.escapeHtml(tn('ui.history.packets_kg', item.weights.length, { packets: item.weights.length, kg: formatKg(item.qty) }))})</div>
+                            <div class="row-title">${Helpers.escapeHtml(lineName(item))} (${Helpers.escapeHtml(tn('ui.history.packets_kg', item.weights.length, { packets: item.weights.length, kg: formatWeight(item.qty) }))})</div>
                             <div class="bill-view-weights">${weightsDisplay}</div>
                         </div>
                     </div>
@@ -1223,3 +1223,4 @@ on(PRINT_STATUS_CHANGED, () => {
     if (document.getElementById('history')?.classList.contains('active')) HistoryManager.refreshHistory();
     if (document.getElementById('billDetailsOverlay')?.classList.contains('active')) HistoryManager.renderPrintStatus();
 });
+

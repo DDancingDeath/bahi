@@ -407,8 +407,10 @@ describe('PrinterService with the fake transport', () => {
         expect(preview).toHaveBeenCalledWith(bill, { onPrint: expect.any(Function) });
         const status = document.getElementById('printerStatusText');
         expect(status.dataset.state).toBe('disconnected');
-        expect(status.textContent).toContain('Not connected (last used: Shop printer)');
-        expect(status.textContent).toMatch(/Last problem at \d\d:\d\d: the printer did not connect in time/);
+        expect(status.querySelector('.printer-status-head').textContent).toBe('Not connected · Shop printer');
+        expect(status.querySelector('.disclosure-summary').textContent).toMatch(/^Problem \d\d:\d\d$/);
+        expect(status.querySelector('.disclosure-body').hidden).toBe(true);
+        expect(status.querySelector('.disclosure-body').textContent).toMatch(/Last problem\d\d:\d\d · the printer did not connect in time/);
     });
 
     test('Settings shows when a connected printer was last checked', async () => {
@@ -416,7 +418,8 @@ describe('PrinterService with the fake transport', () => {
         await PrinterService.refreshStatus();
         const status = document.getElementById('printerStatusText');
         expect(status.dataset.state).toBe('connected');
-        expect(status.textContent).toMatch(/Connected to Shop printer \(checked \d\d:\d\d\)/);
+        expect(status.querySelector('.printer-status-head').textContent).toBe('Connected · Shop printer');
+        expect(status.querySelector('.disclosure-body').textContent).toMatch(/Checked\d\d:\d\d/);
     });
 
     test('after Disconnect bills go to the preview without touching Bluetooth', async () => {

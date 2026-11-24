@@ -1083,7 +1083,7 @@ export class SettingsManager {
             const name = p.deviceName || p.deviceId;
             const widths = PAPER_WIDTHS.map(mm => `<option value="${mm}"${p.widthMm === mm ? ' selected' : ''}>${Helpers.escapeHtml(t('ui.settings.paper_mm', { mm }))}</option>`).join('');
             row.innerHTML = `
-                <div class="row-main"><span class="row-title">${Helpers.escapeHtml(name)}</span>${inUse ? ` <span class="tag pos saved-printer-in-use">${Helpers.escapeHtml(t('ui.settings.printer_in_use'))}</span>` : ''}</div>
+                <div class="row-main"><span class="row-title">${Helpers.escapeHtml(name)}</span>${inUse ? `<span class="tag pos saved-printer-in-use">${Helpers.escapeHtml(t('ui.settings.printer_in_use'))}</span>` : ''}</div>
                 <div class="set-device-tools">
                     <select class="input saved-printer-width" aria-label="${Helpers.escapeHtml(t('ui.settings.paper_width'))}">${widths}</select>
                     ${inUse && connected ? '' : `<button type="button" class="btn btn-sm btn-tonal saved-printer-use">${Helpers.escapeHtml(t(inUse ? 'ui.settings.connect' : 'ui.settings.use_printer'))}</button>`}
@@ -1159,6 +1159,12 @@ export class SettingsManager {
         });
     }
 
+    /** The status line's Connect: the printer in use. */
+    static connectSavedPrinter() {
+        const { deviceId, deviceName } = PrinterService.settings();
+        return deviceId ? this.connectToPrinter(deviceId, deviceName) : undefined;
+    }
+
     static async connectToPrinter(deviceId, deviceName) {
         try {
             UIManager.hapticFeedback('medium');
@@ -1230,3 +1236,4 @@ if (typeof window !== 'undefined') window.addEventListener('aadhat:themechange',
 on(PRINTER_CHANGED, () => {
     if (SettingsManager._listConnected !== undefined && PrinterService.isConnected() !== SettingsManager._listConnected) SettingsManager.renderSavedPrinters();
 });
+

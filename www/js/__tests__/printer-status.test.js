@@ -10,6 +10,7 @@ import { PrinterService, loadReceiptDrawing } from '../services/printer.js';
 import { SettingsManager } from '../modules/settings.js';
 import { UIManager } from '../ui/ui-manager.js';
 import { AppState } from '../utils/state.js';
+import { setLang } from '../i18n/index.js';
 
 // The receipt drawing is imported on the first print (#59)
 beforeAll(() => loadReceiptDrawing());
@@ -92,7 +93,7 @@ describe('in the Android app', () => {
         mockPlugin();
         await SettingsManager.connectToPrinter('AA:BB', 'Shop <printer>');
         expect(window.bluetoothSerial.connect).toHaveBeenCalledWith('AA:BB', expect.any(Function), expect.any(Function));
-        expect(status().textContent).toContain('Connected to Shop <printer>');
+        expect(status().textContent).toContain('Connected · Shop <printer>');
         expect(status().innerHTML).not.toContain('<printer>');
         expect(status().dataset.state).toBe('connected');
         expect(shown('testPrintBtn')).toBe(true);
@@ -111,7 +112,8 @@ describe('in the Android app', () => {
         AppState.printerSettings.deviceId = 'AA:BB';
         AppState.printerSettings.deviceName = 'Shop printer';
         await SettingsManager.updatePrinterStatus();
-        expect(status().textContent).toContain('Not connected (last used: Shop printer)');
+        expect(status().textContent).toContain('Not connected · Shop printer');
+        expect(status().querySelector('.printer-status-connect')).not.toBeNull();
         expect(shown('testPrintBtn')).toBe(true);
 
         expect(await SettingsManager.testPrint()).toBe(true);
@@ -148,6 +150,43 @@ describe('in the Android app', () => {
         expect(toast).toHaveBeenCalledWith('Test print failed: paper out', 'error');
     });
 
+    test('the status is one line (dot, state · printer, Connect); a drop shows "Lost hh:mm", the rest is in closed details', async () => {
+        mockPlugin();
+        AppState.printerSettings = { enabled: true, deviceId: 'AA:BB', deviceName: 'SezniK_Veer_493E', printers: [{ deviceId: 'AA:BB', deviceName: 'SezniK_Veer_493E', widthMm: 58 }] };
+        PrinterService.manager.link.status = { checkedAt: null, lastJob: null, bluetoothOff: false, lastError: { kind: 'dropped', message: 'x', at: new Date(2026, 10, 25, 0, 35).getTime() } };
+        PrinterService.updateStatus();
+        expect(status().querySelector('.printer-status-head').textContent).toBe('Not connected · SezniK_Veer_493E');
+        expect(status().querySelector('.printer-status-dot').dataset.tone).toBe('idle');
+        expect(status().querySelector('.disclosure-summary').textContent).toBe('Lost 00:35');
+        expect(status().textContent).not.toContain('last used');
+        const body = status().querySelector('.disclosure-body');
+        expect(body.hidden).toBe(true);
+        expect([...body.querySelectorAll('.set-kv')].map(r => r.textContent).filter(r => !r.startsWith('Nearby'))).toEqual([
+            'PrinterSezniK_Veer_493E', 'Last problem00:35 · the printer connection was lost', 'Paper width58 mm'
+        ]);
+
+        expect(status().querySelector('.printer-status-connect').dataset.onclick).toBe('settings.connectSavedPrinter()');
+        await SettingsManager.connectSavedPrinter();
+        expect(window.bluetoothSerial.connect).toHaveBeenCalledWith('AA:BB', expect.any(Function), expect.any(Function));
+        expect(status().querySelector('.printer-status-head').textContent).toBe('Connected · SezniK_Veer_493E');
+        expect(status().querySelector('.printer-status-dot').dataset.tone).toBe('pos');
+        expect(status().querySelector('.printer-status-connect')).toBeNull();
+        PrinterService.manager.link.status.lastError = null;
+    });
+
+    test('in Hindi the line reads the same way', async () => {
+        mockPlugin();
+        setLang('hi');
+        try {
+            AppState.printerSettings = { enabled: true, deviceId: 'AA:BB', deviceName: 'P1' };
+            PrinterService.updateStatus();
+            expect(status().querySelector('.printer-status-head').textContent).toBe('जुड़ा नहीं है · P1');
+            expect(status().querySelector('.printer-status-connect').textContent).toBe('जोड़ें');
+        } finally {
+            setLang('en');
+        }
+    });
+
     test('a dropped link flips the status back to not connected', async () => {
         mockPlugin({ linkUp: false });
         await PrinterService.connect('AA:BB', 'Shop printer');
@@ -156,7 +195,7 @@ describe('in the Android app', () => {
         await SettingsManager.updatePrinterStatus();
         expect(window.bluetoothSerial.isConnected).toHaveBeenCalled();
         expect(PrinterService.isConnected()).toBe(false);
-        expect(status().textContent).toContain('Not connected (last used: Shop printer)');
+        expect(status().textContent).toContain('Not connected · Shop printer');
     });
 
     test('disconnect hides Test Print and Disconnect, and bills stop using the printer', async () => {

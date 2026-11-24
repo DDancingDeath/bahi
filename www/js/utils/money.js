@@ -235,6 +235,18 @@ export function formatKg(kg) {
 }
 
 /**
+ * A listed bag / packet weight (WEIGHT-TEXT): one decimal always ("45.0", "23.5", "1,250.0") so a list lines up in
+ * tabular figures; a weight typed finer keeps its decimals ("23.25"). No unit.
+ * @param {*} kg
+ * @returns {string}
+ */
+export function formatWeight(kg) {
+    const n = Number(kg);
+    const v = Number.isFinite(n) ? Math.round(n * 1000) / 1000 : 0;
+    return (Object.is(v, -0) ? 0 : v).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 3 });
+}
+
+/**
  * First value that is present and numeric (0 counts as present).
  * @param {...*} values
  * @returns {?number}

@@ -31,6 +31,7 @@ import { AUTO_ROLLBACK_REASON } from '../tip/scenarios/bill-save.js';
 import { awaitingServer } from '../utils/data-freshness.js';
 import { on, DATA_FRESHNESS_CHANGED } from '../utils/events.js';
 import { icon } from './icons.js';
+import { infoTipEl } from './info-tip.js';
 
 export const CHECK_DEBOUNCE_MS = 250;
 
@@ -208,11 +209,22 @@ function messageEl(issue, msgId, cfg = null) {
         return div;
     }
     const span = document.createElement('span');
-    span.textContent = `${ICON[issue.severity]} ${text(issue)}`;
+    const short = shortRateText(issue);
+    span.textContent = `${ICON[issue.severity]} ${short || text(issue)}`;
     div.appendChild(span);
+    if (short) {
+        const more = infoTipEl(text(issue));
+        if (more) div.appendChild(more);
+    }
     const fix = rateFixButton(cfg, issue);
     if (fix) div.appendChild(fix);
     return div;
+}
+
+/** A rate far from usual in one short line ("₹25 · usual ₹55"); the sentence goes behind the ⓘ. */
+function shortRateText(issue) {
+    if (!(issue.id === 'rate-low' || issue.id === 'rate-high') || !(issue.rate > 0) || !(issue.usual > 0)) return '';
+    return t('ui.checks.rate_short', { rate: formatRate(issue.rate), usual: formatRate(issue.usual) });
 }
 
 function itemRows(cfg) {
