@@ -6,6 +6,8 @@
       "androidVersionCode": 1,
       "notes": {
         "en": [
+          "Billing: weights line up at one decimal (45.0, 23.5) in a compact grid, also in History and on the printed and WhatsApp bill. A rate far from usual, the labour rule and what the mic heard are one short line, with ⓘ for more; the last saved bill is one line at the bottom.",
+          "Printer: the status is one line with Connect (the details open with the arrow), and each saved printer's name, paper width, Connect and Remove line up. Voice: \"kg\" said in Hindi as two words now goes to the weight.",
           "WhatsApp sends the bill as its picture, the same as the printed receipt, straight to the customer's chat when the name has their number. Press and hold the WhatsApp button to send it as text.",
           "Settings › Bluetooth printer: check the connection, print a test page or a photo.",
           "Settings › Notifications (owners and managers): test notifications on this phone (now, in 15 s, by push with the app closed) and on other phones, with this phone's status.",
@@ -24,6 +26,8 @@
           "Many smaller fixes across the app."
         ],
         "hi": [
+          "बिलिंग: वज़न अब एक दशमलव तक (45.0, 23.5) छोटे, सीध में लगे खानों में दिखते हैं, इतिहास में और छपे व WhatsApp बिल में भी। सामान्य से अलग रेट, लेबर का नियम और माइक ने जो सुना, सब एक छोटी लाइन में, ज़्यादा जानकारी ⓘ में; पिछला सेव बिल नीचे एक लाइन में।",
+          "प्रिंटर: स्थिति एक लाइन में, साथ में जोड़ें बटन (बाकी जानकारी तीर से खुलती है); हर सेव प्रिंटर का नाम, कागज़ की चौड़ाई, जोड़ें और हटाएँ सीध में। आवाज़: \"25 के जी\" अब वज़न में जाता है।",
           "WhatsApp पर बिल अब उसकी फ़ोटो के रूप में जाता है, बिल्कुल छपी रसीद जैसा, और नाम में नंबर हो तो सीधे ग्राहक की चैट में। टेक्स्ट भेजना हो तो WhatsApp बटन दबाकर रखें।",
           "सेटिंग › ब्लूटूथ प्रिंटर: जुड़ाव जाँचें, जाँच का पेज या फ़ोटो छापें।",
           "सेटिंग › सूचनाएँ (मालिक और मैनेजर): इस फ़ोन पर (अभी, 15 सेकंड में, ऐप बंद होने पर पुश से) और दूसरे फ़ोन पर सूचनाओं की जाँच, साथ में इस फ़ोन की स्थिति।",

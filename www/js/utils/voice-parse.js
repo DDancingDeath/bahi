@@ -141,7 +141,9 @@ export function voiceTokens(text) {
         .replace(/(\d)(?=[^\d.,\s])/g, '$1 ')
         .replace(/([^\d.,\s])(?=\d)/g, '$1 ')
         .replace(/(\d),(?=\d{3}\b)/g, '$1')
-        .replace(/[,;:!?।"“”'‘’()]/g, ' ');
+        .replace(/[,;:!?।"“”'‘’()]/g, ' ')
+        // "25 के जी" / "25 के.जी." (kg as the Hindi recogniser spells it out) is one unit, not "के" (a price word) + "जी"
+        .replace(/(\d\s+)के\s*\.?\s*जी\.?(?=\s|$)/g, '$1केजी');
     return s.split(/\s+/).map(w => w.replace(/^\.+|\.+$/g, '')).filter(Boolean);
 }
 
