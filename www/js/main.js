@@ -1685,6 +1685,7 @@ window.app = {
         previewReceipt: () => SettingsManager.previewReceipt(),
         scanBluetoothDevices: () => SettingsManager.scanBluetoothDevices(),
         connectToPrinter: (id, name) => SettingsManager.connectToPrinter(id, name),
+        connectSavedPrinter: () => SettingsManager.connectSavedPrinter(),
         disconnectPrinter: () => SettingsManager.disconnectPrinter(),
         updatePrinterStatus: () => SettingsManager.updatePrinterStatus(),
         testPrint: () => SettingsManager.testPrint(),
