@@ -3,36 +3,32 @@ sequenceDiagram
     participant S as GitHub schedule
     participant B as firestore-backup.yml
     participant DB as Firestore bahi-happa
-    participant A as Actions artifact store
+    participant A as Actions artifacts
     participant DR as backup-restore-drill.yml
     participant E as Firestore emulator
     participant I as GitHub Issues
 
     rect rgb(232, 245, 233)
-        Note over S,I: Daily run 08:15 UTC, tools/backup/export-firestore.js
+        Note over S,I: Daily 08:15 UTC
         S->>B: cron
-        B->>B: resolve project, guard refuses aadhat-management
         B->>DB: count documents
-        alt above 40,000 docs, BACKUP_HARD_MAX
-            B->>I: job fails, nothing exported unless force=true
-        else above 15,000 docs, BACKUP_WEEKLY_ABOVE, and not Sunday IST
+        alt above 40,000 docs and not forced
+            B-->>S: fail, nothing exported
+        else scheduled, above 15,000 docs and not Sunday IST
             B-->>S: skip, weekly only at this size
-        else Sunday IST: weekly mode
-            B->>DB: full export incl. auditLogs, telemetry, tipHealth, tipFailures
-        else other days: nightly mode
-            B->>DB: export, excluding auditLogs, telemetry, tipHealth, tipFailures
+        else otherwise: export runs
+            Note over B,A: Sunday IST: full export incl. logs.<br/>Other days: business data, without auditLogs, telemetry, tipHealth, tipFailures
+            B->>DB: export, Admin SDK
+            B->>A: encrypt AES-256, upload, 60-day retention
+            B->>A: verify job: decrypt, parse, compare counts
         end
-        B->>B: compress, AES-256 encrypt, remove plaintext
-        B->>A: upload firestore-backup-nightly or -weekly, 60-day retention
-        B->>A: verify job: download, checksums, decrypt, parse, compare counts
-        B->>I: open, update or close backup alert issue
+        B->>I: alert job: open, update or close issue
     end
 
     rect rgb(255, 243, 224)
-        Note over S,I: Monthly restore drill, 3rd of month 09:00 UTC
+        Note over S,I: Monthly drill, 3rd at 09:00 UTC
         S->>DR: cron
         DR->>A: download newest weekly artifact, else newest nightly
-        DR->>DR: checksums, decrypt, parse, compare counts
-        DR->>E: restore into emulator, read every document back
+        DR->>E: decrypt, restore, read every document back
         DR->>I: open or close drill alert issue
     end

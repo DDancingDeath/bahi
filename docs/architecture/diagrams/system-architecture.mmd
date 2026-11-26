@@ -1,93 +1,72 @@
 flowchart LR
-    owner(["Shop owner"])
-    staff(["Manager / Member staff"])
+    users(["Shop owner and staff"])
     tenant(["Tenant with receipt link"])
 
-    subgraph DEVICE["Device boundary: browser PWA or Android APK via Capacitor"]
-        direction TB
-        ui["Presentation<br/>index.html, templates/*.html via template-loader.js,<br/>modules/*.js, rentals/rentals.js, ui/*.js,<br/>window.app facade in main.js"]
-        calc["Client business logic, pure<br/>utils/calc/*, money, business-metrics,<br/>finance-calc, labour, statements, rent-math"]
-        state["AppState + events<br/>utils/state.js, utils/events.js"]
-        data["Data access<br/>FirebaseService facade, firebase/repos/*,<br/>firebase/core/* listeners, rentals/rent-*-store.js"]
-        cache[("Firestore offline cache<br/>IndexedDB persistence")]
-        cross["Cross-cutting<br/>auth/*, i18n, theme, services/telemetry,<br/>audit, crash-reports, security-monitor, app-check"]
-        aiclient["firebase/photo-weights-ai.js<br/>modular SDK, opt-in"]
-        sw["service-worker.js<br/>cache happa-v780"]
-        cap["Capacitor plugins<br/>bluetooth-serial, speech-recognition,<br/>local-notifications, share,<br/>firebase auth / messaging / crashlytics"]
+    subgraph PUBLIC["Tenant browser: no sign-in"]
+        reader["Public receipt page<br/>read-only token link"]
+    end
+
+    subgraph DEVICE["Device boundary: browser PWA or Android APK"]
+        ui["UI and navigation"]
+        logic["Client business logic:<br/>billing, stock, dues, rentals"]
+        data["Data access and realtime sync"]
+        cache[("Device cache<br/>Firestore offline persistence")]
+        sw["Service worker:<br/>offline shell + web push"]
+        native["Native capabilities<br/>Capacitor + AppShell bridge:<br/>print, share, notifications, speech"]
     end
 
     subgraph THIRD["Third-party / peripherals"]
-        direction TB
-        printer[["Bluetooth thermal printer"]]
+        printer[["Printers<br/>Bluetooth thermal, browser print"]]
         share[["WhatsApp / share targets"]]
-        deskprint["Desktop printing<br/>Proposed"]
+        deskprint["Desktop thermal printing<br/>Proposed"]
+        releases[("GitHub Releases<br/>APK + release info")]
     end
 
     subgraph GOOGLE["Google cloud boundary: shop's Google account"]
-        direction TB
-        subgraph FIREBASE["Firebase project bahi-happa"]
-            direction TB
-            hosting["Firebase Hosting<br/>firebase.json: CSP, HSTS, rewrites"]
-            fauth["Firebase Auth<br/>email + password"]
-            rules{{"firestore.rules<br/>roles from users/uid doc"}}
-            fs[("Cloud Firestore")]
+        subgraph FIREBASE["Firebase project, one per shop"]
+            hosting["Firebase Hosting<br/>CSP + HSTS headers, web only"]
+            auth["Firebase Auth"]
+            fs[("Cloud Firestore<br/>guarded by security rules")]
             ai["Firebase AI Logic<br/>Gemini"]
             fcm["Firebase Cloud Messaging"]
             crash["Crashlytics"]
         end
-        gas["Apps Script push-sender<br/>push-sender/Main.js + Core.js"]
+        gas["Apps Script push sender<br/>runs as project owner"]
     end
 
-    subgraph GH["GitHub boundary: DDancingDeath/bahi"]
-        direction TB
-        devx(["Developer / CI"])
-        actions["GitHub Actions<br/>CI, deploy, backup, TIP"]
-        releases[("GitHub Releases<br/>bahi.apk, read by app-updates.js")]
-        issues["GitHub Issues<br/>alerts + TIP bugs"]
-        artifacts[("Encrypted backup artifacts<br/>60 days")]
-    end
-
-    owner -->|"HTTPS / APK"| ui
-    staff -->|"HTTPS / APK"| ui
-    tenant -->|"/r/ page: REST read rent_public"| fs
-    ui --> calc
+    users -->|"HTTPS / APK"| ui
+    tenant -->|"HTTPS"| reader
+    reader -->|"Firestore REST, public get"| fs
+    ui --> logic
     ui --> data
-    data -->|"populate"| state
-    state -.->|"refresh:view events"| ui
-    data <-->|"cached reads, queued writes"| cache
-    cross -->|"telemetry, auditLogs docs"| data
-    data -->|"Firestore SDK WebChannel, onSnapshot"| rules
-    rules --> fs
-    cross -->|"HTTPS Auth SDK"| fauth
-    ui --> aiclient
-    cross -.->|"App Check token"| aiclient
-    aiclient -->|"HTTPS, App Check enforced"| ai
-    sw -->|"HTTPS fetch + precache"| hosting
-    data -->|"HTTPS POST eventId, push-trigger.js"| gas
-    gas -->|"Firestore REST + OAuth"| fs
+    data -.->|"data events"| ui
+    data <-->|"cached reads,<br/>queued writes"| cache
+    data -->|"Firestore SDK reads / writes"| fs
+    fs -.->|"realtime snapshots"| data
+    ui -->|"Auth SDK, HTTPS"| auth
+    ui -->|"HTTPS + App Check,<br/>opt-in photo of weights"| ai
+    sw -->|"HTTPS"| hosting
+    data -->|"HTTPS POST event id"| gas
+    gas -->|"Firestore REST"| fs
     gas -->|"FCM HTTP v1"| fcm
-    fcm -.->|"push"| cap
     fcm -.->|"web push"| sw
-    cap -->|"BT SPP, ESC/POS raster"| printer
-    cap -->|"ACTION_SEND / Web Share / wa.me"| share
-    cap -.->|"crash reports"| crash
+    fcm -.->|"Android push"| native
+    ui -->|"Capacitor bridge"| native
+    native -->|"Bluetooth thermal print"| printer
+    ui -->|"browser print"| printer
+    native -->|"native share"| share
+    ui -->|"web share"| share
+    native -.->|"crash reports"| crash
     ui -.-> deskprint
-
-    devx ==>|"git push / PR / tag"| actions
-    actions ==>|"deploy Hosting, rules + indexes"| FIREBASE
-    actions ==>|"clasp push"| gas
-    actions ==>|"signed APK"| releases
-    actions -.->|"daily export, Admin SDK"| fs
-    actions -.->|"encrypt + upload"| artifacts
-    actions -.->|"alerts, TIP auto-bugs"| issues
+    ui -->|"HTTPS: update check / APK download"| releases
 
     classDef actor fill:#fff3cd,stroke:#b38f00,color:#000
     classDef internal fill:#e3f2fd,stroke:#1565c0,color:#000
     classDef external fill:#f3e5f5,stroke:#6a1b9a,color:#000
     classDef store fill:#e8f5e9,stroke:#2e7d32,color:#000
     classDef planned fill:#fafafa,stroke:#757575,color:#555,stroke-dasharray: 5 5
-    class owner,staff,tenant,devx actor
-    class ui,calc,state,data,cross,aiclient,sw,cap,gas internal
-    class hosting,fauth,rules,ai,fcm,crash,actions,issues,printer,share external
-    class fs,cache,releases,artifacts store
+    class users,tenant actor
+    class ui,logic,data,sw,native,gas,reader internal
+    class hosting,auth,ai,fcm,crash,printer,share,releases external
+    class fs,cache store
     class deskprint planned

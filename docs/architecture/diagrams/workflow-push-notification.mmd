@@ -1,30 +1,26 @@
 sequenceDiagram
     autonumber
-    actor A as Actor phone, e.g. edits a rate
-    participant N as repos/notifications.js
-    participant DB as Cloud Firestore
-    participant T as push-trigger.js
-    participant G as Apps Script push-sender
+    participant W as Writer client
+    participant DB as Firestore
+    participant G as Apps Script sender
     participant F as FCM HTTP v1
-    participant D as Recipient device
+    participant R as Recipient device
 
-    Note over D,DB: Earlier: recipient registers token in users/uid/devices/id via push-notify.js + repos/push-devices.js
-    A->>N: sendNotification eventId, recipients
-    N->>DB: batch write notifications, doc id per event + recipient, read false
-    N->>T: triggerPush eventId, prod collections only
-    T-)G: HTTPS POST eventId + project, no-cors, fire and forget
-    G->>DB: Firestore REST with owner OAuth token: read event docs + recipients' devices
-    alt device platform web
-        G->>F: data-only message, webpush Urgency high
-        F-)D: service worker receives data and shows the notification
-    else Android
-        G->>F: notification + data message, channel_id bahi, priority HIGH
-        F-)D: OS shows it when app is backgrounded or closed, FirebaseMessaging plugin
+    Note over R,DB: Earlier: each recipient registers a push token under its user doc
+    W->>DB: batch write notification docs, one per recipient
+    W-)G: HTTPS POST event id, fire and forget, unprefixed collections only
+    G->>DB: Firestore REST as project owner: read docs and recipient tokens
+    alt web token
+        G->>F: data-only message
+        F-)R: service worker shows the notification
+    else Android token
+        G->>F: notification + data message
+        F-)R: OS shows it, even when the app is closed
     end
-    G->>DB: mark docs pushed, delete stale tokens
+    G->>DB: mark docs pushed, drop stale tokens
     loop every 5 minutes
-        G->>DB: sweep docs written since last sweep, not pushed, e.g. offline writers
-        G->>F: send, same per-platform message
+        G->>DB: sweep docs not yet pushed, e.g. from offline writers
+        G->>F: send
         G->>DB: mark pushed
     end
-    Note over D: App open: unread listener shows bell badge and toast without push
+    Note over F,R: App open: the unread listener shows the bell badge without push

@@ -1,76 +1,13 @@
 erDiagram
-    USERS ||--o{ USER_DEVICES : "devices subcollection"
-    USERS ||--o{ USER_PREFERENCES : "preferences subcollection"
-    USERS ||--o{ NOTIFICATIONS : receives
-    USERS ||--o{ AUDIT_LOGS : "actor of"
-    ITEMS ||--o{ BILL_LINE : "itemId"
-    PURCHASES ||--|{ BILL_LINE : "items array"
-    RETAIL_SALES ||--|{ BILL_LINE : "items array"
-    WHOLESALE_SALES ||--|{ BILL_LINE : "items array"
-    PURCHASES ||--o{ BILL_EDITS : "edits subcollection"
-    RETAIL_SALES ||--o{ BILL_EDITS : "edits subcollection"
-    WHOLESALE_SALES ||--o{ BILL_EDITS : "edits subcollection"
-    COUNTERS ||--o{ RETAIL_SALES : "numbers bills"
-    ITEMS ||--o{ STOCK_ADJUSTMENTS : adjusts
-    STOCK_CHECKPOINTS ||--o{ ITEMS : "snapshot per item"
-    CASH_MANAGEMENT ||--o{ WITHDRAWALS : "same day"
-    CASH_MANAGEMENT ||--o{ EXPENSES : "same day"
-    RENT_PROPERTIES ||--o{ RENT_UNITS : has
-    RENT_UNITS ||--o{ RENT_LEASES : "let via"
-    RENT_TENANTS ||--o{ RENT_LEASES : signs
-    RENT_LEASES ||--o{ RENT_CHARGES : "monthly"
-    RENT_LEASES ||--o{ RENT_RECEIPTS : "paid by"
-    RENT_LEASES ||--o| RENT_PUBLIC : "share token snapshot"
-
-    USERS {
-        string uid PK
-        string role "owner, manager, staff"
-        string status "approved, pending, rejected"
-        string rentRole
-        string lang
-    }
-    ITEMS {
-        string id PK
-        string name
-        array rates "purchase rates"
-        array saleRates
-        array wholesaleRates
-    }
-    RETAIL_SALES {
-        string id PK "client-made id"
-        string billNumber "S yyyymmdd-nnn"
-        number total
-        map payment "cash, online, due"
-        string userId FK
-        number timestamp
-        bool voided
-    }
-    BILL_LINE {
-        string itemId FK
-        number rate
-        number qty
-        number total
-    }
-    BILL_EDITS {
-        number n PK "edit number"
-        string by FK
-        string reason
-        map fields "changed fields"
-    }
-    COUNTERS {
-        string id PK "P, S or W plus yyyymmdd"
-        number next "last issued number"
-    }
-    CASH_MANAGEMENT {
-        string sessionId PK "one per day"
-        number openingBalance
-        number closingBalance
-    }
-    RENT_LEASES {
-        string id PK
-        string unitId FK
-        string tenantId FK
-    }
-    RENT_PUBLIC {
-        string token PK "world-readable"
-    }
+    USER ||--o{ BILL : "creates"
+    USER ||--o{ NOTIFICATION : "receives"
+    BILL ||--o{ BILL_EDIT : "edits subcollection"
+    COUNTER |o--o{ BILL : "numbers when online"
+    BILL }o--o{ ITEM : "embedded lines reference"
+    ITEM ||--o{ STOCK_ADJUSTMENT : "adjusted by"
+    BILL }o--o| ON_DEVICE_PARTY_DUE_VIEW : "dues summed into"
+    BILL }o--|| ON_DEVICE_STOCK_VIEW : "replayed into"
+    STOCK_ADJUSTMENT }o--|| ON_DEVICE_STOCK_VIEW : "replayed into"
+    STOCK_CHECKPOINT ||--|| ON_DEVICE_STOCK_VIEW : "snapshot, replayed forward"
+    CASH_SESSION ||--o{ EXPENSE : "same day"
+    CASH_SESSION ||--o{ WITHDRAWAL : "same day"

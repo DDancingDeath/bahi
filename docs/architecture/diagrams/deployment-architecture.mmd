@@ -2,94 +2,59 @@ flowchart LR
     devx(["Developer"])
 
     subgraph TRIG["Triggers"]
-        direction TB
         pr["Pull request"]
-        main["push to main"]
-        tag["tag v* / rc, or manual run"]
-        sched["Schedules, UTC"]
+        main["Push to main"]
+        tag["Tag v*"]
+        sched["Schedule"]
     end
 
-    subgraph WF["GitHub Actions workflows"]
-        direction TB
-        gates["ci.yml, e2e.yml, review-rules.yml,<br/>migration-e2e, bench, mutation"]
+    subgraph GH["GitHub Actions"]
+        gates["PR checks<br/>ci, e2e, review-rules, migration-e2e"]
         prprev["firebase-hosting-pull-request.yml"]
         merge["firebase-hosting-merge.yml"]
-        rulesdep["firestore-rules-deploy.yml<br/>rules tests in emulator, then deploy"]
-        devdep["bahi-dev-deploy.yml<br/>rules via REST, no rules tests"]
-        pushdep["push-sender-deploy.yml<br/>paths push-sender/**"]
-        apk["android-release.yml"]
-        backup["firestore-backup.yml<br/>daily 08:15, weekly full on Sunday"]
-        drill["backup-restore-drill.yml<br/>monthly, 3rd 09:00"]
-        tip["tip-autobugs.yml<br/>daily 08:30"]
+        rulesdep["firestore-rules-deploy.yml<br/>emulator rules tests first"]
+        devdep["bahi-dev-deploy.yml<br/>no rules tests"]
+        pushdep["push-sender-deploy.yml"]
+        apk["android-release.yml<br/>manual dev target: pre-release;<br/>otherwise debug or tagged release"]
+        nightly["Scheduled or manual, not PR gates<br/>bench, mutation, nightly e2e,<br/>prod smoke, backup, TIP"]
+        rel[("GitHub Releases<br/>signed APK")]
     end
 
-    subgraph GHS["GitHub storage"]
-        direction TB
-        rel[("GitHub Releases<br/>bahi.apk latest, bahi-dev.apk dev-latest")]
-        art[("Encrypted backup artifacts<br/>nightly + weekly, 60 days")]
-        iss["GitHub Issues<br/>TIP bugs + job alert issues"]
-        emu["Firestore emulator<br/>in the drill runner"]
-    end
-
-    subgraph PROD["Firebase project bahi-happa: production"]
-        direction TB
-        psite["Hosting bahi-happa.web.app"]
-        pdb[("Firestore, unprefixed collections")]
-        psvc["Auth, AI Logic, FCM"]
-    end
-
-    subgraph DEV["Firebase project bahi-happa-dev: test"]
-        direction TB
-        dsite["Hosting bahi-happa-dev.web.app"]
-        dprev["Preview channels<br/>bahi-happa-dev--prN, 2-day expiry"]
-        ddb[("Firestore: unprefixed on site,<br/>dev_ on preview channels")]
-    end
-
-    gas["Apps Script push-sender<br/>one web app serves both projects"]
-
-    subgraph RETIRED["Retired / archived: never deployed from main"]
-        direction TB
-        old1["happa-bfc07 sites<br/>hosting-redirect/ 301 to bahi-happa.web.app"]
-        old2["aadhat-management<br/>blocked by happa-config.js guard"]
+    subgraph GOOGLE["Shop's Google account"]
+        subgraph PROD["Firebase project bahi-happa: production"]
+            psite["Hosting<br/>bahi-happa.web.app"]
+            pfs[("Firestore rules + indexes")]
+        end
+        subgraph DEV["Firebase project bahi-happa-dev: test"]
+            dproj["Hosting: bahi-happa-dev.web.app<br/>+ PR preview channels<br/>Firestore rules + indexes"]
+        end
+        gas["Apps Script push sender<br/>serves both projects"]
     end
 
     devx ==> pr
     devx ==> main
     devx ==> tag
     pr ==> gates
-    pr ==>|"target bahi-happa-dev"| prprev
+    pr ==>|"build for dev target"| prprev
+    prprev ==>|"preview channel deploy"| dproj
     main ==> merge
-    main ==> devdep
-    main ==> pushdep
-    tag ==> apk
-    sched -.-> backup
-    sched -.-> drill
-    sched -.-> tip
-
-    prprev ==>|"channel deploy"| dprev
     merge ==>|"1. rules + indexes"| rulesdep
-    rulesdep ==>|"Rules API"| pdb
-    merge ==>|"2. Hosting + BUILD_ID check"| psite
-    devdep ==>|"rules, indexes, Hosting"| dsite
+    rulesdep ==>|"deploy"| pfs
+    merge ==>|"2. Hosting deploy"| psite
+    main ==> devdep
+    devdep ==>|"Hosting + rules + indexes"| dproj
+    main ==>|"push-sender/** changed"| pushdep
     pushdep ==>|"clasp push"| gas
+    tag ==> apk
     apk ==>|"sign + publish"| rel
-    backup -.->|"export, Admin SDK"| pdb
-    backup -.->|"encrypt + verify"| art
-    drill -.->|"download newest weekly"| art
-    drill -.->|"restore + read back"| emu
-    tip -.->|"read tip docs"| pdb
-    tip -.->|"bugs"| iss
-    gas -->|"Firestore REST, FCM v1"| psvc
-    gas -.->|"same, dev project"| ddb
-    old1 -.->|"301"| psite
+    sched -.-> nightly
+    nightly -.->|"prod smoke; backup + TIP<br/>via Admin SDK"| PROD
 
     classDef actor fill:#fff3cd,stroke:#b38f00,color:#000
     classDef internal fill:#e3f2fd,stroke:#1565c0,color:#000
     classDef external fill:#f3e5f5,stroke:#6a1b9a,color:#000
     classDef store fill:#e8f5e9,stroke:#2e7d32,color:#000
-    classDef retired fill:#eeeeee,stroke:#9e9e9e,color:#555,stroke-dasharray: 5 5
     class devx actor
-    class pr,main,tag,sched,gates,prprev,merge,rulesdep,devdep,pushdep,apk,backup,drill,tip,gas,emu internal
-    class psite,psvc,dsite,dprev,iss external
-    class pdb,ddb,rel,art store
-    class old1,old2 retired
+    class pr,main,tag,sched,gates,prprev,merge,rulesdep,devdep,pushdep,apk,nightly,gas internal
+    class psite,dproj external
+    class pfs,rel store

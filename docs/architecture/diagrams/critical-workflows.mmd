@@ -1,62 +1,43 @@
 sequenceDiagram
     autonumber
-    actor U as Shop user
-    participant SW as service-worker.js
-    participant UI as index.html + main.js
-    participant AU as auth/authentication.js
-    participant FA as Firebase Auth
-    participant FS as FirebaseService + repos
-    participant C as Offline cache IndexedDB
-    participant ST as AppState
-    participant R as firestore.rules
-    participant DB as Cloud Firestore
-    participant P as services/printer.js + printer-link.js
+    actor U as User
+    participant C as Client UI and logic
+    participant D as Data layer and device cache
+    participant A as Firebase Auth
+    participant F as Firestore and rules
+    participant P as Printer
 
-    rect rgb(232, 245, 253)
-        Note over U,DB: A. Boot and sign-in
-        U->>SW: open app
-        SW-->>UI: index.html network-first, cached copy when offline
-        SW-->>UI: JS, CSS, templates cache-first from precache
-        UI->>AU: onAuthStateChanged
-        AU->>FA: session restore or email + password sign-in
-        UI->>FS: initializeUserData: users/uid profile get
-        FS->>DB: default get: server, falls back to offline cache
-        opt profile missing or pending
-            FS->>DB: second read with source server
-        end
-        alt pending or rejected
-            UI-->>U: pending screen or sign-out
-        end
-        par settings and version gate
-            FS->>DB: settings/app read, minClientVersion check
-        and realtime listeners
-            FS->>DB: onSnapshot items, recent bills window, open dues, itemFrequency
-            DB-->>FS: snapshots, cache first then server
-        end
-        FS->>ST: populate AppState
-        FS-->>UI: emit refresh:view
-        UI-->>U: start page renders from AppState
+    Note over C,A: Boot: the client subscribes to Firebase Auth. For a signed-in user it reads the profile.<br/>A missing, pending, rejected or disabled profile stops at the sign-in or pending screen.
+    Note over D,F: Then settings and the stock checkpoint load. History listeners start from the checkpoint,<br/>items in parallel. Snapshots fill app state and the start page renders.
+
+    U->>C: enter lines and payment, then Save or Print
+    C->>C: totals and checks: retail oversell warns, wholesale may block above the shortfall limit
+    C->>D: next bill number
+    alt online
+        D->>F: daily counter transaction
+    else offline or counter timeout
+        D-->>C: device sequence number
     end
-
-    rect rgb(232, 245, 233)
-        Note over U,P: B. Create a retail bill, retail-sale.js
-        U->>UI: add lines, payment, tap Save or Print
-        UI->>UI: utils/calc/billing totals, BillChecksUI.confirmSave, oversell warns only
-        UI->>FS: Helpers.generateBillNumber S
-        alt online
-            FS->>DB: transaction on counters/S YYYYMMDD
-        else offline
-            FS-->>UI: per-device number prefix date-device-seq
+    C->>D: save bill with client-made id
+    par save
+        alt purchase or retail, online
+            D->>F: create-only transaction
+        else wholesale, online
+            D->>F: ordinary write
+        else new bill: offline or no answer in time
+            D->>D: queue ordinary write in device cache
+            D-)F: sync later, rules check on arrival
         end
-        UI->>FS: saveRetailSale, createOnly, client id, payment.due
-        FS->>C: write queued locally, settleWrite
-        FS->>R: server write when online
-        R->>DB: validate money, roles, edit window, no-backdated-cash
-        opt Print
-            UI->>P: PrinterService.printBill, ESC/POS raster over BT SPP
-        end
-        UI->>FS: background: AuditService.log, itemFrequency, delete autoSave
-        DB-->>FS: onSnapshot change
-        FS->>ST: AppState updated, stock and party due recomputed in client
-        UI-->>U: saved toast, optional WhatsApp share via bill-image-share.js
+    and print, if requested
+        C->>P: new bill: starts as soon as the save is issued
+    end
+    Note over C,F: Restored copy: must reach the server (fails on timeout) and prints only after the save
+    alt server accepted or locally queued
+        D-->>C: saved, or saved on this phone
+        F--)D: realtime snapshots
+        D-->>C: stock and dues recomputed on device
+        C-->>U: confirmation
+    else server refused
+        D-->>C: error, form kept
+        Note over C,P: No successful save, though the print may already have started
     end

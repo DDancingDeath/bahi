@@ -7,5 +7,5 @@
 - **Consequences:**
   - Apps Script quotas and its owner account are a dependency.
   - Delivery waits up to 5 minutes for writers that were offline.
-  - The trigger fires only for unprefixed (production) collections.
+  - The instant trigger fires only for unprefixed collections.
   - Web push needs a VAPID key, and the APK needs `google-services.json`.

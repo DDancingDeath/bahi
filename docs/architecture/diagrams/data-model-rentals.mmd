@@ -1,0 +1,9 @@
+erDiagram
+    PROPERTY ||--o{ UNIT : has
+    PROPERTY ||--o{ RENT_EXPENSE : "expenses"
+    UNIT ||--o{ LEASE : "let via"
+    TENANT ||--o{ LEASE : signs
+    TENANT ||--o| DEPOSIT_LEDGER : "deposit ledger"
+    LEASE ||--o{ CHARGE : "monthly charges"
+    CHARGE ||--o{ RECEIPT : "one per payment entry"
+    LEASE ||--o| PUBLIC_RECEIPT_LINK : "public read-only projection"
