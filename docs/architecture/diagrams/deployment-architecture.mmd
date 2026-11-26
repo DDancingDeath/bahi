@@ -1,0 +1,60 @@
+flowchart LR
+    devx(["Developer"])
+
+    subgraph TRIG["Triggers"]
+        pr["Pull request"]
+        main["Push to main"]
+        tag["Tag v*"]
+        sched["Schedule"]
+    end
+
+    subgraph GH["GitHub Actions"]
+        gates["PR checks<br/>ci, e2e, review-rules, migration-e2e"]
+        prprev["firebase-hosting-pull-request.yml"]
+        merge["firebase-hosting-merge.yml"]
+        rulesdep["firestore-rules-deploy.yml<br/>emulator rules tests first"]
+        devdep["bahi-dev-deploy.yml<br/>no rules tests"]
+        pushdep["push-sender-deploy.yml"]
+        apk["android-release.yml<br/>manual dev target: pre-release;<br/>otherwise debug or tagged release"]
+        nightly["Scheduled or manual, not PR gates<br/>bench, mutation, nightly e2e,<br/>prod smoke, backup, TIP"]
+        rel[("GitHub Releases<br/>signed APK")]
+    end
+
+    subgraph GOOGLE["Shop's Google account"]
+        subgraph PROD["Firebase project bahi-happa: production"]
+            psite["Hosting<br/>bahi-happa.web.app"]
+            pfs[("Firestore rules + indexes")]
+        end
+        subgraph DEV["Firebase project bahi-happa-dev: test"]
+            dproj["Hosting: bahi-happa-dev.web.app<br/>+ PR preview channels<br/>Firestore rules + indexes"]
+        end
+        gas["Apps Script push sender<br/>serves both projects"]
+    end
+
+    devx ==> pr
+    devx ==> main
+    devx ==> tag
+    pr ==> gates
+    pr ==>|"build for dev target"| prprev
+    prprev ==>|"preview channel deploy"| dproj
+    main ==> merge
+    merge ==>|"1. rules + indexes"| rulesdep
+    rulesdep ==>|"deploy"| pfs
+    merge ==>|"2. Hosting deploy"| psite
+    main ==> devdep
+    devdep ==>|"Hosting + rules + indexes"| dproj
+    main ==>|"push-sender/** changed"| pushdep
+    pushdep ==>|"clasp push"| gas
+    tag ==> apk
+    apk ==>|"sign + publish"| rel
+    sched -.-> nightly
+    nightly -.->|"prod smoke; backup + TIP<br/>via Admin SDK"| PROD
+
+    classDef actor fill:#fff3cd,stroke:#b38f00,color:#000
+    classDef internal fill:#e3f2fd,stroke:#1565c0,color:#000
+    classDef external fill:#f3e5f5,stroke:#6a1b9a,color:#000
+    classDef store fill:#e8f5e9,stroke:#2e7d32,color:#000
+    class devx actor
+    class pr,main,tag,sched,gates,prprev,merge,rulesdep,devdep,pushdep,apk,nightly,gas internal
+    class psite,dproj external
+    class pfs,rel store

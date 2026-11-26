@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant C as Client UI and logic
+    participant D as Data layer and device cache
+    participant A as Firebase Auth
+    participant F as Firestore and rules
+    participant P as Printer
+
+    Note over C,A: Boot: the client subscribes to Firebase Auth. For a signed-in user it reads the profile.<br/>A missing, pending, rejected or disabled profile stops at the sign-in or pending screen.
+    Note over D,F: Then settings and the stock checkpoint load. History listeners start from the checkpoint,<br/>items in parallel. Snapshots fill app state and the start page renders.
+
+    U->>C: enter lines and payment, then Save or Print
+    C->>C: totals and checks: retail oversell warns, wholesale may block above the shortfall limit
+    C->>D: next bill number
+    alt online
+        D->>F: daily counter transaction
+    else offline or counter timeout
+        D-->>C: device sequence number
+    end
+    C->>D: save bill with client-made id
+    par save
+        alt purchase or retail, online
+            D->>F: create-only transaction
+        else wholesale, online
+            D->>F: ordinary write
+        else new bill: offline or no answer in time
+            D->>D: queue ordinary write in device cache
+            D-)F: sync later, rules check on arrival
+        end
+    and print, if requested
+        C->>P: new bill: starts as soon as the save is issued
+    end
+    Note over C,F: Restored copy: must reach the server (fails on timeout) and prints only after the save
+    alt server accepted or locally queued
+        D-->>C: saved, or saved on this phone
+        F--)D: realtime snapshots
+        D-->>C: stock and dues recomputed on device
+        C-->>U: confirmation
+    else server refused
+        D-->>C: error, form kept
+        Note over C,P: No successful save, though the print may already have started
+    end

@@ -1,0 +1,34 @@
+sequenceDiagram
+    autonumber
+    participant S as GitHub schedule
+    participant B as firestore-backup.yml
+    participant DB as Firestore bahi-happa
+    participant A as Actions artifacts
+    participant DR as backup-restore-drill.yml
+    participant E as Firestore emulator
+    participant I as GitHub Issues
+
+    rect rgb(232, 245, 233)
+        Note over S,I: Daily 08:15 UTC
+        S->>B: cron
+        B->>DB: count documents
+        alt above 40,000 docs and not forced
+            B-->>S: fail, nothing exported
+        else scheduled, above 15,000 docs and not Sunday IST
+            B-->>S: skip, weekly only at this size
+        else otherwise: export runs
+            Note over B,A: Sunday IST: full export incl. logs.<br/>Other days: business data, without auditLogs, telemetry, tipHealth, tipFailures
+            B->>DB: export, Admin SDK
+            B->>A: encrypt AES-256, upload, 60-day retention
+            B->>A: verify job: decrypt, parse, compare counts
+        end
+        B->>I: alert job: open, update or close issue
+    end
+
+    rect rgb(255, 243, 224)
+        Note over S,I: Monthly drill, 3rd at 09:00 UTC
+        S->>DR: cron
+        DR->>A: download newest weekly artifact, else newest nightly
+        DR->>E: decrypt, restore, read every document back
+        DR->>I: open or close drill alert issue
+    end

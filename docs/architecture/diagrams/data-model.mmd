@@ -1,0 +1,13 @@
+erDiagram
+    USER ||--o{ BILL : "creates"
+    USER ||--o{ NOTIFICATION : "receives"
+    BILL ||--o{ BILL_EDIT : "edits subcollection"
+    COUNTER |o--o{ BILL : "numbers when online"
+    BILL }o--o{ ITEM : "embedded lines reference"
+    ITEM ||--o{ STOCK_ADJUSTMENT : "adjusted by"
+    BILL }o--o| ON_DEVICE_PARTY_DUE_VIEW : "dues summed into"
+    BILL }o--|| ON_DEVICE_STOCK_VIEW : "replayed into"
+    STOCK_ADJUSTMENT }o--|| ON_DEVICE_STOCK_VIEW : "replayed into"
+    STOCK_CHECKPOINT ||--|| ON_DEVICE_STOCK_VIEW : "snapshot, replayed forward"
+    CASH_SESSION ||--o{ EXPENSE : "same day"
+    CASH_SESSION ||--o{ WITHDRAWAL : "same day"

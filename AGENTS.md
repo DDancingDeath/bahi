@@ -6,6 +6,7 @@
 
 **Project docs** ([docs/project/](docs/project/README.md)). What and why: [docs/project/PRD.md](docs/project/PRD.md). Where each rule lives: [docs/project/RULES.md](docs/project/RULES.md)
 (an index; this file stays authoritative for agent rules). Past decisions: [docs/project/DECISIONS.md](docs/project/DECISIONS.md).
+System overview and diagrams (HLD): [docs/architecture/README.md](docs/architecture/README.md).
 Work: GitHub issues, see [docs/project/TASKS.md](docs/project/TASKS.md). Read [docs/project/MEMORY.md](docs/project/MEMORY.md) when relevant, but treat
 it as possibly stale. Update DECISIONS.md / MEMORY.md in the same PR when your change makes or settles a decision.
 

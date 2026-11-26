@@ -1,0 +1,72 @@
+flowchart LR
+    users(["Shop owner and staff"])
+    tenant(["Tenant with receipt link"])
+
+    subgraph PUBLIC["Tenant browser: no sign-in"]
+        reader["Public receipt page<br/>read-only token link"]
+    end
+
+    subgraph DEVICE["Device boundary: browser PWA or Android APK"]
+        ui["UI and navigation"]
+        logic["Client business logic:<br/>billing, stock, dues, rentals"]
+        data["Data access and realtime sync"]
+        cache[("Device cache<br/>Firestore offline persistence")]
+        sw["Service worker:<br/>offline shell + web push"]
+        native["Native capabilities<br/>Capacitor + AppShell bridge:<br/>print, share, notifications, speech"]
+    end
+
+    subgraph THIRD["Third-party / peripherals"]
+        printer[["Printers<br/>Bluetooth thermal, browser print"]]
+        share[["WhatsApp / share targets"]]
+        deskprint["Desktop thermal printing<br/>Proposed"]
+        releases[("GitHub Releases<br/>APK + release info")]
+    end
+
+    subgraph GOOGLE["Google cloud boundary: shop's Google account"]
+        subgraph FIREBASE["Firebase project, one per shop"]
+            hosting["Firebase Hosting<br/>CSP + HSTS headers, web only"]
+            auth["Firebase Auth"]
+            fs[("Cloud Firestore<br/>guarded by security rules")]
+            ai["Firebase AI Logic<br/>Gemini"]
+            fcm["Firebase Cloud Messaging"]
+            crash["Crashlytics"]
+        end
+        gas["Apps Script push sender<br/>runs as project owner"]
+    end
+
+    users -->|"HTTPS / APK"| ui
+    tenant -->|"HTTPS"| reader
+    reader -->|"Firestore REST, public get"| fs
+    ui --> logic
+    ui --> data
+    data -.->|"data events"| ui
+    data <-->|"cached reads,<br/>queued writes"| cache
+    data -->|"Firestore SDK reads / writes"| fs
+    fs -.->|"realtime snapshots"| data
+    ui -->|"Auth SDK, HTTPS"| auth
+    ui -->|"HTTPS + App Check,<br/>opt-in photo of weights"| ai
+    sw -->|"HTTPS"| hosting
+    data -->|"HTTPS POST event id"| gas
+    gas -->|"Firestore REST"| fs
+    gas -->|"FCM HTTP v1"| fcm
+    fcm -.->|"web push"| sw
+    fcm -.->|"Android push"| native
+    ui -->|"Capacitor bridge"| native
+    native -->|"Bluetooth thermal print"| printer
+    ui -->|"browser print"| printer
+    native -->|"native share"| share
+    ui -->|"web share"| share
+    native -.->|"crash reports"| crash
+    ui -.-> deskprint
+    ui -->|"HTTPS: update check / APK download"| releases
+
+    classDef actor fill:#fff3cd,stroke:#b38f00,color:#000
+    classDef internal fill:#e3f2fd,stroke:#1565c0,color:#000
+    classDef external fill:#f3e5f5,stroke:#6a1b9a,color:#000
+    classDef store fill:#e8f5e9,stroke:#2e7d32,color:#000
+    classDef planned fill:#fafafa,stroke:#757575,color:#555,stroke-dasharray: 5 5
+    class users,tenant actor
+    class ui,logic,data,sw,native,gas,reader internal
+    class hosting,auth,ai,fcm,crash,printer,share,releases external
+    class fs,cache store
+    class deskprint planned

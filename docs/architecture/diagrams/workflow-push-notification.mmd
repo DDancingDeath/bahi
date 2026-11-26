@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    participant W as Writer client
+    participant DB as Firestore
+    participant G as Apps Script sender
+    participant F as FCM HTTP v1
+    participant R as Recipient device
+
+    Note over R,DB: Earlier: each recipient registers a push token under its user doc
+    W->>DB: batch write notification docs, one per recipient
+    W-)G: HTTPS POST event id, fire and forget, unprefixed collections only
+    G->>DB: Firestore REST as project owner: read docs and recipient tokens
+    alt web token
+        G->>F: data-only message
+        F-)R: service worker shows the notification
+    else Android token
+        G->>F: notification + data message
+        F-)R: OS shows it, even when the app is closed
+    end
+    G->>DB: mark docs pushed, drop stale tokens
+    loop every 5 minutes
+        G->>DB: sweep docs not yet pushed, e.g. from offline writers
+        G->>F: send
+        G->>DB: mark pushed
+    end
+    Note over F,R: App open: the unread listener shows the bell badge without push
