@@ -1,0 +1,62 @@
+sequenceDiagram
+    autonumber
+    actor U as Shop user
+    participant SW as service-worker.js
+    participant UI as index.html + main.js
+    participant AU as auth/authentication.js
+    participant FA as Firebase Auth
+    participant FS as FirebaseService + repos
+    participant C as Offline cache IndexedDB
+    participant ST as AppState
+    participant R as firestore.rules
+    participant DB as Cloud Firestore
+    participant P as services/printer.js + printer-link.js
+
+    rect rgb(232, 245, 253)
+        Note over U,DB: A. Boot and sign-in
+        U->>SW: open app
+        SW-->>UI: index.html network-first, cached copy when offline
+        SW-->>UI: JS, CSS, templates cache-first from precache
+        UI->>AU: onAuthStateChanged
+        AU->>FA: session restore or email + password sign-in
+        UI->>FS: initializeUserData: users/uid profile get
+        FS->>DB: default get: server, falls back to offline cache
+        opt profile missing or pending
+            FS->>DB: second read with source server
+        end
+        alt pending or rejected
+            UI-->>U: pending screen or sign-out
+        end
+        par settings and version gate
+            FS->>DB: settings/app read, minClientVersion check
+        and realtime listeners
+            FS->>DB: onSnapshot items, recent bills window, open dues, itemFrequency
+            DB-->>FS: snapshots, cache first then server
+        end
+        FS->>ST: populate AppState
+        FS-->>UI: emit refresh:view
+        UI-->>U: start page renders from AppState
+    end
+
+    rect rgb(232, 245, 233)
+        Note over U,P: B. Create a retail bill, retail-sale.js
+        U->>UI: add lines, payment, tap Save or Print
+        UI->>UI: utils/calc/billing totals, BillChecksUI.confirmSave, oversell warns only
+        UI->>FS: Helpers.generateBillNumber S
+        alt online
+            FS->>DB: transaction on counters/S YYYYMMDD
+        else offline
+            FS-->>UI: per-device number prefix date-device-seq
+        end
+        UI->>FS: saveRetailSale, createOnly, client id, payment.due
+        FS->>C: write queued locally, settleWrite
+        FS->>R: server write when online
+        R->>DB: validate money, roles, edit window, no-backdated-cash
+        opt Print
+            UI->>P: PrinterService.printBill, ESC/POS raster over BT SPP
+        end
+        UI->>FS: background: AuditService.log, itemFrequency, delete autoSave
+        DB-->>FS: onSnapshot change
+        FS->>ST: AppState updated, stock and party due recomputed in client
+        UI-->>U: saved toast, optional WhatsApp share via bill-image-share.js
+    end

@@ -1,5 +1,7 @@
 # Architecture: layers, calculation map and migration plan
 
+> For the system-level view (components, data model, workflows and deployment diagrams), see the HLD at [docs/architecture/README.md](../architecture/README.md).
+
 Status: Phase 0 (review + ratchet), 31 Oct 2026, `main` at `ca6f2ba`; phases 2a–2i (calc) and
 4 (repositories: no Firestore call outside the data layer, which emits events
 instead of calling pages) done since.
