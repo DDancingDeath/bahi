@@ -3,7 +3,7 @@
  * Provides offline functionality and caching
  */
 
-const CACHE_NAME = 'happa-v781';
+const CACHE_NAME = 'happa-v782';
 // Generated/verified by scripts/check-sw-assets.js (npm run check:sw).
 // Every entry must exist: a 404 here used to make the whole precache fail.
 const STATIC_ASSETS = [
@@ -353,7 +353,6 @@ const LAZY_ASSETS = [
     '/js/auth/google-signin.js',
     '/js/modules/workers.js',
     '/js/utils/worker-pay.js',
-    '/js/utils/linked-outflows.js',
     '/js/utils/linked-expense.js',
     '/js/firebase/repos/workers.js',
     '/css/workers.css',

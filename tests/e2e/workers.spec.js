@@ -22,6 +22,8 @@ test('the owner records an advance and the rest; the month goes part-paid, then 
     await expect(row(page, name)).toContainText('₹9,000 a month');
 
     await page.click('#wpDetail [data-onclick="workers.showForm(\'pay\')"]');
+    await expect(page.locator('#wpPayForm [data-wp-seg="mode"] [aria-pressed="true"]')).toHaveCount(0);
+    await page.click(`#wpPayForm [data-onclick="workers.pick('mode', 'cash')"]`);
     await page.fill('#wpAmount', '3000');
     await page.selectOption('#wpKind', 'advance');
     await clickAfterTyping(page, '#wpSave');
@@ -42,8 +44,8 @@ test('the owner records an advance and the rest; the month goes part-paid, then 
     await expect(row(page, name).locator('[data-wp-state]')).toHaveText('Part-paid, ₹3,000 of ₹9,000');
 
     await page.click('#wpDetail [data-onclick="workers.showForm(\'pay\')"]');
+    await page.click(`#wpPayForm [data-onclick="workers.pick('mode', 'online')"]`);
     await page.fill('#wpAmount', '8000');
-    await page.selectOption('#wpMode', 'online');
     await clickAfterTyping(page, '#wpSave');
     await expect(row(page, name).locator('[data-wp-state]')).toHaveText('Paid', { timeout: 30000 });
     await expect(row(page, name)).toContainText('Advance ₹2,000 carried to next month');
@@ -51,6 +53,10 @@ test('the owner records an advance and the rest; the month goes part-paid, then 
     const doc = (await listDocs('dev_workers')).find(w => w.name === name);
     expect(doc).toMatchObject({ active: true, pays: [{ amount: 9000 }] });
     expect(doc.entries.map(e => [e.amount, e.kind, e.mode])).toEqual([[3000, 'advance', 'cash'], [8000, 'pay', 'online']]);
+    // WP-12: one "Salaries" expense per entry, with its mode, linked both ways
+    const spent = (await listDocs('dev_expenses')).filter(e => e.workerId === doc._id);
+    expect(spent.map(e => [e.type, e.amount, e.paymentMode]).sort()).toEqual([['Salaries', 3000, 'cash'], ['Salaries', 8000, 'online']]);
+    doc.entries.forEach(e => expect(spent.find(x => x._id === e.expenseId)).toMatchObject({ workerPayId: e.id }));
 
     // Opening the page again reads the workers once more, from the server, and shows the same
     const before = await page.evaluate(() => window.FirebaseService.getReadStats().reads);

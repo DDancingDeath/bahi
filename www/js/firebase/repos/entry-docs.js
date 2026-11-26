@@ -32,6 +32,15 @@ export function entryDocs(name) {
         },
         async removeEntry(id, entry) {
             await coll().doc(id).update({ entries: fv().arrayRemove(entry), ...stamp() });
+        },
+        /** The document's half of a payment saved with its expense in one batch (`withBatch` of FirebaseService
+         * startSaveExpense / linkExpense): the entry, linked to the expense (RB-12, WP-12). */
+        payWrite(id, entry) {
+            return (batch, expenseId) => batch.update(coll().doc(String(id)), { entries: fv().arrayUnion({ ...entry, expenseId }), ...stamp() });
+        },
+        /** "Add to Money figures" (owner) for an entry recorded before entries made expenses: links its new expense. */
+        linkedWrite(id, payId) {
+            return (batch, expenseId) => batch.update(coll().doc(String(id)), { [`linked.${payId}`]: expenseId, ...stamp() });
         }
     };
 }

@@ -2,7 +2,7 @@
 /**
  * @fileoverview Worker pay (#373 phase 1, docs/calculations.md WP-1 … WP-10): monthly pay per
  * worker, what was paid for each month, and the balance carried from month to month (arrears
- * and advances). Pure; whole rupees. Payments show in Money (M22–M24, utils/linked-outflows.js).
+ * and advances). Pure; whole rupees. Each pay or advance counts in Money through its expense (WP-12).
  * @module utils/worker-pay
  */
 
@@ -238,7 +238,9 @@ export function checkEntry(f, thisMonth) {
     if (!isMonthKey(f.month) || f.month > thisMonth) return { error: 'msg.workers.bad_month' };
     if (!isDayKey(f.date) || f.date.slice(0, 7) > thisMonth) return { error: 'msg.workers.bad_date' };
     const kind = ENTRY_KINDS.includes(f.kind) ? f.kind : 'pay';
-    const mode = ENTRY_MODES.includes(f.mode) ? f.mode : 'cash';
+    // Cash or online is always picked: only cash moves the drawer (WP-12)
+    if (!ENTRY_MODES.includes(f.mode)) return { error: 'msg.workers.choose_mode' };
+    const mode = f.mode;
     const note = String(f.note || '').trim().slice(0, MAX_NOTE);
     return { entry: { month: f.month, date: f.date, amount, kind, mode, ...(note ? { note } : {}) } };
 }

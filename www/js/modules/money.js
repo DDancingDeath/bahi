@@ -44,7 +44,6 @@ import { APP_IDENTITY } from '../config/app-identity.js';
 import { PrinterService } from '../services/printer.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
-import { linkedOutflows, linkedSource, setLinkedSource, afterLinked } from '../utils/linked-outflows.js';
 import { expenseTypeLabelKey } from '../utils/linked-expense.js';
 import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import {
@@ -167,7 +166,6 @@ export const MoneyManager = {
     sharedAccounts: { state: 'idle', list: null, map: null },
     accountEdits: 0,
     building: false,
-    linkedLoading: null,
     lastSummary: null,
     summaryCache: { sig: null, map: new Map(), computed: 0 },
 
@@ -502,58 +500,7 @@ export const MoneyManager = {
         this.renderProfit(ctx);
         if (this.section === 'profit') this.renderCash(ctx);
         if (this.section === 'spending') this.renderSpending(ctx);
-        this.renderLinked(ctx);
         this.renderChecks(ctx);
-    },
-
-    /**
-     * M22, M25, M26 (U-22): worker pay next to profit, spending and cash. Owner only (the rules let only
-     * the owner read workers). Opening Money reads nothing more: the list comes from the Workers page on
-     * this phone, or one tap here. Recurring-bill payments count in M4 through their expenses (RB-12).
-     */
-    renderLinked({ m, r }) {
-        const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
-        const owner = AppState.userRole === 'owner';
-        const src = linkedSource();
-        const loaded = !!src.workers;
-        const has = loaded && src.workers.length > 0;
-        show('moneyLinkedCard', owner && (!loaded || has));
-        show('moneyLinkedLoad', owner && !loaded);
-        show('moneyLinkedRows', owner && has);
-        if (!owner || !has) {
-            show('moneyLinkedProfit', false);
-            show('moneyLinkedCash', false);
-            return;
-        }
-        const out = linkedOutflows(src.workers, r.from, r.to);
-        const split = (o) => t('ui.money.cash_online', { cash: formatRupees(o.cash), online: formatRupees(o.online) });
-        const any = out.workerPay.count > 0;
-        show('moneyLinkedProfit', any && m.M6.total !== null);
-        show('moneyLinkedCash', any);
-        this.html('moneyLinkedProfitTerm', moneyHtml(-out.workerPay.total, TM));
-        if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(afterLinked(m.M6.total, out), TM));
-        this.html('moneyLinkedCashOut', moneyHtml(out.workerPay.total, TM));
-        this.text('moneyLinkedCashSplit', split(out.workerPay));
-        this.html('moneyNetAfterLinked', moneyHtml(afterLinked(m.M14, out), TM));
-        this.html('moneyLinkedWorkers', moneyHtml(out.workerPay.total, TM));
-        this.text('moneyLinkedWorkersSplit', split(out.workerPay));
-    },
-
-    /** "Include worker pay": reads the workers (one read per document), then redraws. */
-    loadLinked() {
-        if (this.linkedLoading || AppState.userRole !== 'owner') return;
-        this.linkedLoading = (async () => {
-            try {
-                const w = await import('../firebase/repos/workers.js');
-                setLinkedSource('workers', await w.loadWorkers());
-                if (document.getElementById('money')?.classList.contains('active')) this.render();
-            } catch (e) {
-                console.warn('Money: worker pay not loaded:', e?.code || e);
-                UIManager.showToast(t('msg.money.linked_failed'));
-            } finally {
-                this.linkedLoading = null;
-            }
-        })();
     },
 
     /**

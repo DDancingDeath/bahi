@@ -1,19 +1,25 @@
 /**
- * Workers / Salaries (#373): owner only, read once per open, each tap writes one change, and the
- * month's state and cards come from utils/worker-pay.js (WP-*).
+ * Workers / Salaries (#373): owner only, read once per open, each tap writes one change, each pay or
+ * advance is saved with its one expense (WP-12; cash / online always picked) or linked to one already
+ * in Expenses, and the month's state and cards come from utils/worker-pay.js (WP-*).
  */
 jest.mock('../firebase/repos/workers.js', () => ({
     loadWorkers: jest.fn(),
     addWorker: jest.fn(),
     updateWorker: jest.fn(),
     addEntry: jest.fn(),
-    removeEntry: jest.fn()
+    removeEntry: jest.fn(),
+    payWrite: jest.fn((id, entry) => ({ payWrite: id, entry })),
+    linkedWrite: jest.fn((id, payId) => ({ linkedWrite: id, payId }))
 }));
 
 import * as repo from '../firebase/repos/workers.js';
 import { WorkersManager as W } from '../modules/workers.js';
 import { AppState } from '../utils/state.js';
 import { UIManager } from '../ui/ui-manager.js';
+import { FirebaseService } from '../firebase/firestore-service.js';
+import * as billStatus from '../ui/bill-status.js';
+import { todayLocalISO } from '../utils/dates.js';
 import { monthKeyOf, addMonthKey } from '../utils/worker-pay.js';
 import { payDueReminder } from '../utils/pay-reminder.js';
 
@@ -32,7 +38,19 @@ beforeEach(() => {
     W.reset();
     repo.loadWorkers.mockResolvedValue([ramu()]);
     jest.spyOn(UIManager, 'showToast').mockImplementation(() => {});
+    AppState.expensesHistory = [];
+    AppState.settings = {};
+    saved = [];
+    jest.spyOn(FirebaseService, 'startSaveExpense').mockImplementation((expense, opts) => {
+        const record = { id: `exp${saved.length + 1}`, ...expense };
+        saved.push({ expense, opts, record });
+        return { record, committed: Promise.resolve(), stored: Promise.resolve(true) };
+    });
+    jest.spyOn(FirebaseService, 'linkExpense').mockResolvedValue(undefined);
+    jest.spyOn(FirebaseService, 'voidExpense').mockResolvedValue({});
 });
+afterEach(() => jest.restoreAllMocks());
+let saved;
 
 test('a member or manager gets no read and no data', async () => {
     AppState.userRole = 'manager';
@@ -55,18 +73,53 @@ test('the owner reads once per open; the month shows part-paid and the cards', a
     expect(body().querySelector('[data-worker="w1"] [data-wp-state]').textContent).toBe('Paid');
 });
 
-test('recording pay adds one entry; a bad amount writes nothing', async () => {
+test('recording pay saves one Salaries expense with the entry in one batch; nothing without cash / online or with a bad amount', async () => {
     await W.init();
     W.open('w1');
     W.showForm('pay');
-    document.getElementById('wpAmount').value = '6000.5';
-    await W.savePay();
-    expect(repo.addEntry).not.toHaveBeenCalled();
+    expect(body().querySelectorAll('[data-wp-seg="mode"] [aria-pressed="true"]')).toHaveLength(0);
     document.getElementById('wpAmount').value = '6000';
     await W.savePay();
-    expect(repo.addEntry).toHaveBeenCalledTimes(1);
-    expect(repo.addEntry.mock.calls[0][1]).toMatchObject({ month: NOW, amount: 6000, kind: 'pay', mode: 'cash' });
+    expect(UIManager.showToast).toHaveBeenLastCalledWith('Choose Cash or Online.', 'warning');
+    W.pick('mode', 'cash');
+    document.getElementById('wpAmount').value = '6000.5';
+    await W.savePay();
+    expect(FirebaseService.startSaveExpense).not.toHaveBeenCalled();
+    document.getElementById('wpAmount').value = '6000';
+    await W.savePay();
+    expect(repo.addEntry).not.toHaveBeenCalled();
+    const entry = repo.payWrite.mock.calls[0][1];
+    expect(entry).toMatchObject({ month: NOW, amount: 6000, kind: 'pay', mode: 'cash', date: todayLocalISO() });
+    expect(saved[0].expense).toMatchObject({ type: 'Salaries', personName: 'Ramu', category: 'business', amount: 6000, paymentMode: 'cash', workerId: 'w1', workerPayId: entry.id });
+    expect(saved[0].opts.withBatch).toBe(repo.payWrite.mock.results[0].value);
     expect(body().querySelector('[data-worker="w1"] [data-wp-state]').textContent).toBe('Paid');
+});
+
+test('"Already entered in Expenses" links the expense picked; older entries: marked, added to Money one by one; a linked one is voided with its expense', async () => {
+    AppState.expensesHistory = [{ id: 'x', type: 'Pay Ramu', amount: 6000, category: 'business', paymentMode: 'online', day: todayLocalISO() }];
+    jest.spyOn(billStatus, 'askReason').mockResolvedValue('wrong month');
+    await W.init();
+    W.open('w1');
+    expect(body().querySelectorAll('[data-wp-not-in-money]')).toHaveLength(2);
+    W.showForm('pay');
+    W.pick('inExp', 'have');
+    await W.savePay();
+    expect(UIManager.showToast).toHaveBeenLastCalledWith('Pick the expense this pay is.', 'warning');
+    W.pick('expenseId', 'x');
+    await W.savePay();
+    expect(FirebaseService.startSaveExpense).not.toHaveBeenCalled();
+    const entry = repo.payWrite.mock.calls[0][1];
+    expect(FirebaseService.linkExpense).toHaveBeenCalledWith('x', { workerId: 'w1', workerPayId: entry.id }, repo.payWrite.mock.results[0].value);
+    expect(entry).toMatchObject({ amount: 6000, mode: 'online' });
+
+    await W.addToMoney('w1', 'b');
+    expect(saved[0].expense).toMatchObject({ type: 'Salaries', amount: 3000, paymentMode: 'cash', day: `${NOW}-05`, workerId: 'w1', workerPayId: 'b' });
+    expect(repo.linkedWrite).toHaveBeenCalledWith('w1', 'b');
+    expect(body().querySelector('[data-entry="b"] [data-wp-not-in-money]')).toBeNull();
+    await W.removeEntry('w1', 'b');
+    expect(FirebaseService.voidExpense).toHaveBeenCalledWith('exp1', 'wrong month');
+    expect(repo.removeEntry).not.toHaveBeenCalled();
+    expect(body().querySelector('[data-entry="b"]')).toBeNull();
 });
 
 test('a raise counts from its month; marking as left adds a pay of 0 after the last month', async () => {
@@ -116,6 +169,7 @@ test('Today\'s salaries due (WP-11) is kept when the page loads and saves, witho
     expect(payDueReminder(localStorage, 'o1', NOW)).toMatchObject({ count: 1, due: 6000 });
     W.open('w1');
     W.showForm('pay');
+    W.pick('mode', 'cash');
     document.getElementById('wpAmount').value = '6000';
     await W.savePay();
     expect(payDueReminder(localStorage, 'o1', NOW)).toBeNull();
@@ -143,6 +197,7 @@ test('a background refresh still in flight when the page loads and saves never o
     await W.init();
     W.open('w1');
     W.showForm('pay');
+    W.pick('mode', 'cash');
     document.getElementById('wpAmount').value = '6000';
     await W.savePay();
     expect(payDueReminder(localStorage, 'o1', NOW)).toBeNull();

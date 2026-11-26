@@ -77,7 +77,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261126a-recurring-in-money';
+const BUILD_ID = '20261126b-worker-pay-in-money';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -1550,7 +1550,7 @@ window.app = {
 
     // Workers / Salaries (#373): owner page, workers.js is imported on first use
     workers: {
-        ...Object.fromEntries(['init', 'render', 'step', 'open', 'showForm', 'cancel', 'saveWorker', 'savePay', 'saveEdit', 'saveLeft', 'rejoin', 'removeEntry']
+        ...Object.fromEntries(['init', 'render', 'step', 'open', 'showForm', 'cancel', 'saveWorker', 'savePay', 'saveEdit', 'saveLeft', 'rejoin', 'removeEntry', 'keep', 'pick', 'addToMoney']
             .map(name => [name, (...args) => loadWorkers().then(m => m[name](...args))]))
     },
 
@@ -1566,7 +1566,7 @@ window.app = {
             .catch(e => console.warn('Money not loaded:', e?.message || e)),
         ...Object.fromEntries(['setSection', 'setPreset', 'step', 'loadOlder', 'buildHistory', 'toggleWithdrawalForm',
             'saveWithdrawal', 'saveAccount', 'removeAccount', 'useThisPhonesAccounts', 'render',
-            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare', 'loadLinked', 'openLabourDay']
+            'setCompare', 'applyDates', 'applySaved', 'saveRange', 'removeRange', 'shareSummary', 'printSummary', 'toggleCompare', 'openLabourDay']
             .map(name => [name, (...args) => loadMoney().then(m => m[name](...args))]))
     },
     // Insights (redesign §5.3): insights.js is imported on first use

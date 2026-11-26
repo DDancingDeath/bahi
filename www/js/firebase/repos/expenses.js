@@ -24,8 +24,11 @@ import { S } from '../core/session.js';
 
 export const personalDayOf = (rec) => rec?.day || personalDayKey(rec?.date);
 
-/** Expenses that count a payment kept elsewhere (#437): the payment's document and its id. */
-const PAY_LINKS = [{ field: 'recurringBillId', pay: 'recurringPayId', coll: 'recurringBills' }];
+/** Expenses that count a payment kept elsewhere (#437 bills, #373 worker pay): the payment's document and its id. */
+const PAY_LINKS = [
+    { field: 'recurringBillId', pay: 'recurringPayId', coll: 'recurringBills' },
+    { field: 'workerId', pay: 'workerPayId', coll: 'workers' }
+];
 const payLinkOf = (rec) => PAY_LINKS.find(l => rec?.[l.field] && rec?.[l.pay]) || null;
 
 /**

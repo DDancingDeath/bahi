@@ -6,7 +6,6 @@
  */
 
 import { entryDocs } from './entry-docs.js';
-import { getDb, col, serverCreatedAt } from '../db.js';
 
 const docs = () => entryDocs('recurringBills');
 
@@ -28,20 +27,8 @@ export const addEntry = (id, entry) => docs().addEntry(id, entry);
 /** Removes one payment, exactly as loaded. */
 export const removeEntry = (id, entry) => docs().removeEntry(id, entry);
 
-const billRef = (id) => getDb().collection(col('recurringBills')).doc(String(id));
+/** The item's half of a payment saved with its expense in one batch (entry-docs payWrite). */
+export const payWrite = (id, entry) => docs().payWrite(id, entry);
 
-/**
- * The bill item's half of a payment saved with its expense in one batch (FirebaseService
- * startSaveExpense / linkExpense withBatch): the payment, linked to the expense.
- * @param {string} id bill item
- * @param {Object} entry the payment (kind 'pay')
- * @returns {(batch: *, expenseId: string) => void}
- */
-export const payWrite = (id, entry) => (batch, expenseId) => batch.update(billRef(id), {
-    entries: firebase.firestore.FieldValue.arrayUnion({ ...entry, expenseId }), updatedAt: serverCreatedAt()
-});
-
-/** "Add to Money" (owner) for a payment recorded before payments made expenses: links its new expense. */
-export const linkedWrite = (id, payId) => (batch, expenseId) => batch.update(billRef(id), {
-    [`linked.${payId}`]: expenseId, updatedAt: serverCreatedAt()
-});
+/** "Add to Money figures" (owner) for a payment recorded before payments made expenses. */
+export const linkedWrite = (id, payId) => docs().linkedWrite(id, payId);

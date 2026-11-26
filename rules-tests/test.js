@@ -5682,6 +5682,29 @@ function defineWorkerSuite(prefix) {
         await assertSucceeds(set([e1, e3]));
     });
 
+    t('pay with its Salaries expense (WP-12): the owner in one batch; only the owner creates or voids a salary expense', async () => {
+        await seed('w1', worker());
+        const expenses = `${prefix}expenses`;
+        const day = istDayAt(testNow, 0);
+        const onDay = `${Number(day.slice(8, 10))}/${Number(day.slice(5, 7))}/${day.slice(0, 4)}, 10:00:00 am`;
+        const exp = (uid, extra = {}) => ({ type: 'Salaries', personName: 'Ramu', amount: 3000, category: 'business', paymentMode: 'cash', userId: uid, timestamp: Date.now(),
+            day, date: onDay, workerId: 'w1', workerPayId: 'e1', ...extra });
+        const db = as('legacyOwner');
+        const b = db.batch();
+        b.set(db.collection(expenses).doc('x1'), exp('legacyOwner'));
+        b.update(db.collection(workers).doc('w1'), { entries: FieldValue.arrayUnion(entry({ date: day, expenseId: 'x1' })), ...stamp() });
+        await assertSucceeds(b.commit());
+        await assertFails(as('manager1').collection(expenses).doc('x2').set(exp('manager1', { workerPayId: 'e2' })));
+        await assertFails(as('staff1').collection(expenses).doc('x3').set(exp('staff1', { workerPayId: 'e3' })));
+        // an older entry added to Money: the owner's `linked` map
+        await assertSucceeds(doc('legacyOwner').update({ 'linked.e0': 'x1', ...stamp() }));
+        // voiding: a manager (any expense, in the window) and the creator are refused for a salary expense
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(expenses).doc('x4').set(exp('manager1', { workerPayId: 'e4' })));
+        const voidF = (uid) => ({ voided: true, voidedAt: serverTimestamp(), voidedBy: uid, voidedByName: 'M', voidReason: 'Wrong month' });
+        await assertFails(as('manager1').collection(expenses).doc('x4').update(voidF('manager1')));
+        await assertSucceeds(as('legacyOwner').collection(expenses).doc('x4').update(voidF('legacyOwner')));
+    });
+
     t('pay steps: the first and the newest are shape-checked; at most 24', async () => {
         await seed('w1', worker());
         const pays = (p) => doc('legacyOwner').update({ pays: p, ...stamp() });

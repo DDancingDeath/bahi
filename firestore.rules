@@ -384,7 +384,7 @@ service cloud.firestore {
         && reasonOk(d.get('voidReason', null))
         && (!('voidedByName' in d) || (d.voidedByName is string && d.voidedByName.size() <= 200))
         && (role == 'owner'
-            || ((role == 'manager' || createdByCaller()) && (t is number && request.time.toMillis() < t + billEditDaysFor(usersCol, role) * 86400000)));
+            || (!('workerId' in resource.data) && (role == 'manager' || createdByCaller()) && (t is number && request.time.toMillis() < t + billEditDaysFor(usersCol, role) * 86400000)));
     }
 
     function validAdjustmentCreate() {
@@ -1716,7 +1716,7 @@ service cloud.firestore {
 
     // Worker pay (#373), recurring bills (#437): docs/security.md.
     function wpEntryOk(e) {
-      return e is map && e.keys().hasOnly(['id', 'month', 'date', 'amount', 'kind', 'mode', 'note'])
+      return e is map && e.keys().hasOnly(['id', 'month', 'date', 'amount', 'kind', 'mode', 'note', 'expenseId'])
         && rentStr(e, 'id', 1, 40) && rentMonth(e.get('month', '')) && dayKeyOk(e.get('date', ''))
         && e.get('amount', null) is int && e.amount > 0 && e.amount <= 10000000
         && e.get('kind', '') in ['pay', 'advance'] && e.get('mode', '') in ['cash', 'online'] && rentStr(e, 'note', 0, 120);
@@ -1741,7 +1741,7 @@ service cloud.firestore {
       let p = d.get('pays', null);
       let e = d.get('entries', null);
       let n = e is list ? e.size() : -1;
-      return d.keys().hasOnly(['name', 'startMonth', 'active', 'pays', 'entries', 'updatedAt'])
+      return d.keys().hasOnly(['name', 'startMonth', 'active', 'pays', 'entries', 'updatedAt', 'linked'])
         && rentStr(d, 'name', 1, 60) && rentMonth(d.get('startMonth', '')) && d.get('active', null) is bool
         && p is list && p.size() >= 1 && p.size() <= 24 && wpStepOk(p[0]) && p[0].from == d.startMonth && wpStepOk(p[p.size() - 1])
         && keptEntriesOk(isNew, e, n) && (n == 0 || wpEntryOk(e[n - 1]));
@@ -1815,6 +1815,7 @@ service cloud.firestore {
             ? !personalTagged(request.resource.data) && expenseFieldsOk(request.resource.data)
               && (isOwnerIn(usersOf(collection))
                   || (validLedgerCreate() && expenseDayInWindow(usersOf(collection))
+                      && !('workerId' in request.resource.data)
                       && (!('recurringBillId' in request.resource.data) || rbPayOk(usersOf(collection), request.resource.data, docId))))
           : collection in ['personalExpenses', 'dev_personalExpenses']
             ? expenseFieldsOk(request.resource.data)

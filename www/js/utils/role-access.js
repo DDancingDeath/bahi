@@ -319,7 +319,8 @@ export function canVoidBillWith(bill, { uid, role, now, raw } = {}) {
 /**
  * Void an expense (#99, firestore.rules expenseVoidOk): the owner any expense; a
  * manager any expense and a member their own, inside the role's edit window
- * (editDays) from the expense's save time (`timestamp`). Never one already voided.
+ * (editDays) from the expense's save time (`timestamp`). Never one already voided; a salary expense
+ * (WP-12) only the owner.
  * @param {?Rec|undefined} expense
  * @param {{uid?: ?string, role?: string, now?: number, raw?: *}} [opts]
  * @returns {boolean}
@@ -327,6 +328,8 @@ export function canVoidBillWith(bill, { uid, role, now, raw } = {}) {
 export function canVoidExpenseWith(expense, { uid, role, now = Date.now(), raw } = {}) {
     if (!isActiveExpense(expense)) return false;
     if (role === 'owner') return true;
+    // A worker's pay (#373): its entry is on the owner-only Workers page
+    if (expense.workerId) return false;
     const creator = expense.userId !== undefined ? expense.userId : expense.createdBy;
     if (role !== 'manager' && !(uid && creator === uid)) return false;
     const t = expense.timestamp;
