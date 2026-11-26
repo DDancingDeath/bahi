@@ -24,7 +24,8 @@ import { moneyHtml, moneyInText, emptyState, skeleton } from '../ui/components.j
 import { icon } from '../ui/icons.js';
 
 const tx = (key, params) => Helpers.escapeHtml(t(key, params));
-import { can, canVoidExpenseWith } from '../utils/role-access.js';
+import { can, canOpenTab, canVoidExpenseWith } from '../utils/role-access.js';
+import { expenseTypeLabelKey, isLinkedExpense } from '../utils/linked-expense.js';
 import { expenseMode, formatAmount, isActiveExpense, isPersonalExpense } from '../utils/money.js';
 import { entryAmount } from '../utils/calc/billing.js';
 import { DEFAULT_EXPENSE_MODE, expenseDateFields, expenseDayRange, validateExpenseEntry } from '../utils/expense-entry.js';
@@ -46,6 +47,8 @@ const formField = (category, name) => document.getElementById(`${category}Expens
 const CLOSED_DAY_WAIT_MS = 1500;
 
 /** Escaped "Cash" / "Online" of an expense (EXP-MODE; no mode = cash). */
+/** A stored system type ("Bills", #437) in the app's language; anything typed stays as typed. */
+const typeLabel = (type) => { const key = expenseTypeLabelKey(type); return key ? t(key) : (type ?? ''); };
 const modeLabel = (expense) => tx(expenseMode(expense) === 'online' ? 'ui.expenses.mode_online' : 'ui.expenses.mode_cash');
 
 /** The signed-in user, as canVoidExpenseWith expects it. */
@@ -511,7 +514,7 @@ export class ExpensesManager {
             <div class="row exp-row${voided ? ' is-voided' : ''}" data-onclick="expenses.viewExpenseDetails('${Helpers.escapeJsAttr(payment.id)}', '${category}')">
                 <div class="row-main">
                     ${payment.personName ? `<div class="row-title">${Helpers.escapeHtml(payment.personName)}</div>` : ''}
-                    <div class="exp-row-type">${Helpers.escapeHtml(payment.type)}${voided ? ` <span class="tag">${tx('ui.void.chip')}</span>` : ''} ${SyncStatus.chipHtml(payment.id)}</div>
+                    <div class="exp-row-type">${Helpers.escapeHtml(typeLabel(payment.type))}${voided ? ` <span class="tag">${tx('ui.void.chip')}</span>` : ''} ${SyncStatus.chipHtml(payment.id)}</div>
                     ${payment.remarks ? `<div class="row-meta exp-row-note">${icon('file', 'i-sm')} ${Helpers.escapeHtml(payment.remarks)}</div>` : ''}
                     <div class="row-meta">${icon('calendar', 'i-sm')} ${Helpers.escapeHtml(formatDate(payment.date, 'datetime') || payment.date)} • ${modeLabel(payment)}${payment.createdByName ? ` • ${tx('ui.outstanding.by_name', { name: payment.createdByName })}` : ''}</div>
                 </div>
@@ -630,7 +633,7 @@ export class ExpensesManager {
                 <div class="display-num">${moneyHtml(expense.amount, { exact: true })}</div>
             </div>
             <div class="panel">
-                <div class="row exp-field"><span class="row-main exp-field-label">${icon('tag', 'i-sm')}${tx('ui.reports.pdf_type')}</span><span class="row-trail">${Helpers.escapeHtml(expense.type)}</span></div>
+                <div class="row exp-field"><span class="row-main exp-field-label">${icon('tag', 'i-sm')}${tx('ui.reports.pdf_type')}</span><span class="row-trail">${Helpers.escapeHtml(typeLabel(expense.type))}</span></div>
                 <div class="row exp-field"><span class="row-main exp-field-label">${icon('grid', 'i-sm')}${tx('ui.expenses.d_category')}</span><span class="row-trail">${tx(category === 'personal' ? 'ui.expenses.personal_expenses' : 'ui.expenses.business_expenses')}</span></div>
                 <div class="row exp-field"><span class="row-main exp-field-label">${icon('calendar', 'i-sm')}${tx('ui.history.date')}</span><span class="row-trail">${Helpers.escapeHtml(formatDate(expense.date, 'datetime') || expense.date)}</span></div>
                 <div class="row exp-field"><span class="row-main exp-field-label">${icon('card', 'i-sm')}${tx('ui.expenses.d_paid_by')}</span><span class="row-trail">${modeLabel(expense)}</span></div>
@@ -640,6 +643,8 @@ export class ExpensesManager {
             ${expense.remarks ? `
             <div class="notice exp-detail-note">${icon('file', 'i-sm')}<div class="grow"><b>${tx('ui.expenses.d_remarks')}</b>${Helpers.escapeHtml(expense.remarks)}</div></div>
             ` : ''}
+            ${expense.recurringBillId ? `<p class="notice info" data-linked-bill>${tx('ui.expenses.linked_bill')}</p>` : ''}
+            ${this.mayLinkBill(expense, category) ? `<button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.linkFrom('${Helpers.escapeJsAttr(String(expense.id))}')">${tx('ui.expenses.link_bill')}</button>` : ''}
         `;
 
         document.getElementById('expenseDetailsContent').innerHTML = content;
@@ -649,8 +654,18 @@ export class ExpensesManager {
         if (voidBtn) voidBtn.style.display = allowed ? '' : 'none';
         // Re-entry on the same day must still be inside the role's back-dating window
         const reenterBtn = document.getElementById('expenseReenterBtn');
-        if (reenterBtn) reenterBtn.style.display = allowed && !this.reenterProblem(expense) ? '' : 'none';
+        // A bill payment's expense is corrected on Recurring bills (void, then record again), never re-entered here
+        if (reenterBtn) reenterBtn.style.display = allowed && !expense.recurringBillId && !this.reenterProblem(expense) ? '' : 'none';
         UIManager.openSheet(document.getElementById('expenseDetailsOverlay'));
+    }
+
+    /**
+     * "Link to a recurring bill" (#437): an active business expense not linked yet, for anyone who sees
+     * Recurring bills; the link is made there (the payment and the expense in one batch).
+     */
+    static mayLinkBill(expense, category) {
+        return category !== 'personal' && isActiveExpense(expense) && !isLinkedExpense(expense) && Number.isInteger(Number(expense.amount))
+            && !!AppState.userRole && canOpenTab('recurring', AppState.userRole, AppState.settings?.roleAccess);
     }
 
     static closeExpenseDetails() {
@@ -694,7 +709,8 @@ export class ExpensesManager {
             explainKey,
             labelKey: 'ui.expenses.void_reason',
             confirmKey: reenter ? 'ui.expenses.reenter_btn' : 'ui.expenses.void_confirm',
-            danger: true
+            danger: true,
+            leadHtml: expense.recurringBillId ? `<p>${tx('ui.expenses.linked_bill')}</p>` : ''
         });
         if (!reason) return false;
         this.closeExpenseDetails();

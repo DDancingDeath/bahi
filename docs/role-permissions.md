@@ -37,6 +37,7 @@ setting is missing or invalid.
 | `reports` | Statements page (stored id of the old Reports page); for managers also Ask's item reports, in kg and bill counts only (calculations.md ASK-5, ASK-6) | बही-खाता पेज | on | off | client; **rules** for withdrawals |
 | `analytics` | Insights page (stored id of the old Analytics page; its Seasons section hosts Rate trends and Product traffic, so it also keeps their owner/manager rule, and `reports` opens Seasons too; to-do cards with ₹ lost or ₹ per ₹100 need `profit`) | कारोबार पेज | on | off | client; **rules** for withdrawals |
 | `wholesale` | Wholesale page, and the wholesale dues on Outstanding › Sales (All / Wholesale, #125) | थोक पेज | on | off | client |
+| `recurringBills` | Recurring bills page (#437): see the bills and record payments (each with its expense); managers also add, edit and stop bills and enter bill amounts; Today's Bills due line | नियमित बिल पेज | on | **on** | client + **rules** (`rbOn`, `rbUpdOk`, `rbExpOk`; docs/security.md) |
 | `personalExpenses` | Personal expenses | निजी खर्च | **off** | **off** | client + **rules** (#98, see "Personal expenses"; on only when the owner turned it on) |
 | `profit` | Profit and average cost | मुनाफा और औसत लागत | on | **off** (U-09) | client |
 | `stockValue` | Stock ₹ value (Stock shows every role the real kg; the ₹ value only with this on, U-09) | स्टॉक की ₹ कीमत | on | **off** (U-09) | client |
@@ -77,10 +78,10 @@ setting is missing or invalid.
   For everyone, the owner included, each section stamp a write sets (`labour`, `checks`, `business`,
   `receipt`, `tip`, `roleAccess` + `UpdatedAt` / `UpdatedBy`) must be an int (ms) and a string of at
   most 128 characters (`settingsStampsOk`); stamps already stored are not re-checked.
-- Pages that read owner/manager-only collections (Admin, Workers / Salaries, Recurring bills, Diagnostics, Anomalies, Insights › Seasons (Trends and Product traffic),
+- Pages that read owner/manager-only collections (Admin, Workers / Salaries, Diagnostics, Anomalies, Insights › Seasons (Trends and Product traffic),
   App health) and the stock adjustment / item edit actions are not in the list: their rules are
   fixed and the setting could not open them. `TAB_ROLES` in `role-access.js` lists them (Admin and
-  Workers / Salaries and Recurring bills: owner; the others: owner and manager); `canOpenTab()` refuses them for other roles, and
+  Workers / Salaries: owner; the others: owner and manager); `canOpenTab()` refuses them for other roles, and
   `NavigationManager` shows Today with a message instead. Trends and Product traffic are views of
   Insights › Seasons with the extra permission id `rate-trends` (routes `insights-seasons`,
   `insights-trends`, `insights-traffic`; old `reports-trends`, `reports-traffic`, `rate-trends`,
@@ -107,11 +108,11 @@ setting is missing or invalid.
 
 ```js
 roleAccess: {
-  manager: { finance: true, reports: true, analytics: true, wholesale: true,
+  manager: { finance: true, reports: true, analytics: true, wholesale: true, recurringBills: true,
              personalExpenses: false, personalExpensesChosen: true, profit: true, stockValue: true,
              oldCashSessions: true, purchaseRates: true, contacts: true, shopSettings: false,
              historyDays: 0, editDays: 2 },
-  staff:   { finance: false, reports: false, analytics: false, wholesale: false,
+  staff:   { finance: false, reports: false, analytics: false, wholesale: false, recurringBills: true,
              personalExpenses: false, personalExpensesChosen: true, profit: false, stockValue: false,
              oldCashSessions: false, purchaseRates: false, contacts: true, shopSettings: false,
              historyDays: 0, editDays: 2 }
@@ -442,7 +443,7 @@ rejected / no profile / unknown role.
 | `rent_*` | Rentals (`js/rentals/rent-store.js`), loaded only when Rentals opens | rentals roles only |
 | `rent_public/{token}` | tenant page, get by token | anyone with the link |
 | `workers` (#373) | Workers / Salaries (`firebase/repos/workers.js`), one query each time the page opens (one read per worker) | no (owner only) |
-| `recurringBills` (#437) | Recurring bills (`firebase/repos/recurring-bills.js`), one query each time the page opens (one read per bill item) | no (owner only) |
+| `recurringBills` (#437) | Recurring bills (`firebase/repos/recurring-bills.js`), one query each time the page opens (one read per bill item) | Roles & access `recurringBills` (on for managers and members) |
 
 ### Read matrix: before → after
 

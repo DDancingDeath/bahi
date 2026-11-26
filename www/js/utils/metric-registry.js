@@ -31,8 +31,6 @@ export const METRICS = Object.freeze({
     M20: { home: 'money.html', section: 'money-spending' },
     M21: { home: 'money.html', section: 'money-spending' },
     M22: { home: 'money.html', section: 'money-spending' },
-    M23: { home: 'money.html', section: 'money-spending' },
-    M24: { home: 'money.html', section: 'money-spending' },
     M25: { home: 'money.html', section: 'money-profit' },
     M26: { home: 'money.html', section: 'money-cash' },
     LH1: { home: 'money.html', section: 'money-labour' },

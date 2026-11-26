@@ -95,7 +95,7 @@ const STEPS = [
     { name: 'Anomalies › Patterns', route: 'anomalies', page: 'anomalies', act: "window.app.anomalies.showView('patterns')", roles: OM, expect: '#anomalyTabPatterns.active' },
     { name: 'App health', route: 'health', page: 'health', roles: OM },
     { name: 'Workers', route: 'workers', page: 'workers', roles: O, expect: '#workersBody .wp-metrics' },
-    { name: 'Recurring bills', route: 'recurring', page: 'recurring', roles: O, expect: '#recurringBody .rb-metrics' },
+    { name: 'Recurring bills', route: 'recurring', page: 'recurring', roles: A, expect: '#recurringBody .rb-metrics' },
     { name: 'Admin › Users', route: 'admin', page: 'admin', act: "window.app.admin.showTab('users')", roles: O, expect: '#adminTeamLink' },
     { name: 'Admin › Data', route: 'admin', page: 'admin', act: "window.app.admin.showTab('data')", roles: O, expect: '#adminContainer .danger-zone' },
     { name: 'Diagnostics › Number checks', route: 'diagnostics', page: 'diagnostics', act: "window.app.diagnostics.showTab('numbers')", roles: OM, expect: '#diagnosticsContainer .diag-numchecks-intro' },
@@ -143,10 +143,10 @@ const ROUTE_READY = {
 
 // Pages each role may not open: showTab must land somewhere else.
 const BLOCKED = {
-    manager: [['admin', 'admin'], ['workers', 'workers'], ['recurring', 'recurring']],
+    manager: [['admin', 'admin'], ['workers', 'workers']],
     staff: [['wholesale-sales', 'wholesale-sales'], ['money', 'money'], ['money-cash', 'money'], ['money-labour', 'money'],
         ['insights', 'insights'], ['insights-seasons', 'insights'], ['insights-trends', 'insights'], ['rate-trends', 'insights'],
-        ['statements', 'statements'], ['anomalies', 'anomalies'], ['health', 'health'], ['admin', 'admin'], ['diagnostics', 'diagnostics'], ['workers', 'workers'], ['recurring', 'recurring']]
+        ['statements', 'statements'], ['anomalies', 'anomalies'], ['health', 'health'], ['admin', 'admin'], ['diagnostics', 'diagnostics'], ['workers', 'workers']]
 };
 
 // Old page ids (owner): where each one lands now.

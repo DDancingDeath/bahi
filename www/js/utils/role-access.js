@@ -14,7 +14,7 @@ import { isActiveBill, isActiveExpense } from './money.js';
 /** Roles the owner configures ('staff' is shown as "Member"). The owner always has full access. */
 export const CONFIGURABLE_ROLES = ['manager', 'staff'];
 
-export const PAGE_PERMISSIONS = ['finance', 'reports', 'analytics', 'wholesale'];
+export const PAGE_PERMISSIONS = ['finance', 'reports', 'analytics', 'wholesale', 'recurringBills'];
 export const SECTION_PERMISSIONS = ['personalExpenses', 'profit', 'stockValue', 'oldCashSessions', 'purchaseRates', 'contacts'];
 /** Managers only: may edit the Aadhat settings (Settings › Aadhat; firestore.rules check it on settings/app). */
 export const SETTINGS_PERMISSIONS = ['shopSettings'];
@@ -44,12 +44,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  */
 export const ROLE_ACCESS_DEFAULTS = Object.freeze({
     manager: Object.freeze({
-        finance: true, reports: true, analytics: true, wholesale: true,
+        finance: true, reports: true, analytics: true, wholesale: true, recurringBills: true,
         personalExpenses: false, profit: true, stockValue: true, oldCashSessions: true, purchaseRates: true, contacts: true,
         shopSettings: false, historyDays: 0, editDays: DEFAULT_EDIT_DAYS
     }),
     staff: Object.freeze({
         finance: false, reports: false, analytics: false, wholesale: false,
+        // Members pay the regular bills (#437)
+        recurringBills: true,
         // Members don't see the shop's margins by default (U-09): profit, stock value, purchase rates, past cash days
         personalExpenses: false, profit: false, stockValue: false, oldCashSessions: false, purchaseRates: false, contacts: true,
         shopSettings: false, historyDays: 0, editDays: DEFAULT_EDIT_DAYS
@@ -71,7 +73,8 @@ export const TAB_PERMISSIONS = Object.freeze({
     money: 'finance',
     insights: 'analytics',
     statements: 'reports',
-    'wholesale-sales': 'wholesale'
+    'wholesale-sales': 'wholesale',
+    recurring: 'recurringBills'
 });
 
 /**
@@ -169,7 +172,6 @@ export const canEditWorthAccounts = canReadWorthAccounts;
 export const TAB_ROLES = Object.freeze({
     admin: Object.freeze(['owner']),
     workers: Object.freeze(['owner']),
-    recurring: Object.freeze(['owner']),
     diagnostics: Object.freeze(['owner', 'manager']),
     anomalies: Object.freeze(['owner', 'manager']),
     'rate-trends': Object.freeze(['owner', 'manager']),

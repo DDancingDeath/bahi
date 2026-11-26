@@ -1,9 +1,9 @@
 // @ts-check
 /**
- * @fileoverview Worker pay and recurring-bill payments in Money (U-22, docs/calculations.md M22–M24):
- * money paid out from the Workers and Recurring bills pages in a period, by the entry's `date`
- * (as WP-8 and RB-9), split cash / online. They are kept outside Business expenses (M4) and are
- * shown as their own lines next to profit, spending and cash. Pure; whole rupees.
+ * @fileoverview Worker pay in Money (U-22, docs/calculations.md M22, M25, M26): money paid out from the
+ * Workers page in a period, by the entry's `date` (as WP-8), split cash / online. Kept outside Business
+ * expenses (M4) and shown as its own line next to profit, spending and cash. Recurring-bill payments are
+ * not here: each counts through its expense in M4 (RB-12). Pure; whole rupees.
  * @module utils/linked-outflows
  */
 
@@ -32,41 +32,29 @@ function addEntry(acc, e, from, to) {
 }
 
 /**
- * M22 worker pay (pay and advances), M23 recurring-bill payments (`kind: 'pay'` only; a bill
- * amount is not money out), M24 = M22 + M23, for entries dated within [from, to] (local days).
+ * M22 worker pay (pay and advances) for entries dated within [from, to] (local days).
  * @param {Array<{entries?: Array<*>}>|null} workers
- * @param {Array<{entries?: Array<*>}>|null} billItems
  * @param {number} from ms, start of the first day
  * @param {number} to ms, end of the period
- * @returns {{workerPay: Outflow, bills: Outflow, total: Outflow}}
+ * @returns {{workerPay: Outflow}}
  */
-export function linkedOutflows(workers, billItems, from, to) {
+export function linkedOutflows(workers, from, to) {
     const workerPay = empty();
-    const bills = empty();
     (workers || []).forEach(w => (w?.entries || []).forEach(e => addEntry(workerPay, e, from, to)));
-    (billItems || []).forEach(b => (b?.entries || []).forEach(e => {
-        if (e?.kind === 'pay') addEntry(bills, e, from, to);
-    }));
-    const total = {
-        total: workerPay.total + bills.total,
-        cash: workerPay.cash + bills.cash,
-        online: workerPay.online + bills.online,
-        count: workerPay.count + bills.count
-    };
-    return { workerPay, bills, total };
+    return { workerPay };
 }
 
-/** M25 = M6 − M24 and M26 = M14 − M24: a figure after worker pay and bills. */
-export const afterLinked = (/** @type {number} */ value, /** @type {{total: Outflow}} */ out) => (Number(value) || 0) - (out?.total?.total || 0);
+/** M25 = M6 − M22 and M26 = M14 − M22: a figure after worker pay. */
+export const afterLinked = (/** @type {number} */ value, /** @type {{workerPay: Outflow}} */ out) => (Number(value) || 0) - (out?.workerPay?.total || 0);
 
 /**
- * The last workers / recurring-bill items loaded on this phone (the Workers and Recurring bills
- * pages set them on every load; Money loads them itself when they are missing or old).
- * @type {{workers: ?Array<*>, billItems: ?Array<*>, at: number}}
+ * The last workers loaded on this phone (the Workers page sets them on every load; Money loads them
+ * itself when they are missing).
+ * @type {{workers: ?Array<*>, at: number}}
  */
-const source = { workers: null, billItems: null, at: 0 };
+const source = { workers: null, at: 0 };
 
-/** @param {'workers'|'billItems'} kind @param {?Array<*>} list null = not loaded on this phone @param {number} [at] */
+/** @param {'workers'} kind @param {?Array<*>} list null = not loaded on this phone @param {number} [at] */
 export function setLinkedSource(kind, list, at = Date.now()) {
     source[kind] = list === null ? null : (Array.isArray(list) ? list : []);
     source.at = at;

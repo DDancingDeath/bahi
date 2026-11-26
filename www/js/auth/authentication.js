@@ -934,9 +934,14 @@ const AuthManager = {
                     item.hidden = !isOwner;
                 }
 
-                // Workers / Salaries (#373) and Recurring bills (#437): owner only
-                if (tabId === 'workers' || tabId === 'recurring') {
+                // Workers / Salaries (#373): owner only
+                if (tabId === 'workers') {
                     item.hidden = !isOwner;
+                }
+
+                // Recurring bills (#437): Roles & access (on for every role by default)
+                if (tabId === 'recurring') {
+                    item.hidden = !mayOpen('recurring');
                 }
                 
                 if (tabId === 'sales') {

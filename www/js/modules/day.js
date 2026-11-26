@@ -447,9 +447,9 @@ export const DayManager = {
                     + `<div class="today-reminder-more">${e(t('ui.today.reminder_salaries_as_of', { time: formatDayTime(pay.at, { lang: getLang() }) }))}</div>`
                     + `<button type="button" class="btn btn-sm" data-onclick="nav.showTab('workers')">${e(t('ui.today.reminder_open_workers'))}</button></div></div>`);
             }
-            // RB-11 (#437): bills due within 3 days or overdue, as Recurring bills last worked them out on this phone
+            // RB-11 (#437): bills due within 3 days or overdue, as Recurring bills last worked them out on this phone (whoever sees that page)
             let bills = null;
-            try { bills = billsDueReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now)); } catch (_) { bills = null; }
+            try { bills = canOpenPage('recurring', AppState.userRole, AppState.settings?.roleAccess) ? billsDueReminder(localStorage, AppState.currentUser?.uid, toLocalISODate(now)) : null; } catch (_) { bills = null; }
             if (bills) {
                 chips.push(t('ui.today.rem_chip_bills', { count: bills.count }));
                 parts.push(`${reminderOpen('bills')}<div class="today-reminder-head"><strong>${e(t('ui.today.reminder_bills', { count: bills.count, amount: moneyText(bills.due) }))}</strong></div>`

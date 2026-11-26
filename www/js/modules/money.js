@@ -45,6 +45,7 @@ import { PrinterService } from '../services/printer.js';
 import { moneyHtml, emptyState } from '../ui/components.js';
 import { icon } from '../ui/icons.js';
 import { linkedOutflows, linkedSource, setLinkedSource, afterLinked } from '../utils/linked-outflows.js';
+import { expenseTypeLabelKey } from '../utils/linked-expense.js';
 import { doubtfulRatesNoticeHtml } from '../ui/doubtful-rates.js';
 import {
     compareBarHtml, writeBar, compareTableHtml, compareTarget, choosePreset, chooseCompare, applyDates, applySaved,
@@ -506,16 +507,16 @@ export const MoneyManager = {
     },
 
     /**
-     * M22–M26 (U-22): worker pay and recurring-bill payments next to profit, spending and cash.
-     * Owner only (the rules let only the owner read workers and recurring bills). Opening Money reads
-     * nothing more: the lists come from the Workers / Recurring bills pages on this phone, or one tap here.
+     * M22, M25, M26 (U-22): worker pay next to profit, spending and cash. Owner only (the rules let only
+     * the owner read workers). Opening Money reads nothing more: the list comes from the Workers page on
+     * this phone, or one tap here. Recurring-bill payments count in M4 through their expenses (RB-12).
      */
     renderLinked({ m, r }) {
         const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
         const owner = AppState.userRole === 'owner';
         const src = linkedSource();
-        const loaded = !!src.workers && !!src.billItems;
-        const has = loaded && (src.workers.length > 0 || src.billItems.length > 0);
+        const loaded = !!src.workers;
+        const has = loaded && src.workers.length > 0;
         show('moneyLinkedCard', owner && (!loaded || has));
         show('moneyLinkedLoad', owner && !loaded);
         show('moneyLinkedRows', owner && has);
@@ -524,35 +525,30 @@ export const MoneyManager = {
             show('moneyLinkedCash', false);
             return;
         }
-        const out = linkedOutflows(src.workers, src.billItems, r.from, r.to);
+        const out = linkedOutflows(src.workers, r.from, r.to);
         const split = (o) => t('ui.money.cash_online', { cash: formatRupees(o.cash), online: formatRupees(o.online) });
-        const any = out.total.count > 0;
+        const any = out.workerPay.count > 0;
         show('moneyLinkedProfit', any && m.M6.total !== null);
         show('moneyLinkedCash', any);
-        this.html('moneyLinkedProfitTerm', moneyHtml(-out.total.total, TM));
+        this.html('moneyLinkedProfitTerm', moneyHtml(-out.workerPay.total, TM));
         if (m.M6.total !== null) this.html('moneyProfitAfterLinked', moneyHtml(afterLinked(m.M6.total, out), TM));
-        this.html('moneyLinkedCashOut', moneyHtml(out.total.total, TM));
-        this.text('moneyLinkedCashSplit', split(out.total));
+        this.html('moneyLinkedCashOut', moneyHtml(out.workerPay.total, TM));
+        this.text('moneyLinkedCashSplit', split(out.workerPay));
         this.html('moneyNetAfterLinked', moneyHtml(afterLinked(m.M14, out), TM));
         this.html('moneyLinkedWorkers', moneyHtml(out.workerPay.total, TM));
         this.text('moneyLinkedWorkersSplit', split(out.workerPay));
-        this.html('moneyLinkedBills', moneyHtml(out.bills.total, TM));
-        this.text('moneyLinkedBillsSplit', split(out.bills));
-        this.html('moneyLinkedTotal', moneyHtml(out.total.total, TM));
     },
 
-    /** "Include worker pay and regular bills": reads workers and recurring bills (one read per document), then redraws. */
+    /** "Include worker pay": reads the workers (one read per document), then redraws. */
     loadLinked() {
         if (this.linkedLoading || AppState.userRole !== 'owner') return;
         this.linkedLoading = (async () => {
             try {
-                const [w, b] = await Promise.all([import('../firebase/repos/workers.js'), import('../firebase/repos/recurring-bills.js')]);
-                const [workers, items] = await Promise.all([w.loadWorkers(), b.loadBillItems()]);
-                setLinkedSource('workers', workers);
-                setLinkedSource('billItems', items);
+                const w = await import('../firebase/repos/workers.js');
+                setLinkedSource('workers', await w.loadWorkers());
                 if (document.getElementById('money')?.classList.contains('active')) this.render();
             } catch (e) {
-                console.warn('Money: worker pay / recurring bills not loaded:', e?.code || e);
+                console.warn('Money: worker pay not loaded:', e?.code || e);
                 UIManager.showToast(t('msg.money.linked_failed'));
             } finally {
                 this.linkedLoading = null;
@@ -771,7 +767,7 @@ export const MoneyManager = {
         const vsLy = change(m.M4.total, ly?.M4 ?? null);
         this.html('moneySpendCompare', compareHtml([vsItem(m.M4.total, prev?.M4, labels.prev), vsItem(m.M4.total, ly?.M4, labels.ly), vsB(m.M4.total, b?.M4, labels)]));
         const cats = m.M4.byCategory || [];
-        const catName = (k) => (k === 'untagged' ? t('ui.money.untagged') : k === 'other' ? t('ui.money.other') : k);
+        const catName = (k) => (k === 'untagged' ? t('ui.money.untagged') : k === 'other' ? t('ui.money.other') : expenseTypeLabelKey(k) ? t(expenseTypeLabelKey(k)) : k);
         this.html('moneySpendTakeaway', takeawayHtml(spendingTakeaways({
             business: m.M4.total, vsLastYear: vsLy, topCategory: cats[0] ? catName(cats[0].category) : null,
             withdrawn: m.M9, kept: m.M10, personal: m.M8.total,

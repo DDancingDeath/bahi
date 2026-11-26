@@ -126,11 +126,12 @@ const NAV = {
     },
     manager: {
         Daily: ['day', 'billing', 'wholesale-sales', 'expenses', 'rates', 'history', 'stock', 'due', 'ask'],
-        Money: ['money', 'insights', 'statements'],
+        Money: ['money', 'insights', 'statements', 'recurring'],
         Manage: ['anomalies', 'health', 'diagnostics']
     },
     staff: {
-        Daily: ['day', 'billing', 'expenses', 'rates', 'history', 'stock', 'due', 'ask']
+        Daily: ['day', 'billing', 'expenses', 'rates', 'history', 'stock', 'due', 'ask'],
+        Money: ['recurring']
     }
 };
 

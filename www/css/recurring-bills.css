@@ -16,6 +16,10 @@
 .recurring-page .table { font-size: var(--fs-sm); }
 .recurring-page .table th, .recurring-page .table td { white-space: nowrap; }
 .recurring-page .table .num { font-family: var(--font-num); }
+.rb-pick-label { color: var(--ink-2); font-size: var(--fs-sm); font-weight: var(--w-label); }
+.rb-exp-list { max-height: 18rem; overflow-y: auto; }
+.rb-exp-list .row { cursor: pointer; }
+.rb-hint { display: flex; align-items: center; gap: var(--sp-1); margin: 0; }
 
 @media (min-width: 1024px) {
     .rb-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -53,6 +53,10 @@ const DEL = Symbol('delete');
 const UNION = Symbol('arrayUnion');
 const REMOVE = Symbol('arrayRemove');
 
+/** Array elements compare by value, as in Firestore (arrayUnion / arrayRemove of maps). */
+const sortedJson = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(key => [key, x[key]])) : x));
+const sameValue = (a, b) => a === b || sortedJson(a) === sortedJson(b);
+
 function applyFields(target, fields, { dotted }) {
     const out = clone(target) || {};
     Object.entries(fields).forEach(([key, value]) => {
@@ -69,9 +73,9 @@ function applyFields(target, fields, { dotted }) {
             o[last] = (typeof o[last] === 'number' ? o[last] : 0) + value[INC];
         } else if (value && value[UNION]) {
             const had = Array.isArray(o[last]) ? o[last] : [];
-            o[last] = [...had, ...value[UNION].filter(x => !had.includes(x))];
+            o[last] = [...had, ...value[UNION].filter(x => !had.some(h => sameValue(h, x)))];
         } else if (value && value[REMOVE]) {
-            o[last] = (Array.isArray(o[last]) ? o[last] : []).filter(x => !value[REMOVE].includes(x));
+            o[last] = (Array.isArray(o[last]) ? o[last] : []).filter(x => !value[REMOVE].some(r => sameValue(r, x)));
         } else {
             o[last] = clone(value);
         }

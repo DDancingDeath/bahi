@@ -1,9 +1,9 @@
 // @ts-check
 /**
- * @fileoverview Recurring bills (#437 phase 1, docs/calculations.md RB-1 … RB-11): electricity,
+ * @fileoverview Recurring bills (#437, docs/calculations.md RB-1 … RB-12): electricity,
  * water, rent and other repeating payments. Each bill item has a cadence; each period has a bill
  * amount, payments and a balance carried to the next period (as worker arrears, WP-5). Pure; whole
- * rupees. Payments show in Money (M22–M24, utils/linked-outflows.js).
+ * rupees. Each payment counts in Money and Today through its one expense (RB-12, utils/linked-expense.js).
  * @module utils/recurring-bills
  */
 
@@ -24,8 +24,8 @@ export const SOON_DAYS = 3;
 export const UNUSUAL_FACTOR = 3;
 
 /**
- * @typedef {{id: string, kind: 'bill'|'pay', period: string, date: string, amount: number, mode?: string, note?: string}} BillEntry
- * @typedef {{id?: string, name: string, cadence: number, dueDay: number, startMonth: string, expected: number, active: boolean, endMonth?: string, note?: string, entries?: BillEntry[]}} BillItem
+ * @typedef {{id: string, kind: 'bill'|'pay', period: string, date: string, amount: number, mode?: string, note?: string, expenseId?: string}} BillEntry
+ * @typedef {{id?: string, name: string, cadence: number, dueDay: number, startMonth: string, expected: number, active: boolean, endMonth?: string, note?: string, entries?: BillEntry[], linked?: Object<string, string>}} BillItem
  * @typedef {{period: string, due: string, bill: ?number, source: ?string, paid: number, opening: number, closing: number, owed: number, covered: number, overdue: boolean, state: string}} PeriodRow
  */
 
@@ -281,7 +281,9 @@ export function checkEntry(f, item, today) {
     if (!entryPeriods(item, today).includes(f.period)) return { error: 'msg.rbills.bad_period' };
     if (!isDayKey(f.date) || f.date > today) return { error: 'msg.rbills.bad_date' };
     if (bill) return { entry: { kind: 'bill', period: f.period, date: f.date, amount } };
-    const mode = ENTRY_MODES.includes(String(f.mode)) ? String(f.mode) : 'cash';
+    // Cash or online is always picked: only cash moves the drawer (RB-12)
+    if (!ENTRY_MODES.includes(String(f.mode))) return { error: 'msg.rbills.choose_mode' };
+    const mode = String(f.mode);
     const note = String(f.note || '').trim().slice(0, MAX_NOTE);
     return { entry: { kind: 'pay', period: f.period, date: f.date, amount, mode, ...(note ? { note } : {}) } };
 }

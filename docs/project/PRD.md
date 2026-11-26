@@ -82,7 +82,7 @@ Shop workers at the counter are the main users; the owner is the main reader of 
 
 | Question | Where |
 |---|---|
-| Do worker pay and regular bills also count in Expenses / Spending? | #437 (decision a), #373, U-22 in [MEMORY.md](MEMORY.md) |
+| Does worker pay also count in Expenses / Spending? (Regular bills do: one expense per payment, D-025 in [DECISIONS.md](DECISIONS.md)) | #373, U-22 in [MEMORY.md](MEMORY.md) |
 | Where do "Mark as cleared" / "Write off" live (list or bill details)? | U-19 in [MEMORY.md](MEMORY.md) |
 | Read cost once full history is loaded | [MEMORY.md](MEMORY.md), [read-budget.md](../read-budget.md) |
 | Outcome targets marked TBD above | Owner |

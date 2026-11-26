@@ -25,6 +25,7 @@ const PERMISSION_LABEL_KEYS = {
     reports: 'ui.roles.perm_reports',
     analytics: 'ui.roles.perm_analytics',
     wholesale: 'ui.roles.perm_wholesale',
+    recurringBills: 'ui.roles.perm_recurring_bills',
     personalExpenses: 'ui.roles.perm_personal_expenses',
     profit: 'ui.roles.perm_profit',
     stockValue: 'ui.roles.perm_stock_value',

@@ -2,8 +2,10 @@
 
 Part of the [owner guide](../owner-guide.md) (one file per page). Hindi: [recurring.hi.md](recurring.hi.md). The codes in brackets are spec IDs in [calculations.md](../calculations.md).
 
-Only the owner sees this page (More › Money › Recurring bills, next to Workers / Salaries); managers and
-members never see it or its data. It is loaded only when opened: nothing is read at start, and each
+The owner, managers and members see this page (More › Money › Recurring bills, next to Workers /
+Salaries): Settings › Roles & access › **Recurring bills page** is on for managers and members unless the
+owner turns it off. Everyone who sees it records payments; only the owner and managers add, edit and stop
+bills and enter bill amounts. It is loaded only when opened: nothing is read at start, and each
 opening reads every bill once (one read per bill).
 
 **Bills.** Add each bill that repeats: a name (Electricity, Water, Shop rent, Internet, Phone, Property
@@ -21,8 +23,20 @@ A wrong amount is corrected by entering it again for the same month: the newest 
 than 3 times the last one asks you to check it, and **Yes, it's right** saves it.
 
 **Payments.** Tap **Record payment**: the amount (the amount still to pay is filled in), which bill it is
-for, the date, cash or online and an optional note. A bill can be paid in parts (RB-3). A wrong payment
-can be removed (it asks first).
+for, the date, **Cash** or **Online** (always pick one; nothing is chosen for you) and an optional note. A
+bill can be paid in parts (RB-3).
+
+**In Money and Today (RB-12).** Each payment is one expense, counted once. **Add a new expense** (the
+usual choice) saves an expense with it: Bills, the same amount, date and cash or online, the bill's name
+in the remarks. **Already entered in Expenses**, when you typed it into Expenses yourself: pick that expense
+(those within 3 days, the same amount first) and no new expense is added. From an expense's details,
+**Link to a recurring bill** does the same. The payment then counts in Money › Spending (Bills), in
+Today's business expenses and paid figures, and, **only when paid in cash**, in the cash drawer (Expected
+cash goes down by it). An online payment never changes the drawer or the cash counts. A date before today
+follows the expense rules (your role's edit days); cash on an earlier day only the owner can record.
+**Void** takes a wrong payment off together with its expense (voiding the expense in Expenses does the
+same). Payments recorded before this have a **Not counted in Money** mark: they are in no Money figure until the
+owner taps **Add to Money figures** on each one.
 
 **Each bill** is **Paid**, **Part-paid, ₹X of ₹Y**, **₹Y due**, **Overdue** (its due date has passed and
 something is still to pay, or something from an earlier bill is still unpaid) or **Amount not entered
@@ -38,9 +52,5 @@ with how many bills are paid, part-paid, due, overdue or without an amount.
 
 **On Today.** When a bill is due within the next 3 days or is overdue, Today shows **Bills due: N, ₹X**
 (and how many have no amount entered yet), as last worked out on this phone (RB-11); **Open Recurring
-bills** brings you here. It shows once this page was opened on this phone; it reads nothing at start and
-is brought up to date once a day.
-
-**Not in Money yet.** Payments recorded here do not change Money › Spending, Today's figures or the cash
-drawer; a bill you also enter in Expenses counts only there. The owner has not yet decided how the two
-fit. Saving needs the internet.
+bills** brings you here. It shows to everyone who sees this page, once it was opened on their phone; it
+reads nothing at start and is brought up to date once a day. Saving needs the internet.
