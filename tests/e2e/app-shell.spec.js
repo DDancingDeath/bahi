@@ -210,7 +210,8 @@ for (const role of ['owner', 'manager', 'staff']) {
         await login(page, role);
         await showTab(page, 'billing');
         const groups = await sidebar(page);
-        const want = Object.fromEntries(Object.entries(NAV[role]).map(([g, links]) => [g, { titleShown: true, links }]));
+        // A group left with one link shows no heading (U-87)
+        const want = Object.fromEntries(Object.entries(NAV[role]).map(([g, links]) => [g, { titleShown: links.length > 1, links }]));
         expect(groups).toEqual(want);
         // Alt+1…9 hints follow the shortcuts; the business switch shows only with a Rentals role
         await expect(page.locator('#sideNav a[data-onclick*="\'billing\'"]')).toHaveAttribute('aria-keyshortcuts', 'Alt+2');
