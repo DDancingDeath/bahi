@@ -1778,7 +1778,8 @@ service cloud.firestore {
       let e = request.resource.data.entries;
       let n = e.size() - o.size();
       let x = n > 0 ? e[e.size() - 1] : (n < 0 ? o.removeAll(e)[0] : {});
-      return isOwnerIn(u) || (myRole(u) == 'manager' && (n == 0 || (n == 1 && x.kind == 'bill')))
+      let r = myRole(u);
+      return r == 'owner' || (r == 'manager' && (n == 0 || (n == 1 && x.kind == 'bill')))
         || (x.get('kind', '') == 'pay' && rbExpOk(u, x, docId, n > 0)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['entries', 'updatedAt']));
     }
@@ -1788,7 +1789,7 @@ service cloud.firestore {
       let d = getAfter(p).data;
       return d.get('recurringBillId', '') == docId && d.get('recurringPayId', '') == x.id
         && (add ? d.amount == x.amount && d.get('paymentMode', 'cash') == x.mode
-              && (x.mode == 'online' || x.date >= remIstDay(0) || exists(p))
+              && (x.mode == 'online' || exists(p) || timestamp.date(int(x.date[0:4]), int(x.date[5:7]), int(x.date[8:10])) > request.time - duration.value(1110, 'm'))
             : d.get('voided', false) == true);
     }
 
