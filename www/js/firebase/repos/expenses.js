@@ -24,6 +24,10 @@ import { S } from '../core/session.js';
 
 export const personalDayOf = (rec) => rec?.day || personalDayKey(rec?.date);
 
+/** Expenses that count a payment kept elsewhere (#437): the payment's document and its id. */
+const PAY_LINKS = [{ field: 'recurringBillId', pay: 'recurringPayId', coll: 'recurringBills' }];
+const payLinkOf = (rec) => PAY_LINKS.find(l => rec?.[l.field] && rec?.[l.pay]) || null;
+
 /**
  * One key of personalExpenseDays/{day}: the expense's amount, or removed (amount null), and
  * its online flag (EXP-MODE, #118: set when paid online, else removed).
@@ -76,10 +80,11 @@ export const expenseMethods = {
      * once the write is on this device, false when this device refused it (e.g.
      * storage full, #153), null if still unconfirmed after EXPENSE_STORE_WAIT_MS.
      * @param {Object} expense
-     * @param {{id?: string}} [options] - id: save again over this not-yet-confirmed expense
+     * @param {{id?: string, withBatch?: Function}} [options] - id: save again over this not-yet-confirmed expense;
+     *   withBatch(batch, docId): writes that land with a business expense (a recurring-bill payment, #437)
      * @returns {{record: Object, committed: Promise<void>, stored: Promise<boolean|null>}}
      */
-    startSaveExpense(expense, { id } = {}) {
+    startSaveExpense(expense, { id, withBatch } = {}) {
         if (!expense.userId && AppState.currentUser) {
             expense.userId = AppState.currentUser.uid;
         }
@@ -92,9 +97,26 @@ export const expenseMethods = {
         const collKey = expenseCollectionFor(expense);
         if (collKey !== 'expenses' && !expense.day) expense.day = personalDayKey(expense.date);
         const { record, committed, sent } = startCreate(collKey, expense, id,
-            collKey === 'expenses' ? null : (batch, docId) => addPersonalDayWrites(batch, docId, null, expense));
+            collKey === 'expenses' ? (withBatch || null) : (batch, docId) => addPersonalDayWrites(batch, docId, null, expense));
         noteMonthWrite(collKey, null, record);
         return { record, committed, stored: whenStoredLocally(sent, EXPENSE_STORE_WAIT_MS) };
+    },
+
+    /**
+     * Links an expense already entered to a payment kept elsewhere (#437 "Already in Expenses"): its
+     * link fields and withBatch's writes (the payment) in one batch. Needs a connection.
+     * @param {string} expenseId
+     * @param {Object} fields recurringBillId, recurringPayId
+     * @param {(batch: *, docId: string) => void} withBatch
+     */
+    async linkExpense(expenseId, fields, withBatch) {
+        const prev = findRecord('expenses', expenseId);
+        const docId = prev ? docIdOf(prev) : String(expenseId);
+        const batch = getDb().batch();
+        batch.update(getDb().collection(col('expenses')).doc(docId), fields);
+        withBatch(batch, docId);
+        await batch.commit();
+        if (prev) noteLocalRecordWrite('expenses', docId, { ...prev, ...fields });
     },
 
     /**
@@ -177,7 +199,8 @@ export const expenseMethods = {
      * Voids an expense (#99): never edited or deleted in place. One transaction
      * sets voided, voidedAt (server time), voidedBy, voidedByName and voidReason;
      * a personal expense also leaves its day total (personalExpenseDays) in the
-     * same write. From then on it counts in no figure (money.isActiveExpense):
+     * same write, and an expense that counts a payment (#437, VOID-EXP) takes that payment off its
+     * document in the same transaction. From then on it counts in no figure (money.isActiveExpense):
      * it leaves AppState.expensesHistory (voidedExpenses() lists it). Needs a
      * connection. Throws with `code` 'reason-required' | 'not-found' | 'already-voided'.
      * @param {string|number} expenseId
@@ -206,16 +229,31 @@ export const expenseMethods = {
             voidReason: why
         };
         let stored = null;
+        let unlinked = null;
         await getDb().runTransaction(async tx => {
             const snap = await tx.get(ref);
             if (!snap.exists) throw Object.assign(new Error('Expense not found'), { code: 'not-found' });
             stored = snap.data();
             if (!isActiveExpense(stored)) throw Object.assign(new Error('This expense is already voided'), { code: 'already-voided' });
+            const link = collKey === 'expenses' ? payLinkOf(stored) : null;
+            const linkRef = link ? getDb().collection(col(link.coll)).doc(String(stored[link.field])) : null;
+            const owner = linkRef ? await tx.get(linkRef) : null;
             tx.update(ref, fields);
+            if (owner?.exists) {
+                const payId = String(stored[link.pay]);
+                const data = owner.data();
+                const entry = (data.entries || []).find(e => e?.id === payId);
+                const fv = firebase.firestore.FieldValue;
+                const change = { ...(entry ? { entries: fv.arrayRemove(entry) } : {}), ...(data.linked?.[payId] ? { [`linked.${payId}`]: fv.delete() } : {}) };
+                if (Object.keys(change).length) tx.update(linkRef, { ...change, updatedAt: serverCreatedAt() });
+                unlinked = { coll: link.coll, docId: owner.id, payId };
+            }
             const day = collKey === 'personalExpenses' ? personalDayOf(stored) : null;
             if (day) tx.set(...personalDayWrite(day, String(docId), null));
         });
         const voided = { ...stored, ...fields, id: previous?.id ?? stored.id ?? docId, voidedAt: Date.now() };
+        // What else the void changed (not a stored field)
+        Object.defineProperty(voided, 'unlinked', { value: unlinked });
         docIds.set(voided, String(docId));
         noteMonthWrite(collKey, previous || stored, null);
         if (collKey === 'personalExpenses') personalDayCache.delete(personalDayOf(stored));

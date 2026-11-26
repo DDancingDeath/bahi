@@ -51,6 +51,7 @@ this repo.
 | D-021 | Offline bill numbers per device | Accepted |
 | D-022 | Oversell warns, never blocks | Accepted |
 | D-023 | Rentals: one view, no Simple / Advanced | Accepted |
+| D-025 | A recurring-bill payment is one expense; everyone with the page pays | Accepted |
 
 ---
 
@@ -202,3 +203,9 @@ this repo.
 - **Options** Cloudflare Worker (free, new account, service-account key as a secret) · Cloud Functions trigger (Blaze, needs a card) · Google Apps Script under the shop's Google account.
 - **Decision** Apps Script: a web app the writing phone calls with the event id (instant) plus a 5-minute sweep for offline writers. It uses the owner account's OAuth token (no key anywhere), sends with FCM v1, marks docs `pushed` and deletes stale tokens. Stays on the free plan (D-016).
 - **Confirmation** `tests/push-sender/core.test.js`; rules tests "push devices" and "no client sets pushed".
+
+### D-025 — A recurring-bill payment is one expense; everyone with the page pays
+- **Status** Accepted · **Date** 2026-11-26 · **Decider** Owner (#437 (a), (b); Cash / Online always picked) · **Related** #437, #373, [calculations.md](../calculations.md) RB-12
+- **Context** Phase 1 kept payments outside Money (M23 / M24 add-on), so a bill paid from the drawer left Expected cash wrong, and one also typed into Expenses counted twice.
+- **Decision** Each payment saves (or links, "Already entered in Expenses") exactly one business expense, type "Bills", in the same batch, with the payment's explicit cash / online; it counts once in M4, Today and, only when cash, the drawer. M23 / M24 retired. Voiding the expense removes the payment (VOID-EXP). Older payments are not backfilled: the owner adds each with "Add to Money figures". The page is a Roles & access switch (`recurringBills`, on for managers and members); members record payments, the owner and managers keep the items.
+- **Confirmation** `tests/oracle/recurring-in-money.test.js`, `linked-expense-repo.test.js`, `recurring-bills-page.test.js`, rules tests "recurring bills".

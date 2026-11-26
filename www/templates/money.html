@@ -64,8 +64,8 @@
                     <div class="row ins-total ins-tap" data-perm="profit" data-breakdown="profit" role="button" tabindex="0"><span class="row-main" id="moneyProfitEqLabel"></span><span class="row-amt" data-metric-ref="M6" id="moneyProfitTerm">—</span></div>
                 </div>
                 <div class="panel" id="moneyLinkedProfit" data-perm="profit" hidden>
-                    <div class="row"><span class="row-main" data-i18n="ui.money.linked_minus">− Worker pay and regular bills</span><span class="row-amt" data-metric-ref="M24" id="moneyLinkedProfitTerm">—</span></div>
-                    <div class="row ins-total"><span class="row-main" data-i18n="ui.money.profit_after_linked">= Left after worker pay and bills</span><span class="row-amt" data-metric="M25" id="moneyProfitAfterLinked">—</span></div>
+                    <div class="row"><span class="row-main" data-i18n="ui.money.linked_minus">− Worker pay</span><span class="row-amt" data-metric-ref="M22" id="moneyLinkedProfitTerm">—</span></div>
+                    <div class="row ins-total"><span class="row-main" data-i18n="ui.money.profit_after_linked">= Left after worker pay</span><span class="row-amt" data-metric="M25" id="moneyProfitAfterLinked">—</span></div>
                 </div>
             </div>
             <!-- Money in and out for the period (F62): the cash drawer itself lives in Today › Cash -->
@@ -81,7 +81,7 @@
                     <div class="row ins-tap" data-breakdown="moneyIn" role="button" tabindex="0"><span class="row-main"><span class="row-title"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrIn"/></svg><span data-i18n="ui.money.money_in">Money in</span></span><span class="row-meta" id="moneyInSplit"></span></span><span class="row-amt" data-metric="M12" id="moneyIn">—</span></div>
                     <div class="row ins-tap" data-breakdown="moneyOut" role="button" tabindex="0"><span class="row-main"><span class="row-title"><svg class="i i-sm" aria-hidden="true" focusable="false"><use href="#i-arrOut"/></svg><span data-i18n="ui.money.money_out">Money out</span></span><span class="row-meta" id="moneyOutSplit"></span></span><span class="row-amt" data-metric="M13" id="moneyOut">—</span></div>
                     <div id="moneyLinkedCash" hidden>
-                        <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_cash_out">Also paid out: worker pay and bills</span><span class="row-meta" data-metric-ref="M24" id="moneyLinkedCashSplit"></span></span><span class="row-amt" data-metric-ref="M24" id="moneyLinkedCashOut">—</span></div>
+                        <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_cash_out">Also paid out: worker pay</span><span class="row-meta" data-metric-ref="M22" id="moneyLinkedCashSplit"></span></span><span class="row-amt" data-metric-ref="M22" id="moneyLinkedCashOut">—</span></div>
                         <div class="row ins-total"><span class="row-main" data-i18n="ui.money.net_after_linked">Net money in after these</span><span class="row-amt" data-metric="M26" id="moneyNetAfterLinked">—</span></div>
                     </div>
                     <div class="panel-pad">
@@ -126,14 +126,12 @@
                 <div class="panel panel-pad ins-bars" data-metric-ref="M4" id="moneyCategories"></div>
             </div>
             <div id="moneyLinkedCard" hidden>
-                <h3 class="section-title" data-i18n="ui.money.linked_title">Worker pay and regular bills</h3>
-                <button type="button" class="btn btn-tonal btn-block" id="moneyLinkedLoad" hidden data-onclick="money.loadLinked()" data-i18n="ui.money.linked_load">Include worker pay and regular bills</button>
+                <h3 class="section-title" data-i18n="ui.money.linked_title">Worker pay</h3>
+                <button type="button" class="btn btn-tonal btn-block" id="moneyLinkedLoad" hidden data-onclick="money.loadLinked()" data-i18n="ui.money.linked_load">Include worker pay</button>
                 <div class="panel" id="moneyLinkedRows">
                     <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_workers">Worker pay</span><span class="row-meta" data-metric-ref="M22" id="moneyLinkedWorkersSplit"></span></span><span class="row-amt" data-metric="M22" id="moneyLinkedWorkers">—</span></div>
-                    <div class="row"><span class="row-main"><span class="row-title" data-i18n="ui.money.linked_bills">Regular bills paid</span><span class="row-meta" data-metric-ref="M23" id="moneyLinkedBillsSplit"></span></span><span class="row-amt" data-metric="M23" id="moneyLinkedBills">—</span></div>
-                    <div class="row ins-total"><span class="row-main" data-i18n="ui.money.linked_total">Total</span><span class="row-amt" data-metric="M24" id="moneyLinkedTotal">—</span></div>
                 </div>
-                <p class="ins-hint" data-i18n="ui.money.linked_note">From the Workers and Recurring bills pages, by payment date. Not part of Business expenses; if you also typed one into Expenses, delete it there.</p>
+                <p class="ins-hint" data-i18n="ui.money.linked_note">From the Workers page, by payment date. Not part of Business expenses; if you also typed one into Expenses, delete it there.</p>
             </div>
             <div id="moneyLabourCard">
                 <h3 class="section-title" data-i18n="ui.money.labour_title">Labour</h3>

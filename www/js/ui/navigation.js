@@ -366,7 +366,7 @@ const NavigationManager = {
             setTimeout(() => window.app.workers.init(), 100);
         }
 
-        // Recurring bills (#437, owner): its code loads on first open, and it reads on every open
+        // Recurring bills (#437, Roles & access): its code loads on first open, and it reads on every open
         if (tabId === 'recurring' && window.app?.recurring) {
             setTimeout(() => window.app.recurring.init(), 100);
         }

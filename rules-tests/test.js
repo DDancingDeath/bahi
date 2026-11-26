@@ -3962,8 +3962,8 @@ function defineReadMatrix(prefix) {
     });
     add('recurringBills (recurring bills, #437)', {
         seed: [[`${c('recurringBills')}/b1`, { name: 'Electricity', cadence: 2, dueDay: 10, startMonth: '2026-01', expected: 0, active: true, entries: [] }]],
-        get: (db) => db.collection(c('recurringBills')).doc('b1').get(), getAllowed: OWNER,
-        list: (db) => db.collection(c('recurringBills')).get(), listAllowed: OWNER
+        get: (db) => db.collection(c('recurringBills')).doc('b1').get(), getAllowed: APPROVED,
+        list: (db) => db.collection(c('recurringBills')).get(), listAllowed: APPROVED
     });
     add('unknown collection', {
         seed: [[`${c('somethingElse')}/d1`, { a: 1 }]],
@@ -5696,7 +5696,7 @@ function defineWorkerSuite(prefix) {
 defineWorkerSuite('');
 defineWorkerSuite('dev_');
 
-// ---- Recurring bills (#437): owner only; bill amounts and payments appended one at a time or one removed ----
+// ---- Recurring bills (#437): owner, managers, members (Roles & access); payments with their expense (RB-12) ----
 function defineRecurringBillSuite(prefix) {
     const bills = `${prefix}recurringBills`;
     const t = (name, fn) => test(`[${prefix || 'prod'}] recurring bills: ${name}`, fn);
@@ -5707,16 +5707,132 @@ function defineRecurringBillSuite(prefix) {
     const doc = (uid, id = 'r1') => as(uid).collection(bills).doc(id);
     const stamp = () => ({ updatedAt: serverTimestamp() });
 
-    t('only the owner creates, reads, updates and deletes', async () => {
-        for (const uid of ['manager1', 'staff1', 'rentManager']) await assertFails(doc(uid).set(item()));
-        await assertSucceeds(doc('legacyOwner').set(item()));
-        await assertSucceeds(doc('owner2').get());
-        await assertFails(doc('manager1').get());
-        await assertFails(as('staff1').collection(bills).get());
-        await assertFails(doc('manager1').update({ name: 'Water', ...stamp() }));
-        await assertFails(doc('manager1').update({ entries: FieldValue.arrayUnion(pay()), ...stamp() }));
+    t('who: the owner, managers and members read (Roles & access, on by default); the owner and managers create; only the owner deletes', async () => {
+        await seed('r1', item());
+        for (const uid of ['legacyOwner', 'owner2', 'manager1', 'staff1', 'rentManager']) await assertSucceeds(doc(uid).get());
+        for (const uid of ['pending1', 'rejected1', 'noRole', 'rentOnly']) await assertFails(doc(uid).get());
+        await assertSucceeds(as('staff1').collection(bills).get());
+        await assertFails(doc('staff1', 'n1').set(item()));
+        await assertFails(doc('rentManager', 'n1').set(item()));
+        await assertSucceeds(doc('manager1', 'n2').set(item()));
+        await assertSucceeds(doc('legacyOwner', 'n3').set(item()));
         await assertFails(doc('manager1').delete());
+        await assertFails(doc('staff1').delete());
         await assertSucceeds(doc('legacyOwner').delete());
+    });
+
+    t('switched off in Roles & access: that role reads and writes nothing', async () => {
+        await seed('r1', item());
+        await env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(`${prefix}settings`).doc('app')
+            .set({ roleAccess: { staff: { recurringBills: false }, manager: { recurringBills: false } } }));
+        await assertFails(doc('staff1').get());
+        await assertFails(doc('manager1').get());
+        await assertFails(doc('manager1', 'n1').set(item()));
+        await assertFails(doc('manager1').update({ name: 'Water', ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').get());
+    });
+
+    t('item edits and bill amounts: owner and managers; members never', async () => {
+        await seed('r1', item());
+        await assertFails(doc('staff1').update({ name: 'Water', ...stamp() }));
+        await assertFails(doc('staff1').update({ entries: FieldValue.arrayUnion(bill()), ...stamp() }));
+        await assertSucceeds(doc('manager1').update({ name: 'Water', expected: 900, ...stamp() }));
+        await assertSucceeds(doc('manager1').update({ entries: FieldValue.arrayUnion(bill()), ...stamp() }));
+        await assertSucceeds(doc('manager1').update({ active: false, endMonth: '2026-05', ...stamp() }));
+        // a manager's payment is linked to its expense like anyone's
+        await assertFails(doc('manager1').update({ entries: FieldValue.arrayUnion(pay({ id: 'p9' })), ...stamp() }));
+    });
+
+    // ---- a payment and its one expense (RB-12): one batch ----
+    const expenses = `${prefix}expenses`;
+    const today = () => istDayAt(testNow, 0);
+    const onDay = (day) => `${Number(day.slice(8, 10))}/${Number(day.slice(5, 7))}/${day.slice(0, 4)}, 10:00:00 am`;
+    const expense = (uid, extra = {}) => ({ type: 'Bills', amount: 500, category: 'business', paymentMode: 'cash', userId: uid, timestamp: Date.now(),
+        day: today(), date: onDay(today()), recurringBillId: 'r1', recurringPayId: 'p1', ...extra });
+    const linkedPay = (extra = {}) => pay({ date: today(), expenseId: 'e1', ...extra });
+    /** The member's batch: the expense and the payment, linked both ways. */
+    const payBatch = (uid, { exp = expense(uid), entry = linkedPay(), expId = 'e1', billExtra = {} } = {}) => {
+        const db = as(uid);
+        const b = db.batch();
+        if (exp) b.set(db.collection(expenses).doc(expId), exp);
+        if (entry) b.update(db.collection(bills).doc('r1'), { entries: FieldValue.arrayUnion(entry), ...stamp(), ...billExtra });
+        return b.commit();
+    };
+    const seedExpense = (id, data) => env.withSecurityRulesDisabled(ctx => ctx.firestore().collection(expenses).doc(id).set(data));
+
+    t('a member records a payment only with its expense, in one batch, matching amount and mode', async () => {
+        await seed('r1', item());
+        await assertFails(payBatch('staff1', { exp: null }));
+        await assertFails(payBatch('staff1', { entry: null }));
+        await assertFails(payBatch('staff1', { exp: expense('staff1', { amount: 499 }) }));
+        await assertFails(payBatch('staff1', { exp: expense('staff1', { paymentMode: 'online' }) }));
+        await assertFails(payBatch('staff1', { exp: expense('staff1', { recurringPayId: 'p2' }) }));
+        await assertFails(payBatch('staff1', { exp: expense('staff1', { recurringBillId: 'other' }) }));
+        await assertFails(payBatch('staff1', { billExtra: { name: 'Water' } }));
+        await assertFails(payBatch('staff1', { entry: pay({ date: today() }) }));
+        await assertSucceeds(payBatch('staff1'));
+        await assertSucceeds(payBatch('manager1', { exp: expense('manager1', { amount: 700, paymentMode: 'online', recurringPayId: 'p2' }), entry: linkedPay({ id: 'p2', amount: 700, mode: 'online', expenseId: 'e2' }), expId: 'e2' }));
+    });
+
+    t('cash on an earlier day: a member only for an expense already entered; online is fine', async () => {
+        await seed('r1', item());
+        const y = istDayAt(testNow, -1);
+        await assertFails(payBatch('staff1', { exp: expense('staff1', { day: y, date: onDay(y) }), entry: linkedPay({ date: y }) }));
+        await assertSucceeds(payBatch('staff1', { exp: expense('staff1', { day: y, date: onDay(y), paymentMode: 'online' }), entry: linkedPay({ date: y, mode: 'online' }) }));
+        await assertSucceeds(payBatch('legacyOwner', { exp: expense('legacyOwner', { day: y, date: onDay(y), recurringPayId: 'p3' }), entry: linkedPay({ id: 'p3', date: y, expenseId: 'e3' }), expId: 'e3' }));
+    });
+
+    t('"Already entered in Expenses": the link fields and the payment in one batch; never re-linked', async () => {
+        await seed('r1', item());
+        const y = istDayAt(testNow, -1);
+        const { recurringBillId, recurringPayId, ...plain } = expense('manager1', { day: y, date: onDay(y) });
+        await seedExpense('e1', plain);
+        const link = (uid, fields, entry = linkedPay({ date: y })) => {
+            const db = as(uid);
+            const b = db.batch();
+            b.update(db.collection(expenses).doc('e1'), fields);
+            if (entry) b.update(db.collection(bills).doc('r1'), { entries: FieldValue.arrayUnion(entry), ...stamp() });
+            return b.commit();
+        };
+        await assertFails(link('staff1', { recurringBillId: 'r1', recurringPayId: 'p1' }, null));
+        await assertFails(link('staff1', { recurringBillId: 'r1', recurringPayId: 'p1', amount: 1 }));
+        await assertSucceeds(link('staff1', { recurringBillId: 'r1', recurringPayId: 'p1' }));
+        await assertFails(link('staff1', { recurringBillId: 'r1', recurringPayId: 'p2' }, linkedPay({ id: 'p2', date: y })));
+    });
+
+    t('a payment in Money is taken off only with its expense voided, in the same batch', async () => {
+        const p1 = linkedPay();
+        await seed('r1', item({ entries: [p1, pay({ id: 'old' })] }));
+        await seedExpense('e1', expense('staff1'));
+        const voidF = (uid) => ({ voided: true, voidedAt: serverTimestamp(), voidedBy: uid, voidedByName: 'S', voidReason: 'Wrong bill' });
+        const off = (uid, { voidIt = true, entry = p1 } = {}) => {
+            const db = as(uid);
+            const b = db.batch();
+            if (voidIt) b.update(db.collection(expenses).doc('e1'), voidF(uid));
+            b.update(db.collection(bills).doc('r1'), { entries: FieldValue.arrayRemove(entry), ...stamp() });
+            return b.commit();
+        };
+        await assertFails(off('staff1', { voidIt: false }));
+        await assertFails(off('manager1', { voidIt: false }));
+        await assertFails(off('staff1', { entry: pay({ id: 'old' }) }));
+        await assertSucceeds(off('staff1'));
+        // an older payment (not in Money) is removed by the owner only
+        await assertFails(doc('manager1').update({ entries: FieldValue.arrayRemove(pay({ id: 'old' })), ...stamp() }));
+        await assertSucceeds(doc('legacyOwner').update({ entries: FieldValue.arrayRemove(pay({ id: 'old' })), ...stamp() }));
+    });
+
+    t('an expense linked to a bill by anyone but the owner needs the payment in the same batch', async () => {
+        await seed('r1', item());
+        await assertFails(as('staff1').collection(expenses).doc('e1').set(expense('staff1')));
+        await assertSucceeds(as('legacyOwner').collection(expenses).doc('e9').set(expense('legacyOwner', { recurringPayId: 'x' })));
+        // the owner's "Add to Money figures" for an older payment: the expense and the bill's `linked` map
+        await seed('r2', item({ entries: [pay({ id: 'old' })] }));
+        const db = as('legacyOwner');
+        const b = db.batch();
+        b.set(db.collection(expenses).doc('e8'), expense('legacyOwner', { recurringBillId: 'r2', recurringPayId: 'old' }));
+        b.update(db.collection(bills).doc('r2'), { 'linked.old': 'e8', ...stamp() });
+        await assertSucceeds(b.commit());
+        await assertFails(doc('staff1', 'r2').update({ 'linked.old': 'zz', ...stamp() }));
     });
 
     t('create: the shape is checked', async () => {

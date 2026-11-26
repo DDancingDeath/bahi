@@ -1,8 +1,9 @@
 /**
- * @fileoverview Recurring bills (#437 phase 1): the owner's electricity, water, rent and other
- * repeating payments. Each bill item has a cadence; each period has a bill amount, payments and a
- * balance carried to the next period (docs/calculations.md RB-1 … RB-11). Imported on first open;
- * one read per bill item per open. Payments show in Money (M22–M24, utils/linked-outflows.js).
+ * @fileoverview Recurring bills (#437): electricity, water, rent and other repeating payments. Each bill
+ * item has a cadence; each period has a bill amount, payments and a balance carried to the next period
+ * (docs/calculations.md RB-1 … RB-12). The owner, managers and members (Roles & access) see it and pay;
+ * the owner and managers keep the items. A payment counts in Money and Today through its one expense,
+ * saved with it (RB-12). Imported on first open; one read per bill item per open.
  * @module modules/recurring-bills
  */
 
@@ -20,7 +21,14 @@ import {
     entryPeriods, unusualBill, isMonthKey, periodOf, monthKeyOf, billsAfter
 } from '../utils/recurring-bills.js';
 import { saveBillsDue } from '../utils/pay-reminder.js';
-import { setLinkedSource } from '../utils/linked-outflows.js';
+import { FirebaseService } from '../firebase/firestore-service.js';
+import { askReason } from '../ui/bill-status.js';
+import { infoTipHtml } from '../ui/info-tip.js';
+import { canOpenTab, canVoidExpenseWith } from '../utils/role-access.js';
+import { validateExpenseEntry } from '../utils/expense-entry.js';
+import { backdatedCash } from '../utils/bill-date.js';
+import { billExpense, linkCandidates, payExpenseId, payFromExpense, expenseDayOf } from '../utils/linked-expense.js';
+import { isPermissionDenied } from '../utils/record-permissions.js';
 
 const esc = (v) => Helpers.escapeHtml(v == null ? '' : String(v));
 const js = (v) => Helpers.escapeJsAttr(v);
@@ -30,7 +38,12 @@ const val = (id) => (byId(id)?.value ?? '').trim();
 const monthName = (key) => formatMonth(`${key}-01`, { lang: getLang() });
 const dayName = (day) => formatDay(day, { lang: getLang() });
 const today = () => todayLocalISO();
-const isOwner = () => AppState.userRole === 'owner';
+const role = () => AppState.userRole;
+const isOwner = () => role() === 'owner';
+/** Sees the page and records payments (Roles & access › Recurring bills). */
+const canSee = () => !!role() && canOpenTab('recurring', role(), AppState.settings?.roleAccess);
+/** Adds, edits and stops items and enters bill amounts. */
+const canManage = () => canSee() && (isOwner() || role() === 'manager');
 const isShown = () => byId('recurring')?.classList.contains('active');
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
@@ -41,7 +54,11 @@ const state = {
     open: '',
     form: '',
     seq: 0,
-    unusual: null
+    unusual: null,
+    /** An expense from Expenses waiting to be linked ("Link to a recurring bill"). */
+    linkExp: '',
+    /** The payment form's choices: mode '' until picked (never a silent cash), in 'new' | 'have', the picked expense. */
+    pay: { mode: '', inExp: 'new', expenseId: '', amount: '', date: '', period: '', note: '' }
 };
 
 const CADENCE_KEYS = { 1: 'ui.rbills.cadence_1', 2: 'ui.rbills.cadence_2', 3: 'ui.rbills.cadence_3', 6: 'ui.rbills.cadence_6', 12: 'ui.rbills.cadence_12' };
@@ -75,7 +92,7 @@ function renderSummary(sum) {
         </div>
         <div class="rb-actions rb-list-head">
             <p class="tone-muted rb-counts">${et('ui.rbills.counts', sum.counts)}</p>
-            <button type="button" class="btn btn-tonal rb-add" data-onclick="recurring.showForm('add')">${icon('plus', 'i-sm')} ${et('ui.rbills.add')}</button>
+            ${canManage() ? `<button type="button" class="btn btn-tonal rb-add" data-onclick="recurring.showForm('add')">${icon('plus', 'i-sm')} ${et('ui.rbills.add')}</button>` : ''}
         </div>`;
 }
 
@@ -149,16 +166,32 @@ function renderBillForm(v) {
         </div>`;
 }
 
+const seg = (label, field, pairs, chosen) => `<div class="field"><span class="rb-pick-label" id="rb-${esc(field)}-l">${et(label)}</span>
+            <div class="seg" role="group" aria-labelledby="rb-${esc(field)}-l" data-rb-seg="${esc(field)}">${pairs.map(([v, key]) => `<button type="button" aria-pressed="${String(v === chosen)}" data-onclick="recurring.pick('${js(field)}', '${js(v)}')">${et(key)}</button>`).join('')}</div></div>`;
+
+/** "Already in Expenses": the expenses near the payment's day, the same amount first. */
+function expenseChoices(p) {
+    const list = linkCandidates(AppState.expensesHistory || [], { day: p.date || today(), amount: Number(p.amount) || 0 }).slice(0, 12);
+    if (!list.length) return `<p class="tone-muted" id="rbNoExpense">${et('ui.rbills.no_expense_match')}</p>`;
+    return `<div class="panel rb-exp-list" role="radiogroup" aria-label="${et('ui.rbills.pick_expense')}">${list.map(x => `<label class="row">
+            <input type="radio" name="rbExpense" value="${esc(x.id)}"${String(x.id) === p.expenseId ? ' checked' : ''} data-onchange="recurring.pick('expenseId', '${js(x.id)}')">
+            <span class="row-main"><span class="row-title">${esc(formatRupees(x.amount))} · ${esc(x.type || '')}</span>
+            <span class="row-meta">${esc(dayName(expenseDayOf(x)))} · ${et(MODE_KEYS[x.paymentMode === 'online' ? 'online' : 'cash'])}${x.remarks ? ` · ${esc(x.remarks)}` : ''}</span></span></label>`).join('')}</div>`;
+}
+
 function renderPayForm(v) {
-    const period = defaultPeriod(v, 'pay');
-    const left = Math.max(0, v.balance);
+    const p = state.pay;
+    const have = p.inExp === 'have';
+    const amount = p.amount !== '' ? p.amount : (Math.max(0, v.balance) || '');
     return `<div class="panel panel-pad rb-form" id="rbPayForm">
             <h3>${et('ui.rbills.record', { name: v.item.name })}</h3>
-            <div class="field">${label('rbAmount', 'ui.rbills.amount')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="rbAmount" inputmode="numeric" type="number" min="1" step="1" value="${esc(left || '')}"></div></div>
-            <div class="field">${label('rbPeriod', 'ui.rbills.period')}<select class="input" id="rbPeriod">${periodOptions(v, period)}</select></div>
-            <div class="field">${label('rbDate', 'ui.rbills.date')}<input class="input" id="rbDate" type="date" value="${esc(today())}" max="${esc(today())}"></div>
-            <div class="field">${label('rbMode', 'ui.rbills.mode')}<select class="input" id="rbMode">${options(Object.entries(MODE_KEYS).map(([k, key]) => [k, t(key)]), 'cash')}</select></div>
-            <div class="field">${label('rbPayNote', 'ui.rbills.pay_note')}<input class="input" id="rbPayNote" maxlength="${esc(MAX_NOTE)}" autocomplete="off"></div>
+            <div class="field">${label('rbAmount', 'ui.rbills.amount')}<div class="adorn"><span class="adorn-pre" aria-hidden="true">₹</span><input class="input" id="rbAmount" inputmode="numeric" type="number" min="1" step="1" value="${esc(amount)}" data-onchange="recurring.keep()"></div></div>
+            <div class="field">${label('rbPeriod', 'ui.rbills.period')}<select class="input" id="rbPeriod">${periodOptions(v, p.period || defaultPeriod(v, 'pay'))}</select></div>
+            <div class="field">${label('rbDate', 'ui.rbills.date')}<input class="input" id="rbDate" type="date" value="${esc(p.date || today())}" max="${esc(today())}" data-onchange="recurring.keep()"></div>
+            ${seg('ui.rbills.in_expenses', 'inExp', [['new', 'ui.rbills.add_to_expenses'], ['have', 'ui.rbills.already_in_expenses']], p.inExp)}
+            ${have ? expenseChoices(p) : seg('ui.rbills.mode', 'mode', Object.entries(MODE_KEYS), p.mode)}
+            <div class="field">${label('rbPayNote', 'ui.rbills.pay_note')}<input class="input" id="rbPayNote" maxlength="${esc(MAX_NOTE)}" autocomplete="off" value="${esc(p.note)}"></div>
+            <p class="tone-muted rb-hint">${et('ui.rbills.counts_once')} ${infoTipHtml(t(have ? 'ui.rbills.counts_once_have' : 'ui.rbills.counts_once_new'))}</p>
             ${formActions('savePay')}
         </div>`;
 }
@@ -189,6 +222,18 @@ function renderPeriods(v) {
             <tbody>${rows}</tbody></table></div></div>`;
 }
 
+/** The loaded expense of a payment (null when not loaded on this phone). */
+const expenseOf = (id) => (id ? (AppState.expensesHistory || []).find(x => String(x?.id) === String(id)) || null : null);
+
+/** Who may take a payment off: with its expense voided (VOID-EXP), or the owner for one not in Money. */
+function mayRemove(item, e) {
+    const exp = payExpenseId(item, e);
+    if (!exp) return isOwner();
+    const loaded = expenseOf(exp);
+    if (loaded) return canVoidExpenseWith(loaded, { uid: AppState.currentUser?.uid, role: role(), raw: AppState.settings?.roleAccess });
+    return isOwner() || role() === 'manager';
+}
+
 function renderEntries(item) {
     const list = [...(item.entries || [])].reverse();
     if (!list.length) return emptyState({ icon: 'list', title: t('ui.rbills.no_entries') });
@@ -198,27 +243,35 @@ function renderEntries(item) {
             return `<div class="row" data-entry="${esc(e.id)}"><span class="row-main"><span class="row-title">${et('ui.rbills.entry_bill', { amount: formatRupees(e.amount) })}</span>
                 <span class="row-meta">${et('ui.rbills.entry_bill_meta', { month, date: dayName(e.date) })}</span></span></div>`;
         }
+        const inMoney = !!payExpenseId(item, e);
+        const mark = inMoney ? '' : ` <span class="tag warn" data-rb-not-in-money>${et('ui.rbills.not_in_money')}</span>`;
+        const add = !inMoney && isOwner() ? `<button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.addToMoney('${js(item.id)}', '${js(e.id)}')">${et('ui.rbills.add_to_money')}</button>` : '';
+        const remove = mayRemove(item, e) ? `<button type="button" class="btn btn-ghost btn-sm" data-onclick="recurring.removeEntry('${js(item.id)}', '${js(e.id)}')">${et(inMoney ? 'ui.rbills.void' : 'ui.rbills.remove')}</button>` : '';
         return `<div class="row" data-entry="${esc(e.id)}">
-            <span class="row-main"><span class="row-title">${et('ui.rbills.entry_pay', { amount: formatRupees(e.amount) })}</span>
+            <span class="row-main"><span class="row-title">${et('ui.rbills.entry_pay', { amount: formatRupees(e.amount) })}${mark}</span>
             <span class="row-meta">${et('ui.rbills.entry_pay_meta', { month, date: dayName(e.date), mode: t(MODE_KEYS[e.mode] || MODE_KEYS.cash) })}${e.note ? ` · ${esc(e.note)}` : ''}</span></span>
-            <button type="button" class="btn btn-ghost btn-sm" data-onclick="recurring.removeEntry('${js(item.id)}', '${js(e.id)}')">${et('ui.rbills.remove')}</button>
+            ${add}${remove}
         </div>`;
     }).join('');
 }
 
 function renderDetail(v) {
     const it = v.item;
-    const form = state.form === 'bill' ? renderBillForm(v) : state.form === 'pay' ? renderPayForm(v)
-        : state.form === 'edit' ? renderItemForm(it) : state.form === 'stop' ? renderStopForm(v) : '';
-    const stop = it.active === false ? '' : `<button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.showForm('stop')">${et('ui.rbills.stop')}</button>`;
+    const manage = canManage();
+    const form = state.form === 'bill' && manage ? renderBillForm(v) : state.form === 'pay' ? renderPayForm(v)
+        : state.form === 'edit' && manage ? renderItemForm(it) : state.form === 'stop' && manage ? renderStopForm(v) : '';
+    const stop = it.active === false || !manage ? '' : `<button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.showForm('stop')">${et('ui.rbills.stop')}</button>`;
+    const keep = manage
+        ? `<button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.showForm('bill')">${et('ui.rbills.enter_bill_btn')}</button>` : '';
+    const edit = manage ? `<button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.showForm('edit')">${et('ui.rbills.edit')}</button>` : '';
     return `<section class="panel panel-pad rb-detail" id="rbDetail">
             <h3>${esc(it.name)}</h3>
             ${it.note ? `<p class="tone-muted">${esc(it.note)}</p>` : ''}
             <p>${balanceLine(v.balance)}${v.nextDue ? ` · ${et('ui.rbills.next_due', { date: dayName(v.nextDue) })}` : ''}</p>
             <div class="rb-actions">
-                <button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.showForm('bill')">${et('ui.rbills.enter_bill_btn')}</button>
+                ${keep}
                 <button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.showForm('pay')">${et('ui.rbills.record_btn')}</button>
-                <button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.showForm('edit')">${et('ui.rbills.edit')}</button>
+                ${edit}
                 ${stop}
             </div>
             ${form}
@@ -232,8 +285,8 @@ function renderDetail(v) {
 export function render() {
     const root = byId('recurringBody');
     if (!root) return;
-    if (!isOwner()) {
-        root.innerHTML = `<p class="empty">${et('ui.rbills.owner_only')}</p>`;
+    if (!canSee()) {
+        root.innerHTML = `<p class="empty">${et('ui.rbills.no_access')}</p>`;
         return;
     }
     if (!state.loaded) {
@@ -249,7 +302,9 @@ export function render() {
     const list = rows.length
         ? `<div class="panel rb-list">${rows.map(renderRow).join('')}</div>`
         : emptyState({ icon: 'receipt', title: t('ui.rbills.none') });
-    root.innerHTML = `${renderSummary(sum)}
+    const linking = expenseOf(state.linkExp);
+    const pickNote = linking ? `<p class="notice info" id="rbLinkPick">${et('ui.rbills.link_pick', { amount: formatRupees(linking.amount), date: dayName(expenseDayOf(linking)) })}</p>` : '';
+    root.innerHTML = `${pickNote}${renderSummary(sum)}
         ${state.form === 'add' ? renderItemForm(null) : ''}
         ${list}
         ${open ? renderDetail(open) : ''}`;
@@ -266,21 +321,20 @@ function ensureCss() {
 
 /** Keeps RB-11 for Today from the loaded items (no reads). */
 function noteDue(list = state.items, uid = AppState.currentUser?.uid) {
-    setLinkedSource('billItems', list);
     if (!uid) return;
     try { saveBillsDue(localStorage, { uid, days: billsDueDays(list, today()) }); } catch (_) { /* never break the page */ }
 }
 
 /**
- * Today's bills line (RB-11), once a day on the owner's phone (main.js, after the first screen): one
- * read per bill item. Nothing on the page changes.
+ * Today's bills line (RB-11), once a day on the phone of anyone who sees the page (main.js, after the
+ * first screen): one read per bill item. Nothing on the page changes.
  */
 export async function refreshBillsDue() {
     const uid = AppState.currentUser?.uid;
-    if (!isOwner() || !uid) return false;
+    if (!canSee() || !uid) return false;
     const seq = state.seq;
     const list = await repo.loadBillItems();
-    if (AppState.currentUser?.uid !== uid || !isOwner()) return false;
+    if (AppState.currentUser?.uid !== uid || !canSee()) return false;
     // The page opened or saved meanwhile: its figure is newer than this read
     if (seq !== state.seq || state.loaded) return false;
     noteDue(list, uid);
@@ -293,7 +347,7 @@ export async function init() {
     state.loaded = false;
     state.error = false;
     render();
-    if (!isOwner()) return;
+    if (!canSee()) return;
     const seq = ++state.seq;
     try {
         const list = await repo.loadBillItems();
@@ -314,6 +368,12 @@ export function open(id) {
     state.open = state.open === id ? '' : id;
     if (state.form !== 'add') state.form = '';
     state.unusual = null;
+    const x = state.open ? expenseOf(state.linkExp) : null;
+    if (x) {
+        state.form = 'pay';
+        state.pay = { mode: '', inExp: 'have', expenseId: String(x.id), amount: String(payFromExpense(x).amount), date: expenseDayOf(x), period: '', note: '' };
+        state.linkExp = '';
+    }
     render();
     if (state.open) byId('rbDetail')?.scrollIntoView?.({ block: 'nearest' });
 }
@@ -321,6 +381,7 @@ export function open(id) {
 export function showForm(kind) {
     state.form = kind;
     state.unusual = null;
+    if (kind === 'pay') state.pay = { mode: '', inExp: 'new', expenseId: '', amount: '', date: '', period: '', note: '' };
     render();
     byId(focusFirst[kind])?.focus?.();
 }
@@ -332,7 +393,7 @@ export function cancel() {
 }
 
 const openItem = () => state.items.find(x => x.id === state.open);
-const warn = (key) => UIManager.showToast(t(key), 'warning');
+const warn = (key, params) => UIManager.showToast(t(key, params), 'warning');
 
 /** Runs one save (one tap = one write), refusing offline; true when saved. */
 async function save(key, fn, doneKey, params) {
@@ -403,16 +464,79 @@ export async function saveBill(confirmed = false) {
     }, 'msg.rbills.bill_saved', { amount: formatRupees(full.amount), name: it.name, month: monthName(full.period) });
 }
 
+/** Keeps what is typed in the payment form across a redraw. */
+export function keep() {
+    if (!byId('rbPayForm')) return;
+    Object.assign(state.pay, { amount: val('rbAmount'), date: val('rbDate'), period: val('rbPeriod'), note: val('rbPayNote') });
+}
+
+/** The payment form's buttons: cash / online, add to / already in Expenses, the expense picked. */
+export function pick(field, value) {
+    keep();
+    if (!['mode', 'inExp', 'expenseId'].includes(field)) return;
+    state.pay[field] = String(value);
+    if (field === 'expenseId') return;
+    render();
+}
+
+const who = () => ({ role: role(), roleAccess: AppState.settings?.roleAccess, now: new Date() });
+
+/** Drawer and Today follow a new or voided bill expense at once. */
+function refreshCash() {
+    const cm = window.app?.cashManagement;
+    if (!cm) return;
+    cm.calculateTodayTransactions?.().catch?.(e => console.warn('Cash refresh after bill payment failed:', e?.code || e));
+    cm.updateUI?.();
+}
+
+/**
+ * Records a payment with its one expense (RB-12), in one batch: a new expense (business, "Bills", the
+ * payment's mode and day), or one already in Expenses (its amount, day and mode). Online only.
+ */
 export async function savePay() {
     const it = openItem();
     if (!it) return;
-    const { entry, error } = checkEntry({ kind: 'pay', amount: val('rbAmount'), period: val('rbPeriod'), date: val('rbDate'), mode: val('rbMode'), note: val('rbPayNote') }, it, today());
+    keep();
+    const p = state.pay;
+    const picked = p.inExp === 'have' ? linkCandidates(AppState.expensesHistory || [], { day: p.date || today(), amount: Number(p.amount) || 0 }).find(x => String(x.id) === p.expenseId) : null;
+    if (p.inExp === 'have' && !picked) return warn('msg.rbills.pick_expense');
+    if (p.inExp !== 'have' && !p.mode) return warn('msg.rbills.choose_mode');
+    const from = picked ? payFromExpense(picked) : { amount: p.amount, date: p.date, mode: p.mode };
+    const { entry, error } = checkEntry({ kind: 'pay', amount: from.amount, period: p.period, date: from.date, mode: from.mode, note: p.note }, it, today());
     if (error) return warn(error);
+    if (!picked) {
+        const problem = validateExpenseEntry({ day: entry.date, mode: entry.mode }, who());
+        if (problem) return warn(problem.key, problem.params);
+        if (backdatedCash(entry.date, entry.mode === 'cash' ? entry.amount : 0, role()) === 'refuse') return warn('msg.rbills.cash_today_only');
+    }
     const full = { id: newId(), ...entry };
-    await save('rbills.pay', async () => {
-        await repo.addEntry(it.id, full);
+    const ok = await save('rbills.pay', async () => {
+        if (picked) {
+            await FirebaseService.linkExpense(picked.id, { recurringBillId: it.id, recurringPayId: full.id }, repo.payWrite(it.id, full));
+            full.expenseId = String(picked.id);
+        } else {
+            const expense = billExpense(it, full, { uid: AppState.currentUser?.uid, name: AppState.userName || '' });
+            const { record, committed } = FirebaseService.startSaveExpense(expense, { withBatch: repo.payWrite(it.id, full) });
+            await committed;
+            full.expenseId = record.id;
+        }
         it.entries = [...(it.entries || []), full];
     }, 'msg.rbills.recorded', { amount: formatRupees(full.amount), name: it.name });
+    if (ok) refreshCash();
+}
+
+/** Owner: puts a payment recorded before payments made expenses into Money (one new expense). */
+export async function addToMoney(itemId, entryId) {
+    const it = state.items.find(x => x.id === itemId);
+    const e = it?.entries?.find(x => x.id === entryId && x.kind === 'pay');
+    if (!e || !isOwner() || payExpenseId(it, e)) return;
+    const ok = await save('rbills.money', async () => {
+        const expense = billExpense(it, e, { uid: AppState.currentUser?.uid, name: AppState.userName || '' });
+        const { record, committed } = FirebaseService.startSaveExpense(expense, { withBatch: repo.linkedWrite(it.id, e.id) });
+        await committed;
+        it.linked = { ...(it.linked || {}), [e.id]: record.id };
+    }, 'msg.rbills.added_to_money', { amount: formatRupees(e.amount) });
+    if (ok) refreshCash();
 }
 
 export async function saveStop() {
@@ -432,10 +556,31 @@ export async function saveStop() {
     }, 'msg.rbills.stopped', { name: it.name });
 }
 
+/** Takes a payment off: one in Money by voiding its expense (the payment goes with it, VOID-EXP); an older one (owner). */
 export async function removeEntry(itemId, entryId) {
     const it = state.items.find(x => x.id === itemId);
     const entry = it?.entries?.find(e => e.id === entryId && e.kind === 'pay');
-    if (!entry || Helpers.isBusy('rbills.remove')) return;
+    if (!entry || !mayRemove(it, entry) || Helpers.isBusy('rbills.remove')) return;
+    const expenseId = payExpenseId(it, entry);
+    if (expenseId) {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return warn('msg.rbills.needs_internet');
+        const reason = await askReason({ titleKey: 'ui.rbills.void_title', explainKey: 'ui.rbills.void_explain', labelKey: 'ui.expenses.void_reason', confirmKey: 'ui.rbills.void', danger: true });
+        if (!reason) return;
+        try {
+            await Helpers.runExclusive('rbills.remove', '#recurring .btn', () => FirebaseService.voidExpense(expenseId, reason));
+        } catch (e) {
+            console.warn('Bill payment not voided:', e?.code || e);
+            UIManager.showToast(t(isPermissionDenied(e) ? 'msg.rbills.void_not_allowed' : 'msg.rbills.not_saved'), 'error');
+            return;
+        }
+        it.entries = it.entries.filter(e => e.id !== entryId);
+        if (it.linked?.[entryId]) it.linked = Object.fromEntries(Object.entries(it.linked).filter(([k]) => k !== entryId));
+        noteDue();
+        render();
+        refreshCash();
+        UIManager.showToast(t('msg.rbills.voided'), 'success');
+        return;
+    }
     const ok = await UIManager.showModal(t('msg.rbills.remove_confirm', { amount: formatRupees(entry.amount), name: it.name }), t('ui.rbills.remove'), true, { confirmLabel: t('ui.rbills.remove'), danger: true });
     if (!ok) return;
     await save('rbills.remove', async () => {
@@ -444,9 +589,17 @@ export async function removeEntry(itemId, entryId) {
     }, 'msg.rbills.removed');
 }
 
-/** Signed out: nothing of the last owner's stays in memory. */
-export function reset() {
-    Object.assign(state, { items: [], loaded: false, error: false, open: '', form: '', seq: state.seq + 1, unusual: null });
+/** From an expense's details: open the bill it paid, and the payment form has it picked. */
+export function linkFrom(expenseId) {
+    if (!expenseOf(expenseId)) return;
+    state.linkExp = String(expenseId);
+    window.app?.expenses?.closeExpenseDetails?.();
+    window.app?.nav?.showTab?.('recurring');
 }
 
-export const RecurringBillsManager = { init, render, reset, open, showForm, cancel, saveItem, saveEdit, saveBill, savePay, saveStop, removeEntry, refreshBillsDue };
+/** Signed out: nothing of the last user's stays in memory. */
+export function reset() {
+    Object.assign(state, { items: [], loaded: false, error: false, open: '', form: '', seq: state.seq + 1, unusual: null, linkExp: '' });
+}
+
+export const RecurringBillsManager = { init, render, reset, open, showForm, cancel, saveItem, saveEdit, saveBill, savePay, saveStop, removeEntry, refreshBillsDue, keep, pick, addToMoney, linkFrom };

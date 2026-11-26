@@ -60,6 +60,7 @@ import { SecurityMonitor } from './services/security-monitor.js';
 import { startLongTaskRecorder } from './utils/perf-probe.js';
 import { shortcutFromSearch, withoutShortcut } from './utils/launch-shortcut.js';
 import { chooseStartPage, routeFromHash } from './utils/start-page.js';
+import { canOpenTab } from './utils/role-access.js';
 import { UsageView } from './ui/usage-view.js';
 import { installActions } from './ui/actions.js';
 import { installTablistKeys } from './ui/seg.js';
@@ -76,7 +77,7 @@ const langReady = loadCatalogue(getLang()).catch(e => console.error('Language ca
 // your console shows an OLDER BUILD_ID after a deploy + reload, the service
 // worker / browser is still serving stale assets (reload twice, or hard
 // refresh / unregister the service worker).
-const BUILD_ID = '20261125b-rc23-hindi-kg';
+const BUILD_ID = '20261126a-recurring-in-money';
 console.log(
     `%c[Aadhat] BUILD ${BUILD_ID}`,
     'color:#fff;background:#0a7;font-weight:bold;padding:2px 6px;border-radius:3px'
@@ -196,17 +197,18 @@ const withPrinterTest = (fn) => import('./ui/printer-test.js').then(fn).catch((e
 const PAGE_CODE = { stock: loadStock, 'wholesale-sales': loadWholesale, expenses: loadExpenses };
 TemplateLoader.pageCode = (tab) => PAGE_CODE[tab]?.();
 const ownerRefreshes = new Map();
+const isOwnerNow = () => AppState.userRole === 'owner';
 /**
- * An owner reminder kept on this phone (salaries #373 WP-11, bills #437 RB-11): once per session on the
- * owner's phone, after the first screen, and only when this phone keeps it from an earlier day (its page
+ * A reminder kept on this phone (salaries #373 WP-11, owner; bills #437 RB-11, whoever sees the page): once
+ * per session, after the first screen, and only when this phone keeps it from an earlier day (its page
  * was opened here): one read per document of that page.
  */
-function scheduleOwnerRefresh(name, isStale, refresh) {
+function scheduleOwnerRefresh(name, isStale, refresh, mayRun = isOwnerNow) {
     const uid = AppState.currentUser?.uid;
-    if (AppState.userRole !== 'owner' || !uid || ownerRefreshes.get(name) === uid) return;
+    if (!mayRun() || !uid || ownerRefreshes.get(name) === uid) return;
     ownerRefreshes.set(name, uid);
     whenIdle(() => {
-        if (AppState.currentUser?.uid !== uid || AppState.userRole !== 'owner' || navigator.onLine === false) return;
+        if (AppState.currentUser?.uid !== uid || !mayRun() || navigator.onLine === false) return;
         if (!backgroundReadsAllowed() || !isStale(localStorage, uid)) return;
         refresh().catch(e => console.warn(`${name} not refreshed:`, e?.code || e?.message || e));
     }, { minDelayMs: 20000 });
@@ -221,7 +223,8 @@ function scheduleOwnerReminders() {
         }, { minDelayMs: 15000 });
     }
     scheduleOwnerRefresh('Salaries due', payDueStale, () => loadWorkers().then(m => m.refreshPayDue()));
-    scheduleOwnerRefresh('Bills due', billsDueStale, () => loadRecurring().then(m => m.refreshBillsDue()));
+    scheduleOwnerRefresh('Bills due', billsDueStale, () => loadRecurring().then(m => m.refreshBillsDue()),
+        () => !!AppState.userRole && canOpenTab('recurring', AppState.userRole, AppState.settings?.roleAccess));
 }
 
 // Data changes re-render the open lazy pages (firestore-service.js emits, utils/events.js);
@@ -1551,9 +1554,9 @@ window.app = {
             .map(name => [name, (...args) => loadWorkers().then(m => m[name](...args))]))
     },
 
-    // Recurring bills (#437): owner page, recurring-bills.js is imported on first use
+    // Recurring bills (#437): Roles & access page, recurring-bills.js is imported on first use
     recurring: {
-        ...Object.fromEntries(['init', 'render', 'open', 'showForm', 'cancel', 'saveItem', 'saveEdit', 'saveBill', 'savePay', 'saveStop', 'removeEntry']
+        ...Object.fromEntries(['init', 'render', 'open', 'showForm', 'cancel', 'saveItem', 'saveEdit', 'saveBill', 'savePay', 'saveStop', 'removeEntry', 'keep', 'pick', 'addToMoney', 'linkFrom']
             .map(name => [name, (...args) => loadRecurring().then(m => m[name](...args))]))
     },
 

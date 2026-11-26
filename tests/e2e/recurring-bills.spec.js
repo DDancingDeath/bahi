@@ -1,7 +1,8 @@
 /**
  * Recurring bills (#437, RB-*): the owner adds Electricity every 2 months, enters a bill, pays part of
- * it, sees it on Today (RB-11), then pays the rest; the entries are append-only in Firestore; the page
- * works in Hindi; managers and members cannot open it.
+ * it in cash, sees it on Today (RB-11), then pays the rest online; each payment is saved with its one
+ * "Bills" expense (RB-12, its own cash / online); the page works in Hindi; a member records payments
+ * but never adds or edits bills.
  */
 const { test, expect, login, showTab, clickAfterTyping, openDisclosure } = require('./support/app');
 const { listDocs } = require('./support/emulator');
@@ -33,6 +34,8 @@ test('the owner adds bimonthly electricity, enters a bill, part-pays, then pays 
 
     await page.click('#rbDetail [data-onclick="recurring.showForm(\'pay\')"]');
     await expect(page.locator('#rbAmount')).toHaveValue('1240');
+    await expect(page.locator('#rbPayForm [data-rb-seg="mode"] [aria-pressed="true"]')).toHaveCount(0);
+    await page.click(`#rbPayForm [data-onclick="recurring.pick('mode', 'cash')"]`);
     await page.fill('#rbAmount', '500');
     await clickAfterTyping(page, '#rbSave');
     await expect(page.locator('#toast')).toHaveText(`₹500 paid for ${name}`, { timeout: 30000 });
@@ -52,7 +55,7 @@ test('the owner adds bimonthly electricity, enters a bill, part-pays, then pays 
 
     await page.click('#rbDetail [data-onclick="recurring.showForm(\'pay\')"]');
     await expect(page.locator('#rbAmount')).toHaveValue('740');
-    await page.selectOption('#rbMode', 'online');
+    await page.click(`#rbPayForm [data-onclick="recurring.pick('mode', 'online')"]`);
     await clickAfterTyping(page, '#rbSave');
     await expect(state(page, name)).toHaveText('Paid', { timeout: 30000 });
     await expect(row(page, name)).toContainText('Nothing to pay');
@@ -60,6 +63,10 @@ test('the owner adds bimonthly electricity, enters a bill, part-pays, then pays 
     const doc = (await listDocs('dev_recurringBills')).find(b => b.name === name);
     expect(doc).toMatchObject({ cadence: 2, dueDay: 1, expected: 0, active: true });
     expect(doc.entries.map(e => [e.kind, e.amount, e.mode || ''])).toEqual([['bill', 1240, ''], ['pay', 500, 'cash'], ['pay', 740, 'online']]);
+    // RB-12: one "Bills" expense per payment, with its mode, linked both ways
+    const spent = (await listDocs('dev_expenses')).filter(e => e.recurringBillId === doc._id);
+    expect(spent.map(e => [e.type, e.amount, e.paymentMode]).sort()).toEqual([['Bills', 500, 'cash'], ['Bills', 740, 'online']]);
+    doc.entries.filter(e => e.kind === 'pay').forEach(e => expect(spent.find(x => x.recurringPayId === e.id)).toBeTruthy());
 
     await page.evaluate(() => window.app.i18n.setLang('hi'));
     await expect(page.locator('#recurring h2')).toHaveText('नियमित बिल');
@@ -70,12 +77,10 @@ test('the owner adds bimonthly electricity, enters a bill, part-pays, then pays 
     expect(problems.consoleErrors).toEqual([]);
 });
 
-for (const [role, label] of [['manager', 'manager'], ['staff', 'member']]) {
-    test(`a ${label} has no Recurring bills link and cannot open the page`, async ({ page, problems }) => {
-        await login(page, role);
-        await expect(page.locator('#recurringNavLink')).toBeHidden();
-        await page.evaluate(() => window.app.nav.showTab('recurring'));
-        await expect(page.locator('#recurring.tab.active')).toHaveCount(0);
-        expect(problems.pageErrors).toEqual([]);
-    });
-}
+test('a member opens Recurring bills (on by default) and may record payments, never add or edit bills', async ({ page, problems }) => {
+    await login(page, 'staff');
+    await showTab(page, 'recurring');
+    await expect(page.locator('#recurringBody .rb-metrics')).toBeVisible();
+    await expect(page.locator('#recurringBody [data-onclick="recurring.showForm(\'add\')"]')).toHaveCount(0);
+    expect(problems.pageErrors).toEqual([]);
+});

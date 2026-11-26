@@ -1714,7 +1714,7 @@ service cloud.firestore {
         && d.get('createdAt', null) is number && rentStr(d, 'createdBy', 1, 128);
     }
 
-    // Worker pay (#373): owner only; one doc per worker, entries append-only or one removed.
+    // Worker pay (#373), recurring bills (#437): docs/security.md.
     function wpEntryOk(e) {
       return e is map && e.keys().hasOnly(['id', 'month', 'date', 'amount', 'kind', 'mode', 'note'])
         && rentStr(e, 'id', 1, 40) && rentMonth(e.get('month', '')) && dayKeyOk(e.get('date', ''))
@@ -1727,8 +1727,6 @@ service cloud.firestore {
         && s.get('amount', null) is int && s.amount >= 0 && s.amount <= 10000000;
     }
 
-    // Worker pay and recurring bills: created with no entries; an update keeps them, appends one with
-    // the earlier ones unchanged (arrayUnion), or removes exactly one (arrayRemove). At most 3,000.
     function keptEntriesOk(isNew, e, n) {
       let o = isNew ? 0 : resource.data.entries.size();
       return n >= 0 && n <= 3000
@@ -1749,10 +1747,8 @@ service cloud.firestore {
         && keptEntriesOk(isNew, e, n) && (n == 0 || wpEntryOk(e[n - 1]));
     }
 
-    // Recurring bills (#437): owner only; one doc per bill item; entries are bill amounts (kind 'bill',
-    // the newest for a period counts) and payments, append-only or one removed.
     function rbEntryOk(e) {
-      return e is map && e.keys().hasOnly(['id', 'kind', 'period', 'date', 'amount', 'mode', 'note'])
+      return e is map && e.keys().hasOnly(['id', 'kind', 'period', 'date', 'amount', 'mode', 'note', 'expenseId'])
         && rentStr(e, 'id', 1, 40) && rentMonth(e.get('period', '')) && dayKeyOk(e.get('date', ''))
         && e.get('amount', null) is int && e.amount <= 10000000 && rentStr(e, 'note', 0, 120)
         && (e.get('kind', '') == 'bill' ? e.amount >= 0 && !('mode' in e)
@@ -1763,7 +1759,7 @@ service cloud.firestore {
       let d = request.resource.data;
       let e = d.get('entries', null);
       let n = e is list ? e.size() : -1;
-      return d.keys().hasOnly(['name', 'cadence', 'dueDay', 'startMonth', 'expected', 'active', 'endMonth', 'note', 'entries', 'updatedAt'])
+      return d.keys().hasOnly(['name', 'cadence', 'dueDay', 'startMonth', 'expected', 'active', 'endMonth', 'note', 'entries', 'updatedAt', 'linked'])
         && rentStr(d, 'name', 1, 60) && d.get('cadence', 0) is int && d.cadence in [1, 2, 3, 6, 12]
         && d.get('dueDay', 0) is int && d.dueDay >= 1 && d.dueDay <= 28 && rentMonth(d.get('startMonth', ''))
         && d.get('expected', null) is int && d.expected >= 0 && d.expected <= 10000000 && d.get('active', null) is bool
@@ -1772,8 +1768,37 @@ service cloud.firestore {
         && (isNew || resource.data.entries.size() == 0 || (d.cadence == resource.data.cadence && d.startMonth == resource.data.startMonth));
     }
 
-    // Shared business collections (prod and dev_). Create and update dispatch on the collection
-    // here rather than in a helper: every helper layer is re-walked by the rules compiler.
+    function rbOn(u) {
+      let r = myRole(u);
+      return isApprovedIn(u) && (r == 'owner' || roleAccessOf(u, r).get('recurringBills', true) == true);
+    }
+
+    function rbUpdOk(u, docId) {
+      let o = resource.data.entries;
+      let e = request.resource.data.entries;
+      let n = e.size() - o.size();
+      let x = n > 0 ? e[e.size() - 1] : (n < 0 ? o.removeAll(e)[0] : {});
+      let r = myRole(u);
+      return r == 'owner' || (r == 'manager' && (n == 0 || (n == 1 && x.kind == 'bill')))
+        || (x.get('kind', '') == 'pay' && rbExpOk(u, x, docId, n > 0)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['entries', 'updatedAt']));
+    }
+
+    function rbExpOk(u, x, docId, add) {
+      let p = /databases/$(database)/documents/$(u == 'users' ? 'expenses' : 'dev_expenses')/$(x.get('expenseId', '-'));
+      let d = getAfter(p).data;
+      return d.get('recurringBillId', '') == docId && d.get('recurringPayId', '') == x.id
+        && (add ? d.amount == x.amount && d.get('paymentMode', 'cash') == x.mode
+              && (x.mode == 'online' || exists(p) || timestamp.date(int(x.date[0:4]), int(x.date[5:7]), int(x.date[8:10])) > request.time - duration.value(1110, 'm'))
+            : d.get('voided', false) == true);
+    }
+
+    function rbPayOk(u, d, docId) {
+      let l = getAfter(/databases/$(database)/documents/$((u == 'users' ? '' : 'dev_') + 'recurringBills')/$(d.recurringBillId)).data.entries;
+      return l[l.size() - 1].get('expenseId', '') == docId && l[l.size() - 1].id == d.get('recurringPayId', '');
+    }
+
+    // Shared business collections (prod and dev_): docs/security.md.
     match /{collection}/{docId} {
       allow get: if businessAccess(collection)
         && canReadRecord(baseName(collection), usersOf(collection), docId, true);
@@ -1789,7 +1814,8 @@ service cloud.firestore {
           : collection in ['expenses', 'dev_expenses']
             ? !personalTagged(request.resource.data) && expenseFieldsOk(request.resource.data)
               && (isOwnerIn(usersOf(collection))
-                  || (validLedgerCreate() && expenseDayInWindow(usersOf(collection))))
+                  || (validLedgerCreate() && expenseDayInWindow(usersOf(collection))
+                      && (!('recurringBillId' in request.resource.data) || rbPayOk(usersOf(collection), request.resource.data, docId))))
           : collection in ['personalExpenses', 'dev_personalExpenses']
             ? expenseFieldsOk(request.resource.data)
               && (isOwnerIn(usersOf(collection))
@@ -1831,7 +1857,9 @@ service cloud.firestore {
                   ? !(personalTagged(request.resource.data) && !personalTagged(resource.data))
                     && (changedKeys().hasAny(expenseVoidFields())
                         ? expenseVoidOk(usersOf(collection), changedKeys())
-                        : isOwnerIn(usersOf(collection)) || canUpdateExpense(usersOf(collection)))
+                        : isOwnerIn(usersOf(collection)) || canUpdateExpense(usersOf(collection))
+                          || (changedKeys().hasOnly(['recurringBillId', 'recurringPayId']) && !('recurringBillId' in resource.data)
+                              && rbPayOk(usersOf(collection), request.resource.data, docId)))
                   : changedKeys().hasAny(expenseVoidFields())
                     ? personalOn(usersOf(collection)) && personalVoidLeavesDay(usersOf(collection), docId)
                       && expenseVoidOk(usersOf(collection), changedKeys())
@@ -2071,8 +2099,7 @@ service cloud.firestore {
         && (!('createdAt' in d) || d.createdAt == request.time);
     }
 
-    // Explicit prod and dev_ blocks below: a wildcard block is evaluated for every write and
-    // counts towards the 1000-expression limit per document.
+    // Explicit prod and dev_ blocks: docs/security.md.
     match /purchases/{billId}/edits/{editId} {
       allow read: if isApprovedIn('users');
       allow create: if validEditCreate('users', 'purchases', billId, editId);
@@ -2282,9 +2309,10 @@ service cloud.firestore {
       allow update: if isOwnerIn('users') && wpOk(false);
     }
     match /recurringBills/{docId} {
-      allow read, delete: if isOwnerIn('users');
-      allow create: if isOwnerIn('users') && rbOk(true);
-      allow update: if isOwnerIn('users') && rbOk(false);
+      allow read: if rbOn('users');
+      allow delete: if isOwnerIn('users');
+      allow create: if rbOn('users') && isManagerIn('users') && rbOk(true);
+      allow update: if rbOn('users') && rbOk(false) && rbUpdOk('users', docId);
     }
 
     match /dev_stockCheckpoints/{docId} {
@@ -2441,9 +2469,10 @@ service cloud.firestore {
       allow update: if isOwnerIn('dev_users') && wpOk(false);
     }
     match /dev_recurringBills/{docId} {
-      allow read, delete: if isOwnerIn('dev_users');
-      allow create: if isOwnerIn('dev_users') && rbOk(true);
-      allow update: if isOwnerIn('dev_users') && rbOk(false);
+      allow read: if rbOn('dev_users');
+      allow delete: if isOwnerIn('dev_users');
+      allow create: if rbOn('dev_users') && isManagerIn('dev_users') && rbOk(true);
+      allow update: if rbOn('dev_users') && rbOk(false) && rbUpdOk('dev_users', docId);
     }
   }
 }

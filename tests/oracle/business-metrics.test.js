@@ -16,7 +16,7 @@ import {
     stepDayOrWeek, drawerTerm, labourPaidIn
 } from '../../www/js/utils/business-metrics.js';
 import { labourPaidGap } from '../../www/js/utils/labour.js';
-import { linkedOutflows } from '../../www/js/utils/linked-outflows.js';
+import { linkedOutflows, afterLinked } from '../../www/js/utils/linked-outflows.js';
 import { INSIGHTS_DEFAULTS, insightsSettings } from '../../www/js/utils/insights-config.js';
 
 const FIX = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../fixtures/calculations/shop-month.json'), 'utf8'));
@@ -411,7 +411,7 @@ describe('insights rules', () => {
     });
 });
 
-describe('M22–M26 worker pay and regular bills (U-22)', () => {
+describe('M22, M25, M26 worker pay (U-22); M23 / M24 retired (#437)', () => {
     const workers = [
         { entries: [
             { month: '2026-10', date: '2026-10-05', amount: 8000, kind: 'pay', mode: 'cash' },
@@ -421,34 +421,22 @@ describe('M22–M26 worker pay and regular bills (U-22)', () => {
         { entries: [{ month: '2026-11', date: '2026-11-01', amount: 500, kind: 'advance', mode: 'cash' }] },
         {}
     ];
-    const billItems = [
-        { entries: [
-            { kind: 'bill', period: '2026-10', date: '2026-10-02', amount: 1500 },
-            { kind: 'pay', period: '2026-10', date: '2026-10-10', amount: 1500, mode: 'online' },
-            { kind: 'pay', period: '2026-09', date: '2026-10-01', amount: 300, mode: 'cash' }
-        ] }
-    ];
     const oct = { from: new Date(2026, 9, 1).getTime(), to: new Date(2026, 9, 31, 23, 59, 59).getTime() };
 
-    test('M22 counts pay and advances by payment date; M23 counts only payments, not bill amounts', () => {
-        const out = linkedOutflows(workers, billItems, oct.from, oct.to);
-        expect(out.workerPay).toEqual({ total: 10000, cash: 8000, online: 2000, count: 2 });
-        expect(out.bills).toEqual({ total: 1800, cash: 300, online: 1500, count: 2 });
-        expect(out.total).toEqual({ total: 11800, cash: 8300, online: 3500, count: 4 });
+    test('M22 counts pay and advances by payment date; recurring bills are not an add-on any more', () => {
+        expect(linkedOutflows(workers, oct.from, oct.to)).toEqual({ workerPay: { total: 10000, cash: 8000, online: 2000, count: 2 } });
     });
 
-    test('M25 = M6 − M24 and M26 = M14 − M24 (a loss stays a loss)', () => {
-        const { total } = linkedOutflows(workers, billItems, oct.from, oct.to);
-        const M6 = 5000;
-        const M14 = 20000;
-        expect(M6 - total.total).toBe(-6800);
-        expect(M14 - total.total).toBe(8200);
+    test('M25 = M6 - M22 and M26 = M14 - M22 (a loss stays a loss)', () => {
+        const out = linkedOutflows(workers, oct.from, oct.to);
+        expect(afterLinked(5000, out)).toBe(-5000);
+        expect(afterLinked(20000, out)).toBe(10000);
     });
 
     test('nothing loaded, bad dates and non-positive amounts count nothing', () => {
         const zero = { total: 0, cash: 0, online: 0, count: 0 };
-        expect(linkedOutflows(null, undefined, oct.from, oct.to).total).toEqual(zero);
+        expect(linkedOutflows(null, oct.from, oct.to).workerPay).toEqual(zero);
         const odd = [{ entries: [{ date: '31/10/2026', amount: 5 }, { date: '2026-10-09', amount: 0 }, { date: '2026-10-09', amount: -4 }, null] }];
-        expect(linkedOutflows(odd, odd, oct.from, oct.to).total).toEqual(zero);
+        expect(linkedOutflows(odd, oct.from, oct.to).workerPay).toEqual(zero);
     });
 });

@@ -984,7 +984,8 @@ describe('what each role sees (Roles & access)', () => {
     });
 });
 
-describe('worker pay and regular bills on Money (M22–M26, U-22)', () => {    let setLinkedSource;
+describe('worker pay on Money (M22, M25, M26, U-22); recurring bills count in M4 (RB-12)', () => {
+    let setLinkedSource;
     beforeAll(async () => {
         ({ setLinkedSource } = await import('../utils/linked-outflows.js'));
     });
@@ -993,36 +994,45 @@ describe('worker pay and regular bills on Money (M22–M26, U-22)', () => {    l
             { date: '2026-10-05', amount: 800, kind: 'pay', mode: 'cash' },
             { date: '2026-09-05', amount: 999, kind: 'pay', mode: 'cash' }
         ] }], Date.now());
-        setLinkedSource('billItems', [{ entries: [
-            { kind: 'bill', date: '2026-10-03', amount: 400 },
-            { kind: 'pay', date: '2026-10-04', amount: 400, mode: 'online' }
-        ] }], Date.now());
     };
 
-    test('owner: Spending lists them, Profit and Cash subtract the same M24, every ₹ explained', async () => {
+    test('owner: Spending lists worker pay, Profit and Cash subtract the same M22, every ₹ explained', async () => {
         const { unexplainedValues } = await import('../utils/metric-registry.js');
         seed();
         MoneyManager.init('spending');
         expect(document.getElementById('moneyLinkedCard').hidden).toBe(false);
         expect(shown('moneyLinkedWorkers')).toBe(800);
-        expect(shown('moneyLinkedBills')).toBe(400);
-        expect(shown('moneyLinkedTotal')).toBe(1200);
+        expect(document.getElementById('moneyLinkedBills')).toBeNull();
         const m = MoneyManager.lastSummary;
-        expect(shown('moneyProfitAfterLinked')).toBe(rupee(m.M6.total - 1200));
-        expect(shown('moneyNetAfterLinked')).toBe(rupee(m.M14 - 1200));
+        expect(shown('moneyProfitAfterLinked')).toBe(rupee(m.M6.total - 800));
+        expect(shown('moneyNetAfterLinked')).toBe(rupee(m.M14 - 800));
         expect(unexplainedValues(document.getElementById('money'))).toEqual([]);
     });
 
-    test('manager: hidden (only the owner may read workers and recurring bills)', () => {
+    test('a recurring-bill payment counts once in M4 and its "Bills" row (en + hi), through its expense only', () => {
+        MoneyManager.init('spending');
+        const before = MoneyManager.lastSummary.M4.total;
+        AppState.expensesHistory.push({ id: 'RB1', date: '2026-10-21', day: '2026-10-21', amount: 1240, category: 'business', type: 'Bills', paymentMode: 'cash', recurringBillId: 'b1', recurringPayId: 'p1' });
+        MoneyManager.summaryCache = { sig: null, map: new Map(), computed: 0 };
+        MoneyManager.init('spending');
+        expect(MoneyManager.lastSummary.M4.total).toBe(before + 1240);
+        expect(MoneyManager.lastSummary.M4.byCategory.find(c => c.category === 'Bills').total).toBe(1240);
+        expect(document.getElementById('moneyCategories').textContent).toContain('Bills');
+        setLang('hi');
+        MoneyManager.init('spending');
+        expect(document.getElementById('moneyCategories').textContent).toContain('बिल');
+        setLang('en');
+    });
+
+    test('manager: worker pay hidden (only the owner may read workers)', () => {
         seed();
         AppState.userRole = 'manager';
         MoneyManager.init('spending');
         ['moneyLinkedCard', 'moneyLinkedProfit', 'moneyLinkedCash'].forEach(id => expect(document.getElementById(id).hidden).toBe(true));
     });
 
-    test('owner, nothing loaded on this phone yet: opening Money reads nothing; one tap includes them', () => {
+    test('owner, nothing loaded on this phone yet: opening Money reads nothing; one tap includes it', () => {
         setLinkedSource('workers', null);
-        setLinkedSource('billItems', null);
         const load = jest.spyOn(MoneyManager, 'loadLinked').mockImplementation(() => {});
         MoneyManager.init('spending');
         expect(load).not.toHaveBeenCalled();
