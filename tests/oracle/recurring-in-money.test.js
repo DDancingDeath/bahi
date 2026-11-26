@@ -1,10 +1,10 @@
 /**
- * Oracle (#437, docs/calculations.md RB-12): a recurring-bill payment counts once, through its one expense,
+ * Oracle (#437 RB-12, #373 WP-12): a recurring-bill payment or a worker's pay counts once, through its one expense,
  * in Money (M4, M13), Today (T4, T8, T9) and the drawer (C3, Expected cash). Only cash moves the drawer; an
  * online payment never changes Expected cash, C3 or T8. The same whether the app saved the expense with the
  * payment or the payment was linked to an expense already in Expenses.
  */
-import { billExpense, payFromExpense, linkCandidates, payExpenseId, BILLS_TYPE } from '../../www/js/utils/linked-expense.js';
+import { billExpense, salaryExpense, payFromExpense, linkCandidates, payExpenseId, BILLS_TYPE, SALARIES_TYPE } from '../../www/js/utils/linked-expense.js';
 import { expenseDateFields } from '../../www/js/utils/expense-entry.js';
 import { moneySummary } from '../../www/js/utils/business-metrics.js';
 import { todaySummary } from '../../www/js/utils/calc/today.js';
@@ -26,6 +26,7 @@ function figures(expenses) {
     const c = drawerDay({ date: DAY, expenses, session: SESSION });
     return {
         M4: m.M4.total, bills: (m.M4.byCategory.find(x => x.category === BILLS_TYPE) || { total: 0 }).total,
+        salaries: (m.M4.byCategory.find(x => x.category === SALARIES_TYPE) || { total: 0 }).total,
         M13cash: m.M13.cash, M13online: m.M13.online,
         T4: t.businessExpenses, T8: t.cashOut, T9: t.onlineOut,
         C3: c.businessExpenses, expected: expectedCash(SESSION, c)
@@ -92,4 +93,37 @@ test('a payment recorded before RB-12 is not in Money until the owner adds it (l
     expect(payExpenseId({ entries: [old] }, old)).toBe('');
     expect(payExpenseId({ entries: [old], linked: { p0: 'e9' } }, old)).toBe('e9');
     expect(payExpenseId({}, { ...old, expenseId: 'e1' })).toBe('e1');
+});
+
+describe('worker pay (WP-12): the same rule, type "Salaries"', () => {
+    const worker = { id: 'w1', name: 'Ramu' };
+    const entry = (mode, kind = 'pay') => ({ id: `w-${mode}`, amount: 6000, date: DAY, mode, kind, month: '2026-11' });
+
+    test('cash pay lowers Expected cash by its amount and counts once in M4 (Salaries), M13 cash, T4, T8 and C3', () => {
+        const exp = salaryExpense(worker, entry('cash'), { uid: 'o1', now: NOW });
+        expect(exp).toMatchObject({ type: 'Salaries', personName: 'Ramu', category: 'business', paymentMode: 'cash', amount: 6000, day: DAY, workerId: 'w1', workerPayId: 'w-cash' });
+        expect(figures([tea, exp])).toEqual({
+            ...base, M4: base.M4 + 6000, salaries: 6000, M13cash: base.M13cash + 6000,
+            T4: base.T4 + 6000, T8: base.T8 + 6000, C3: base.C3 + 6000, expected: base.expected - 6000
+        });
+    });
+
+    test('an online advance of the same amount leaves Expected cash, C3 and T8 unchanged', () => {
+        const exp = salaryExpense(worker, entry('online', 'advance'), { now: NOW, kindText: 'Advance' });
+        expect(exp.remarks).toBe('2026-11 · Advance');
+        const f = figures([tea, exp]);
+        expect(f).toEqual({ ...base, M4: base.M4 + 6000, salaries: 6000, M13online: base.M13online + 6000, T4: base.T4 + 6000, T9: base.T9 + 6000 });
+    });
+
+    test('"Already entered in Expenses": cash lowers Expected cash once, online not at all; linking changes no figure', () => {
+        const byHandPay = (mode) => ({ ...byHand(mode), amount: 6000 });
+        for (const mode of ['cash', 'online']) {
+            const before = figures([tea, byHandPay(mode)]);
+            const linked = figures([tea, { ...byHandPay(mode), workerId: 'w1', workerPayId: 'p' }]);
+            expect(linked).toEqual(before);
+            expect(linked.expected).toBe(mode === 'cash' ? base.expected - 6000 : base.expected);
+            expect([linked.C3, linked.T8]).toEqual(mode === 'cash' ? [base.C3 + 6000, base.T8 + 6000] : [base.C3, base.T8]);
+        }
+        expect(linkCandidates([{ ...byHand('cash'), workerId: 'w1', workerPayId: 'p' }], { day: DAY, amount: 1240 })).toEqual([]);
+    });
 });

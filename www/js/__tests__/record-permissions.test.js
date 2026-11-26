@@ -13,6 +13,13 @@ describe('canVoidExpenseWith (mirrors firestore.rules expenseVoidOk, #99)', () =
         expect(canVoidExpenseWith({ ...own, voided: true }, { uid: 'o', role: 'owner', now: NOW })).toBe(false);
     });
 
+    test('a salary expense (WP-12): only the owner, as the rules', () => {
+        const pay = { ...own, workerId: 'w1', workerPayId: 'p1' };
+        expect(canVoidExpenseWith(pay, { uid: 'o', role: 'owner', now: NOW })).toBe(true);
+        expect(canVoidExpenseWith(pay, { uid: 'm', role: 'manager', now: NOW })).toBe(false);
+        expect(canVoidExpenseWith(pay, { uid: 'u1', role: 'staff', now: NOW })).toBe(false);
+    });
+
     test('manager any expense, member only their own, inside the role edit window (default 2 days)', () => {
         const others = { userId: 'u2', timestamp: NOW - DAY };
         expect(canVoidExpenseWith(others, { uid: 'm', role: 'manager', now: NOW })).toBe(true);

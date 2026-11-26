@@ -48,6 +48,8 @@ const CLOSED_DAY_WAIT_MS = 1500;
 
 /** Escaped "Cash" / "Online" of an expense (EXP-MODE; no mode = cash). */
 /** A stored system type ("Bills", #437) in the app's language; anything typed stays as typed. */
+/** The note on an expense that counts a payment kept elsewhere (#437, #373). */
+const linkedNoteKey = (e) => (e?.recurringBillId ? 'ui.expenses.linked_bill' : e?.workerId ? 'ui.expenses.linked_salary' : '');
 const typeLabel = (type) => { const key = expenseTypeLabelKey(type); return key ? t(key) : (type ?? ''); };
 const modeLabel = (expense) => tx(expenseMode(expense) === 'online' ? 'ui.expenses.mode_online' : 'ui.expenses.mode_cash');
 
@@ -643,7 +645,7 @@ export class ExpensesManager {
             ${expense.remarks ? `
             <div class="notice exp-detail-note">${icon('file', 'i-sm')}<div class="grow"><b>${tx('ui.expenses.d_remarks')}</b>${Helpers.escapeHtml(expense.remarks)}</div></div>
             ` : ''}
-            ${expense.recurringBillId ? `<p class="notice info" data-linked-bill>${tx('ui.expenses.linked_bill')}</p>` : ''}
+            ${linkedNoteKey(expense) ? `<p class="notice info" data-linked-bill>${tx(linkedNoteKey(expense))}</p>` : ''}
             ${this.mayLinkBill(expense, category) ? `<button type="button" class="btn btn-tonal btn-sm" data-onclick="recurring.linkFrom('${Helpers.escapeJsAttr(String(expense.id))}')">${tx('ui.expenses.link_bill')}</button>` : ''}
         `;
 
@@ -654,8 +656,8 @@ export class ExpensesManager {
         if (voidBtn) voidBtn.style.display = allowed ? '' : 'none';
         // Re-entry on the same day must still be inside the role's back-dating window
         const reenterBtn = document.getElementById('expenseReenterBtn');
-        // A bill payment's expense is corrected on Recurring bills (void, then record again), never re-entered here
-        if (reenterBtn) reenterBtn.style.display = allowed && !expense.recurringBillId && !this.reenterProblem(expense) ? '' : 'none';
+        // A bill payment's or worker pay's expense is corrected on its page (void, then record again), never re-entered here
+        if (reenterBtn) reenterBtn.style.display = allowed && !isLinkedExpense(expense) && !this.reenterProblem(expense) ? '' : 'none';
         UIManager.openSheet(document.getElementById('expenseDetailsOverlay'));
     }
 
@@ -710,7 +712,7 @@ export class ExpensesManager {
             labelKey: 'ui.expenses.void_reason',
             confirmKey: reenter ? 'ui.expenses.reenter_btn' : 'ui.expenses.void_confirm',
             danger: true,
-            leadHtml: expense.recurringBillId ? `<p>${tx('ui.expenses.linked_bill')}</p>` : ''
+            leadHtml: linkedNoteKey(expense) ? `<p>${tx(linkedNoteKey(expense))}</p>` : ''
         });
         if (!reason) return false;
         this.closeExpenseDetails();

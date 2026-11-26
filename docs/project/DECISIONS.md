@@ -52,6 +52,7 @@ this repo.
 | D-022 | Oversell warns, never blocks | Accepted |
 | D-023 | Rentals: one view, no Simple / Advanced | Accepted |
 | D-025 | A recurring-bill payment is one expense; everyone with the page pays | Accepted |
+| D-026 | Worker pay is one expense too (Salaries) | Accepted |
 
 ---
 
@@ -209,3 +210,9 @@ this repo.
 - **Context** Phase 1 kept payments outside Money (M23 / M24 add-on), so a bill paid from the drawer left Expected cash wrong, and one also typed into Expenses counted twice.
 - **Decision** Each payment saves (or links, "Already entered in Expenses") exactly one business expense, type "Bills", in the same batch, with the payment's explicit cash / online; it counts once in M4, Today and, only when cash, the drawer. M23 / M24 retired. Voiding the expense removes the payment (VOID-EXP). Older payments are not backfilled: the owner adds each with "Add to Money figures". The page is a Roles & access switch (`recurringBills`, on for managers and members); members record payments, the owner and managers keep the items.
 - **Confirmation** `tests/oracle/recurring-in-money.test.js`, `linked-expense-repo.test.js`, `recurring-bills-page.test.js`, rules tests "recurring bills".
+
+### D-026 — Worker pay is one expense too (Salaries)
+- **Status** Accepted · **Date** 2026-11-26 · **Decider** Owner (#373, "same pattern" as D-025) · **Related** #373, [calculations.md](../calculations.md) WP-12
+- **Context** Worker pay showed as its own Money line (M22, M25, M26) outside Expenses, so cash pay from the drawer left Expected cash wrong.
+- **Decision** Each pay or advance saves (or links) exactly one business expense, type "Salaries", with the worker as the person and an explicit cash / online, in one batch; it counts once in M4, Today and, only when cash, the drawer. M22 / M25 / M26 retired. The Workers page stays owner only; only the owner creates or voids a salary expense. Salary expenses are listed in Expenses like any other. Older entries: "Add to Money figures" per entry, no backfill.
+- **Confirmation** `tests/oracle/recurring-in-money.test.js` (worker pay), `workers-page.test.js`, `linked-expense-repo.test.js`, rules tests "worker pay".

@@ -22,3 +22,7 @@
     .wp-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .wp-form h3, .wp-form .wp-actions, .wp-form p { grid-column: 1 / -1; }
 }
+.wp-pick-label { color: var(--ink-2); font-size: var(--fs-sm); font-weight: var(--w-label); }
+.wp-exp-list { max-height: 18rem; overflow-y: auto; }
+.wp-exp-list .row { cursor: pointer; }
+.wp-hint { display: flex; align-items: center; gap: var(--sp-1); margin: 0; }

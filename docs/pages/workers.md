@@ -13,10 +13,19 @@ last month you choose; what is still owed, or an advance, stays. **Working again
 pay from this month.
 
 **Recording pay.** Open a worker and tap **Record pay or advance**: the amount, Pay or Advance, the
-month's pay it counts towards (this month by default), the date it was given, cash or online and an
-optional note. A month can have several entries (an advance mid-month, a part, the rest); each counts
-towards its month (WP-2). A wrong entry can be removed (it asks first); the month then shows as owed
-again.
+month's pay it counts towards (this month by default), the date it was given, **Cash** or **Online** (always pick one; nothing is chosen for you) and an optional note. A month can
+have several entries (an advance mid-month, a part, the rest); each counts towards its month (WP-2).
+
+**In Money and Today (WP-12).** Each pay or advance is one expense, counted once. **Add a new expense**
+(the usual choice) saves an expense with it: Salaries, the worker's name, the same amount, date and cash
+or online. **Already entered in Expenses**, when you typed it into Expenses yourself: pick that expense
+(those within 3 days, the same amount first) and no new expense is added. It then counts in Money ›
+Spending (Salaries), in Today's business expenses and paid figures, and, **only when paid in cash**, in
+the cash drawer (Expected cash goes down by it). Online pay never changes the drawer or the cash counts.
+**Void** takes a wrong entry off together with its expense (voiding the expense in Expenses does the
+same; only the owner can void a salary expense). Entries recorded before this have a **Not counted in
+Money** mark: they are in no Money figure until you tap **Add to Money figures** on each one. Salary
+expenses are listed in Expenses like any other business expense.
 
 **Each month** a worker is **Paid**, **Part-paid, ₹X of ₹Y** or **₹Y due** (WP-6). Y is the month's
 pay plus anything still owed from earlier months (WP-3), and X what is covered: paid this month plus
@@ -33,5 +42,4 @@ carried (WP-10), and how many workers are paid, part-paid and due.
 still to be paid, Today shows **Salaries due** with the total and how many workers (WP-11), and
 **Open Workers / Salaries** brings you here.
 
-**Not in Money yet.** Pay recorded here does not change Money › Spending, Today or the cash drawer:
-the owner has not yet decided how it fits with the labour expense type. Saving needs the internet.
+Saving needs the internet.

@@ -1,5 +1,5 @@
 /**
- * A recurring-bill payment and its one expense (#437, RB-12, VOID-EXP): written together in one batch;
+ * A recurring-bill payment or worker's pay and its one expense (#437 RB-12, #373 WP-12, VOID-EXP): written together in one batch;
  * an expense already in Expenses is linked with the payment in one batch; voiding the expense takes
  * the payment off its bill in the same transaction.
  */
@@ -7,7 +7,8 @@ import { FirebaseService } from '../firebase/firestore-service.js';
 import { AppState } from '../utils/state.js';
 import { createFakeFirestore } from './__mocks__/fake-firestore.js';
 import { payWrite, linkedWrite } from '../firebase/repos/recurring-bills.js';
-import { billExpense } from '../utils/linked-expense.js';
+import * as workersRepo from '../firebase/repos/workers.js';
+import { billExpense, salaryExpense } from '../utils/linked-expense.js';
 import { toLocalISODate } from '../utils/dates.js';
 
 const settle = async (fake, rounds = 10) => {
@@ -25,6 +26,7 @@ describe('recurring-bill payments and their expenses', () => {
         global.firebase = fake.firebase;
         fake.seed('items', []);
         fake.seed('recurringBills', [item]);
+        fake.seed('workers', [{ id: 'w1', name: 'Ramu', startMonth: day.slice(0, 7), active: true, pays: [{ from: day.slice(0, 7), amount: 9000 }], entries: [] }]);
         AppState.currentUser = { uid: 'u1' };
         AppState.userName = 'U';
         AppState.userRole = 'staff';
@@ -104,5 +106,19 @@ describe('recurring-bill payments and their expenses', () => {
         await FirebaseService.voidExpense(record.id, 'Twice');
         expect(reads.mock.calls.map(c => c[0])).not.toContain('recurringBills');
         expect(bill().entries).toEqual([]);
+    });
+
+    test('a worker\'s pay: the Salaries expense and the entry in one batch; voiding the expense takes the entry off', async () => {
+        AppState.userRole = 'owner';
+        const entry = { id: 'e1', month: day.slice(0, 7), date: day, amount: 6000, kind: 'advance', mode: 'cash' };
+        const { record, committed } = FirebaseService.startSaveExpense(salaryExpense({ id: 'w1', name: 'Ramu' }, entry, { uid: 'u1' }), { withBatch: workersRepo.payWrite('w1', entry) });
+        await committed;
+        await settle(fake);
+        expect(fake.raw('expenses').get(record.id)).toMatchObject({ type: 'Salaries', personName: 'Ramu', workerId: 'w1', workerPayId: 'e1' });
+        expect(fake.raw('workers').get('w1').entries).toEqual([{ ...entry, expenseId: record.id }]);
+        const voided = await FirebaseService.voidExpense(record.id, 'Wrong month');
+        await settle(fake);
+        expect(voided.unlinked).toEqual({ coll: 'workers', docId: 'w1', payId: 'e1' });
+        expect(fake.raw('workers').get('w1').entries).toEqual([]);
     });
 });

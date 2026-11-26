@@ -1,7 +1,7 @@
 /**
  * @fileoverview Repository of worker pay (#373 phase 1): `workers/{id}`, one document per worker
- * with its pay steps and its entries (payments and advances). Owner only (firestore.rules
- * "Worker pay"). Imported with the Workers page only, never at start.
+ * with its pay steps and its entries (payments and advances), each saved with its one expense (WP-12).
+ * Owner only (firestore.rules "Worker pay"). Imported with the Workers page only, never at start.
  * @module firebase/repos/workers
  */
 
@@ -30,3 +30,9 @@ export const addEntry = (id, entry) => docs().addEntry(id, entry);
 
 /** Removes one entry, exactly as loaded. */
 export const removeEntry = (id, entry) => docs().removeEntry(id, entry);
+
+/** The worker's half of a pay entry saved with its expense in one batch (entry-docs payWrite). */
+export const payWrite = (id, entry) => docs().payWrite(id, entry);
+
+/** "Add to Money figures" for an entry recorded before entries made expenses. */
+export const linkedWrite = (id, payId) => docs().linkedWrite(id, payId);

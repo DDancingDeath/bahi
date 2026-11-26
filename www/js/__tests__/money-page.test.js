@@ -984,62 +984,27 @@ describe('what each role sees (Roles & access)', () => {
     });
 });
 
-describe('worker pay on Money (M22, M25, M26, U-22); recurring bills count in M4 (RB-12)', () => {
-    let setLinkedSource;
-    beforeAll(async () => {
-        ({ setLinkedSource } = await import('../utils/linked-outflows.js'));
-    });
-    const seed = () => {
-        setLinkedSource('workers', [{ entries: [
-            { date: '2026-10-05', amount: 800, kind: 'pay', mode: 'cash' },
-            { date: '2026-09-05', amount: 999, kind: 'pay', mode: 'cash' }
-        ] }], Date.now());
-    };
-
-    test('owner: Spending lists worker pay, Profit and Cash subtract the same M22, every ₹ explained', async () => {
-        const { unexplainedValues } = await import('../utils/metric-registry.js');
-        seed();
-        MoneyManager.init('spending');
-        expect(document.getElementById('moneyLinkedCard').hidden).toBe(false);
-        expect(shown('moneyLinkedWorkers')).toBe(800);
-        expect(document.getElementById('moneyLinkedBills')).toBeNull();
-        const m = MoneyManager.lastSummary;
-        expect(shown('moneyProfitAfterLinked')).toBe(rupee(m.M6.total - 800));
-        expect(shown('moneyNetAfterLinked')).toBe(rupee(m.M14 - 800));
-        expect(unexplainedValues(document.getElementById('money'))).toEqual([]);
-    });
-
-    test('a recurring-bill payment counts once in M4 and its "Bills" row (en + hi), through its expense only', () => {
+describe('recurring bills (RB-12) and worker pay (WP-12) count in M4 through their expenses; no add-on lines', () => {
+    test('a payment counts once in M4 and its "Bills" / "Salaries" rows (en + hi), through its expense only', () => {
         MoneyManager.init('spending');
         const before = MoneyManager.lastSummary.M4.total;
-        AppState.expensesHistory.push({ id: 'RB1', date: '2026-10-21', day: '2026-10-21', amount: 1240, category: 'business', type: 'Bills', paymentMode: 'cash', recurringBillId: 'b1', recurringPayId: 'p1' });
+        AppState.expensesHistory.push(
+            { id: 'RB1', date: '2026-10-21', day: '2026-10-21', amount: 1240, category: 'business', type: 'Bills', paymentMode: 'cash', recurringBillId: 'b1', recurringPayId: 'p1' },
+            { id: 'WP1', date: '2026-10-21', day: '2026-10-21', amount: 6000, category: 'business', type: 'Salaries', personName: 'Ramu', paymentMode: 'online', workerId: 'w1', workerPayId: 'e1' });
         MoneyManager.summaryCache = { sig: null, map: new Map(), computed: 0 };
         MoneyManager.init('spending');
-        expect(MoneyManager.lastSummary.M4.total).toBe(before + 1240);
-        expect(MoneyManager.lastSummary.M4.byCategory.find(c => c.category === 'Bills').total).toBe(1240);
+        const m = MoneyManager.lastSummary;
+        expect(m.M4.total).toBe(before + 7240);
+        expect(m.M4.byCategory.find(c => c.category === 'Bills').total).toBe(1240);
+        expect(m.M4.byCategory.find(c => c.category === 'Salaries').total).toBe(6000);
         expect(document.getElementById('moneyCategories').textContent).toContain('Bills');
+        expect(document.getElementById('moneyCategories').textContent).toContain('Salaries');
+        expect(document.getElementById('money').innerHTML).not.toMatch(/moneyLinked/);
         setLang('hi');
         MoneyManager.init('spending');
         expect(document.getElementById('moneyCategories').textContent).toContain('बिल');
+        expect(document.getElementById('moneyCategories').textContent).toContain('वेतन');
         setLang('en');
-    });
-
-    test('manager: worker pay hidden (only the owner may read workers)', () => {
-        seed();
-        AppState.userRole = 'manager';
-        MoneyManager.init('spending');
-        ['moneyLinkedCard', 'moneyLinkedProfit', 'moneyLinkedCash'].forEach(id => expect(document.getElementById(id).hidden).toBe(true));
-    });
-
-    test('owner, nothing loaded on this phone yet: opening Money reads nothing; one tap includes it', () => {
-        setLinkedSource('workers', null);
-        const load = jest.spyOn(MoneyManager, 'loadLinked').mockImplementation(() => {});
-        MoneyManager.init('spending');
-        expect(load).not.toHaveBeenCalled();
-        expect(document.getElementById('moneyLinkedLoad').hidden).toBe(false);
-        expect(document.getElementById('moneyLinkedRows').hidden).toBe(true);
-        expect(document.getElementById('moneyLinkedProfit').hidden).toBe(true);
-        load.mockRestore();
     });
 });
 

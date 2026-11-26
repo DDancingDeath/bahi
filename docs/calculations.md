@@ -72,7 +72,7 @@ One pure function computes every figure: `todaySummary({ bills, expenses, sessio
 | T1 | Purchases | Σ BILL-TOTAL of today's purchases; count of bills. | `purchases`, `purchaseCount` |
 | T2 | Sales | Σ BILL-TOTAL of today's wholesale + retail sales; count of bills. | `sales`, `saleCount` |
 | T3 | Labour › Deducted from farmers | Same number as T-LAB-1 below. | `labour.deducted.amount` |
-| T4 | Business expenses | Σ today's expenses of kind business (EXP-KIND), untagged ones included, cash and online (EXP-MODE). A recurring-bill payment counts here through its one expense (RB-12). | `businessExpenses`, `businessExpenseCount` |
+| T4 | Business expenses | Σ today's expenses of kind business (EXP-KIND), untagged ones included, cash and online (EXP-MODE). A recurring-bill payment (RB-12) or a worker's pay (WP-12) counts here through its one expense. | `businessExpenses`, `businessExpenseCount` |
 | T5 | Personal expenses | Σ today's expenses tagged personal, cash and online (EXP-MODE). On a phone whose role can't read them (#98): + today's total and count in `personalExpenseDays` (the `personalDay` input). | `personalExpenses`, `personalExpenseCount` |
 | T6 | Cash received | BILL-AT-SAVE cash of today's sales + cash part of DUE-PAYs received today. | `cashIn` |
 | T7 | Online received | Same, online. | `onlineIn` |
@@ -297,7 +297,7 @@ One pure module computes every figure and rule of the drawer: `www/js/utils/calc
 |---|---|---|---|
 | C1 | Cash sales | BILL-AT-SAVE cash of that day's wholesale + retail sales. | `drawerDay().cashSales` |
 | C2 | Cash purchases | BILL-AT-SAVE cash of that day's purchases. | `drawerDay().cashPurchases` |
-| C3 | Expenses | That day's **cash** expenses (EXP-MODE; online ones never leave the drawer; no mode = cash; a recurring-bill payment paid in cash is one of them, RB-12), business and personal (untagged = business; an expense's `amount`). Personal ones a role can't read come from that day's `personalExpenseDays` total less its online part (#98, #118). | `drawerDay().businessExpenses`, `personalExpenses` |
+| C3 | Expenses | That day's **cash** expenses (EXP-MODE; online ones never leave the drawer; no mode = cash; a recurring-bill payment or worker's pay paid in cash is one of them, RB-12, WP-12), business and personal (untagged = business; an expense's `amount`). Personal ones a role can't read come from that day's `personalExpenseDays` total less its online part (#98, #118). | `drawerDay().businessExpenses`, `personalExpenses` |
 | C4 | Due received | Cash part of DUE-PAYs received that day (bill entries and session legs, each id once). A "No bill" entry is a cash-only leg (`noBillLeg()`). The day's details list each leg with its cash + online (`legAmount()`). | `drawerDay().dueReceived` |
 | C5 | Due paid | Cash part of DUE-PAYs paid that day. | `drawerDay().duePaid` |
 | C6 | Deposits | Σ cash added to the drawer that day (❓ open: #103, what a deposit means). | `drawerDay().cashDeposits` |
@@ -365,11 +365,8 @@ Oracle: `tests/oracle/rent.test.js`.
 
 The owner's monthly pay tracker (owner only). Each worker (`workers/{id}`: `name`, `startMonth`,
 `active`, `pays` = pay steps `{from, amount}`, `entries` = payments and advances `{id, month, date,
-amount, kind, mode, note}`) has, for every month from the start month, a pay, what was paid for it and
-a balance carried to the next month. Whole rupees. **Not linked to Money:** worker pay is not an
-expense here and changes no M*, T*, C* or ST* figure (Money › Spending, Today, the cash drawer stay as
-they were) until the owner decides how it fits with the labour expense type (#373, V2 OD-03 / OD-09).
-Reads: one query of `workers` each time the page opens (one read per worker; one when there are none);
+amount, kind, mode, note, expenseId}`; `linked` = entry id → expense id for older entries added to Money later) has, for every month from the start month, a pay, what was paid for it and
+a balance carried to the next month. Whole rupees. **Counted in Money and Today through one expense (WP-12).** Reads: one query of `workers` each time the page opens (one read per worker; one when there are none);
 nothing at start; Today's salaries line (WP-11) at most once per session on the owner's phone. Oracle: `tests/oracle/worker-pay.test.js`.
 
 | ID | On screen | Definition |
@@ -385,6 +382,7 @@ nothing at start; Today's salaries line (WP-11) at most once per session on the 
 | WP-9 | Still to pay (page card) | Σ WP-5 at the end of the month shown, over workers whose WP-5 is above 0 (those who left too). |
 | WP-10 | Advances carried (page card) | Σ −WP-5 over workers whose WP-5 is below 0. WP-9 − WP-10 = Σ WP-1 of all months − Σ WP-2 of all months (up to the month shown). |
 | WP-11 | Today › Reminders: "Salaries due ₹X", "N workers still to be paid" (owner only) | **When pay counts as due:** a month's pay is due from the **1st of that month** (as rent; the pay recorded here is the current month's, with advances mid-month), so from the 1st the line shows whenever someone is still owed. N = workers whose WP-5 at the end of the current month is above 0 (arrears from earlier months and those who left included); X = Σ of those WP-5 (= WP-9 of the current month). Not shown when nothing is owed. Worked out from the loaded workers when the Workers page loads or saves (no reads) and kept on this phone for the owner with the time ("As worked out on …"), for this and the next 2 months (no entry can be for a later month). **Reads:** none at start for anyone. On the owner's phone, once per session, about 20 s after the first screen when the phone is idle and online, and only when this phone keeps the line from an earlier day: one query of `workers` (one read per worker); never when Workers was not opened on this phone. Tapping **Open Workers / Salaries** opens the page. Code: `payDue`, `payDueMonths` (`utils/worker-pay.js`), `utils/pay-reminder.js`. |
+| WP-12 | An entry in Money and Today; "Not counted in Money", **Add to Money figures** | **One pay or advance = one expense, counted once** (as RB-12). Recording it also saves one expense in the same batch: business (EXP-KIND), `type` "Salaries" (shown "Salaries" / "वेतन"), `personName` = the worker, the entry's amount, `paymentMode` and day, the month (and "Advance") and note in `remarks`, and the link `workerId` + `workerPayId`; the entry carries `expenseId`. **Already entered in Expenses** links an expense entered by hand instead (business, active, not linked, within 3 days, the same amount first): the entry takes that expense's amount, day and mode. **Cash / Online is always picked**; only the expense's mode decides the drawer. So worker pay counts only through its expense: M4 and its "Salaries" row, M13, T4, T8 (cash) or T9 (online), C3 (cash only: online never changes Expected cash, the cash counts or T8). WP-2 … WP-10 still read the entries. **Void:** voiding the expense removes the entry in the same transaction (VOID-EXP); only the owner voids a salary expense (the rules refuse anyone else, and only the owner creates one). **Older entries** (no `expenseId`) count in no Money figure until the owner taps **Add to Money figures** (`linked`). Salary expenses are listed in Expenses like any other business expense. Code: `utils/linked-expense.js` (`salaryExpense`), `firebase/repos/workers.js` (`payWrite`, `linkedWrite`). Oracle: `tests/oracle/recurring-in-money.test.js` (worker pay). |
 
 ---
 
@@ -484,7 +482,7 @@ and close on the figure of the home page:
 | M1 | Sales | Σ BILL-TOTAL of wholesale + retail bills with BILL-TIME in the period (OPENING left out); BILL-COUNT; split retail / wholesale; "of which still due" Σ BILL-DUE. Same as F1. |
 | M2 | Cost of goods sold (on screen "Cost of what was sold") | Σ COGS of the period's sale lines. Same as F2. |
 | M3 | Gross profit (on screen "Profit on goods") | M1 − M2; "profit per ₹100 sold" = M3 ÷ M1 × 100. |
-| M4 | Business expenses | Σ business expenses (EXP-KIND), by category (the expense `type`; untagged ones are their own row). Same as F3. Recurring-bill payments count here once, through their expenses (RB-12, category "Bills"). |
+| M4 | Business expenses | Σ business expenses (EXP-KIND), by category (the expense `type`; untagged ones are their own row). Same as F3. Recurring-bill payments and worker pay count here once, through their expenses (RB-12 "Bills", WP-12 "Salaries"). |
 | M5 | Bad debts (on screen "Dues written off") | Dues to receive written off in the period, on the write-off date (as in F4): Σ `amount` of the bills' `payments[]` entries with `kind: 'writeOff'` (sales; a purchase written off is not a bad debt). A write-off is the only way a due to receive goes down without money or a recorded bill edit (OD-13, owner decision 2026-11-08): **Write off as bad debt** on Outstanding, or Mark as cleared › "Write off as bad debt", with a reason; the rules refuse a due zeroed any other way, the owner's included (OD-14). It stays on the bill (bill details, "Written off") and in the party's statement (ST3). |
 | M6 | Profit | M3 − M4 − M5. **The** profit (#36); same as F4. "—" with a caveat while the cost of goods sold isn't known. Labelled **"Profit (estimate)"** (Money › Profit: the headline and the "= Profit" line) while some kg sold has no cost yet, the existing *uncosted* caveat (`uncostedWarning`: sold before its purchase was written); otherwise "Profit". Each reason is said once, by its caveat, not again in the takeaway (V2 O-18). |
 | M7 | Labour on purchases | Σ labour on the period's purchases = T-LAB-1 over the period (`labourSummary()`). Each bill's labour is read by `billLabour()` (`laborCharges`, older bills `labour`) everywhere: Spending, its breakdown, Statements, month snapshots, items and parties. **Not** subtracted from profit (owner decision 2026-10-26). Shown on Money › Spending with M18. |
@@ -500,11 +498,11 @@ and close on the figure of the home page:
 | M17 | Stock movement check (on screen "Stock check") | Opening stock value + purchases at their saved line amounts (AVG-COST; the screen says "at line rate") − M2 ± adjustments = closing (as F8). |
 | M20 | Paid to labourers (Money › Spending, under M7) — OD-03 step 1 | T-LAB-4 over the period: Σ of M4's expenses (the active business expenses dated in the period, the same filter) that are LABOUR-EXP; part of M4, so never more than it. Display only (profit M6 unchanged). Amounts are read the way M4 reads them (`parseFloat`), so M20 is never more than M4. Code: `business-metrics.labourPaidIn`. Oracle: `tests/oracle/labour.test.js`, worked example in `tests/oracle/business-metrics.test.js`. |
 | M21 | Paid − deducted (Money › Spending) | T-LAB-5 for the period: M20 − M7, "₹Z more / less paid than deducted" or "matches" (50 paise). Not in profit (OD-03 step 2 is a separate decision). |
-| M22 | Worker pay (Money › Spending, owner only; U-22) | Σ amount of every Workers entry (pay and advances) whose `date` is in the period (as WP-8), split cash / online by its mode. Not part of M4: the Workers page is its own record. Opening Money reads nothing for it: the list comes from the Workers page opened on this phone, or from one tap on "Include worker pay" (one read per worker). Code: `utils/linked-outflows.linkedOutflows`. Oracle: `tests/oracle/business-metrics.test.js`. |
+| M22 | *Retired (#373)* | Was: worker pay as its own Money line, outside M4. Worker pay now counts in M4 through its expenses (WP-12). |
 | M23 | *Retired (#437)* | Was: regular bills paid, outside M4. Recurring-bill payments now count in M4 through their expenses (RB-12). |
-| M24 | *Retired (#437)* | Was: M22 + M23. M25 and M26 now subtract M22 only. |
-| M25 | Left after worker pay (Money › Profit, owner only) | M6 − M22. M6 itself (and the month snapshots) is unchanged. |
-| M26 | Net money in after worker pay (Money › Profit › Money in and out, owner only) | M14 − M22. |
+| M24 | *Retired (#437)* | Was: M22 + M23. |
+| M25 | *Retired (#373)* | Was: M6 − M22. M6 now includes worker pay through M4. |
+| M26 | *Retired (#373)* | Was: M14 − M22. M14 now includes worker pay through M13. |
 | M18 | Labour to pay (estimate) | T-LAB-2 for each day of the period (purchase bills by BILL-TIME, local day), each day rounded up on its own, summed (`labourToPayByDay()`). Money › Spending shows it under M7 with T-LAB-3's more / less / matches. |
 | M19 | Expenses per ₹100 of sales (Money › Spending takeaway, Q7 of #111) | M4 ÷ M1 × 100, to 1 decimal: business expenses only (personal expenses are never business, EXP-KIND); no figure without sales. The takeaway "Business expenses were ₹X for every ₹100 of sales, more than ₹10" shows only above `expenseNudgePer100` (`insights-config.js`, default 10). Code: `business-metrics.expensePer100Sales`. |
 | I1 | Item sales and profit | Per catalogue item: Σ sale line totals, Σ their COGS, profit = sales − COGS, profit per ₹100 (AC10). |
